@@ -931,10 +931,9 @@ void GameSpyStagingRoom::launchGame()
 	msg->appendIntegerArgument(GAME_INTERNET);
 
 	// GeneralsX: Do NOT force the render limiter off for the match.
-	// Same defect and same reasoning as the LAN path - see LANAPICallbacks.cpp. Kept in step
-	// deliberately: leaving it here would have left the internet path spinning unbounded while
-	// the LAN path was fixed, which is exactly the kind of split that gets measured on one
-	// transport and believed for both.
+	// Same reasoning as the LAN path - see LANAPICallbacks.cpp. Kept in step
+	// deliberately so the internet path does not spin unbounded while
+	// the LAN path is capped.
 
 	// Set the seeds
 	InitRandom( getSeed() );

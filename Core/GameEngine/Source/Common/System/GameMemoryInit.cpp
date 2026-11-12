@@ -148,7 +148,7 @@ void userMemoryManagerInitPools()
 #ifdef _WIN32
 	strlcat(buf, "\\Data\\INI\\MemoryPools.ini", ARRAY_SIZE(buf));
 #elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-	// GeneralsX @bugfix On iOS the game data does not sit beside the executable —
+	// GeneralsX: On iOS the game data does not sit beside the executable —
 	// the packaging script rsyncs the whole install into <bundle>/GameData (see
 	// scripts/build/ios/package-ios-zh.sh), and SDL3Main derives exactly that path.
 	// Appending Data/INI directly to the executable directory therefore still
@@ -163,17 +163,10 @@ void userMemoryManagerInitPools()
 #endif
 
 	FILE* fp = fopen(buf, "r");
-	// GeneralsX: the executable directory is not the install root
-	// in every supported layout, so the separator fix above still left this file unreachable
-	// for the bundled macOS build: bundle-macos-zh.sh puts the binary in
-	// <app>/Contents/Resources/bin while the game data stays in the user's Zero Hour
-	// directory, so <exeDir>/Data/INI never exists there and MemoryPools.ini remained inert.
-	// That wrapper chdir()s into the data root before exec, so the process already starts
-	// with the right working directory and a cwd-relative retry finds the file -- and cwd is
-	// where every other Data/INI file is read from anyway. Only attempted after the
-	// exe-relative open has already failed, so no layout that worked before changes, and a
-	// miss here is as silent and harmless as a missing file (this runs before DEBUG_INIT,
-	// see preMainInitMemoryManager in GameMemory.cpp, so we cannot log either way).
+	// The executable directory is not the install root in every layout: bundle-macos-zh.sh puts the binary in
+	// <app>/Contents/Resources/bin while game data stays in the Zero Hour directory, so <exeDir>/Data/INI does not exist.
+	// The wrapper chdir()s into the data root before exec, so a cwd-relative retry finds the file. Only tried after the
+	// exe-relative open fails. A miss is silent (this runs before DEBUG_INIT, see preMainInitMemoryManager).
 	if (fp == nullptr)
 	{
 		fp = fopen("Data/INI/MemoryPools.ini", "r");

@@ -297,7 +297,7 @@ static Int layoutObserverList( const Int *groupSizes, Int groupCount )
 		buttonPlayer[k]->winSetSize( b.w, b.h );
 		// Keep the authored right-hand margin (list edge past the template's rightmost cell), so the list window - which is
 		// what hit-testing descends through - covers every button it now holds and no more: in retail's two-column box a
-		// margin taken from button 0 grew the input-blocking list over RightHUD (Mini trace 02/10: 980 -> 1253 px wide).
+		// margin taken from button 0 grew the input-blocking list over RightHUD (980 -> 1253 px wide).
 		size.x = max( size.x, b.x + b.w + max( 0, s_listSize.x - s_authoredRight ) );
 		size.y = max( size.y, b.y + b.h );
 		if( b.x + b.w > s_authoredRight )

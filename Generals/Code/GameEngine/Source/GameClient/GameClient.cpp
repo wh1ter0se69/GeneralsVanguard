@@ -517,18 +517,9 @@ void GameClient::registerDrawable( Drawable *draw )
  */
 DECLARE_PERF_TIMER(GameClient_update)
 DECLARE_PERF_TIMER(GameClient_draw)
-// GeneralsX: GX_SHOT=<frame>[,<frame>...] takes the same PNG screenshot as the screenshot hotkey
-// (TheDisplay->takeScreenShot, the MSG_META_TAKE_SCREENSHOT_PNG path in CommandXlat.cpp) once at each listed logic
-// frame of the process's first match; never in the shell, and never in a later match (28/09/2026: the W3D capture
-// clock counts from the first match, so a later match's frame N would not show a fresh run's phase at frame N). Files go where the hotkey writes
-// them, <user data>/Screenshots/sshot_<local time>.png, so they sort in request order; each capture logs
-// "[GXSHOT] n=<k> f=<frame> asked=<frame>". It lets an A/B harness compare two arms' renders of the same
-// deterministic scene at the same logic frame on machines where an outside screen grabber has no permission. The
-// hotkey's "screenshot saved" message is not shown while GX_SHOT is set (W3D_UpdateScreenshotMessages), so no shot
-// contains an earlier one's message. scripts/test/gx-shotdiff pairs and compares the shots.
-// Off when GX_SHOT is unset, and on a -headless peer (one log line). Strict parse: 1-16 comma-separated decimal
-// frames, each 1..999999999, strictly ascending, nothing else; anything else turns it off and logs the reason once.
-// Client-only: it reads the logic frame and game mode and writes nothing the simulation reads.
+// GeneralsX: GX_SHOT=<frame>[,..] takes the hotkey PNG at each listed logic frame of the first match, never the shell.
+// For A/B renders of one deterministic scene (scripts/test/gx-shotdiff pairs them). Off when unset or on -headless.
+// Strict parse: 1-16 ascending decimal frames, 1..999999999; anything else turns it off and logs why.
 static Bool gxShotParse( const char *env, UnsignedInt *frames, Int maxFrames, Int *count, const char **why )
 {
 	*count = 0;
@@ -660,8 +651,7 @@ Real gxRenderTimeScale( void )
 
 // GeneralsX: The camera's own easing (W3DView zoomCameraToDesiredHeight, movePivotToGround) steps by
 // min(speed * BaseFps / render fps, 1) per draw and STOPS once the remainder is under a threshold, so where it comes to
-// rest depended on the render cadence: a constant sub-pixel camera offset for the rest of the match, measured as per-pixel
-// noise over 60-68% of an uncapped A-vs-A pair on uneven ground (Mini 2026-09-29, Red Rock). Under capture it steps by
+// rest depended on the render cadence: a constant sub-pixel camera offset for the rest of the match. Under capture it steps by
 // the same total per logic frame, BaseFps / tick rate, once per logic frame.
 Real gxRenderBaseOverUpdateFpsRatio( void )
 {
@@ -850,9 +840,9 @@ void GameClient::update()
 	// GeneralsX: First, so its clock read is as close to the loop's wake as it can be: the
 	// render interpolation phase every drawable of this frame is drawn at (GXLogicPhase.h). One sample per update, on
 	// purpose: camera tracking, the drawables' client updates, attached emitters and the draw all read this one phase
-	// and so agree with each other; a second sample just before the draw would split them (declined).
-	// The client work before the draw adds its variable time as latency jitter; measured on the whole path, judder is cv
-	// 0.037-0.038 at ~600 fps uncapped (Windows, 10,800 frames) against 2.9-3.9 without interpolation.
+	// and so agree with each other; a second sample just before the draw would split them.
+	// The client work before the draw adds its variable time as latency jitter; with interpolation, judder is cv
+	// 0.037-0.038 at ~600 fps uncapped, against 2.9-3.9 without.
 	TheDisplay->updateLogicPhase();
 	gxShotClockTick();	// GeneralsX: before anything this update animates or draws
 	runPendingSaveLoad();	// GeneralsX: a "load it anyway" Yes from the save gate, now that its box is gone
@@ -1073,8 +1063,7 @@ void GameClient::update()
 	// GeneralsX: GX_SHOT capture, right after this frame was drawn and presented: the image is
 	// the state at the logged logic frame. It reads the back buffer after Present, exactly when the screenshot hotkey
 	// does (CommandXlat runs in propagateMessages, after this update). D3D leaves a DISCARD back buffer undefined
-	// after Present; under DXVK the last rendered image stays there (the Mini's shots show the scene), and the hotkey
-	// has always relied on the same.
+	// after Present; under DXVK the last rendered image stays there, and the hotkey relies on the same.
 	gxShotDrive();
 
 	{
@@ -1990,8 +1979,8 @@ void GameClient::xfer( Xfer *xfer )
 	}
 
 
-	// GeneralsX @bugfix skybox-1 12/10/2026 (skybox): a map script that switched the sky off keeps it off after a
-	// load (W3DWater.cpp's latch; the engine reset before the load cleared it). Version 3 saves read as "not switched off".
+	// GeneralsX: a map script that switched the sky off keeps it off after a load (W3DWater.cpp latch; the engine reset before
+	// the load cleared it). Version 3 saves read as not switched off.
 	if (version >= 4)
 	{
 		Bool skyOff = gxSkyScriptOff();

@@ -507,20 +507,10 @@ static const char *s_gxParsingLayout = "(none)";
 // the top of every winCreateFromScript so one layout's groups can never leak into the next.
 static LayoutScaleGroupTable s_gxLayoutGroups;
 
-// GeneralsX: Pass one: collect the layout's authored rects and group them,
-// before a single window exists.
-//
-// A SECOND OPEN of the same file rather than a rewind of the parse handle. The parse handle has
-// already had its version header and its layout block consumed by the time the first SCREENRECT is
-// read, so rewinding it would tie two passes together that otherwise need to know nothing about
-// each other - and the version parse would have to be re-entrant. A .wnd is tens of kilobytes and
-// a menu is loaded once, so the read is cheaper than the coupling.
-//
-// BINARY, like INI::prepFile: in text mode on Windows size() counts the CRLFs that the read then
-// collapses, and readEntireAndClose leaves that many bytes of the buffer uninitialised.
-//
-// UNIFORM ONLY. In the shipped STRETCH mode the group is never consulted, so this does not run and
-// the default path does exactly the I/O it has always done.
+// Pass one: collect the layout's authored rects and group them, before a single window exists.
+// A SECOND OPEN of the file, not a rewind: the parse handle has already consumed its version header.
+// BINARY, like INI::prepFile: in Windows text mode size() counts CRLFs the read collapses.
+// UNIFORM ONLY: in the shipped STRETCH mode this does not run.
 static void gxScanLayoutGroups( const char *filepath )
 {
 	LayoutScaleGroupsReset( &s_gxLayoutGroups );
@@ -620,24 +610,10 @@ static Bool parseScreenRect( const char *token, char *buffer,
 	Real xScale = (Real)TheDisplay->getWidth() / (Real)createRes.x;
 	Real yScale = (Real)TheDisplay->getHeight() / (Real)createRes.y;
 
-	// GeneralsX: Remember this window's scale so its FONT can use it too.
-	//
-	// Measured 1920x1080: a layout row's text is created at its raw authored size and drawn 1:1 (13pt
-	// -> 18px glyphs, extent == raster height, no upscaling anywhere), while the box around it is
-	// scaled by the ratio below. Small text in a big row, which is what the operator saw as "the font
-	// is pixelized for those but not the buttons" - the headers escape only because they happen to be
-	// authored at 33pt.
-	//
-	// Deliberately NOT GlobalLanguage::adjustFontSize(), which is what this looks like it wants: that
-	// scales by display/DEFAULT_DISPLAY_WIDTH (a fixed 800) and CAPS at 2.0, while the coordinates
-	// here scale by display/createRes with no cap. Two different denominators and a cap on one side
-	// means the text still would not match its box. The only factor that keeps text proportional to
-	// the box it sits in is the box's own factor, which is this one.
-	//
-	// min() rather than either axis alone: a layout stretched more horizontally than vertically would
-	// otherwise get text too tall for its row. SCREENRECT is parsed before the field loop that reads
-	// FONT (the assert above this call site guarantees the order), so this is always the current
-	// window's scale and never a neighbour's.
+	// Remember this window's scale so its FONT can use it: text is created at its authored size and drawn 1:1
+	// while the box is scaled, which leaves small text in a big row.
+	// Not adjustFontSize(): it scales by display/800 capped at 2.0, but coordinates scale by display/createRes.
+	// min() of the axes keeps text from being too tall for its row; SCREENRECT is parsed before FONT.
 	s_gxLayoutFontScale = (xScale < yScale) ? xScale : yScale;
 	if( s_gxLayoutFontScale <= 0.0f )
 		s_gxLayoutFontScale = 1.0f;
@@ -2649,18 +2625,10 @@ static GameWindow *parseWindow( File *inFile, char *buffer )
 						htf ? "HEADER TEMPLATE WINS" : "parsed font kept");
 					fflush(stderr);
 				}
-				// GeneralsX: In UNIFORM, rebuild the header template's font at the
-				// layout's own factor instead of taking the one adjustFontSize sized.
-				//
-				// A HEADERTEMPLATE discards the FONT this .wnd asked for - 134 of the 290 controls loaded
-				// at startup, and every text-drawing control on the main menu - and replaces it with a
-				// size derived from display WIDTH alone (ClassicNoCeiling: 1 + (W/800 - 1) * 0.7 = 1.98 at
-				// 1920). Boxes that scale uniformly by 1.80 and text that scales by 1.98 disagree by 10%,
-				// and the text is the half that overflows.
-				//
-				// Rebuilt from the template's AUTHORED point size, not resized from its resolved font: the
-				// resolved one already has adjustFontSize's factor baked in and scaling that again would
-				// compound the two.
+				// In UNIFORM, rebuild the header template's font at the layout's own factor, not adjustFontSize's.
+				// A HEADERTEMPLATE discards the .wnd's FONT and sizes from display WIDTH alone (1.98 at 1920) while
+				// boxes scale 1.80, so text overflows. Rebuilt from the AUTHORED point size: the resolved font
+				// already has adjustFontSize's factor baked in.
 				GameFont *gxHeaderFont = TheHeaderTemplateManager->getFontFromTemplate( instData.m_headerTemplateName );
 
 				if( gxHeaderFont != NULL && LayoutScaleActiveMode() == LAYOUT_SCALE_UNIFORM && TheFontLibrary != NULL )

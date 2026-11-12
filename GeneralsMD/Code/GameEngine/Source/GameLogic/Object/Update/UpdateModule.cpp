@@ -173,9 +173,10 @@ void UpdateModule::xfer( Xfer *xfer )
 #endif
 
 	// GeneralsX: m_indexInLogic is not saved -- GameLogic::loadPostProcess
-	// resets every heap entry to -1 and rebuilds the heap. Do NOT clear it here: the module is still in
-	// m_sleepyUpdates at its old index, and if the load then fails, clearGameData ->
-	// processDestroyList -> eraseSleepyUpdate(-1) indexes m_sleepyUpdates[-1] (TSH #2464 residue).
+	// clears the sleepy wheel (every entry to -1) and rebuilds it. Do NOT clear it here: the module is still in
+	// GameLogic's sleepy wheel at its old place, and if the load then fails, clearGameData ->
+	// processDestroyList unschedules it by that place (was: eraseSleepyUpdate(-1) indexed the heap at -1,
+	// TSH #2464 residue).
 
 }
 

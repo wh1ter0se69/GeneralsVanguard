@@ -16,34 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: ONE max-FPS setting, and it is exactly what it says.
-//
-//
-//
-// Before this, the render cap was chosen in six places and the limiter switched in five more: the
-// retail INI's FramesPerSecondLimit = 30 was the default, Options.ini "FPSLimit" yes/no was a second
-// setting beside the launcher's number, every detail preset and every solo start re-forced the limiter,
-// the skirmish game-speed slider REPLACED the cap for the match (a launcher 144 became 1000 at the
-// slider's right end), a map script could set it, and the pacer lifted any cap under 120 to 480 in a
-// network game. The HUD bracket then printed the most frames drawn in a second, so nobody could see
-// the limit at all.
-//
-// Now the cap is resolved ONCE, in GameEngine::init (resolveCap), and nothing else writes it:
-//   * the launcher's value, which reaches the engine only as argv: -fps N, or -noFPSLimit for 0;
-//   * else the refresh rate of the display the game window is on, read by the device layer
-//     (GameEngine::getDisplayRefreshRate - SDL3 on macOS, Linux and iOS, Win32 on Windows);
-//   * else the tick rate.
-// 0 means unlimited. The skirmish slider is a GAME SPEED again - the logic time scale - and never the
-// render cap. Options.ini "FPSLimit" is no longer a setting: a legacy "FPSLimit = no" (the old launcher's
-// "uncapped") reads as 0 - in the launcher, and in GameEngine::init when no -fps / -noFPSLimit was given.
-//
-// The ONE floor that remains is the tick rate, and it is a floor on the main loop, not a rewrite of
-// the setting: the engine advances at most one logic frame per main-loop iteration, so a loop slower
-// than LOGICFRAMES_PER_SECOND would slow the simulation itself (FramePacer::getActualFramesPerSecondLimit).
-// The launcher offers nothing below it; only a hand-typed -fps or a sub-60 Hz display reaches it.
-//
-// HEADER ONLY AND ENGINE-FREE, so the decisions are testable without the engine:
-// scripts/test/fps-limit-policy-test.sh splices the real call sites out of a tree and drives them.
+// One max-FPS setting, resolved once in GameEngine::init (resolveCap): the launcher value (-fps N, or -noFPSLimit
+// for 0), else the display refresh rate (GameEngine::getDisplayRefreshRate), else the tick rate. 0 is unlimited.
+// The skirmish slider is game speed, never the render cap. The tick rate is a floor on the main loop (one logic
+// frame per iteration; FramePacer::getActualFramesPerSecondLimit).
 
 #pragma once
 

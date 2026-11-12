@@ -1,18 +1,25 @@
-// GxFFState.h - the fixed-function ubershader's state blocks and the D3D8 -> block packing (WS-D week 2).
-//
-// One FF pipeline layout (owned by rw2-F1's GxRecordLayout, agreed 11/10):
-//   set 0 binding 0  UNIFORM_BUFFER_DYNAMIC  GxFFVsBlock   (vertex stage)    std140, matrices row_major
-//   set 0 binding 1  UNIFORM_BUFFER_DYNAMIC  GxFFPsBlock   (fragment stage)  std140
-//   set 1 binding 0-7 COMBINED_IMAGE_SAMPLER texture stage 0-7, 2D           (fragment stage)
-//   push constants   VS|FS offset 0, 128 B   GxFFSpecBlock (the FF KEY)      std430, 32 x uint
-// The GENERIC pipeline reads GxFFSpecBlock at run time; a SPECIALISED pipeline is the SAME SPIR-V module with specialisation
-// constant 32 (gxSpecialised) true and constants 0-31 = the block's words (VkSpecializationInfo), every key read in the GLSL
-// being `gxSpecialised ? constant : push word` - so push the block on EVERY FF draw whichever pipeline is bound (a
-// specialised one ignores it). DXVK 3.0's pair (it rewrites a spec-data buffer into spec constants instead), with the FF VS
-// key moved into the block too so a specialised VS bakes it.
-//
-// Field meanings follow DXVK 3.0's D3D9FixedFunctionVS / D3D9SharedPS / D3D9SpecData (zlib; see shaders/SOURCE.txt); the
-// GLSL side is shaders/gx_ff_common.glsl. gx_pipecache_test --ff-layout compares every offset below with the compiled SPIR-V.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GxFFState.h - the fixed-function ubershader's state blocks and the D3D8 -> block packing.
+// Layout: set 0 b0/b1 dynamic UBOs (GxFFVsBlock, GxFFPsBlock), set 1 b0-7 texture stages, 128 B push constants.
+// A specialised pipeline is the same SPIR-V with spec constant 32 true: push the block on EVERY FF draw either way.
+// Fields follow DXVK 3.0 (zlib); gx_pipecache_test --ff-layout checks every offset against the compiled SPIR-V.
 #pragma once
 #include <cstddef>
 #include <cstdint>
@@ -64,12 +71,12 @@ struct GxFFPsBlock {                     // set 0 binding 1
 	uint32_t    TextureFactor;           // D3DRS_TEXTUREFACTOR (D3DCOLOR)
 	uint32_t    DrawBits;                // the per-draw look bits (GxDrawBit below; 0 = none - always 0 with the look mask off)
 	float       OwnScale;                // S7 A41 (offset 280): a clamped instance's own light - mu of z' = z0 + mu (z - z0); 0 with the mask off
-	float       OwnZ0;                   // S7 A41 (offset 284): its ground plane z0; 0 with the mask off. The block has no spare word left:
-	                                     // the next per-draw consumer appends a 16-byte row under its own ruling (integrator 17/10 20:0xZ)
+	float       OwnZ0;                   // (offset 284): its ground plane z0; 0 with the mask off. The block has no spare word left:
+	                                     // the next per-draw consumer appends a 16-byte row
 };
-// GxFFPsBlock::DrawBits (ruling 17/10, A20 a / A36 item 2): ONE per-draw bits word, read
+// GxFFPsBlock::DrawBits: ONE per-draw bits word, read
 // only by the key-on shader families (GLSL declares it under #if defined(GX_LOOK_SHADOWMAP) ...: key off has no such member). Bits 0-2
-// = S7 (the receiver's apply rule, written by the translator), 3-7 reserved for S7, 8+ for F-depth+'s readers (soft particles, water).
+// = the shadow map (the receiver's apply rule, written by the translator), 3-7 reserved for it, 8+ for F-depth+'s readers (soft particles, water).
 enum GxDrawBit : uint32_t {
 	GxDraw_Receive = 1u << 0,                // S7: this draw samples the shadow map (RECEIVE tag, not pre-transformed)
 	GxDraw_ApplyRgb = 1u << 1,               // S7 A2: RGB x the shadow factor (the blend scales linearly with dest: not a modulate pass)
@@ -116,7 +123,7 @@ static_assert(sizeof(GxFFPsStage) == 32 && offsetof(GxFFPsBlock, Fog) == 256 && 
               sizeof(GxFFPsBlock) == 288, "std140 PS block");
 static_assert(sizeof(GxFFSpecBlock) == 128, "push block = 128 B (Vulkan's guaranteed maxPushConstantsSize)");
 
-// ---- the D3D8 state rw2-F1 tracks (one snapshot per FF draw) ------------------------------------------------------------
+// ---- the D3D8 state tracked (one snapshot per FF draw) ------------------------------------------------------------
 struct GxD3D8Light {                     // D3DLIGHT8 as SetLight received it
 	uint32_t type;
 	float    diffuse[4], specular[4], ambient[4];   // r g b a
@@ -139,7 +146,7 @@ struct GxD3D8FFState {
 	uint32_t       fvf;                                  // the FF vertex shader handle (an FVF code)
 	uint8_t        textureType[8];                       // the texture bound on each stage (GxTex*)
 	bool           pointList;                            // this draw's primitive type is D3DPT_POINTLIST
-	bool           pixelShader;                          // a programmable pixel shader is bound (WS-E): its stages are read whatever the FF stage ops say
+	bool           pixelShader;                          // a programmable pixel shader is bound: its stages are read whatever the FF stage ops say
 };
 
 // D3D8 device defaults (render states, stage states, identity matrices, no lights, zero material, 0/0/1/1 viewport).
@@ -148,7 +155,7 @@ void GxD3D8FFDefaults(GxD3D8FFState* s);
 // The three blocks for one FF draw (DXVK 3.0's UpdateFixedFunctionVS/PS, UpdateFog, BindAlphaTestState, UpdatePointMode).
 // The spec block is NORMALISED (dead fields zero) so equal FF behaviour -> equal key. Returns false (and *refuse = why) for
 // state this ubershader does not draw - vertex blend / tween, user clip planes, a cube or volume texture on an active
-// stage: the caller renders the session classic (PLAN §1: native only where complete). D3D8 FF never samples a depth texture
+// stage: the caller renders the session classic (native only where complete). D3D8 FF never samples a depth texture
 // (the game creates depth SURFACES only, dx8wrapper.cpp:3064/4163), so there is no depth-compare case to refuse.
 bool GxPackFF(const GxD3D8FFState& s, GxFFVsBlock* vs, GxFFPsBlock* ps, GxFFSpecBlock* spec, const char** refuse);
 // GxPackFF's world part alone: vs->WorldView = View x World and vs->NormalMatrix = its inverse, the ONLY fields s.world reaches.

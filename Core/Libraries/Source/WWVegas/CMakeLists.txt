@@ -23,16 +23,10 @@ target_include_directories(core_wwcommon INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# GeneralsX:
-# WWAudio/compat holds stand-ins for Windows SDK headers (currently mmsystem.h) that satisfy the
-# unguarded #include <mmsystem.h> in WW3D2/dx8caps.cpp, WW3D2/textureloader.cpp and W3DMainMenu.cpp
-# on platforms with no Windows SDK. They used to sit directly in WWAudio/, but the WWAudio entry
-# above lands on the -I line of 2190 translation units, and on MSVC a /I directory out-ranks the SDK
-# include path - so a file named mmsystem.h there silently replaced the real <mmsystem.h> for the
-# entire Windows build, which is what left Miles' mss.h without LPHWAVEOUT/LPWAVEFORMAT.
-# Separating them means Windows now resolves to the genuine SDK header while every other platform
-# keeps the shim, and keeping this entry adjacent to the WWAudio entry above guarantees both reach
-# exactly the same targets.
+# GeneralsX: WWAudio/compat holds stand-ins for Windows SDK headers (currently mmsystem.h) for platforms with no SDK.
+# It is separate from WWAudio/ because that directory is on every target's -I line, and on MSVC a /I dir
+# out-ranks the SDK include path, so a mmsystem.h there would shadow the real one. Keep this entry next to the
+# WWAudio entry above so both reach exactly the same targets.
 if(NOT WIN32)
     target_include_directories(core_wwcommon INTERFACE WWAudio/compat)
 endif()

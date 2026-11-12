@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # GeneralsX: Bundle macOS GeneralsXZH binary + dylibs into a zip archive
 # Packages a self-contained .app for local distribution testing.
 
@@ -7,7 +9,7 @@ set -e
 # GeneralsX: Resolve repository root correctly from scripts/build/macos.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-# GeneralsX: GX_BUILD_DIR: a gx-ab-test flag arm's own build dir (gx-ab-build.sh).
+# GX_BUILD_DIR: a gx-ab-test flag arm's own build dir (gx-ab-build.sh).
 # Its zip goes INTO that dir: both arms of one worktree share PROJECT_ROOT, so one fixed zip there would
 # leave only the last arm bundled.
 if [[ -n "${GX_BUILD_DIR:-}" && "${GX_BUILD_DIR}" != /* ]]; then
@@ -27,19 +29,10 @@ BINARY_SRC="${BUILD_DIR}/GeneralsMD/GeneralsXZH"
 DXVK_CONF_SRC="${PROJECT_ROOT}/resources/dxvk/dxvk.conf"
 OUTPUT_ZIP="${GX_BUILD_DIR:-${PROJECT_ROOT}}/GeneralsXZH-macos-arm64.zip"
 
-# GeneralsX: THE OVERLAY'S SOURCE DIRECTORIES, AS ONE LIST, UP HERE.
-#
-# ONE list feeds both the archive search (find_overlay_archive) and the generator's --game-dir
-# candidates. They used to be two chains: the generator got
-# ${GX_GAME_DATA:-${GX_OVERLAY_SRC:-${GX_PATCH_SRC}}}, and GX_PATCH_SRC is ALWAYS set - defaulted
-# just below - to a directory that never holds WindowZH.big. So on a Mac with no migrated
-# GeneralsXPatch folder, release 85f9a6650 stopped on "WindowZH.big not found" while the retail
-# install sat in GX_GAME_SRC, which the archive search walked and the generator never tried.
-# GX_OVERLAY_SRC is gone from it: it is the Linux bundler's name and nothing else here reads it.
-#
-# Defined before the build checks so GX_OVERLAY_RESOLVE_ONLY=1 can answer "which WindowZH.big would
-# this read" on a box with no build at all. scripts/test/overlay-gamedir-test.sh is the check that
-# fails if a directory the archive search walks stops being one the generator tries.
+# The overlay's source directories, as one list: it feeds both the archive search (find_overlay_archive) and the
+# generator's --game-dir candidates. GX_PATCH_SRC is always set to a directory that never holds WindowZH.big, so the
+# generator must also try GX_GAME_SRC. Defined before the build checks so GX_OVERLAY_RESOLVE_ONLY=1 works with no build.
+# scripts/test/overlay-gamedir-test.sh checks that the two stay the same list.
 GX_PATCH_SRC="${GX_PATCH_SRC:-${HOME}/GeneralsX/GeneralsXPatch}"
 if [[ -n "${CNC_GENERALS_ZH_PATH:-}" ]]; then
     GX_GAME_SRC="${CNC_GENERALS_ZH_PATH}"
@@ -61,10 +54,9 @@ fi
 
 DXVK_D3D8_LIB="${DXVK_D3D8_LIB_INSTALL}"
 DXVK_D3D9_LIB="${DXVK_D3D9_LIB_INSTALL}"
-# GeneralsX: The NEWER of the two, not the install copy whenever it exists: cmake refreshes that
+# The NEWER of the two, not the install copy whenever it exists: cmake refreshes that
 # copy only when its own target is built, and a build of the game alone (gx-ab-build.sh) leaves it at whatever DXVK was
-# current then. Measured on build/gx-ab-B: copy 7c43f1be from 17:46, Meson output e69ec7e2 from 18:21 - the bundle
-# shipped the old DXVK, without the A2 key-file lock.
+# current then, so the bundle would ship an old DXVK (without the key-file lock).
 if [[ -f "${DXVK_D3D8_LIB_MESON}" && ( ! -f "${DXVK_D3D8_LIB}" || "${DXVK_D3D8_LIB_MESON}" -nt "${DXVK_D3D8_LIB}" ) ]]; then
     DXVK_D3D8_LIB="${DXVK_D3D8_LIB_MESON}"
 fi
@@ -72,7 +64,7 @@ if [[ -f "${DXVK_D3D9_LIB_MESON}" && ( ! -f "${DXVK_D3D9_LIB}" || "${DXVK_D3D9_L
     DXVK_D3D9_LIB="${DXVK_D3D9_LIB_MESON}"
 fi
 
-# GeneralsX: Resolve @rpath/@loader_path deps while collecting external dylibs for portable bundles.
+# Resolve @rpath/@loader_path deps while collecting external dylibs for portable bundles.
 extract_rpaths() {
     local target="$1"
     otool -l "${target}" 2>/dev/null | awk '
@@ -109,7 +101,7 @@ resolve_dep_path() {
     if [[ "${dep}" == @rpath/* ]]; then
         dep_name="${dep#@rpath/}"
 
-        # GeneralsX: Resolve @rpath deps already staged in the same lib directory before scanning LC_RPATH.
+        # Resolve @rpath deps already staged in the same lib directory before scanning LC_RPATH.
         candidate="${loader_dir}/${dep_name}"
         [[ -f "${candidate}" ]] && { echo "${candidate}"; return 0; }
 
@@ -188,7 +180,7 @@ collect_external_dylibs() {
             fi
             resolved_dep="$(resolve_dep_path "${target}" "${dep}" "${executable_dir}" || true)"
             if [[ -z "${resolved_dep}" ]]; then
-                # GeneralsX: Warn when a non-system dep cannot be resolved instead of silently dropping it.
+                # Warn when a non-system dep cannot be resolved instead of silently dropping it.
                 echo "WARNING: Unable to resolve dependency '${dep}' for target '${target}'" >&2
                 continue
             fi
@@ -200,7 +192,7 @@ collect_external_dylibs() {
 
             if [[ ! -f "${dep_dst}" ]]; then
                 echo "  + external ${dep_name} (from ${resolved_dep})"
-                # GeneralsX: Dereference symlinks so we copy the actual dylib, not a dangling symlink.
+                # Dereference symlinks so we copy the actual dylib, not a dangling symlink.
                 cp -L "${resolved_dep}" "${dep_dst}"
             fi
 
@@ -214,7 +206,7 @@ collect_external_dylibs() {
 # Locate installed Vulkan SDK:
 #  1) Prefer explicit env vars (VULKAN_SDK, then VULKAN_SDK_ROOT)
 #  2) Fall back to ~/VulkanSDK/*/macOS by convention
-# GeneralsX: Honor VULKAN_SDK/VULKAN_SDK_ROOT before scanning ~/VulkanSDK.
+# Honor VULKAN_SDK/VULKAN_SDK_ROOT before scanning ~/VulkanSDK.
 if [[ -n "${VULKAN_SDK:-}" ]] && [[ -f "${VULKAN_SDK}/lib/libvulkan.dylib" ]]; then
     VULKAN_SDK_ROOT="${VULKAN_SDK}"
 elif [[ -n "${VULKAN_SDK_ROOT:-}" ]] && [[ -f "${VULKAN_SDK_ROOT}/lib/libvulkan.dylib" ]]; then
@@ -228,7 +220,7 @@ else
     done
 fi
 
-# GeneralsX: Produce a macOS .app bundle with internal runtime env defaults.
+# Produce a macOS .app bundle with internal runtime env defaults.
 APP_NAME="GeneralsXZH"
 APP_DIR_NAME="${APP_NAME}.app"
 INCLUDE_EXTERNAL_DYLIBS="${GX_BUNDLE_INCLUDE_EXTERNAL_DYLIBS:-1}"
@@ -264,9 +256,9 @@ cat > "${CONTENTS_DIR}/Info.plist" <<'PLIST'
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>GeneralsXZH</string>
+    <string>Generals Vanguard ZH</string>
     <key>CFBundleDisplayName</key>
-    <string>GeneralsXZH</string>
+    <string>Generals Vanguard ZH</string>
     <key>CFBundleIdentifier</key>
     <string>com.generalsx.generalsxzh</string>
     <key>CFBundleVersion</key>
@@ -335,7 +327,7 @@ echo "  + libdxvk_d3d9"
 cp "${DXVK_D3D9_LIB}" "${LIB_DIR}/libdxvk_d3d9.0.dylib"
 ln -sf libdxvk_d3d9.0.dylib "${LIB_DIR}/libdxvk_d3d9.dylib"
 
-# GeneralsX: THE STAGED FILE, NOT THE ONE WE MEANT TO COPY.
+# THE STAGED FILE, NOT THE ONE WE MEANT TO COPY.
 #
 # Checked here rather than at ${DXVK_D3D9_LIB} because the two can differ: DXVK_D3D9_LIB prefers
 # the INSTALL copy (${BUILD_DIR}/libdxvk_d3d9.0.dylib), which cmake produces through a rule that
@@ -385,7 +377,7 @@ if [[ -n "${VULKAN_SDK_ROOT}" ]]; then
 }
 EOF
 else
-    # GeneralsX: Fail bundle when Vulkan SDK is missing unless explicitly allowed.
+    # Fail bundle when Vulkan SDK is missing unless explicitly allowed.
     if [[ "${GX_ALLOW_MISSING_VULKAN_IN_BUNDLE:-0}" == "1" ]]; then
         echo "WARNING: Vulkan SDK not found at ~/VulkanSDK/*/macOS - Vulkan libs will be missing from bundle"
         echo "  GX_ALLOW_MISSING_VULKAN_IN_BUNDLE=1 set; producing bundle without Vulkan for local experiments"
@@ -406,7 +398,7 @@ else
     echo "WARNING: ${DXVK_CONF_SRC} not found - terrain shaders may fail on macOS"
 fi
 
-# GeneralsX: A2: the shipped pipeline record a fresh install warms from (SDL3Main gxSeedDxvkCache
+# A2: the shipped pipeline record a fresh install warms from (SDL3Main gxSeedDxvkCache
 # copies it into the player's DXVK folder when absent; run.sh below names the folder).
 # Fails rather than skips: a bundle without it is one whose first match compiles mid-match again, and nothing else says so.
 DXVK_SEED_SRC="${PROJECT_ROOT}/resources/dxvk/seed"
@@ -418,8 +410,8 @@ echo "  + dxvk-seed"
 mkdir -p "${RESOURCES_DIR}/dxvk-seed"
 cp "${DXVK_SEED_SRC}/GeneralsXZH.dxvk-cache" "${DXVK_SEED_SRC}/GeneralsXZH.dxvk-ffkeys" "${RESOURCES_DIR}/dxvk-seed/"
 
-# GeneralsX: Bundle Fontconfig config so FreeType/Fontconfig font matching works in app launcher runtime.
-# GeneralsX: Guard Fontconfig conf.d copy so missing directory does not break bundling under set -e.
+# Bundle Fontconfig config so FreeType/Fontconfig font matching works in app launcher runtime.
+# Guard Fontconfig conf.d copy so missing directory does not break bundling under set -e.
 if [[ -f "${FONTCONFIG_ETC_DIR}/fonts.conf" ]]; then
     echo "  + Fontconfig config"
     mkdir -p "${RESOURCES_DIR}/fontconfig"
@@ -434,61 +426,10 @@ else
     echo "WARNING: ${FONTCONFIG_ETC_DIR}/fonts.conf not found - in-game font lookup may fail on macOS"
 fi
 
-# GeneralsX: Ship the community-patch data. THIS SCRIPT SHIPPED NONE
-# OF IT, and that is the whole reason a Mac player who downloads the published zip cannot join
-# anybody.
-#
-# deploy-macos-zh.sh and run-macos-zh.sh both source lib-overlay.sh; this one - the script that
-# builds the artifact real players actually download - did not, and named no archive anywhere.
-# The engine therefore computed a dataID off the retail set alone, every join was refused with
-# DATA_DIFFERS, and that reads as a network fault rather than as a packaging bug. The only
-# recovery was to walk the player through a manual file copy.
-#
-# TWO SEPARATE THINGS SHIP, and they are not interchangeable:
-#
-#   * the .big overlay - mounted from anywhere the engine is pointed at, so it rides INSIDE the
-#     .app at Contents/Resources/GeneralsXPatch and the launcher exports GENERALSX_PATCH_PATH.
-#     The engine's own <exe dir>/GeneralsXPatch default would also work here (unlike the deploy
-#     layout, the .app's exe lives at Contents/Resources/bin, disjoint from the asset root, so
-#     there is no double-mount) - but the env var is what deploy-macos-zh.sh does, it survives
-#     someone relocating the binary, and one mechanism across the two macOS paths is worth more
-#     than saving a line.
-#
-#   * the loose pair, Data/INI/Multiplayer.ini and Data/English/Generals.csf. These ride inside
-#     the .app at Contents/Resources/gamedata/, and run.sh exports GENERALSX_DATA_OVERLAY at them.
-#     Both are opened BY NAME (INI::loadFileDirectory's bare "X.ini" half, and GameText's CSF),
-#     and StdLocalFileSystem resolves a relative read against that directory before the cwd. So
-#     they beat the archives exactly as a loose file in the game folder did. m_iniCRC hashes INI
-#     line content, not the path, so dataID does not move.
-#     GeneralsX: Until then the launcher copied them INTO the player's game
-#     folder, over whatever was there. A folder shared with other Zero Hour clients then broke
-#     those clients: our 6-label CSF replaced their full table, and our Multiplayer.ini moved their
-#     dataID. The overlay only serves by-name opens; a directory ENUMERATION (getFileListInDirectory)
-#     still sees the cwd alone, so a file that is only ever enumerated cannot ride here.
-#
-# WHY THE ARCHIVES ARE LOOKED FOR IN TWO PLACES. migrate-patch-overlay.sh iterates
-# gx_overlay_archives - the MANDATORY list only - so on a correctly migrated Mac the optional
-# archives are still sitting in the game folder while the mandatory ones have moved out to
-# $HOME/GeneralsX/GeneralsXPatch. Demanding all of them from one directory would make this
-# script unbuildable on exactly the machine that did the right thing. Measured on this box:
-# GeneralsXPatch holds the 2 mandatory archives, the 4 optional ones are in GeneralsZH.
-#
-# HOW THIS BEHAVES IN CI, because "incomplete is fatal" would otherwise turn the macOS job red on
-# every push and that is not a decision to leave implicit:
-#
-#   * the archives are third-party .big and are NOT tracked here - `git ls-files '*.big'` returns
-#     nothing - so a GitHub-hosted runner starts with no way to stage an overlay.
-#   * .github/workflows/build-macos.yml therefore runs the ordinary compile/packaging smoke test
-#     with GX_BUNDLE_ALLOW_NO_OVERLAY=1. The bundle is produced, stamped OVERLAY-MISSING.txt, and
-#     is explicitly not a release.
-#   * release.yml passes allow_missing_overlay=false, so the release build takes the fatal path
-#     instead - and then re-checks the finished artifact with verify-bundle-overlay.sh before any
-#     asset is created. The second check reads the .app rather than trusting a flag, so a
-#     mis-plumbed input, a reused artifact or a future default change all still fail.
-#   * a host that HAS the archives - a developer's Mac, or CI with GX_OVERLAY_ARCHIVE_URL and
-#     GX_OVERLAY_ARCHIVE_SHA256 configured (scripts/build/fetch-overlay-archives.sh) - builds a
-#     complete bundle on every run and never touches the escape hatch.
-#
+# Ship the community-patch data; without it every join is refused with DATA_DIFFERS. The .big overlay rides in
+# Contents/Resources/GeneralsXPatch (run.sh exports GENERALSX_PATCH_PATH); Multiplayer.ini and Generals.csf ride in
+# Contents/Resources/gamedata (GENERALSX_DATA_OVERLAY) and are opened by name before the cwd, so the player's folder is
+# never written. Optional archives may stay in the game folder. Incomplete is fatal unless GX_BUNDLE_ALLOW_NO_OVERLAY=1.
 # shellcheck source=scripts/build/lib-overlay.sh
 source "${PROJECT_ROOT}/scripts/build/lib-overlay.sh"
 
@@ -498,23 +439,9 @@ GAMEDATA_STAGE="${RESOURCES_DIR}/gamedata"
 # GX_PATCH_SRC and GX_GAME_SRC - the two places the archives are looked for - are defined at the
 # top of this file, as GX_OVERLAY_SRC_DIRS, so the generator step below searches the same ones.
 
-# -f AND -s, both. An earlier revision of this used -s alone and justified it with a claim that is
-# simply false, so the rationale is recorded here MEASURED rather than reasoned (bash 5.3.9, APFS):
-#
-#   test          directory   zero-byte file   1-byte file
-#   -f            FALSE       TRUE             TRUE
-#   -s            TRUE        FALSE            TRUE
-#
-# So the two tests fail on OPPOSITE inputs and neither is a superset of the other. -f alone selects
-# a zero-byte file and ships a zip that looks complete over an engine that mounts nothing. -s alone
-# selects a DIRECTORY named e.g. 340_ControlBarProZH.big - `cp` without -r then fails and the
-# `|| exit 1` on the copy turns it into a loud bundle failure, so the blast radius is bounded, but
-# it fails for a reason the message does not explain. The rule the comment always meant to state is
-# "a regular file with bytes in it", and that is exactly `-f && -s`.
-#
-# lib-overlay.sh's gx_overlay_verify/gx_overlay_where still test -s alone and have the same
-# directory edge. Not changed here: both are handed a directory their own deploy script populated,
-# so the input cannot be a stray directory, and this branch does not own that file.
+# A usable archive is -f AND -s: -f alone accepts a zero-byte file (a zip that looks complete over an engine that mounts
+# nothing), -s alone accepts a directory named like an archive. lib-overlay.sh's gx_overlay_verify/gx_overlay_where test
+# -s alone; their input is a directory their own deploy script populated.
 find_overlay_archive() {
     local name="$1" dir
     for dir in "${GX_GENERATED_DIR}" "${GX_OVERLAY_SRC_DIRS[@]}"; do
@@ -530,7 +457,7 @@ find_overlay_archive() {
 echo "  + community-patch overlay"
 mkdir -p "${PATCH_STAGE}"
 
-# GeneralsX: GENERATE !GXUI.big HERE, the way the Windows packager
+# GENERATE !GXUI.big HERE, the way the Windows packager
 # already does. It is now on overlay-archives.txt, so a missing copy is a refusal rather than a
 # quiet omission - and only package-windows-share.ps1 ran the generator, despite a comment in
 # overlay-optional.txt claiming iOS, Linux and Windows all did. They did not; that line was wrong
@@ -561,7 +488,7 @@ else
     exit 1
 fi
 # THE TWO LISTS HAVE DIFFERENT CONSEQUENCES AND ARE TRACKED SEPARATELY. Conflating them is a
-# mistake this script made in its first cut and the partial-source test caught: every entry in
+# mistake the partial-source test catches: every entry in
 # overlay-optional.txt is MEASURED to contain zero files the SimID fingerprint reads, so a
 # missing optional archive cannot move dataID and cannot cost anybody a join. Discarding the
 # mandatory archives because an optional one was absent would take a bundle that joins the fleet
@@ -585,27 +512,9 @@ while IFS= read -r _a; do
     fi
 done < <(gx_overlay_archives)
 
-# Optional: ships either way, and the default decides only what the file is CALLED on arrival -
-# <name>.big is mounted, <name>.big.off is not (the overlay scan matches "*.big", and
-# SearchStringMatches requires pattern and name to terminate together). Shipping it switched off
-# rather than not shipping it is the point: enabling it later is then a rename, not a download
-# that can fail. Nothing on this list may move dataID - see overlay-optional.txt.
-#
-# THE PRODUCER'S EXIT STATUS IS CHECKED IN THE SAME COMMAND THAT READS IT, and that is the whole
-# point of the capture. `while read < <(gx_overlay_optional)` throws that status away - the
-# producer runs in a process-substitution child - so a missing overlay-optional.txt, a malformed
-# line or a bad on/off default made the loop body run zero times, or stop partway, and the script
-# sailed on to exit 0. OVERLAY_MISSING_OPTIONAL stayed empty, so nothing below reported a problem,
-# and optional.txt then advertised a set that was never staged. REPRODUCED with
-# GX_OVERLAY_OPTIONAL_LIST pointed at a nonexistent path: the library's error reached stderr,
-# 0 archives were staged, exit status 0. It is precisely the failure lib-overlay.sh documents
-# gx_overlay_count as existing to prevent for the REQUIRED list; the optional list had no
-# equivalent, and unlike the required list a count guard cannot be the equivalent.
-#
-# Capturing once is stronger than adding a second, probing call: one read, one status, and the
-# loop cannot see different bytes from the ones the check passed. Empty output is legitimate here
-# (a build with no optional content is a good build), so the guard is on STATUS and never on
-# count - and `<<<` on an empty string yields a single empty line, which the -n test drops.
+# Optional archives ship either way; the default decides only the name on arrival (<name>.big is mounted, .big.off is
+# not), so enabling one later is a rename, not a download. Nothing on this list may move dataID. The list is captured
+# so the producer's exit status is checked: `while read < <(...)` discards it. Empty output is a valid build.
 OVERLAY_OPTIONAL_LINES="$(gx_overlay_optional)" || exit 1
 while IFS= read -r _line; do
     [[ -n "${_line}" ]] || continue
@@ -633,29 +542,9 @@ if [[ ${#OVERLAY_MISSING_REQUIRED[@]} -eq 0 ]]; then
         printf '%s\n' "${_o}" >> "${PATCH_STAGE}/optional.txt"
     done
 
-    # And the MANDATORY set, for the mirror-image reason - the same file, the same format and the
-    # same argument package-windows-share.ps1:372 already writes it under.
-    #
-    # G4, MEASURED 10/09/2026: until this line no macOS payload had ever carried one. The Windows
-    # packager was the only writer in the repository (unbounded grep), so `game::read_required()`
-    # came back EMPTY on every Mac, `discover()` therefore took `Verdict::Unknown` unconditionally,
-    # and the readiness answer a Mac player got could never be Ready - it was the sentence "This
-    # install has no required.txt ...", on a complete and perfectly joinable install. The branch
-    # made that worse rather than causing it: it made the installed .app the source of the answer,
-    # so the folder the launcher reads is now one this script writes and nobody else can.
-    #
-    # BARE FILENAMES, no label. These are not offered as a choice, so there is nothing to label;
-    # `parse_required` tolerates a trailing "|label" so the file can grow that shape later.
-    #
-    # READ AT RUNTIME, NOT COMPILED IN, the same as the optional list. A launcher carrying its own
-    # copy of overlay-archives.txt would drift from the payload the first time the set changed, and
-    # silently in both directions - reporting a complete install as short, or blaming the player for
-    # an archive that no longer ships.
-    #
-    # INSIDE THIS GUARD ON PURPOSE. `${#OVERLAY_MISSING_REQUIRED[@]} -eq 0` is the arm where every
-    # mandatory archive really was staged, so the file cannot advertise a set the bundle does not
-    # have. The other arm either throws the staging away or writes the escape-hatch stamp that
-    # verify-bundle-overlay.sh refuses outright.
+    # And the mandatory set, as required.txt, in the format package-windows-share.ps1 writes: bare filenames. Without
+    # it the launcher's readiness check can never say Ready on a Mac. Read at runtime, not compiled in, so it cannot
+    # drift from the payload. Written only in the arm where every mandatory archive was staged.
     : > "${PATCH_STAGE}/required.txt"
     gx_overlay_archives >> "${PATCH_STAGE}/required.txt" || exit 1
 
@@ -761,20 +650,19 @@ if [[ -f "${MP_INI_SRC}" ]]; then
     cp "${COLOR_CSF_SRC}" "${GAMEDATA_STAGE}/Data/English/Generals.csf"
     GX_GAMEDATA_FILES=("Data/INI/Multiplayer.ini" "Data/English/Generals.csf")
 
-    # GeneralsX: Data/INI/Weapon.ini, the Toxin Tractor balance change, cut
+    # Data/INI/Weapon.ini, the Toxin Tractor balance change, cut
     # from the CoreINI archive staged above (scripts/tooling/make-weapon-ini.py; never committed, it is
     # the Community Patch's file). It moves dataID, so a release bundle without it is refused. Only the
     # GX_BUNDLE_ALLOW_NO_OVERLAY smoke bundle goes without: it is already stamped as no release.
     if python3 "${PROJECT_ROOT}/scripts/tooling/make-weapon-ini.py" --search "${PATCH_STAGE}" \
             --game-dir "${GX_GAME_SRC}" --out "${GAMEDATA_STAGE}/Data/INI/Weapon.ini"; then
-        # Weapon.ini and the Alpha Aurora fix files beside it (26/09/2026): the recipe names them all.
+        # Weapon.ini and the Alpha Aurora fix files beside it: the recipe names them all.
         while IFS= read -r _gx_rf; do
             GX_GAMEDATA_FILES+=("${_gx_rf}")
         done < <(python3 "${PROJECT_ROOT}/scripts/tooling/make-weapon-ini.py" --list)
     elif [[ "${GX_BUNDLE_ALLOW_NO_OVERLAY:-0}" == "1" ]]; then
-        # 25/09/2026: STAMPED, whatever the overlay block wrote. A complete overlay with a
-        # CoreINI the recipe refuses writes no stamp there, and verify-bundle-overlay.sh would then
-        # pass a bundle whose dataID matches no peer. It is required-level: the bundle cannot join.
+        # Stamped whatever the overlay block wrote: a complete overlay with a CoreINI the recipe refuses writes no stamp there, and
+        # verify-bundle-overlay.sh would then pass a bundle whose dataID matches no peer. It is required-level: the bundle cannot join.
         echo "WARNING: Data/INI/Weapon.ini NOT staged - THIS BUNDLE CANNOT JOIN ANY GAME."
         # An overlay stamp already written keeps its list of missing archives (its prose would
         # contradict this one: an "optional" stamp says the bundle joins games).
@@ -800,20 +688,9 @@ if [[ -f "${MP_INI_SRC}" ]]; then
         exit 1
     fi
 
-    # THE LAUNCHER IS HANDED A MANIFEST RATHER THAN ENUMERATING AT RUNTIME, and that is not
-    # tidiness - the first cut of this used `find` in the launcher and shipped a silent no-op.
-    #
-    # This machine has a `find` in ~/.local/bin (libc-database's) that shadows /usr/bin/find, so
-    # the launcher's `while read < <(find ...)` produced no lines, installed nothing, and said
-    # nothing about it. The engine then computed data=FA018128 instead of the fleet value -
-    # measured, not reasoned about. The player's PATH is not ours to assume, and a launcher that
-    # silently installs nothing costs them every multiplayer join while looking perfectly healthy.
-    #
-    # The set is known here, at bundle time, so it is written down here. The launcher then needs
-    # nothing but `read`, `cmp` and `cp`. Same reasoning as overlay-archives.txt: name the files
-    # in data, once, instead of rediscovering them per platform.
-    # (24/09/2026: run.sh no longer installs anything. It reads the manifest only to remove
-    # byte-identical copies an older build left in a game folder; the rule above still holds.)
+    # The launcher gets a manifest instead of enumerating at runtime: a `find` earlier on the player's PATH can shadow
+    # /usr/bin/find and silently install nothing. run.sh reads it only to remove byte-identical copies an older build
+    # left in a game folder.
     printf '%s\n' "${GX_GAMEDATA_FILES[@]}" > "${RESOURCES_DIR}/gamedata.manifest"
 
     # Prove the manifest and the staging agree, here, rather than letting a player find out. Every
@@ -829,7 +706,7 @@ if [[ -f "${MP_INI_SRC}" ]]; then
         # is not on it would be left behind in every folder an older build wrote into. Weapon.ini is
         # not on it on purpose (no build ever wrote it into a game folder): its bytes are the
         # recipe's, checked again by verify-bundle-overlay.sh.
-        # Nor are the other recipe files (the Alpha Aurora fix, 26/09/2026), for the same reason.
+        # Nor are the other recipe files (the Alpha Aurora fix), for the same reason.
         python3 "${PROJECT_ROOT}/scripts/tooling/make-weapon-ini.py" --list | grep -qxF "${_rel}" && continue
         _sum="$(shasum -a 256 "${GAMEDATA_STAGE}/${_rel}")"
         if ! grep -qxF "${_sum%% *}  ${_rel}" "${SCRIPT_DIR}/gamedata-shipped.sha256"; then
@@ -896,16 +773,30 @@ fi
 
 # GeneralsX: Select default Zero Hour asset path by .big presence, with GeneralsMD fallback.
 # Default asset paths matching the standard macOS deploy layout (allow user override)
-export CNC_GENERALS_PATH="${CNC_GENERALS_PATH:-${HOME}/GeneralsX/Generals}"
+# GeneralsX @feature wh1ter0se 11/11/2026 The install folder is ~/GeneralsVanguard from the rename on and
+# ~/GeneralsX before it: the first whose Zero Hour folder holds a non-empty INIZH.big, else ~/GeneralsX as
+# before. The base game's folder is chosen on its own, so it may stay under either name.
+GX_INSTALL_ROOT="${HOME}/GeneralsX"
+for gx_root in "${HOME}/GeneralsVanguard" "${HOME}/GeneralsX"; do
+    if [[ -s "${gx_root}/GeneralsZH/INIZH.big" || -s "${gx_root}/GeneralsMD/INIZH.big" ]]; then
+        GX_INSTALL_ROOT="${gx_root}"
+        break
+    fi
+done
+GX_BASE_DEFAULT="${HOME}/GeneralsX/Generals"
+if [[ -n "$(compgen -G "${HOME}/GeneralsVanguard/Generals/*.big" 2>/dev/null)" ]]; then
+    GX_BASE_DEFAULT="${HOME}/GeneralsVanguard/Generals"
+fi
+export CNC_GENERALS_PATH="${CNC_GENERALS_PATH:-${GX_BASE_DEFAULT}}"
 if [[ -z "${CNC_GENERALS_ZH_PATH:-}" ]]; then
-    if [[ -d "${HOME}/GeneralsX/GeneralsZH" && -n "$(compgen -G "${HOME}/GeneralsX/GeneralsZH/*.big" 2>/dev/null)" ]]; then
-        export CNC_GENERALS_ZH_PATH="${HOME}/GeneralsX/GeneralsZH"
-    elif [[ -d "${HOME}/GeneralsX/GeneralsMD" && -n "$(compgen -G "${HOME}/GeneralsX/GeneralsMD/*.big" 2>/dev/null)" ]]; then
-        export CNC_GENERALS_ZH_PATH="${HOME}/GeneralsX/GeneralsMD"
-    elif [[ -d "${HOME}/GeneralsX/GeneralsZH" ]]; then
-        export CNC_GENERALS_ZH_PATH="${HOME}/GeneralsX/GeneralsZH"
+    if [[ -d "${GX_INSTALL_ROOT}/GeneralsZH" && -n "$(compgen -G "${GX_INSTALL_ROOT}/GeneralsZH/*.big" 2>/dev/null)" ]]; then
+        export CNC_GENERALS_ZH_PATH="${GX_INSTALL_ROOT}/GeneralsZH"
+    elif [[ -d "${GX_INSTALL_ROOT}/GeneralsMD" && -n "$(compgen -G "${GX_INSTALL_ROOT}/GeneralsMD/*.big" 2>/dev/null)" ]]; then
+        export CNC_GENERALS_ZH_PATH="${GX_INSTALL_ROOT}/GeneralsMD"
+    elif [[ -d "${GX_INSTALL_ROOT}/GeneralsZH" ]]; then
+        export CNC_GENERALS_ZH_PATH="${GX_INSTALL_ROOT}/GeneralsZH"
     else
-        export CNC_GENERALS_ZH_PATH="${HOME}/GeneralsX/GeneralsMD"
+        export CNC_GENERALS_ZH_PATH="${GX_INSTALL_ROOT}/GeneralsMD"
     fi
 fi
 
@@ -1009,9 +900,9 @@ fi
 GX_RC=$?
 if [ "${GX_RC}" -eq 78 ]; then
     # -e with a literal, not a variable, so nothing the engine printed can be read as AppleScript.
-    osascript -e 'display dialog "GeneralsX cannot find your Command & Conquer: Generals Zero Hour game files.
+    osascript -e 'display dialog "Generals Vanguard cannot find your Command & Conquer: Generals Zero Hour game files.
 
-GeneralsX is the engine. It does not include the game'"'"'s data, so it needs a copy of Zero Hour that you already own.
+Generals Vanguard is the engine. It does not include the game'"'"'s data, so it needs a copy of Zero Hour that you already own.
 
 Put your Zero Hour files in a folder called GeneralsZH inside a folder called GeneralsX in your home folder. It should contain about two dozen .big files, including INIZH.big.
 
@@ -1025,21 +916,9 @@ chmod +x "${MACOS_DIR}/run.sh"
 # Keep compatibility with direct calls using the game name.
 ln -sf run.sh "${MACOS_DIR}/GeneralsXZH"
 
-# MAKE THE BUNDLE RESOLVE ITS OWN LIBRARIES, AND REFUSE TO SHIP ONE THAT DOES NOT.
-#
-# Until 23/09/2026 every .app produced here carried LC_RPATH entries into the BUILD MACHINE'S home
-# directory, plus ~25 /opt/homebrew absolute LC_LOAD_DYLIB entries from the collected externals.
-# run.sh masked all of it, because dyld searches DYLD_LIBRARY_PATH before the recorded path, so
-# the only way to see the defect was to exec Contents/Resources/bin/GeneralsXZH directly - which
-# is what a player on another Mac did, and got
-# "Library not loaded: @rpath/libSDL3_image.0.dylib ... (no such file)".
-#
-# The relink is unconditional and the assert has NO escape hatch, deliberately. The overlay checks
-# above have one (GX_BUNDLE_ALLOW_NO_OVERLAY, and CI downgrades verify-bundle-overlay.sh to a
-# warning on smoke runs) because a runner legitimately has no community archives. Nothing
-# legitimately produces a bundle that only runs on the machine that built it, so there is nothing
-# to except - and a gate that a normal push turns into a warning is how this shipped in the first
-# place. See scripts/build/macos/lib-macho.sh for the reasoning and for running it standalone.
+# Make the bundle resolve its own libraries, and refuse to ship one that does not: without the relink the .app carries
+# LC_RPATHs into the build machine's home and /opt/homebrew dylib paths that only run.sh's DYLD_LIBRARY_PATH masks.
+# No escape hatch: nothing legitimately produces a bundle that runs only where it was built. See lib-macho.sh.
 source "${SCRIPT_DIR}/lib-macho.sh"
 echo ""
 echo "  Relinking Mach-O load commands to be bundle-relative..."
@@ -1058,10 +937,9 @@ gx_macho_assert_portable "${APP_DIR}" "${APP_DIR_NAME}" "${BIN_DIR}" || exit 1
 # GeneralsXZH.app/Contents/MacOS/run.sh, which is what the deleted file exec'd anyway. Nothing is
 # lost and the folder now has one obvious thing in it.
 
-# GeneralsX: A gx-ab-build.sh arm carries its build's provenance INTO the app:
-# a --flag A/B stages two apps of ONE sha on the Mini, and only this stamp (arm, sha, build dir, the
-# cache's GX_ entries, the bundled binary's md5) lets gx-ab.sh's Mini gate tell them apart. Only a dir
-# gx-ab-build.sh stamped: every other bundle is unchanged.
+# A gx-ab-build.sh arm carries its build's provenance into the app: a --flag A/B stages two apps of ONE sha, and only this stamp
+# (arm, sha, build dir, the cache's GX_ entries, the bundled binary's md5) lets gx-ab.sh's gate tell them apart.
+# Only a dir gx-ab-build.sh stamped: every other bundle is unchanged.
 GX_AB_STAMP="${BUILD_DIR}/gx-ab-stamp.txt"
 if [[ -e "${GX_AB_STAMP}" ]]; then
     gx_ab_sha="$(sed -n 's/^sha=//p' "${GX_AB_STAMP}")"
@@ -1076,7 +954,7 @@ fi
 echo ""
 echo "Creating ${OUTPUT_ZIP}..."
 rm -f "${OUTPUT_ZIP}"
-# GeneralsX @bugfix Make everything owner-writable before archiving. Several vcpkg-provided
+# Make everything owner-writable before archiving. Several vcpkg-provided
 # dylibs (libSvtAv1Enc, libavcodec, libx264, libpng16 and friends) arrive mode 444, and zip
 # preserves that. On the machine that unpacks the archive, "xattr -dr com.apple.quarantine"
 # then fails with EACCES on exactly those files, because removing an extended attribute needs
@@ -1092,7 +970,7 @@ python3 -I "${PROJECT_ROOT}/scripts/legal/third_party_notices.py" check-path --p
 
 (cd "${STAGE_DIR}" && zip -r "${OUTPUT_ZIP}" "${APP_DIR_NAME}" run.sh)
 
-# GeneralsX: AND ONCE MORE OUT OF THE FINISHED ZIP.
+# AND ONCE MORE OUT OF THE FINISHED ZIP.
 #
 # The staged check above ran against the staging tree; this one runs against the artifact a player
 # downloads, so nothing between staging and `zip` - a permissions pass, a re-copy, a stray earlier
@@ -1124,8 +1002,8 @@ echo "  2) run: ./run.sh -win"
 echo "  3) or open: open ${APP_DIR_NAME}"
 echo ""
 echo "Runtime env defaults inside app launcher:"
-echo '  CNC_GENERALS_PATH=$HOME/GeneralsX/Generals'
-echo '  CNC_GENERALS_ZH_PATH=$HOME/GeneralsX/GeneralsZH (fallback: $HOME/GeneralsX/GeneralsMD)'
+echo '  CNC_GENERALS_PATH=$HOME/GeneralsVanguard/Generals or $HOME/GeneralsX/Generals'
+echo '  CNC_GENERALS_ZH_PATH=<that folder>/GeneralsZH (fallback: <that folder>/GeneralsMD)'
 echo '  GENERALSX_PATCH_PATH=<app>/Contents/Resources/GeneralsXPatch'
 echo ""
 if [[ -f "${RESOURCES_DIR}/OVERLAY-MISSING.txt" ]]; then

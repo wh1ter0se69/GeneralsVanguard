@@ -37,6 +37,8 @@
 #include "Common/XferCRC.h"
 
 #include "GameLogic/AI.h"
+#include "Common/Team.h"
+#include "GameLogic/GXP32AiProbe.h"
 #include "GameLogic/PartitionManager.h"
 #include "GameLogic/Module/AIUpdate.h"
 #include "GameLogic/Module/ContainModule.h"
@@ -65,7 +67,7 @@ void TAiData::addFactionBuildList(AISideBuildList *buildList)
 		if (buildList->m_side == info->m_side) {
 			deleteInstance(info->m_buildList);
 			info->m_buildList = buildList->m_buildList;
-			// GeneralsX 04/11/2026 base-layout: the old wrapper stays, so the replacing list's keys come with its entries (a list without them is retail again)
+			// The old wrapper stays, so the replacing list's keys are copied along with its entries (without them the list is retail).
 			info->m_gxTurnLayout = buildList->m_gxTurnLayout;
 			info->m_gxFrontDoors = buildList->m_gxFrontDoors;
 			info->m_gxRingRadius = buildList->m_gxRingRadius;
@@ -288,9 +290,9 @@ void AI::parseSkirmishBuildList(INI *ini, void *instance, void* /*store*/, const
 	static const FieldParse myFieldParse[] =
 		{
 			{ "Structure",			BuildListInfo::parseStructure,			nullptr, 0 },
-			{ "GXTurnLayout",		INI::parseBool,											nullptr, offsetof( AISideBuildList, m_gxTurnLayout ) },	// GeneralsX 04/11/2026 base-layout
-			{ "GXFrontDoors",		INI::parseBool,											nullptr, offsetof( AISideBuildList, m_gxFrontDoors ) },	// GeneralsX 04/11/2026 base-layout
-			{ "GXRingRadius",		INI::parseReal,											nullptr, offsetof( AISideBuildList, m_gxRingRadius ) },	// GeneralsX 05/11/2026 base-layout
+			{ "GXTurnLayout",		INI::parseBool,											nullptr, offsetof( AISideBuildList, m_gxTurnLayout ) },
+			{ "GXFrontDoors",		INI::parseBool,											nullptr, offsetof( AISideBuildList, m_gxFrontDoors ) },
+			{ "GXRingRadius",		INI::parseReal,											nullptr, offsetof( AISideBuildList, m_gxRingRadius ) },
 			{ nullptr,							nullptr,											nullptr, 0 }
 		};
 
@@ -414,7 +416,7 @@ void AI::newOverride()
 		AISideBuildList *newbuild = newInstance(AISideBuildList)(build->m_side);
 		newbuild->m_next = nullptr;
 		newbuild->m_buildList = build->m_buildList->duplicate();
-		newbuild->m_gxTurnLayout = build->m_gxTurnLayout;	// GeneralsX 04/11/2026 base-layout: a map's override keeps the keys
+		newbuild->m_gxTurnLayout = build->m_gxTurnLayout;	// a map's override keeps the keys
 		newbuild->m_gxFrontDoors = build->m_gxFrontDoors;
 		newbuild->m_gxRingRadius = build->m_gxRingRadius;
 		m_aiData->addFactionBuildList(newbuild);
@@ -477,6 +479,47 @@ AIGroupPtr AI::createGroup()
 	m_groupIndex[group.Peek()] = std::prev( m_groupList.end() );
 #endif
 
+	return group;
+}
+
+/**
+ * GeneralsX: ScriptEngine builds a group per sequential script per frame (1.3% of a late 32-player
+ * tick) and the old one lives on through its members until they move, so these groups are in the CRC and cannot just be skipped.
+ * When the team's own group already holds exactly the team and nothing else refers to it, the rebuild would end with the same
+ * members in the same order, the next id, the fresh field values and the last place in m_groupList, so do that in place.
+ */
+AIGroupPtr AI::gxBuildTeamGroup( Team *team )
+{
+#if !RETAIL_COMPATIBLE_AIGROUP
+	for( DLINK_ITERATOR<Object> iter = team->iterate_TeamMemberList(); !iter.done(); iter.advance() )
+	{
+		Object *obj = iter.cur();
+		if( obj == nullptr || !AIGroup::gxTakesObject( obj ) )
+			continue;
+
+		AIGroup *existing = obj->getGroup();
+		if( existing != nullptr && existing->gxIsExactlyTeam( team ) )
+		{
+			auto where = m_groupIndex.find( existing );
+			if( where != m_groupIndex.end() )
+			{
+				existing->gxReissue();
+				m_groupList.splice( m_groupList.end(), m_groupList, where->second );
+				GX_P32_COUNT(groupReissue);
+				return Create_Add_Ref( existing );
+			}
+		}
+		break;
+	}
+#endif
+
+	GX_P32_COUNT(groupRebuild);
+	AIGroupPtr group = createGroup();
+#if RETAIL_COMPATIBLE_AIGROUP
+	team->getTeamAsAIGroup( group );
+#else
+	team->getTeamAsAIGroup( group.Peek() );
+#endif
 	return group;
 }
 
@@ -674,20 +717,9 @@ static Object *findBestByPriorityRetail(const Object *me, Real range, PartitionF
 }
 #endif // GX_TEST_INSTRUMENTS
 
-//-----------------------------------------------------------------------------
-// GeneralsX: findBestByPriorityRetail's result from getClosestObjects' visitor mode. visit()
-// gets the objects in the order the retail iterator INSERTED them; the iterator prepends and then merge-sorts stably by
-// the same distSqr key, so in its sorted order a smaller key comes first and, among equal keys, the later-inserted
-// object comes first. The retail loop keeps the first sorted object with the largest (modPriority, curPriority), so a
-// newly visited object takes over when it beats the best on (modPriority, curPriority), or ties it and sorts first
-// (key <= the best's key). Scoring arithmetic is the retail loop's, line for line.
-// Early stop: an object not visited yet is farther than minCentreDist (centre) and has a radius <= maxRadius, so its
-// boundary distance is >= minCentreDist - myRadius - maxRadius (the 1.0 absorbs float rounding), its modifier is at least
-// Int(that / modifierDist), and its modPriority at most max(1, maxPriority - that modifier). Stop when that is below the
-// best modPriority: it can neither beat nor tie the best. Never with a best of 1 (a clamped 1 ties and wins on priority),
-// never unless the modifier is positive, and never when the caller says a filter has side effects (mayStop): a skipped
-// object is a skipped filter call, and PartitionFilterFreeOfFog's getShroudedStatus updates seen state and ghost
-// snapshots that scripts read later.
+// Same result as findBestByPriorityRetail: retail sorts by distSqr (ties: later-inserted first) and keeps the first
+// object with the largest (modPriority, curPriority). Early stop once no unvisited object can beat or tie the best;
+// never with a best of 1 or when mayStop is false: skipped filter calls skip getShroudedStatus's seen-state updates.
 class HuntPriorityVisitor : public PartitionRingVisitor
 {
 public:
@@ -772,9 +804,7 @@ public:
 };
 
 #if defined(GX_TEST_INSTRUMENTS)
-//-----------------------------------------------------------------------------
-// GeneralsX: GX_HUNT_CHECK=1 (test builds only,
-// -DGX_TEST_INSTRUMENTS=ON; 29/10/2026): the equivalence harness for HuntPriorityVisitor. After each
+// GX_HUNT_CHECK=1 (test builds only, -DGX_TEST_INSTRUMENTS=ON): the equivalence harness for HuntPriorityVisitor. After each
 // attack-priority search it runs the retail search too and compares the winner and "no candidates"; prints cumulative
 // "[GXHUNT] f= q= diff= stopped=" every 600 logic frames. Off (the default) it costs one static flag test per search.
 // On, it walks the whole range again (the retail cost), so it is for audits, never for timing.
@@ -909,14 +939,12 @@ Object *AI::findClosestEnemy( const Object *me, Real range, UnsignedInt qualifie
 		return o;
 	}
 
-	// GeneralsX: An attack-priority search used to collect EVERY object that passed the
-	// filters across the whole range (a hunter's is 9999.9: the map) into a sorted iterator and then score all of them:
-	// ~0.9 ms per hunt search with 12 Hard AIs, most of it visiting objects that could never win (ai-smartcheap P2/gco).
-	// The visitor scores them as the walk finds them and stops the walk once nothing unvisited can win - the same
-	// winner by construction (see HuntPriorityVisitor and getClosestObjects' visitor mode). GX_HUNT_CHECK=1 (test builds) runs the
-	// retail search as well and counts disagreements ([GXHUNT]).
-	// Every filter must still see every object the retail walk would have shown it when one has side effects: UNFOGGED's
-	// fog filter does (see HuntPriorityVisitor), and a caller's own filter is not known not to - those walk the whole range.
+	// GeneralsX: the visitor scores objects as the walk finds them and stops once nothing unvisited can win (a hunter's range
+	// is 9999.9: the map), instead of sorting every object that passed the filters. Same winner by construction (see
+	// HuntPriorityVisitor and getClosestObjects' visitor mode). GX_HUNT_CHECK=1 (test builds) also runs the retail search
+	// and counts disagreements ([GXHUNT]).
+	// A filter with side effects must still see every object the retail walk would show it: UNFOGGED's fog filter does (see
+	// HuntPriorityVisitor), and a caller's own filter is not known not to - those walk the whole range.
 	const Bool mayStop = !(qualifiers & UNFOGGED) && optionalFilter == nullptr;
 	HuntPriorityVisitor visitor(me, info, getAiData()->m_attackPriorityDistanceModifier, mayStop);
 	ThePartitionManager->visitObjectsNearToFar(me, range, FROM_BOUNDINGSPHERE_2D, filters, &visitor);

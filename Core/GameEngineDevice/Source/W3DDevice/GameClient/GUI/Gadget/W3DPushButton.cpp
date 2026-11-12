@@ -142,21 +142,9 @@ static void drawButtonText( GameWindow *window, WinInstanceData *instData )
 
 }
 
-// GeneralsX @feature wh1ter0se 20/08/2026 Draw the hotkey letter over the cameo.
-//
-// This is the half of the feature that lets the OTHER half exist: because the engine draws the
-// letter, the cameo artwork no longer has to have one painted into it, so the art can be replaced
-// or upscaled freely and the letter still follows a rebind.
-//
-// DisplayStrings are cached per glyph rather than per button. There are at most a few dozen
-// distinct hotkey letters for the whole game, whereas buttons are rebuilt constantly as the
-// selection changes - a per-button DisplayString would mean an allocation and a text re-layout on
-// every repopulate, and would need freeing in GWM_DESTROY where PushButtonData is deleted as a
-// plain struct.
-//
-// GeneralsX: Keyed by glyph AND font. The letter's size now follows its button (see
-// getHotKeyFont), and the command bar, the shortcut bar and the General's Points panel are different heights on
-// screen at once, so one 'S' shared across them would re-lay its text on every draw.
+// GeneralsX @feature wh1ter0se 20/08/2026 Draws the hotkey letter over the cameo, so the cameo art needs no painted letter and a rebind still shows.
+// DisplayStrings are cached per glyph AND font, not per button: few distinct letters, but buttons are rebuilt
+// constantly and the command bar, shortcut bar and General's Points panel differ in height.
 static DisplayString *getHotKeyDisplayString( const UnicodeString& label, GameFont *font )
 {
 	if( label.isEmpty() || font == nullptr || TheDisplayStringManager == nullptr )
@@ -179,25 +167,10 @@ static DisplayString *getHotKeyDisplayString( const UnicodeString& label, GameFo
 	return ds;
 }
 
-// GeneralsX: The letter's size follows the BUTTON, not the button's font.
-//
-//
-//
-// It used to be drawn in window->winGetFont(), the font each layout gives its buttons for text they never show, so
-// the three surfaces carrying a letter set three unrelated sizes: the command bar's Arial 8, the General's Points
-// panel's Times New Roman 14, and the power shortcut bar's Arial 12 bold - which that bar's header template
-// (Arial12BoldTemplate) scales by adjustFontSize's resolution factor. In wh1ter0se's 2560x1440 screenshots that was a
-// letter about 27 px tall on an 80 px shortcut button and 10 px on a 93 px command-bar cameo.
-//
-// Now every letter is the command bar's own family in bold, at LETTER_POINTS_PER_PIXEL points per pixel of the
-// button's on-screen height: a cap height of about 13% of the button (Arial's cap is 0.716 em, and a point is
-// 4/3 px - FT_Set_Pixel_Sizes and GDI's CreateFont both use 96 dpi here). Measured in screen pixels on both
-// sides, so it holds at every resolution and on a HiDPI or iPad surface, whose buttons are laid out in the same
-// pixels the glyphs are rasterised in. Fonts live until the game exits (FontLibrary::reset runs only in
-// GameClient's destructor), so caching the pointers is safe.
-//
-// GeneralsX: `scale` is the player's badge size (HotKeyManager::getBadgeScale, the launcher's
-// Keybinds page): 1.0 is the size above.
+// The letter's size follows the BUTTON, not the button's font: the command bar's family in bold at
+// LETTER_POINTS_PER_PIXEL points per pixel of the button's on-screen height (cap height about 13% of the button).
+// Fonts live until exit, so caching the pointers is safe.
+// `scale` is the player's badge size (HotKeyManager::getBadgeScale); 1.0 is the size above.
 static GameFont *getHotKeyFont( Int buttonHeight, Real scale )
 {
 	static const Real LETTER_POINTS_PER_PIXEL = 0.136f;
@@ -262,11 +235,9 @@ static void drawHotKeyLabel( GameWindow *window, const ICoord2D& start, const IC
 
 	const Bool enabled = BitIsSet( window->winGetStatus(), WIN_STATUS_ENABLED ) != 0;
 
-	// GeneralsX: A letter whose key another button owns right now (a
-	// selected unit's command set takes S from the general's-power shortcut, as in retail) is
-	// drawn darker than a disabled one instead of being hidden, so it never disappears and never
-	// looks live. Asked per frame: the owner changes with every selection (ControlBar.cpp
-	// switchToContext resets the map), and a label set before that reset would otherwise lie.
+	// A letter whose key another button owns right now (a selected unit's command set takes S from the general's-power
+	// shortcut, as in retail) is drawn darker than a disabled one instead of being hidden, so it never disappears and never
+	// looks live. Asked per frame: the owner changes with every selection (ControlBar.cpp switchToContext resets the map).
 	AsciiString key;
 	key.translate( label );
 	const Bool shadowed = TheHotKeyManager->isHotKeyBoundTo( key, window ) == FALSE;

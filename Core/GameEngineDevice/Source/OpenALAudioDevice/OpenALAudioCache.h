@@ -26,7 +26,7 @@
 // #endif
 
 #include "OpenALAudioDevice/OpenALAudioManager.h"
-// GeneralsX: This used to include FFmpegFile.h directly, which made
+// This used to include FFmpegFile.h directly, which made
 // the whole OpenAL backend unbuildable anywhere FFmpeg is absent - i.e. Windows x64, the one
 // platform with no audio at all. AudioDecoder hides the decoder behind a pimpl so this header
 // stays compilable with or without libav* present.

@@ -57,24 +57,9 @@ static GameWindow *chatTypeStaticText = nullptr;
 static UnicodeString s_savedChat;
 static InGameChatType inGameChatType;
 
-// GeneralsX: THE KEYSTROKE THAT OPENS THE CHAT ALSO SUBMITTED IT.
-//
-// Measured on the owner's Windows machine with the temporary key-path probe added in af881e0bd
-// and removed again for release. ONE press of Enter produced TWO calls to ToggleInGameChat:
-//
-//   [GXKEY] META_CHAT_EVERYONE arrived
-//   [GXKEY] ToggleInGameChat justHid=0 window=1 hidden=1   <- opens it, focuses the text entry
-//   [GXKEY] ToggleInGameChat justHid=0 window=1 hidden=0   <- the SAME Enter, now via GEM_EDIT_DONE
-//
-// ShowInGameChat hands the keyboard focus to the text entry, and the same key event then reaches
-// that entry and fires GEM_EDIT_DONE, which submits an empty line and closes the window again. The
-// chat opened and shut inside one keypress. The existing justHid flag then swallowed the NEXT
-// press, so it took two presses to get one visible attempt - reported as "I press enter ten times
-// before I can chat".
-//
-// Frames, not a sticky flag: the two calls are the same client frame by construction, and a flag
-// that has to be cleared by a call which might not arrive is how justHid itself can strand. An
-// UnsignedInt that only ever compares equal to "this frame" cannot get stuck.
+// One Enter press called ToggleInGameChat twice: ShowInGameChat focuses the entry, and the same key event
+// fires GEM_EDIT_DONE, which submits an empty line and closes the window.
+// Compared by client frame, not a sticky flag, so it cannot strand: both calls land on the same frame.
 static UnsignedInt s_shownOnFrame = 0;
 static Bool        s_shownFrameValid = false;
 
@@ -328,7 +313,7 @@ static void showSoloChatLine(UnicodeString text)
 // ------------------------------------------------------------------------------------------------
 void ToggleInGameChat( Bool immediate )
 {
-	// GeneralsX @note justHid exists to swallow the SECOND ToggleInGameChat that the same Enter
+	// GeneralsX: justHid exists to swallow the SECOND ToggleInGameChat that the same Enter
 	// causes (the text entry's GEM_EDIT_DONE, then the meta key). If that second call never
 	// arrives, the flag stays set and eats the NEXT genuine Enter instead - which is why the fix
 	// by s_shownOnFrame uses a frame number rather than another sticky flag.
@@ -439,31 +424,10 @@ void ToggleInGameChat( Bool immediate )
 					else
 						showSoloChatLine(msg);
 
-					// GeneralsX: A RECORD-ONLY copy for the operator
-					// transcript. Feature 7 of the admin panel spec.
-					//
-					// AFTER the native send and AFTER the language filter, so what lands in the
-					// transcript is the line the other players actually received rather than the
-					// one that was typed.
-					//
-					// RECORD-ONLY, AND THAT IS THE ENTIRE DESIGN. `playerMask` above is an audience:
-					// Everyone, Allies or Players, enforced on receive at
-					// ConnectionManager.cpp:1028. The relay's GXCHT carries no mask and relay.js
-					// fans an accepted chat line out to every member of the room, so calling
-					// Transport::sendRelayChat with `msg` here - which is tempting, the room is
-					// right and this file is out of the sim digest - would put ally and private
-					// conversation in plaintext on the wire to every player in the match,
-					// opponents included. Discarding it in a receiving UI would restore nothing,
-					// because the violation is in the sending.
-					//
-					// gxMatchSendRecord wraps the line in the GXM2 envelope carrying that same
-					// mask. The relay recognises it ahead of parseChat, writes it to its event
-					// sink, and emits no GXSAY at all.
-					//
-					// Note what `playerMask` means for INGAME_CHAT_EVERYONE: the loop above clears
-					// the bit of any slot this client has LOCALLY muted
-					// (TheGameInfo->getConstSlot(i)->isMuted()). So the recorded audience is the
-					// audience this sender chose, which is the honest thing to record.
+					// Record-only copy for the operator transcript, made after the native send and the language filter.
+					// Not Transport::sendRelayChat: GXCHT carries no mask and the relay fans it out to the whole room.
+					// gxMatchSendRecord wraps the line in the GXM2 envelope with the same mask; the relay logs it only.
+					// For INGAME_CHAT_EVERYONE the loop above clears locally muted slots.
 					char gxMatchChan = '\0';
 					switch (inGameChatType)
 					{

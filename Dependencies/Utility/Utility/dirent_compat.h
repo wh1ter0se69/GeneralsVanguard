@@ -1,17 +1,27 @@
 /*
- * GeneralsX: <dirent.h> shim for Windows.
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+ * <dirent.h> shim for Windows.
  *
- * GeneralsMD/Code/GameEngine/Source/Common/GameEngine.cpp walks the save directory with the POSIX
- * opendir/readdir/closedir trio (the -autoload probe). Those do not exist in the MSVC CRT, so the
- * unguarded "#include <dirent.h>" was a hard C1083 on Windows.
- *
- * Rather than fork the walk, provide the three calls on top of _findfirst/_findnext/_findclose,
- * which the MSVC CRT has always shipped in <io.h>. Only the members that walk actually touches are
- * provided - d_name - because a fuller emulation would be dead code we could not test.
- *
- * This header is Windows-only by construction: everything below is inside #ifdef _WIN32, so
- * including it on any other platform yields an empty translation unit. Call sites still include
- * the real <dirent.h> off Windows.
+ * Provides opendir/readdir/closedir (d_name only, which is all GameEngine.cpp uses for the -autoload save-directory
+ * probe) on top of _findfirst/_findnext/_findclose from <io.h>, since the MSVC CRT has no <dirent.h>.
+ * Everything is inside #ifdef _WIN32: other platforms get an empty translation unit and include the real <dirent.h>.
  */
 #pragma once
 

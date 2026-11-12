@@ -44,7 +44,7 @@
 #include "gxtextsmooth.h"
 #include <cstdlib>
 
-// GeneralsX: GX_TEXT_CONTRAST=<k> (prototype for the owner's look call, default OFF = the
+// GeneralsX: GX_TEXT_CONTRAST=<k> (prototype, default OFF = the
 // rasteriser's coverage unchanged): gxtextcontrast.h's curve applied to the glyph coverage before it becomes the atlas
 // alpha. Applied at atlas-bake time, so it costs nothing per frame. Read once (glyphs are baked on the main thread).
 static uint8 Gx_Text_Coverage (uint8 coverage)
@@ -747,20 +747,8 @@ Render2DSentenceClass::Allocate_New_Surface (const WCHAR *text, bool justCalcExt
 		//
 		//	Create the new surface
 		//
-// GeneralsX: The glyph atlas is now 8-BIT alpha, not 4-bit.
-//
-// FreeType and GDI both rasterise 8-bit grayscale coverage, and this file threw 4 of those bits away
-// (alpha = pixel >> 4) into an A4R4G4B4 atlas - 16 levels. At 48px that is invisible, because almost
-// every pixel of a big glyph is fully on or fully off. At the 13pt this game's list rows use, a stem
-// is ONE pixel wide and lives entirely in the partial-coverage range that the quantisation crushes,
-// so small text reads as scratchy while headings look clean - which is exactly the complaint.
-//
-// Measured on this Mac at 1920x1080 with density 1.0 (NOT a Retina upscale, NOT a layout scaling
-// problem - both were checked and ruled out): 'Team' at 48px is smooth, 'Easy Army' at 18px has
-// 1px stems with uneven coverage. The v35 interpreter fix of 27/07/2026 put a solid stem back; this
-// gives the antialiasing either side of it somewhere to go.
-//
-// Costs 2x atlas memory (16bpp -> 32bpp) for glyph pages only.
+// GeneralsX: the glyph atlas is 8-bit alpha, not 4-bit: FreeType and GDI rasterise 8-bit coverage, and 16 levels
+// crush the one-pixel stems of small text (13pt list rows). Costs 2x atlas memory (32bpp) for glyph pages only.
 		CurSurface = NEW_REF (SurfaceClass, (CurrTextureSize, CurrTextureSize, WW3D_FORMAT_A8R8G8B8));
 		WWASSERT (CurSurface != nullptr);
 		CurSurface->Add_Ref ();
@@ -845,16 +833,9 @@ void	Render2DSentenceClass::Build_Sentence_Centered (const WCHAR *text, int *hkX
 			//
 			int word_spacing = 0;
 			while ((*word != 0) && (*word > L' ') && (*word != L'\n')) {
-				// GeneralsX @bugfix: this look-ahead used to read (*word)+1 -- the value of the
-				// '&' plus one -- instead of the character after the '&'. L'&'+1 is non-zero,
-				// greater than L' ' and not L'\n', so all three guards were constant-true and
-				// any '&' was consumed as a hot-key marker unconditionally. That disagreed with
-				// the blitting loop further down this function and with the one in
-				// Build_Sentence_Not_Centered, which test the character after the '&' correctly
-				// (they read it into 'ch' first): "Load & Save" was measured as if the
-				// '& ' were a marker, merging two words and yielding the wrong wrap width. With
-				// a trailing bare '&' the unconditional skip also walked the pointer onto the
-				// terminator, so the Get_Char_Spacing below read and stepped past the NUL.
+				// GeneralsX: test the character after the '&', not (*word)+1, which always passes all three guards, so every '&'
+				// counted as a hot-key marker ("Load & Save" mis-measured; a trailing '&' stepped onto the terminator).
+				// This matches the blitting loop below and Build_Sentence_Not_Centered.
 				if( ParseHotKey && (*word == L'&') && (*(word+1) != 0) && (*(word+1) > L' ') && (*(word+1) != L'\n'))
 				{
 					int offset = 0;
@@ -1149,7 +1130,7 @@ Vector2	Render2DSentenceClass::Build_Sentence_Not_Centered (const WCHAR *text, i
 					const WCHAR *word	= text;
 					float word_width	= char_spacing;
 					while ((*word != 0) && (*word > L' ')) {
-						// GeneralsX @bugfix: same (*word)+1 vs *(word+1) mistake as in
+						// GeneralsX: same (*word)+1 vs *(word+1) mistake as in
 						// Build_Sentence_Centered -- the guard was constant-true for every '&',
 						// so the marker skip below fired unconditionally. On a string ending in
 						// a bare '&' that stepped 'word' onto the terminator, and the
@@ -1456,45 +1437,10 @@ FontCharsClass::Blit_Char (WCHAR ch, uint32 *dest_ptr, int dest_stride, int x, i
 		int dest_inc		= (dest_stride >> 2);	// stride is BYTES; 32bpp now, so /4 not /2
 		uint32 *src_ptr	= data->Buffer;
 
-// GeneralsX: Clip the glyph to the atlas instead of trusting a compiled-out assert.
-//
-// This loop used to write CharHeight rows of data->Width pixels with no bound in either axis. The only
-// fit check was the WWASSERT in Build_Sentence_Not_Centered / Build_Sentence_Centered, and WWASSERT is
-// #defined to nothing without DEBUG_CRASHING (Core/Libraries/Source/WWVegas/WWDebug/wwdebug.h). The
-// shipping macOS TU has neither DEBUG_CRASHING nor WWDEBUG - read out of the generated
-// build/macos-vulkan/compile_commands.json for this file, whose defines are -DNDEBUG -DRTS_RELEASE and
-// no DEBUG_CRASHING - so in the build players run there was no fit check at all.
-//
-// Two ways past the end, both measured by reading the code rather than inferred:
-//
-// 1. Vertical. Allocate_New_Surface only ever tries 64/128/256 (for pow2 = 6; pow2 <= 8) and, when a
-//    glyph fits none of them (rows_per_texture = size / (char_height + 1) is 0), it silently leaves
-//    CurrTextureSize at 256 and allocates a 256x256 A8R8G8B8 surface anyway. CharHeight is the face's
-//    tmHeight (:1586) or CharAscent + descent (:1880) and so grows with the point size, so a large
-//    enough font writes whole rows past the end of the locked surface. GeneralsX:
-//    24/09/2026: this is REACHABLE since the #3051 port - FontLibrary::getFont (GameFont.cpp) now clamps
-//    to 512 instead of refusing above 100, as upstream does, and CharHeight passes 255 from about
-//    171 pt. The clip below is what keeps that on the surface; upstream has the same loop unclipped.
-//    GeneralsX: Allocate_New_Surface now grows the texture past 256 for such
-//    a font (upstream PR #3288, ported), and the callers skip a glyph that still does not fit, so this
-//    clip is the backstop rather than the only bound.
-//
-// 2. Horizontal. Get_Char_Spacing returns data->Width - PixelOverlap - CharOverhang, but this loop
-//    writes data->Width columns. The callers place a glyph whenever TextureOffset.I + char_spacing <
-//    CurrTextureSize, so the last glyph on a row wrote up to PixelOverlap + CharOverhang columns past
-//    the row (PixelOverlap is clamped to 4 at :1525 and :1915; CharOverhang is 0 on the FreeType path).
-//    Those landed on the next row's left edge - inside the allocation, so not a crash, but a smear of
-//    one glyph's right edge over the next row's first glyph. Clipping removes it.
-//
-// Clipping was chosen over refusing the font: refusing at font creation leaves every other path into
-// this loop unguarded. The bound belongs at the write. (Growing the atlas for tall fonts was added
-// later, above, with the #3288 port; the clip stays.)
-		// dest_ptr FIRST, and for the same reason as everything else in this block: the callers
-		// guard the lock with `WWASSERT (LockedPtr != nullptr)` (:933 and :1130), and WWASSERT is
-		// #defined to nothing without DEBUG_CRASHING - which the shipping TU does not define. A
-		// failed Lock() therefore reached this loop as a null base pointer with no diagnostic.
-		// Leaving that while clipping the coordinates would have closed one unguarded write and
-		// left its sibling two lines away.
+// GeneralsX: clip the glyph to the atlas; WWASSERT compiles out without DEBUG_CRASHING, so shipping had no fit check.
+// Vertically a tall font can exceed the 256x256 fallback surface (Allocate_New_Surface grows it, callers skip misfits).
+// Horizontally the write is data->Width columns but spacing is Width - PixelOverlap - CharOverhang, so it smears.
+		// dest_ptr is checked first: a failed Lock() reaches this loop as a null base pointer.
 		if ( dest_ptr == nullptr ) {
 			return ;
 		}
@@ -1735,13 +1681,10 @@ FontCharsClass::Create_GDI_Font (const char *font_name)
 	//
 	//	Create the Windows font
 	//
-	// GeneralsX: CLEARTYPE_QUALITY, not ANTIALIASED_QUALITY: ALL Windows game text was drawn
-	// without anti-aliasing at the sizes the game uses.
-	// ANTIALIASED_QUALITY obeys the font's own 'gasp' table, and Arial's says 9-17 ppem = GRIDFIT only, no gray
-	// (arialbd.ttf: 9-10 ppem), so GDI drew those sizes bilevel. Measured with the engine's own glyph path run standalone
-	// on the owner's PC: Arial 10pt regular = 0.0% partial-coverage pixels (100% on/off). ClearType smooths those sizes,
-	// and with CLEARTYPE_QUALITY (not _NATURAL_) its advance widths and text metrics are GDI's - identical layout, measured
-	// per character. Store_GDI_Char reads the mean of the three subpixel samples as coverage (gxClearTypeCoverage).
+	// GeneralsX: CLEARTYPE_QUALITY, not ANTIALIASED_QUALITY: ANTIALIASED_QUALITY obeys the font's 'gasp' table, and Arial's says
+	// 9-17 ppem = GRIDFIT only, so GDI drew those sizes bilevel. ClearType smooths them, and CLEARTYPE_QUALITY (not _NATURAL_)
+	// keeps GDI's advance widths and metrics, so layout is identical.
+	// Store_GDI_Char reads the mean of the three subpixel samples as coverage (gxClearTypeCoverage).
 	DWORD bold		= IsBold ? FW_BOLD : FW_NORMAL;
 	DWORD italic	= 0;
 	GDIFont			= ::CreateFont (font_height, fontWidth, 0, 0, bold, italic,
@@ -1849,24 +1792,10 @@ FontCharsClass::Free_GDI_Font ()
 
 #endif // _WIN32
 
-////////////////////////////////////////////////////////////////////////////////////
-//
-//	Update_Current_Buffer (Platform-independent text buffer management)
-//
 // GeneralsX @build fbraz 11/02/2026 - Used by both Windows GDI and Linux FreeType
-////////////////////////////////////////////////////////////////////////////////////
-// GeneralsX: Report a degenerate cell instead of storing it.
-//
-// GeneralsX: Ported by hand from upstream PR #3268 (b57adac01). The buffer used
-// to be a fixed CHAR_BUFFER_LEN (32768) array, and this function only asked "does the cell fit in what
-// is LEFT of the current buffer", answering a no with a fresh buffer that was still only 32768 cells.
-// A single glyph cell with char_width * CharHeight > CHAR_BUFFER_LEN therefore overran the new buffer.
-// 47e1319b6 closed that by refusing such a cell, so a large enough glyph rendered as nothing. Upstream
-// sizes the new buffer to max(CHAR_BUFFER_LEN, char_len) instead, so the cell always fits and the glyph
-// is drawn. The degenerate-cell refusal below is the part of 47e1319b6 that is kept.
-//
-// Returning false makes the two Store_*_Char callers give up on that glyph. Get_Char_Data then hands
-// back nullptr, which Blit_Char, Get_Char_Width and Get_Char_Spacing all already handle.
+// GeneralsX: per upstream PR #3268 the new buffer is max(CHAR_BUFFER_LEN, char_len), so any cell fits and is drawn.
+// A degenerate cell is refused: false makes the Store_*_Char callers skip the glyph, so Get_Char_Data returns nullptr,
+// which Blit_Char, Get_Char_Width and Get_Char_Spacing already handle.
 bool
 FontCharsClass::Update_Current_Buffer (int char_width)
 {
@@ -2041,26 +1970,10 @@ FontCharsClass::Create_Freetype_Font (const char *font_name)
 		return false;
 	}
 
-	// GeneralsX: Select the v35 TrueType interpreter.
-	//
-	// FreeType defaults to interpreter v40 ("minimal" hinting), which deliberately does NOT
-	// grid-fit horizontal stems - it only hints vertically and leaves horizontal positioning to
-	// subpixel-accurate antialiasing. That is the right default for a modern compositor rendering
-	// at 2x or with subpixel RGB coverage. It is the wrong default here: this engine rasterises
-	// grayscale into a 4-bit alpha glyph atlas at small pixel sizes, so a v40 stem lands as ~2px
-	// of partial coverage with no fully-opaque pixel anywhere in it, and the 4-bit quantisation
-	// then throws away most of what little contrast remains. Measured at the sizes this game
-	// actually uses, a 12pt 'l' has zero solid pixels. v35 grid-fits both axes and puts a 1px
-	// solid stem back.
-	//
-	// Windows never hit this: that path goes through GDI (Create_GDI_Font), which grid-fits.
-	// So this is a port regression, and it is why the in-code Debug menu - hardcoded 10/12pt with
-	// no resolution scaling - reads worst of all.
-	//
-	// Set on FTLibrary rather than globally because Create_Freetype_Font builds a fresh FT_Library
-	// per font; a one-time global call would only ever affect whichever font happened to be first.
-	// "GXHUD:<name>" = a GeneralsX panel font (gxtextsmooth.h): FreeType's LIGHT hinting (vertical only, outlines keep their
-	// horizontal shape) instead of the v35 grid-fit, so 10-14 px labels are not snapped to whole-pixel stems.
+	// GeneralsX: select the v35 TrueType interpreter: FreeType's default v40 does not grid-fit horizontal stems, so at
+	// small sizes a stem is ~2px of partial coverage with no solid pixel (a 12pt 'l' has none); v35 grid-fits both axes.
+	// Set on FTLibrary, not globally: Create_Freetype_Font builds a fresh FT_Library per font.
+	// "GXHUD:<name>" = a GeneralsX panel font (gxtextsmooth.h): FreeType LIGHT hinting (vertical only) instead of v35.
 	if (gxTextSmoothName( font_name, &font_name )) {
 		Supersample = GX_TEXT_SMOOTH_SS;		// here only the "smooth" flag; the glyphs are rendered once, at 1x
 	}
@@ -2188,23 +2101,9 @@ FontCharsClass::Store_Freetype_Char (WCHAR ch)
 		return nullptr;
 	}
 
-	// GeneralsX: BOLD WAS REQUESTED AND SILENTLY IGNORED.
-	//
-	// Locate_Font_FontConfig() is handed the font NAME and nothing else, so the weight never
-	// reaches face selection: every bold=1 request resolved to the regular face. Measured on macOS
-	// from the engine's own trace - "W3DFont load request name=Tahoma size=15 bold=1" followed by
-	// "Freetype path=/System/Library/Fonts/Supplemental/Tahoma.ttf", the regular file, while
-	// Tahoma Bold.ttf sits beside it. Every bold string in the UI has been drawing at regular
-	// weight, which is why asking for a bolder table changed nothing.
-	//
-	// Emboldening the OUTLINE rather than teaching the locator to ask fontconfig for a bold face:
-	// it works for every font on every platform including the ones that ship no bold file at all,
-	// which is the case the fallback path lands in whenever fontconfig substitutes. A real bold
-	// face is better typography where one exists; this is the fix that cannot fail to apply.
-	//
-	// The advance is widened by the same amount. Without that the glyphs grow into each other and
-	// bold text renders visibly tighter than regular - the outline gets fatter while the pen still
-	// moves the regular distance.
+	// GeneralsX: Locate_Font_FontConfig() gets only the font NAME, so a bold request resolved to the regular face.
+	// The outline is emboldened instead, which works for every font and platform, including ones with no bold file.
+	// The advance is widened by the same amount; otherwise bold glyphs grow into each other and read tighter than regular.
 	if ( IsBold && FTFace->glyph->format == FT_GLYPH_FORMAT_OUTLINE ) {
 		// 1/24 em is the conventional synthetic-bold strength: heavy enough to read as bold,
 		// light enough not to fill in the counters of small glyphs like 'e' and 'a' at 8pt.
@@ -2270,17 +2169,8 @@ FontCharsClass::Store_Freetype_Char (WCHAR ch)
 	//
 	//	Copy FreeType bitmap to our buffer (convert 8-bit gray → 16-bit format)
 	//
-	// Clip the blit to this character's cell.
-	//
-	// Cells are packed back to back in one linear buffer (CurrPixelOffset advances
-	// by char_width * CharHeight), and CharHeight is derived from the face's
-	// ascender/descender. A glyph whose rendered bitmap exceeds that — which
-	// happens with substitute fonts whose vertical metrics differ from the ones
-	// the layout assumed, e.g. the Liberation faces bundled on iOS standing in for
-	// Arial — used to run off the end of its cell and land in the top rows of the
-	// next character. That showed up in game as thin slivers of unrelated glyphs
-	// floating above menu button text. Only the top edge was ever guarded, and
-	// only against a negative offset.
+	// Clip the blit to this character's cell: a substitute font with other vertical metrics (Liberation for Arial on iOS)
+	// otherwise spills into the top rows of the next packed cell, leaving slivers above menu text.
 	for ( unsigned int row = 0; row < glyph->bitmap.rows; row++ ) {
 		const int dst_row = y_offset + (int)row;
 		if ( dst_row < 0 || dst_row >= CharHeight ) {

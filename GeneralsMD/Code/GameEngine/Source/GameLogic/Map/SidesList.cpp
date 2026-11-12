@@ -502,15 +502,9 @@ static Bool ParseTeamsDataChunk(DataChunkInput &file, DataChunkInfo *info, void 
 	return true;
 }
 
-// GeneralsX: GX_SKIRMISH - why does a USER map get no skirmish sides?
-//
-// Measured 2026-08-19: on iOS a user map yields skirmishSides=0, no players and zero objects, while
-// an official map on the SAME DEVICE yields 14. On macOS both user maps work. skirmishSides=14 is
-// not a map property - it is the side count of Data\Scripts\SkirmishScripts.scb, so 14 means that
-// file loaded and 0 means it did not. The existing diagnostics here were behind ALLOW_DEBUG_UTILS,
-// which is off in the shipped build, AND there was no branch at all for the open FAILING - the one
-// outcome that matters. Both fixed here: env-gated so a release build can report, and the failure
-// path now says so.
+// GX_SKIRMISH diagnostics: why a USER map may get no skirmish sides.
+// skirmishSides is not a map property: it is the side count of Data\Scripts\SkirmishScripts.scb, so a nonzero count
+// means that file loaded and 0 means it did not. Env-gated so a release build can report, and a failed open says so.
 static Bool gxSkirmishDiag(void)
 {
 	static Int s_on = -1;
@@ -703,9 +697,9 @@ void SidesList::addSide(const Dict* d)
 	}
 	else
 	{
-		// GeneralsX: This drop used to be SILENT in release. The dropped
+		// GeneralsX: Report this drop in release too. The dropped
 		// side is whichever arrives last - typically the neutral or the ReplayObserver - and the
-		// match then plays with players who own nothing while every count still reads full. Say so.
+		// match then plays with players who own nothing while every count still reads full.
 		fprintf(stderr, "[GXCAP] SidesList::addSide: side table full (%d of %d) - dropping side '%s'\n",
 			m_numSides, (Int)MAX_PLAYER_COUNT,
 			d ? d->getAsciiString(TheKey_playerName).str() : "(null)");
@@ -1089,7 +1083,7 @@ void BuildListInfo::parseStructure(INI *ini, void *instance, void* /*store*/, co
       { "InitiallyBuilt",			INI::parseBool,		nullptr, offsetof( BuildListInfo, m_isInitiallyBuilt ) },
       { "RallyPointOffset",			INI::parseCoord2D,		nullptr, offsetof( BuildListInfo, m_rallyPointOffset ) },
       { "AutomaticallyBuild",			INI::parseBool,	nullptr, offsetof( BuildListInfo, m_automaticallyBuild ) },
-			// GeneralsX 06/11/2026 base-layout (ADDENDUM_8): the stock list's spot for this keyed entry, as the stock list writes it (AISkirmishPlayer::adjustBuildList)
+			// the stock list's spot for this keyed entry, as the stock list writes it (AISkirmishPlayer::adjustBuildList)
 			{ "GXFallbackLocation",	BuildListInfo::parseGXFallbackLocation,	nullptr, offsetof( BuildListInfo, m_fallbackLocation ) },
 			{ "GXFallbackAngle",		INI::parseAngleReal,	nullptr, offsetof( BuildListInfo, m_fallbackAngle ) },
 			{ nullptr,							nullptr,											nullptr, 0 }

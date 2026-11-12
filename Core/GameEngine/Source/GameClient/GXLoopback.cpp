@@ -11,7 +11,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: See GXLoopback.h for why this exists and what it defends.
+// See GXLoopback.h for why this exists and what it defends.
 
 #include "GameClient/GXLoopback.h"
 #include "GameNetwork/GXSecureClear.h"	// connDrop: the request buffer held the delivered sign-in
@@ -60,18 +60,9 @@ GXSock s_listen = GX_SOCK_NONE;
 int    s_port = 0;
 char   s_nonce[GX_LOOPBACK_NONCE_LEN + 1] = { 0 };
 
-// THE CONNECTIONS IN PROGRESS, CARRIED ACROSS FRAMES.
-//
-// Nothing here blocks. The first version accepted one connection and then blocked in recv with a
-// receive timeout, which could stall a rendered frame and, worse, guessed wrong about when the body
-// would arrive.
-//
-// It is a TABLE rather than a single slot, and that is the fix for the bug that cost the most time
-// in this feature. A browser does not open exactly one connection: it preconnects, it asks for a
-// favicon, a stray GET can land before the POST. Holding one slot meant any of those occupied the
-// listener and the real delivery was never accepted at all - measured against Opera on Windows,
-// where the delivery arrived on the SECOND connection. It looked exactly like the browser refusing
-// to talk to loopback, which it was not.
+// The connections in progress, carried across frames. Nothing here blocks.
+// A TABLE, not a single slot: a browser preconnects, asks for a favicon or sends a stray GET before the POST, and any
+// of those would occupy a single-slot listener so the real delivery was never accepted.
 struct GXConn
 {
 	GXSock       sock;
@@ -180,20 +171,9 @@ int hexVal(char c)
 
 /*
  * Pull one field out of an application/x-www-form-urlencoded body, decoding it.
- *
- * THE DECODER IS NOT OPTIONAL, and the first version of this file learned that the hard way. It
- * refused any value containing '%', on the reasoning that the two fields it reads are drawn from
- * charsets with nothing that needs encoding, so an encoded body was a body it did not understand.
- *
- * That reasoning was wrong about the format. An assertion is '1~<sub>~<name>~<iat>~<exp>~<sig>',
- * and in application/x-www-form-urlencoded a browser MUST percent-encode '~' as %7E - it is not in
- * the unreserved set that form encoding leaves alone. So every real delivery arrived encoded and
- * every one was refused, while every synthetic probe - whose payload happened to contain no tilde -
- * sailed through. The feature looked fine in testing and failed for the only payload that matters.
- *
- * The decoder is deliberately strict: a '%' not followed by two hex digits is a refusal, not a
- * literal. Nothing downstream is loosened by it either - the nonce is still length- and
- * charset-checked after decoding, and the assertion still has to carry a valid signature.
+ * The decoder is required: an assertion is '1~<sub>~<name>~<iat>~<exp>~<sig>' and a browser MUST encode '~' as %7E.
+ * It is strict: a '%' not followed by two hex digits is a refusal. The nonce is still length- and charset-checked
+ * after decoding, and the assertion still has to carry a valid signature.
  */
 bool formField(const char *body, const char *key, char *out, size_t outCap)
 {
@@ -274,25 +254,9 @@ const char *const BODY_OK =
 	"<p>You can close this tab. The game has your account.</p></main>";
 
 /*
- * Build the response HEADERS ONLY, with a MEASURED Content-Length.
- *
- * The first version hardcoded the length, and it was wrong by a few dozen bytes: browsers honour
- * the header over the connection close, so the page rendered as "...close this ta" - truncated at
- * exactly the advertised length. It was visible only because somebody looked at the screen. A
- * hand-counted length is a constant that has to be re-counted every time the sentence changes,
- * which is a thing nobody will ever remember to do.
- *
- * Measuring it with strlen fixed that and then re-created the SAME failure one layer down, which
- * is why the body no longer passes through here at all. Headers and body were assembled into one
- * 1024-byte buffer; the body is 994 bytes and the headers 124, so snprintf silently dropped the
- * last 95 bytes while Content-Length went on advertising all 994. The browser then reports a
- * network error on a login that had already succeeded - the worst possible reading of the last
- * screen the player sees. Formatting only the headers removes the coupling permanently: the page
- * can grow to any size without the reply being able to lie about it.
- *
- * Returns the header length, or 0 if the headers themselves did not fit. 0 means send NOTHING:
- * an empty close makes the browser show its own error, whereas a truncated header set is a
- * malformed response that some browsers will happily half-parse.
+ * Build the response HEADERS ONLY, with a MEASURED Content-Length. The body is not formatted through here: in one
+ * buffer snprintf silently truncated the body while Content-Length advertised all of it (a browser network error).
+ * Returns the header length, or 0 if the headers did not fit; 0 means send NOTHING (malformed otherwise).
  */
 size_t buildHeaders(char *out, size_t cap, int status, const char *reason, size_t bodyLen)
 {
@@ -449,7 +413,7 @@ void connDrop(GXConn &c)
 	if (sockValid(c.sock))
 		sockClose(c.sock);
 	c.sock = GX_SOCK_NONE;
-	// GeneralsX: THE REQUEST IS WIPED, not merely forgotten. A delivery's body
+	// THE REQUEST IS WIPED, not merely forgotten. A delivery's body
 	// is the whole assertion, form-encoded, and this is static storage: resetting `got` left the token in
 	// it for the rest of the process - through a sign-out - until some later connection happened to
 	// overwrite that slot. Every way a connection ends comes through here, including close().

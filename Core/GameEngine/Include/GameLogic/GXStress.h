@@ -16,37 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: THE LOBBY-AGREED STRESS BATTLEFIELD - the parts that must be
-// bit-identical on every peer, with no engine in them so scripts/test/stress-option-test.cpp can
-// exercise them standalone.
-//
-// WHY A LOBBY OPTION. GX_STRESS used to be a per-process env var read on the client side, which
-// spawned through MSG_GX_CHEAT_SPAWN_UNIT from whichever peer had it set. With two humans in the
-// match GameLogic::gxCheatsAllowed refuses every cheat on every peer, so a real Windows + Mac match
-// could not be loaded at all. Owner decision C, 23/09/2026: the HOST's settings travel with the
-// game options ("ST=" in GameInfoToAsciiString), every peer parses the same value, and the
-// simulation applies it on the same logic frame from synchronised data only. Joiners never read
-// their own environment for it.
-//
-// WHAT IT DOES at logic frame `frame`, for every playable player in player-index order:
-//   * `units` of template `unitId`, either on a ring around the centroid of the map's objects
-//     (place 'R' - the old GX_STRESS recipe, armies in contact) or at a staging point in front of
-//     the player's own base (place 'B').
-//   * `buildings` structures, cycling through `buildingIds`, dotted around the player's own base
-//     on ONE global lattice shared by every player (gxStressPlanBuildings). The lattice pitch is
-//     the widest footprint plus a lane, and a cell is used only where one whole lane of open ground
-//     surrounds the footprint, so no building can close a gap - between two stress buildings, or
-//     in the terrain, or beside a structure that was already there.
-//   * orders: attack-move toward the nearest enemy base ('E') or the map centre ('C'), re-issued to
-//     idle stress units every `every` frames. 'N' issues nothing (the old recipe).
-//
-// A PEER THAT DOES NOT KNOW THE OPTION IS REFUSED, twice over. Its ParseAsciiStringToGameInfo ends
-// its key chain with `else { optionsOk = false; break; }`, so "ST=" makes it drop the whole
-// announce - it never sees the lobby and never sends a join. And every file this touches is inside
-// the sim digest, so its sourceID differs and the host's SimIdCompare denies the join anyway - unless
-// either build reports sourceID 0 (no provenance), which SimIdCompare never compares; then only the
-// parser refuses.
-// scripts/test/stress-option-refusal-test.sh checks both properties against the tree.
+// The lobby-agreed stress battlefield: the parts that must be bit-identical on every peer, engine-free.
+// The host settings travel with the game options (ST= in GameInfoToAsciiString) and the simulation applies them
+// on the same logic frame from synchronised data only; joiners never read their own environment.
+// A peer that does not know ST= is refused: its parser drops the announce. scripts/test/stress-option-test.cpp.
 
 #pragma once
 
@@ -334,24 +307,10 @@ inline void gxStressRingCell( int k, int i, int *dx, int *dy )
 	else                 { *dx = -k;                 *dy = k - ( i - 6 * k ); }
 }
 
-/// Plan every player's buildings on ONE lattice over the map (cell = gxStressPitch, building at the
-/// cell centre). Players take turns, one building per turn in anchor order, each walking square rings
-/// outward from its own base starting at ring 2 - rings 0 and 1 of EVERY base are its core (command
-/// centre and dozer: a 3x3 block of cells, about 1.5 pitches each way) and stay clear of everybody's
-/// buildings. Supply docks further out are NOT reserved; the moat rule below keeps a lane round them
-/// as round every other structure. A cell is taken when it is on the map, not already taken, clear of
-/// every keep-out circle, inside an open moat, and `legal` for that player; a refusal is NOT
-/// remembered, because ground one player cannot reach may be another player's front yard.
-///
-/// Why this cannot wall anything off, for a unit of radius `unitRadius`: a cell is used only if the
-/// square reaching one whole lane past the widest footprint is `open` and on the map - no terrain
-/// obstacle, no structure that was already there, no map edge - so every building stands in its own
-/// open moat. The lane is at least the unit's diameter plus two cells (gxStressPitch), so a unit can
-/// circle any building inside its moat, a whole cell off it and off everything else, and two
-/// buildings' moats never reach each other's footprints (their centres are a pitch apart). Any route
-/// a footprint cuts therefore goes round it instead: a gap narrower than footprint plus two lanes is
-/// never built in. Integer ring order, no RNG, no unordered container: identical inputs give
-/// identical output on every peer.
+/// Plan every player's buildings on ONE lattice (cell = gxStressPitch, building at the cell centre), players taking
+/// turns in anchor order, walking square rings outward from ring 2 (rings 0 and 1 are every base core).
+/// A cell needs open ground one lane past the widest footprint, so no gap under footprint plus two lanes closes.
+/// Integer ring order, no RNG: identical output on every peer.
 inline void gxStressPlanBuildings( float loX, float loY, float hiX, float hiY,
 																	 float widestFootprint, float unitRadius, float cellSize,
 																	 const std::vector<GXStressAnchor> &anchors, int perPlayer, int numTypes,

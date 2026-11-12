@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G: the S1 DrawRun seat's engine-free logic (GxL2Seat.h; D1, D4, D5).
+// The DrawRun seat's engine-free logic (GxL2Seat.h).
 
 #include "W3DDevice/GameClient/GXRender/Scene/GxL2Seat.h"
 
@@ -131,7 +131,7 @@ void Digest::draw(unsigned frameNo)
 }
 
 // A wrapper draw has just been recorded (post-draw hook, DX8Wrapper::GxPostDrawHook): the run's last own draw closes the bracket HERE -
-// direct device draws issued afterwards (water, volumetric shadows, shader-manager quads) are never inside it (rw1-X2-3, gate run 1).
+// direct device draws issued afterwards (water, volumetric shadows, shader-manager quads) are never inside it.
 void Digest::drawDone(unsigned frameNo)
 {
 	if (state != OWN || own == 0)

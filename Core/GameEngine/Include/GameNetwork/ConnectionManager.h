@@ -159,20 +159,10 @@ public:
 	Int getPingsSent();
 	Int getPingsReceived();
 
-	// GeneralsX: THIS peer's own measured round trip, in SECONDS.
-	//
-	// This is the one to show a player. FrameMetrics::processLatencyResponse stamps the send time
-	// per frame into m_pendingLatencies and, on the matching ack, records curTime - sendTime - a
-	// real round trip - then averages it over m_networkLatencyHistoryLength. Every peer measures
-	// it, host or not.
-	//
-	// Use this rather than getMaximumLatency() for anything player-facing. That one is only
-	// assigned for the LOCAL slot inside updateRunAhead (ConnectionManager.cpp:1387), which only
-	// the packet router runs, so on a non-host peer the array stays zero and it returns 0 - which
-	// a HUD then displays as a perfect 0 ms connection. It also averages the TWO highest peers, so
-	// with a single measured peer it reports half the real figure.
-	//
-	// Returns 0 before the first ack lands. Callers must distinguish that from a genuine 0.
+	// Round trip measured by this peer, in SECONDS (FrameMetrics::processLatencyResponse, averaged over
+	// m_networkLatencyHistoryLength). Use it for anything player-facing, not getMaximumLatency(), which the packet
+	// router fills (updateRunAhead, processRunAheadMetrics in ConnectionManager.cpp), so a non-host reads 0.
+	// Returns 0 before the first ack lands; callers must tell that from a real 0.
 	Real getLocalAverageLatency() { return m_frameMetrics.getAverageLatency(); }
 
 	// GeneralsX: Was getLocalMinimumLatency(), which reduced a ring that
@@ -290,20 +280,9 @@ private:
 	Real m_latencyAverages[MAX_SLOTS];
 	Int  m_fpsAverages[MAX_SLOTS];
 
-	// GeneralsX: THE LOBBY-WIDE PING ROW, FOR DISPLAY ONLY.
-	//
-	// Deliberately a SEPARATE array from m_latencyAverages above, which feeds getMaximumLatency()
-	// and therefore the run-ahead window. Nothing that arrives over the wire from another peer
-	// may reach that one, and keeping the two apart is what makes "this cannot perturb the
-	// simulation" a structural property instead of a promise: grep the readers of
-	// m_peerPingMs and they are the display accessor and nothing else.
-	//
-	// Milliseconds, slot-indexed. 0 means "no live measurement for this slot" - the same sentinel
-	// the wire uses - so a slot that was never reported renders as a dash rather than as 0 ms.
-	//
-	// On the packet router this is filled from its OWN FrameMetrics every publish tick, so the
-	// host needs no wire traffic to populate its scoreboard. On every other peer it is filled by
-	// processLatencyReport from the router's broadcast.
+	// Lobby-wide ping row, DISPLAY ONLY. Separate from m_latencyAverages, which feeds getMaximumLatency() and so
+	// the run-ahead window: nothing from the wire may reach that one. Milliseconds by slot; 0 = no live measurement.
+	// The packet router fills it from its own FrameMetrics each publish tick; others in processLatencyReport.
 	UnsignedShort m_peerPingMs[MAX_SLOTS];
 
 	// When each slot's figure last changed hands, so a router that stops publishing (or a peer

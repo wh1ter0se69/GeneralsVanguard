@@ -98,8 +98,8 @@
 #include "W3DDevice/GameClient/W3DSmudge.h"
 #include "W3DDevice/GameClient/W3DSnow.h"
 #include "GameClient/GXLookGovernor.h"
-#include "GameClient/GXWaterLive.h"	// GeneralsX @feature live water: the foam rescans changed ground (flushTerrainHeightChanges)
-#include "GameClient/GXWaterRA3.h"	// GeneralsX @feature RA3 water: the depth LUT's shape and the shore tiles' tint pass
+#include "GameClient/GXWaterLive.h"	// GeneralsX: live water: the foam rescans changed ground (flushTerrainHeightChanges)
+#include "GameClient/GXWaterRA3.h"	// GeneralsX: RA3 water: the depth LUT's shape and the shore tiles' tint pass
 
 // GeneralsX: RA3 water: the shape key each depth LUT was last filled for (gxWaterRA3LutKey; 0 = retail),
 // per TEXTURE: HeightMap and FlatHeightMap each keep their own m_destAlphaTexture and adjustTerrainLOD swaps between them, so
@@ -1614,7 +1614,7 @@ void BaseHeightMapRenderObjClass::recordShoreLineSortInfos()
 			Int minY,maxY;
 			minY=maxY=m_shoreLineTilePositions[i].m_xy >> 16;
 
-			// GeneralsX @bugfix: the bound test used to come *after* the load, so the run-scan
+			// GeneralsX: the bound test used to come *after* the load, so the run-scan
 			// always read m_shoreLineTilePositions[m_numShoreLineTiles] once per call (the last
 			// run can only end by reaching the tile count).  m_shoreLineTilePositions is grown in
 			// 512-tile steps from 4096 and only when the count has already caught up with the
@@ -1653,7 +1653,7 @@ void BaseHeightMapRenderObjClass::recordShoreLineSortInfos()
 			Int minX,maxX;
 			minX=maxX=m_shoreLineTilePositions[i].m_xy & 0xffff;
 
-			// GeneralsX @bugfix: same read-before-bound-test as in the x-major branch above -
+			// GeneralsX: same read-before-bound-test as in the x-major branch above -
 			// the load at index j ran before j was compared against m_numShoreLineTiles, walking
 			// one shoreLineTileInfo past the end of the allocation on maps whose tile count is an
 			// exact multiple of the 512-tile growth step.  Test j first and let && short-circuit.
@@ -2004,17 +2004,8 @@ void BaseHeightMapRenderObjClass::allocateScorchBuffers()
 	m_scorchesInBuffer = 0; // If we just allocated the buffers, we got no scorches in the buffer.
 	m_curNumScorchVertices=0;
 	m_curNumScorchIndices=0;
-	// GeneralsX: upstream TheSuperHackers PR #3159 (f71bdf0da)
-	// dropped the two hard-coded RTS_DEBUG sample scorches that used to be seeded here.
-	// Do not re-add them as "missing upstream lines".
-	//
-	// DEAD ON THIS PLATFORM, and worth writing down rather than assuming either way: the block
-	// was behind RTS_DEBUG, which cmake/config-build.cmake defines only under
-	// if(RTS_BUILD_OPTION_DEBUG), and the only presets that turn that on are vc6-debug,
-	// win32-debug, win32-vcpkg-debug and mingw-w64-i686-debug. Measured rather than inferred:
-	// this translation unit's own entry in the macOS build's compile_commands.json carries
-	// -DNDEBUG -DRTS_RELEASE and no -DRTS_DEBUG. So the removal is a Windows-debug-only
-	// behaviour change and nothing a macOS or iOS build ever drew has changed.
+	// GeneralsX: upstream TheSuperHackers PR #3159 dropped the two hard-coded RTS_DEBUG sample scorches seeded here.
+	// Do not re-add them as missing upstream lines.
 }
 
 //=============================================================================
@@ -2589,9 +2580,9 @@ void BaseHeightMapRenderObjClass::staticLightingChanged()
 //=============================================================================
 /** GeneralsX: One cell was lowered - a building foundation flattening its footprint
 (TerrainLogic::flattenTerrain -> W3DTerrainVisual::setRawMapHeight, inside the LOGIC tick, up to 9 calls per cell).
-Each call used to be staticLightingChanged(): a rebuild and relight of every vertex in the terrain draw window on the
-next frame, plus an O(roads) road relight per cell right here in the sim tick. Now the cell only joins a dirty
-rectangle (one per patch), which the client rebuilds once per frame (flushTerrainHeightChanges); the idea is Reforged
+The cell only joins a dirty rectangle (one per patch), which the client rebuilds once per frame (flushTerrainHeightChanges),
+instead of a staticLightingChanged() rebuild and relight of every vertex in the terrain draw window on the
+next frame plus an O(roads) road relight per cell right here in the sim tick; the idea is Reforged
 db089e4's.
 Runs on headless peers too (they have this render object but no road buffer and no vertex buffers), so nothing here
 touches render resources. */

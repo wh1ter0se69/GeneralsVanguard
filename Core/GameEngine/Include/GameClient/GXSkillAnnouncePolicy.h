@@ -1,51 +1,26 @@
 /*
-**	GeneralsX: which general's-skill PURCHASES are worth a replay banner.
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
 **
-**	WHY THIS IS A HEADER OF ITS OWN, AND PURE.
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
 **
-**	Same reason as GXUpgradeLedger.h and GXOnlineGate.h next door: the belief it replaces was WRONG
-**	in a way no compile and no four-platform verify could see, and a wrong belief only stays dead if
-**	it is testable without an engine. scripts/test/skill-purchase-banner-test.cpp drives this class
-**	with `c++ -std=c++17 -I Core/GameEngine/Include` - no window, no game data, no replay file.
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
 **
-**	WHAT WAS WRONG. InGameUI::announceGeneralSkill grew a blanket `if( !used ) return;` so that the
-**	"X purchased Y" line would stop duplicating the "X used Y" line that follows it seconds later.
-**	For an ACTIVATABLE skill that is exactly right. For a skill with no activation it is a
-**	regression, because the purchase is the ONLY event that science will ever generate:
-**
-**	  * SpecialPowerModule::triggerSpecialPower announces used=TRUE, and only for a power whose
-**	    template sets RequiredScience (SpecialPowerModule.cpp:496). Nothing else ever passes TRUE.
-**	  * A general's point spent on a passive or unit-unlock science - Paladin Tank, Pathfinder,
-**	    Marauder Tank, every rank-2 and rank-3 tier - never reaches triggerSpecialPower at all.
-**	  * So the blanket return made those point spends completely invisible in a replay, and
-**	    measured against the shipped INIZH.big that is 45 of the 78 purchasable sciences.
-**
-**	THE PREDICATE, and why it is exact rather than a heuristic. A use banner can only ever name a
-**	science that some SpecialPowerTemplate in TheSpecialPowerStore returns from getRequiredScience()
-**	- that value IS the argument triggerSpecialPower passes. So the set of sciences that will get a
-**	use banner is exactly
-**
-**	    { t->getRequiredScience() : t in TheSpecialPowerStore, != SCIENCE_INVALID }
-**
-**	and "will this purchase be followed by a use banner" is set membership, not an estimate. That
-**	makes the store walk the definition of the question rather than the cheapest approximation to
-**	it, which is why no cheaper signal was hunted for: a cheaper one could only be a proxy.
-**
-**	WHY A CACHE. The walk is O(number of special power templates) - 79 in the shipped data - and a
-**	purchase announcement is rare, so the naive version would be affordable. It is cached anyway
-**	because the answer cannot change while a game is running: the store is populated at INI parse
-**	time and only SpecialPowerStore::reset() disturbs it. InGameUI::reset() therefore clears this,
-**	for the same load-bearing reason GXUpgradeLedger::clear() is called there - a second replay
-**	watched in the same process must not inherit the first one's map overrides.
-**
-**	FAILURE DIRECTION. An unbuilt or empty set answers "no use banner is coming", so every purchase
-**	announces. That degrades toward the pre-regression behaviour of two banners, never toward the
-**	regression of silence. A store that is genuinely empty also cannot fire a power, so for that
-**	case the answer is not merely safe, it is correct.
-**
-**	It takes no engine types on purpose. The caller passes ScienceType through as an int and
-**	static_asserts SCIENCE_INVALID against the mirror below, so a change to either is a COMPILE
-**	ERROR rather than a silently mis-classified science.
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+**	Which general's-skill PURCHASES get a replay banner; pure (scripts/test/skill-purchase-banner-test.cpp).
+**	A use banner exists only for a science some SpecialPowerTemplate returns from getRequiredScience(); a passive or
+**	unit-unlock science is never "used", so its purchase is its only event. An empty set announces every purchase.
+**	InGameUI::reset() clears the cached set. The caller static_asserts SCIENCE_INVALID against the mirror below.
 */
 
 #pragma once

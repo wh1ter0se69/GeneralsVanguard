@@ -1,6 +1,23 @@
-// GeneralsX: How much smaller world-anchored text and 2D world animations draw above the stock
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// How much smaller world-anchored text and 2D world animations draw above the stock
 // camera ceiling.
-//
 //
 // `iconScale` is View::getRetailReferenceZoom's: 1.0 up to the height the stock MaxCameraHeight would allow this view,
 // and ceiling / height above it - the proportional shrink every unit on screen gets, which the health bar, pips and
@@ -19,7 +36,7 @@
 static const float GX_WORLD_LABEL_MIN_SCALE = 0.6f;
 
 /// The smallest point size a label shrinks to, whatever its scale: Arial at 8 pt is about 11 px tall and still reads.
-/// A label already smaller than this at retail size is never shrunk (adversarial review P3: at 800x600 the 10 pt caption
+/// A label already smaller than this at retail size is never shrunk (at 800x600 the 10 pt caption
 /// would otherwise have gone to 6 pt).
 static const int GX_WORLD_LABEL_MIN_POINTS = 8;
 

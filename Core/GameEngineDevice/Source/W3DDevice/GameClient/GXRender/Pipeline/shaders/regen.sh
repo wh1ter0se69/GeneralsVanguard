@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # regen.sh [--check] - compiles the FF ubershader GLSL here to SPIR-V headers (build-time SPIR-V, no runtime
 # GLSL compiler ships). Dev-only: the generated headers are committed, so a game build needs no glslang. Run after editing a
 # .vert/.frag/.glsl. Every module is checked with spirv-val (Vulkan 1.3). --check regenerates into a temporary directory and
@@ -14,16 +16,8 @@ if [ "$CHECK" = 1 ]; then
 	OUT="$(mktemp -d)"
 	trap 'rm -rf "$OUT"' EXIT
 fi
-# source -> C array name (gx_ff_mutant.frag is the identity gate's fail arm: compiled into the test only, never shipped)
-# WS-E (rw2-E): gx_cs_ps.frag / gx_cs_trees.vert are the custom-shader ports; "<src>@MUT" compiles the same source with
-# -DGX_CS_MUTANT into <src>.mut.h (the golden's fail arm, test-only: a planted constant change).
-# gx_cs_vel.vert = gx:vel-rigid, gx_cs_vel.frag = gx:vel-ps; "<src>@SKIN" = -DGX_VEL_SKIN into <src>.skin.h = gx:vel-skin.
-# gx_cs_shadow.vert = the GX_SHADOW_GPU shadow-volume vs (catalogue 'gx:shadowvol').
-# (S7): gx_shadow_caster.vert = the shadow-map opaque caster replay (device-private pipeline, no catalogue id).
-# (S7 P2, PREREG A36): "<src>@SM" = -DGX_LOOK_SHADOWMAP into <src>.sm.h - the key-on receiver family the device
-# loads when the look mask has bit 0 (the FF / custom PS sample the map; every VS they pair with writes the world position).
-# (A108): "<src>@A2C" = -DGX_LOOK_A2C into <src>.a2c.h and "<src>@SMA2C" = both defines into <src>.sm.a2c.h - the alpha-to-coverage
-# family the device loads when GXAlphaToCoverage is on and the creation MSAA >= 2 (fragment shaders only: the ramp is a PS change).
+# "<src>@MUT|SKIN|SM|A2C|SMA2C" compiles the same source with -DGX_CS_MUTANT, -DGX_VEL_SKIN, -DGX_LOOK_SHADOWMAP,
+# -DGX_LOOK_A2C (SMA2C: both look defines) into <src>.mut.h, .skin.h, .sm.h, .a2c.h, .sm.a2c.h. Mutants are test-only.
 for s in gx_ff.vert gx_ff.frag gx_ff_flat.frag gx_ff_mutant.frag gx_cs_ps.frag gx_cs_trees.vert gx_cs_wave.vert gx_cs_ps.frag@MUT gx_cs_trees.vert@MUT gx_cs_wave.vert@MUT gx_cs_vel.vert gx_cs_vel.vert@SKIN gx_cs_vel.frag gx_cs_shadow.vert gx_cs_shadow.vert@MUT gx_shadow_caster.vert gx_ff.vert@SM gx_ff.frag@SM gx_ff_flat.frag@SM gx_cs_ps.frag@SM gx_cs_trees.vert@SM gx_cs_wave.vert@SM gx_cs_shadow.vert@SM gx_ff.frag@A2C gx_ff_flat.frag@A2C gx_cs_ps.frag@A2C gx_ff.frag@SMA2C gx_ff_flat.frag@SMA2C gx_cs_ps.frag@SMA2C; do
 	defs=""
 	case "$s" in *@MUT) s="${s%@MUT}"; defs="-DGX_CS_MUTANT"; o="${s%.*}.mut.${s##*.}" ;; *@SKIN) s="${s%@SKIN}"; defs="-DGX_VEL_SKIN"; o="${s%.*}.skin.${s##*.}" ;; *@SM) s="${s%@SM}"; defs="-DGX_LOOK_SHADOWMAP"; o="${s%.*}.sm.${s##*.}" ;; *@A2C) s="${s%@A2C}"; defs="-DGX_LOOK_A2C"; o="${s%.*}.a2c.${s##*.}" ;; *@SMA2C) s="${s%@SMA2C}"; defs="-DGX_LOOK_SHADOWMAP -DGX_LOOK_A2C"; o="${s%.*}.sm.a2c.${s##*.}" ;; *) o="$s" ;; esac

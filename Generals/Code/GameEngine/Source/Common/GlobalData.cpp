@@ -996,7 +996,7 @@ GlobalData::GlobalData()
 	//-----------------------------------------------------------------------------------------------
 
 	// network timing values.  Having these default to 0 would be bad. - BGC
-	// GeneralsX: Shortened from 30/200 to 10/10, matching Generals
+	// GeneralsX: ten entries each instead of retail's 30 and 200, matching Generals
 	// Online's live-service values. See the long note on the Zero Hour twin: the "latency" boxcar
 	// actually measures lockstep WAIT, it feeds run-ahead and thus frame grouping, and at 200
 	// entries one stall polluted the average for ~100 seconds.
@@ -1255,22 +1255,10 @@ void GlobalData::parseGameDataDefinition( INI* ini )
 	ini->initFromINI( TheWritableGlobalData,
 		s_restrictToSagePatchFields ? s_SagePatchFieldParseTable : s_GlobalDataFieldParseTable );
 
-	// GeneralsX: Capture the camera height limits exactly as parsed from the
-	// FIRST GameData block, before anything overrides them. The shell map uses these so a player's
-	// camera preference cannot reframe the main menu backdrop, which is an authored scene with a
-	// scripted camera rather than a playfield.
-	//
-	// First load wins, and the first load is Data\INI\Default\GameData - path1 of the initSubsystem
-	// in GameEngine::init, loaded before path2 - so this is the stock BIG-archived value. Everything
-	// that overrides the pair runs later and therefore cannot move it: SagePatch.ini (parsed later in
-	// GameEngine::init through s_SagePatchFieldParseTable, and it ships its own MaxCameraHeight); a
-	// loose Data\INI\GameData; Options.ini, applied into TheWritableGlobalData by View::init; and the
-	// Extras and Debug menus, which write the pair at runtime.
-	//
-	// The flag also survives newOverride() (member-wise copy) and reset() (returns to m_theOriginal,
-	// the instance this first, non-override parse ran on).
-	//
-	// Runtime-only: deliberately absent from BOTH field parse tables, never CRC'd, never xfer'd.
+	// GeneralsX: capture the camera height limits as parsed from the first GameData block, before anything overrides them.
+	// The shell map uses them so a camera preference cannot reframe the menu backdrop (a scripted-camera scene).
+	// First load is Data\INI\Default\GameData; SagePatch.ini, Options.ini and the debug menus override later.
+	// Runtime-only: absent from both field parse tables, never CRC'd or xfer'd.
 	if (!TheWritableGlobalData->m_defaultCameraHeightsCaptured)
 	{
 		TheWritableGlobalData->m_defaultMaxCameraHeight = TheWritableGlobalData->m_maxCameraHeight;
@@ -1278,23 +1266,9 @@ void GlobalData::parseGameDataDefinition( INI* ini )
 		TheWritableGlobalData->m_defaultCameraHeightsCaptured = TRUE;
 	}
 
-	// GeneralsX: The three network history lengths are the divisors and
-	// the ring sizes of FrameMetrics, and nothing validated them. All three are plain INI::parseInt
-	// with no userData, so a data file could set any of them to zero:
-	//
-	//   NetworkCushionHistoryLength = 0   ->  m_cushionIndex %= 0        (FrameMetrics.cpp:174)
-	//   NetworkFPSHistoryLength     = 0   ->  NEW Real[0], then %= 0 and a divide by zero
-	//   NetworkLatencyHistoryLength = 0   ->  NEW Real[0], then frame % 0
-	//
-	// Same family as the reset() overflow fixed in ConnectionManager: a DATA file reaching into
-	// engine memory. Clamped rather than rejected, because these arrive from a mounted archive and
-	// refusing to boot over a tuning value would be a worse failure than ignoring a nonsense one.
-	// The upper bound is not tidiness either - m_peerLatencyList allocates MAX_SLOTS times this, so
-	// an unbounded value is an allocation a data file gets to choose. Retail shipped 30 and 200, so
-	// 1024 is far above anything legitimate.
-	//
-	// Kept identical in both games deliberately: FrameMetrics is Core and compiles into both, so a
-	// clamp on one side only would leave the twin with the same divide by zero.
+	// GeneralsX: the network history lengths are FrameMetrics ring sizes and divisors; 0 from a data file means a
+	// modulo or divide by zero. Clamped, not rejected: refusing to boot over a tuning value is worse.
+	// 1024 caps the allocation (m_peerLatencyList is MAX_SLOTS times this); retail uses 30 and 200. Same in both games.
 	TheWritableGlobalData->m_networkFPSHistoryLength =
 		clamp<UnsignedInt>( 1, TheWritableGlobalData->m_networkFPSHistoryLength, 1024 );
 	TheWritableGlobalData->m_networkLatencyHistoryLength =
@@ -1317,8 +1291,7 @@ void GlobalData::parseGameDataDefinition( INI* ini )
 
 	TheWritableGlobalData->m_userDataDir.clear();
 
-	// GeneralsX @feature Bender 01/04/2026 Cross-platform user data directory handling
-	// Adopts upstream refactoring with extended cross-platform support
+	// GeneralsX: cross-platform user data directory handling
 	TheWritableGlobalData->m_userDataDir = BuildUserDataPathFromIni();
 	CreateDirectory(TheWritableGlobalData->m_userDataDir.str(), nullptr);
 
@@ -1474,8 +1447,7 @@ AsciiString GlobalData::BuildUserDataPathFromIni()
 	}
 
 #ifdef _WIN32
-	// GeneralsX @refactor Bender 01/04/2026 Windows-specific path handling
-	// Integrates upstream bug-fix for OneDrive/Group Policy folder redirection
+	// GeneralsX: Windows path handling that copes with OneDrive/Group Policy folder redirection
 #if defined(_MSC_VER) && (_MSC_VER < 1300)
 	// VC6 lacks FOLDERID_Documents and KF_FLAG_DEFAULT
 	const GUID FOLDERID_Documents = { 0xFDD39AD0, 0x238F, 0x46AF, 0xAD, 0xB4, 0x6C, 0x85, 0x48, 0x03, 0x69, 0xC7 };
@@ -1531,8 +1503,7 @@ AsciiString GlobalData::BuildUserDataPathFromIni()
 	userDataDir = myDocumentsDirectory;
 
 #elif defined(__APPLE__)
-	// GeneralsX @feature Bender 01/04/2026 macOS user data directory
-	// Uses ~/Library/Application Support as standard macOS location
+	// GeneralsX: macOS user data directory under ~/Library/Application Support
 	{
 		const char* home = getenv("HOME");
 		if (home) {
@@ -1545,8 +1516,7 @@ AsciiString GlobalData::BuildUserDataPathFromIni()
 	}
 
 #else
-	// GeneralsX @feature Bender 01/04/2026 Linux user data directory
-	// Uses XDG Base Directory specification
+	// GeneralsX: Linux user data directory following the XDG Base Directory specification
 	{
 		std::filesystem::path path;
 		const char* xdgDataHome = getenv("XDG_DATA_HOME");

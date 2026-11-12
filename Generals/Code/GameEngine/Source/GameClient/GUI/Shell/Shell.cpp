@@ -742,7 +742,7 @@ void Shell::doPop( Bool impendingPush )
 
 	// run the init for the new top of the stack if present
 	WindowLayout *newTop = top();
-	if( newTop && !impendingPush && !m_isDeconstructing ) // GeneralsX @bugfix (issue #2777) not during teardown
+	if( newTop && !impendingPush && !m_isDeconstructing ) // GeneralsX: (issue #2777) not during teardown
 	{
 		newTop->runInit( nullptr );
 		//newTop->bringForward();

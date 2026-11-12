@@ -1,18 +1,25 @@
-// GeneralsX: WS-C GXRES v0: 2D textures and standalone surfaces with D3D8 semantics.
-//
-// MANAGED   image + a host copy of every level (DXVK keeps the same copy for this pool: d3d9_common_texture.cpp
-//           DetermineMapMode -> BACKED, never evicted on 64-bit). LockRect returns the host copy, so texels a lock does not
-//           write keep their values; UnlockRect uploads only the locked rectangle. dropHostCopy() is upload-then-drop: the
-//           host copy goes, and a later lock first reads the level back from the GPU (counted: restoresAfterDrop). The
-//           census (CENSUS §3) says which textures may drop safely; this class only provides the mechanism.
-// SYSTEMMEM host memory only, with a stable pointer for the object's lifetime (W3DShroud writes through pBits kept after
-//           UnlockRect). Copied to the GPU only by copyFrom() (CopyRects / UpdateTexture), which reads it at call time.
-// DEFAULT   image only; not lockable (D3D8). Filled by copyFrom() or rendered into (usage RENDERTARGET).
-//
-// DECODED  (rw2-C) a DXTn texture on a device that cannot sample BC (FormatTable::decodes): the host copy keeps the blocks, so
-//           LockRect is unchanged for the game, and each uploaded rect is decoded on the CPU into an A8R8G8B8 image. Its
-//           host copy is never dropped (a restore cannot re-encode), readLevel returns the decoded texels.
-// One image per texture, whole-image layout tracking (GxImage). Cube and volume textures: none in a G2 run (CENSUS §3a) - v1.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GXRES: 2D textures and standalone surfaces with D3D8 semantics. MANAGED = image + host copy of every level;
+// dropHostCopy() uploads then drops it and a later lock reads the level back. SYSTEMMEM = host memory only
+// (W3DShroud writes through pBits kept after UnlockRect). DEFAULT = image only.
+// DECODED = a DXTn texture decoded on the CPU where BC sampling is missing.
 #pragma once
 #include "GxResources.h"
 #include <vector>

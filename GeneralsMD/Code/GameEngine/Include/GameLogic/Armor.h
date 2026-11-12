@@ -125,18 +125,9 @@ private:
 	typedef std::hash_map< NameKeyType, ArmorTemplate, rts::hash<NameKeyType>, rts::equal_to<NameKeyType>/**/> ArmorTemplateMap;
 	ArmorTemplateMap m_armorTemplates;
 
-	// GeneralsX: TheSuperHackers/GeneralsGameCode#2060, adapted
-	//
-	// parseArmorDefinition clear()s and re-parses the existing template IN PLACE on a map.ini load,
-	// and reset() was an empty inline, so a custom map's armor values outlived the map and reached
-	// every later game in the process - a peer that had played it mismatched against one that had not.
-	//
-	// Upstream's PR parses the map.ini block into a separate Overridable copy instead. Nothing reads
-	// that copy: ArmorTemplateSet keeps the raw pointer INI::parseArmorTemplate resolved at startup,
-	// so the map's armor stops applying DURING the match (its review, 05/08/2026, says the same).
-	// Snapshot-and-restore instead, as the PlayerTemplate and OCL stores do (#1972/#1974): the map's
-	// values apply for the match exactly as before, and reset() puts the pristine ones back into the
-	// same map node, so every pointer into it stays valid. Empty unless a map overrides an armor.
+	// Upstream #2060, adapted: a map.ini load re-parses an armor template in place, so its values outlived the map.
+	// Snapshot-and-restore, not an Overridable copy: ArmorTemplateSet keeps the startup pointer, so a copy never applies.
+	// reset() restores the pristine values into the same map node, so pointers stay valid. Empty unless a map overrides.
 	ArmorTemplateMap          m_overrideBackups;   ///< pristine copies of armors an override load overwrote
 	std::vector<NameKeyType>  m_overrideAdded;     ///< armors an override load created
 

@@ -1016,22 +1016,9 @@ GlobalData::GlobalData()
 	//-----------------------------------------------------------------------------------------------
 
 	// network timing values.  Having these default to 0 would be bad. - BGC
-	//
-	// GeneralsX: Shortened from 30/200 to 10/10, which is exactly
-	// what Generals Online runs in its live service (NGMPGame.cpp:413 sets both to 10; its
-	// "default" profile a few lines above keeps retail's 30/200).
-	//
-	// These are the boxcars behind FrameMetrics, and the latency one is not really measuring
-	// latency - it measures how long this peer WAITED for lockstep, so any stall is charged to it
-	// as if it were network time. That value then feeds run-ahead, which feeds frame grouping,
-	// which is a hard send-deferral - a feedback loop where one stall makes the next one likelier.
-	//
-	// At 200 entries and a 500 ms metrics cadence, a single stall contaminated the average for
-	// about 100 SECONDS. Measured on 2026-08-07: the in-game readout sat at 7501 ms long after a
-	// 20 s freeze had ended. At 10 entries it decays in about 5 s.
-	//
-	// The cost is a noisier, more reactive average. That is the intended trade and it is the one
-	// Generals Online made after running this engine online at scale.
+	// GeneralsX: ten entries each instead of retail's 30 and 200. The latency boxcar measures how long this peer waited for
+	// lockstep, so a stall feeds run-ahead and frame grouping and makes the next stall likelier; at 200 entries a
+	// stall lingered ~100 s, at 10 about 5 s. Noisier but more reactive.
 	m_networkFPSHistoryLength = 10;
 	m_networkLatencyHistoryLength = 10;
 	m_networkRunAheadMetricsTime = 500;
@@ -1127,11 +1114,9 @@ GlobalData::GlobalData()
 
 	m_keyboardCameraRotateSpeed = 0.1f;
 
-	// GeneralsX @feature Bender 01/04/2026 Cross-platform user data directory
-	// Adopts upstream refactoring with extended cross-platform support.
-	// GeneralsX: On Windows this no longer reads the registry leaf: the
-	// folder is GeneralsX's own (see BuildUserDataPathFromRegistry). The name is kept because
-	// upstream has the same function.
+	// Cross-platform user data directory; adopts the upstream refactoring with extended platform support. On Windows
+	// this does not read the registry leaf: the folder is GeneralsX's own (see BuildUserDataPathFromRegistry). The
+	// name is kept because upstream has the same function.
 	m_userDataDir = BuildUserDataPathFromRegistry();
 	CreateDirectory(m_userDataDir.str(), nullptr);
 
@@ -1313,22 +1298,10 @@ void GlobalData::parseGameDataDefinition( INI* ini )
 	ini->initFromINI( TheWritableGlobalData,
 		s_restrictToSagePatchFields ? s_SagePatchFieldParseTable : s_GlobalDataFieldParseTable );
 
-	// GeneralsX: Capture the camera height limits exactly as parsed from the
-	// FIRST GameData block, before anything overrides them. The shell map uses these so a player's
-	// camera preference cannot reframe the main menu backdrop, which is an authored scene with a
-	// scripted camera rather than a playfield.
-	//
-	// First load wins, and the first load is Data\INI\Default\GameData - path1 of the initSubsystem
-	// in GameEngine::init, loaded before path2 - so this is the stock BIG-archived value. Everything
-	// that overrides the pair runs later and therefore cannot move it: SagePatch.ini (parsed later in
-	// GameEngine::init through s_SagePatchFieldParseTable, and it ships its own MaxCameraHeight); a
-	// loose Data\INI\GameData; Options.ini, applied into TheWritableGlobalData by View::init; and the
-	// Extras and Debug menus, which write the pair at runtime.
-	//
-	// The flag also survives newOverride() (member-wise copy) and reset() (returns to m_theOriginal,
-	// the instance this first, non-override parse ran on).
-	//
-	// Runtime-only: deliberately absent from BOTH field parse tables, never CRC'd, never xfer'd.
+	// Capture the camera height limits as parsed from the first GameData block, before anything overrides them. The
+	// shell map uses them so a player's camera preference cannot reframe the main menu backdrop. First load wins, so
+	// this is the stock value; SagePatch.ini, Options.ini and the Extras/Debug menus run later. Survives
+	// newOverride() and reset(); runtime-only, never CRC'd or xfer'd.
 	if (!TheWritableGlobalData->m_defaultCameraHeightsCaptured)
 	{
 		TheWritableGlobalData->m_defaultMaxCameraHeight = TheWritableGlobalData->m_maxCameraHeight;
@@ -1336,20 +1309,9 @@ void GlobalData::parseGameDataDefinition( INI* ini )
 		TheWritableGlobalData->m_defaultCameraHeightsCaptured = TRUE;
 	}
 
-	// GeneralsX: The three network history lengths are the divisors and
-	// the ring sizes of FrameMetrics, and nothing validated them. All three are plain INI::parseInt
-	// with no userData, so a data file could set any of them to zero:
-	//
-	//   NetworkCushionHistoryLength = 0   ->  m_cushionIndex %= 0        (FrameMetrics.cpp:174)
-	//   NetworkFPSHistoryLength     = 0   ->  NEW Real[0], then %= 0 and a divide by zero
-	//   NetworkLatencyHistoryLength = 0   ->  NEW Real[0], then frame % 0
-	//
-	// Same family as the reset() overflow fixed in ConnectionManager: a DATA file reaching into
-	// engine memory. Clamped rather than rejected, because these arrive from a mounted archive and
-	// refusing to boot over a tuning value would be a worse failure than ignoring a nonsense one.
-	// The upper bound is not tidiness either - m_peerLatencyList allocates MAX_SLOTS times this, so
-	// an unbounded value is an allocation a data file gets to choose. Retail shipped 30 and 200, so
-	// 1024 is far above anything legitimate.
+	// The network history lengths are FrameMetrics' divisors and ring sizes; a data file could set one to 0 (%= 0,
+	// NEW Real[0]). Clamped rather than rejected: refusing to boot over a tuning value is worse. The upper bound
+	// matters too: m_peerLatencyList allocates MAX_SLOTS times this, and 1024 is far above retail's 30 and 200.
 	TheWritableGlobalData->m_networkFPSHistoryLength =
 		clamp<UnsignedInt>( 1, TheWritableGlobalData->m_networkFPSHistoryLength, 1024 );
 	TheWritableGlobalData->m_networkLatencyHistoryLength =
@@ -1551,8 +1513,8 @@ AsciiString GlobalData::BuildUserDataPathFromRegistry()
 	}
 
 #ifdef _WIN32
-	// GeneralsX @refactor Bender 01/04/2026 Windows-specific path handling (Registry-based)
-	// Integrates upstream bug-fix for OneDrive/Group Policy folder redirection
+	// Windows-specific path handling (registry-based). Integrates the upstream fix for OneDrive/Group Policy folder
+	// redirection
 #if defined(_MSC_VER) && (_MSC_VER < 1300)
 	// VC6 lacks FOLDERID_Documents and KF_FLAG_DEFAULT
 	const GUID FOLDERID_Documents = { 0xFDD39AD0, 0x238F, 0x46AF, 0xAD, 0xB4, 0x6C, 0x85, 0x48, 0x03, 0x69, 0xC7 };
@@ -1593,22 +1555,10 @@ AsciiString GlobalData::BuildUserDataPathFromRegistry()
 		if (!myDocumentsDirectory.endsWith("\\"))
 			myDocumentsDirectory.concat('\\');
 
-		// GeneralsX: GeneralsX's OWN folder: Documents\GeneralsX\GeneralsZH\.
-		//
-		// This used to be Documents\<registry UserDataLeafName, default "Command and Conquer Generals
-		// Zero Hour Data">. Retail Zero Hour and the Generals Online client resolve that folder the
-		// same way, so all three shared Options.ini and MapCache.ini, and each program's settings and
-		// map cache were overwritten by the others. The layout now matches macOS and Linux
-		// (GeneralsX/GeneralsZH, below). Documents rather than AppData is the owner's decision, 23/09/2026.
-		//
-		// WinMain.cpp copies the player's maps, replays, settings, sign-in and identity across once
-		// (GXUserDataMigrate.h) and never touches the old folder. Every launcher resolves this same
-		// folder: gxlaunch.c userdata_path, gxio's game_data_dir, and the C# OwnedPaths.UserDataDir -
-		// the C# one only once GXMigration.txt is here; until then it stays on the old folder, which
-		// the migration brings across. scripts/launcher-rs/gxio/src/release.rs guards that they agree.
-		//
-		// Win32 CreateDirectory makes ONE level. The constructor creates the leaf, so the parent must
-		// exist first. On a machine where no GeneralsX program has run, Documents\GeneralsX does not.
+		// GeneralsX's own folder, Documents\GeneralsX\GeneralsZH\, so it shares no Options.ini or MapCache.ini with
+		// retail Zero Hour or the Generals Online client. WinMain.cpp copies the player's data across once
+		// (GXUserDataMigrate.h). Win32 CreateDirectory makes ONE level, so the parent Documents\GeneralsX must be
+		// created first.
 		myDocumentsDirectory.concat("GeneralsX\\");
 		CreateDirectory(myDocumentsDirectory.str(), nullptr);
 		myDocumentsDirectory.concat("GeneralsZH\\");
@@ -1617,8 +1567,7 @@ AsciiString GlobalData::BuildUserDataPathFromRegistry()
 	userDataDir = myDocumentsDirectory;
 
 #elif defined(__APPLE__)
-	// GeneralsX @feature Bender 01/04/2026 macOS user data directory
-	// Uses ~/Library/Application Support as standard macOS location for Zero Hour
+	// macOS user data directory Uses ~/Library/Application Support as the standard macOS location for Zero Hour
 	{
 		const char* home = getenv("HOME");
 		if (home) {
@@ -1631,8 +1580,7 @@ AsciiString GlobalData::BuildUserDataPathFromRegistry()
 	}
 
 #else
-	// GeneralsX @feature Bender 01/04/2026 Linux user data directory
-	// Uses XDG Base Directory specification for Zero Hour
+	// Linux user data directory Uses the XDG Base Directory specification for Zero Hour
 	{
 		std::filesystem::path path;
 		const char* xdgDataHome = getenv("XDG_DATA_HOME");

@@ -1,18 +1,24 @@
-// Windows backend stubs.
-//
-// Windows has no LD_PRELOAD or __DATA,__interpose equivalent. To hook
-// SDL_PollEvent on Windows we would need either:
-//   - a proxy DLL pattern (rebuild the host's expected DLL load order so the
-//     game opens our DLL first, like the original GenTool's d3d8.dll wrap), or
-//   - in-process inline hooking via Detours / MinHook / Polyhook.
-//
-// Both options are larger than the macOS/Linux implementations and are
-// deferred to a follow-up. On Windows users still have the original GenTool
-// available, so SagePatch is opt-in QoL only on the platforms that lack one.
-//
-// The build system therefore disables SAGE_PATCH on Windows by default. If
-// someone forces it ON, the linker will succeed (these stubs satisfy the
-// symbol references) but the dylib does nothing at runtime.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Windows backend stubs. Windows has no LD_PRELOAD or __DATA,__interpose equivalent; hooking SDL_PollEvent would need a
+// proxy DLL or inline hooking, neither implemented. SAGE_PATCH is off on Windows by default; if forced on, these stubs
+// satisfy the symbol references and the dylib does nothing at runtime.
 
 #include "SagePatch/Features.h"
 #include "SagePatch/Logger.h"

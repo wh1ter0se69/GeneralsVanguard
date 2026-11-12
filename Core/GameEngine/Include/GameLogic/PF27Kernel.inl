@@ -1,25 +1,25 @@
-// GeneralsX: PF27 - the new A* kernel for Pathfinder::internalFindPath.
-// Design, contract and proof. Included at the END of
-// AIPathfind.cpp because it uses that file's statics (the info pool gauges, s_gxMoveGen, the cost constants).
-//
-// WHAT IT IS. The same search as the legacy loop in internalFindPath + examineNeighboringCells +
-// examineCellsCallback + checkChangeLayers, decision for decision, with the per-search state moved out of
-// PathfindCellInfo (64 bytes, taken from and returned to a pooled free list per cell, linked into sorted lists)
-// into a per-map array of small records stamped with a search generation, and the sorted open list replaced by
-// PF27BucketQueue (same pop order, see that header). A search touches no PathfindCellInfo except on the final
-// path (materialised so the unchanged buildActualPath can read it) and on obstacle cells (which keep an info
-// in the legacy code too).
-//
-// SIDE EFFECTS (DESIGN 4.4) that the legacy loop leaves on shared state, each reproduced here:
-//   * PathfindCell::m_blockedByAlly written on touched cells       -> kept in the record, written back at the end
-//   * m_cumulativeCellsAllocated += cells released from the lists  -> += open + closed at the end
-//   * info pool takes/free drive the growth guard                  -> emulated (m_virtualTakes)
-//   * obstacle cells keep the info a search gave them              -> real allocateInfo on exactly those cells
-//   * persistent infos keep the costs the search wrote             -> written back
-//   * m_isTunneling                                                 -> the real member is driven
-//   * s_gxMoveGen bump at search end                                -> cleanOpenAndClosedLists on empty lists
-// The dual-run checker (GX_PF27=check) runs this kernel as a shadow, then the legacy loop, and compares the whole
-// final search state; see compareWithLegacy.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// PF27: the A* kernel for Pathfinder::internalFindPath, included at the END of AIPathfind.cpp (uses its statics).
+// The same search as the legacy loop (internalFindPath, examineNeighboringCells, examineCellsCallback,
+// checkChangeLayers), decision for decision, with per-search state in generation-stamped records and the open list
+// in PF27BucketQueue (same pop order). GX_PF27=check shadows the legacy loop and compares the final state.
 
 #include "GameLogic/PF27BucketQueue.h"
 
@@ -32,7 +32,7 @@ static Int pf27ModeFromEnv()
 	static Int s_mode = -1;
 	if (s_mode < 0)
 	{
-		// GeneralsX: The new kernel is the DEFAULT: path-identical to the
+		// The new kernel is the DEFAULT: path-identical to the
 		// legacy loop on Mac, Linux and Windows (fixes/pathfinding-2027 identity runs); GX_PF27=legacy keeps the old loop,
 		// GX_PF27=check runs both and compares. Peers may differ in this choice - the paths do not. Builds whose retail
 		// pathfinding switches are on still run legacy (PF27Kernel::prepare refuses the kernel there).
@@ -183,7 +183,6 @@ public:
 			return false;
 		// The kernel reproduces the LIVE (fixed) pathfinder. In a retail-compatible build the retail arm marks the real
 		// start info open in startPathfind and tears its lists down differently, so those builds run legacy.
-		//
 #if RETAIL_COMPATIBLE_PATHFINDING_ALLOCATION
 		return false;
 #endif
@@ -348,7 +347,7 @@ public:
 	}
 
 #if defined(GX_TEST_INSTRUMENTS)
-	// GeneralsX: TEST BUILDS ONLY: the probe's searches spend the frame's queue
+	// TEST BUILDS ONLY: the probe's searches spend the frame's queue
 	// budget and move m_cumulativeCellsAllocated, so a peer that set the env var alone would desync. A shipping build has no
 	// probe at all and never reads GX_PF27_PROBE.
 	/// GX_PF27_PROBE=K,F (test env, any GX_PF27 mode - it moves the simulation, identically in every mode since the kernel is

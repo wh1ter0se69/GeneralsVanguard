@@ -132,24 +132,10 @@ public:
 	AsciiString getPingString() const { return m_pingStr; }
 	Int getPingAsInt() const { return m_pingInt; }
 
-	// GeneralsX: Set a ping that is ALREADY in milliseconds.
-	//
-	// setPingString() cannot be used for this. It hands the string to GameSpyInfo::getPingValue(),
-	// which is a GameSpy-specific scheme: it expects a string of hex byte-pairs, one per GameSpy
-	// ping server, compares it position-by-position against OUR equivalent string, and scales the
-	// best pair by TheGameSpyConfig->getPingTimeoutInMs(). Given a plain number it length-mismatches
-	// and returns the full timeout - i.e. "worst possible" - and on the way there it dereferences
-	// TheGameSpyConfig unconditionally.
-	//
-	// The relay path measures a real round trip in milliseconds and has no GameSpy backend at all,
-	// so it sets m_pingInt directly. m_pingStr is still filled in, because the browser row treats
-	// an EMPTY ping string as "no measurement exists" and leaves the cell blank.
-	//
-	// Both halves are stored, not just the total. The tooltip wants to show the breakdown, and
-	// deriving the host's leg later as (total - ourCurrentLeg) would subtract a LIVE reading from
-	// a total frozen when the row was built: the remainder is then a residue of two different
-	// instants wearing the label of a measurement. Keeping the half we were given makes both
-	// printed numbers the ones that were actually measured.
+	// Set a ping that is already in milliseconds. setPingString() cannot be used: it goes through
+	// GameSpyInfo::getPingValue(), a GameSpy hex-pair scheme that dereferences TheGameSpyConfig unconditionally.
+	// m_pingStr is still filled because the browser treats an empty ping string as no measurement. Both legs are
+	// stored so the printed numbers are measured values, not the remainder of a live reading against a frozen total.
 	void setPingMs( Int totalMs, Int hostLegMs );
 	Int getHostPingMs() const { return m_hostPingMs; }	///< host's own leg, 0 = unknown
 

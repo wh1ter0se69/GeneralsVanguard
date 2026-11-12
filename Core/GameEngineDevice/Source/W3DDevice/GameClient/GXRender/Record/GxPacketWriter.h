@@ -1,35 +1,25 @@
-// GeneralsX: WS-F1: GxPacketWriter v1 - ONE recording thread that turns d3d8-semantics draw
-// packets into Vulkan commands over VkCtx v0 (frame ring), GXRES v0 (resources) and the WS-D pipeline set.
-//
-// The pass graph. A pass = a span of draws into one attachment set (colour [+ depth]), labelled by the caller (reflection,
-// opaque, translucent, ui - labels are advisory and counted). Passes run in call order; the writer turns them into rendering
-// SCOPES (vkCmdBeginRendering ... vkCmdEndRendering):
-//  * consecutive passes with the same attachments share one scope - on a tile-based GPU (Apple) a scope break is a tile
-//    store + load, so opaque -> translucent -> ui on the back buffer is ONE scope;
-//  * a scope closes when the attachments change, when a draw needs a barrier (it samples an image written as an attachment
-//    or copied since its last barrier - dynamic rendering allows no barrier inside), and when a resource has a queued GXRES
-//    upload (recordPending runs outside a scope: the census' SAMEFRAME locks), and for outsideScope() work (copies, resolves);
-//    a closed scope resumes with LOAD after its own attachment barrier;
-//  * an upload whose destination the frame has not touched yet does NOT close the scope (DXVK's init-buffer
-//    pattern): GXRES records it into the frame slot's init command buffer, which the submission runs before everything the
-//    frame recorded (GxResources::recordPendingFront) - on a tiler a split is a store + reload of the 4x MSAA colour and depth;
-//  * a render-target TEXTURE (GxAttachment::sampledLater, e.g. the 256x256 water reflection) is handed to its readers when
-//    its scope closes on an attachment change: COLOR_ATTACHMENT_OUTPUT writes -> FRAGMENT_SHADER sampled reads, one barrier,
-//    so the main pass that samples it does not split.
-// Barriers come from GxImageTracker (precise, per image); GXRES' own copies keep their documented global barriers.
-//
-// Lifetimes. Everything recorded between beginFrame() and endFrame() is ONE submission: the graphics timeline's pending()
-// value at beginFrame() (frameValue()). Resources are marked used with it (GXRES contract #3); the stream ring (UP vertex
-// and index data, FF uniform blocks) tags its ranges with it; per-slot descriptor pools are reset only when the slot's
-// last submission has completed. CHECK MODE (GX_REC_CHECK=1 or desc.check) adds the retirement ledger: every stream-ring
-// range must not overlap a range whose submission has not completed, every pool reset must find its slot's submission
-// completed. In EVERY mode (fatal unless GxRecDebug::foreignSubmitNoAbort): nothing else may submit to the graphics queue while
-// a frame is open (it would take the frame's timeline value: everything marked used with it would retire one submission
-// early) - end the frame before GxResources::immediate / readImage / a restoring lock. Each breach is counted (retireViolations())
-// and logged once; a planted early reuse must trip it. The pool check runs in every mode and, after counting, waits for the
-// slot's submission before the reset (a reset of an in-use pool crashed lavapipe).
-//
-// Threading: v1 = one thread owns the writer, its GxResources and the VkCtx's graphics submissions.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GxPacketWriter - ONE recording thread turning d3d8-semantics draw packets into Vulkan commands.
+// Passes with the same attachments share one rendering scope; a scope also closes for a barrier, a queued
+// GXRES upload or outsideScope() work, and resumes with LOAD. beginFrame()..endFrame() is ONE submission:
+// nothing else may submit to the graphics queue meanwhile (fatal). GX_REC_CHECK=1 adds a retirement ledger.
 #pragma once
 
 #include "GxImageTracker.h"
@@ -80,7 +70,7 @@ struct GxStream
 struct GxDrawPacket
 {
 	GxPipelineKey key = {};                // the writer fills the attachment fields from the open scope
-	VkPipeline pipeline = VK_NULL_HANDLE;  // non-null: a custom pipeline (tests, WS-E) built on layout().pipeline with the
+	VkPipeline pipeline = VK_NULL_HANDLE;  // non-null: a custom pipeline (tests) built on layout().pipeline with the
 	                                       // writer's dynamic-state set (customDynamicStates())
 	VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 	VkViewport viewport = {};
@@ -116,8 +106,8 @@ struct GxDrawPacket
 	uint32_t first = 0;                    // first vertex or first index
 	int32_t vertexOffset = 0;              // indexed: D3D8 BaseVertexIndex
 	uint32_t instances = 1, firstInstance = 0;
-	// S7 (A1/A21/A23): 0 = an ordinary draw; 1 = also a shadow-map CASTER (drawn and
-	// captured); 2 = CAST-ONLY (captured, never recorded into MAIN: off-screen casters, PREREG A4/A23). world = the draw's World
+	// 0 = an ordinary draw; 1 = also a shadow-map CASTER (drawn and
+	// captured); 2 = CAST-ONLY (captured, never recorded into MAIN: off-screen casters). world = the draw's World
 	// matrix (16 floats, D3D element order) for the caster replay; null = not a caster the replay can place.
 	uint8_t cast = 0;
 	const float* world = nullptr;
@@ -132,7 +122,7 @@ struct GxWriterStats
 	uint64_t stencilGroups = 0, stencilShared = 0;   // A25 P3: stencil groups recorded / recorded as one FRONT_AND_BACK call each
 	uint64_t hoistedUploads = 0;   // upload batches (with a scope open) recorded into the init command buffer instead
 	uint64_t scopeResolves = 0;    // F-depth+: scopes that carried a GxScopeResolve
-	uint64_t lookBinds = 0;        // S7 P2: set 2 binds (once per command buffer + once after each state reset)
+	uint64_t lookBinds = 0;        // set 2 binds (once per command buffer + once after each state reset)
 	uint64_t retireViolations = 0;
 	std::map<std::string, uint64_t> passDraws;   // per pass label
 	std::map<std::string, uint64_t> refusedWhy;
@@ -166,8 +156,8 @@ struct GxRecDebug   // TEST-ONLY plants; each has a gx_record_test arm that must
 	bool foreignSubmitNoAbort = false; // a foreign submission inside an open frame is counted, not aborted (its fail arm)
 	bool gpuSkipEndScope = false;   // the GX_GPUTIME frame scope is never closed: every read must count as missing
 	bool gpuReadFailedSets = false; // a frame whose submission failed keeps its query set armed (read later: stale stamps)
-	bool gpuShadowMisfiled = false;   // S7 A92 X-gputime-shadow: the shadow scope opened under another name (read back as present)
-	// S7 A101 TEST-ONLY plants (the integrator's ruling 2409, option (b); each arm's X-):
+	bool gpuShadowMisfiled = false;   // X-gputime-shadow: the shadow scope opened under another name (read back as present)
+	// TEST-ONLY plants (each arm's X-):
 	bool gpuForceInit = false;         // X-gputime-noinit: INIT opened every frame under the timer (b68dad82a's behaviour)
 	bool gpuResetOnMain = false;       // X-gputime-init: the set reset by a command at MAIN's top, not on the host (INIT's stamps precede it)
 	bool gpuFrameIgnoresInit = false;  // X-gputime-frameinit: `frame` read from MAIN's pair even when INIT opened
@@ -176,7 +166,7 @@ struct GxRecDebug   // TEST-ONLY plants; each has a gx_record_test arm that must
 	bool stencilFrontOnly = false;  // A25 P3: after the command buffer's first stencil group, equal faces recorded with FRONT_BIT
 	                                // instead of FRONT_AND_BACK (the back face keeps its old state; gx_native_test a25-stencil-faces'
 	                                // back-winding quad must catch it)
-	bool noRebindAfterClear = false; // R38: the writer does NOT re-send its state after an in-pass clear: gx_native_test
+	bool noRebindAfterClear = false; // the writer does NOT re-send its state after an in-pass clear: gx_native_test
 	                                 // clear-midframe-rebind's draw after the clear must catch it on every driver
 	bool scopeResolveDropped = false; // F-depth+: openScope attaches no GxScopeResolve but records it as attached (gx_native_test
 	                                  // fdepth-msaa / -rt: the probe must then read an earlier frame)
@@ -185,18 +175,18 @@ struct GxRecDebug   // TEST-ONLY plants; each has a gx_record_test arm that must
 	bool forgetKeepsResolve = false;  // F-depth+: forget() of an armed image keeps the GxScopeResolve (fdepth-forget must catch it)
 	bool resolveAnyColourSource = false; // F-depth+: a held colour bit is answered whatever colour that scope resolved (fdepth-source)
 	bool resolveKeepsRepaintedColour = false; // F-depth+: a later scope writing the held colour's source keeps the bit (fdepth-repaint)
-	bool lookFrameStale = false;     // S7 P2: endFrame never writes set 2's UBO (the receivers read the zeroed slice: no map) - the
+	bool lookFrameStale = false;     // endFrame never writes set 2's UBO (the receivers read the zeroed slice: no map) - the
 	                                 // fail arm of gx_native_test sm-receive (the UBO is what places the receivers on the map)
 	bool lookNoDivide = false;       // S7 A39: the UBO's light matrices lose their w row (w = 1): the receivers read
 	                                 // a perspective map UNDIVIDED while the replay draws it right - gx_native_test X-sm-persp-divide
-	bool lookNoRebind = false;       // S7 P2 (A36 4a): set 2 is NOT rebound after outsideScope's state reset (a foreign-layout pass
+	bool lookNoRebind = false;       // set 2 is NOT rebound after outsideScope's state reset (a foreign-layout pass
 	                                 // disturbed it): gx_native_test X-sm-rebind's validation must catch the HUD draw after it
-	bool disturbAfterClear = false;  // R38 test HOOK, not a plant (clear-midframe-rebind sets it in BOTH arms): after an in-pass
+	bool disturbAfterClear = false;  // test HOOK, not a plant (clear-midframe-rebind sets it in BOTH arms): after an in-pass
 	                                 // clear the writer disturbs its bound state (an empty scissor) the way MoltenVK's own clear
 	                                 // draw does, so the clean arm needs the production re-send on drivers that keep state too
 };
 
-// GeneralsX: F-depth+: a multisample RESOLVE the
+// F-depth+: a multisample RESOLVE the
 // world's own scopes carry. While armed and not suspended, every scope that opens with depthAtt as its depth attachment resolves it
 // (VK_RESOLVE_MODE_SAMPLE_ZERO, depth and stencil) into depthTarget at its end, and its multisample colour attachment (AVERAGE) into
 // colourTarget when that matches it in size and format. On a tile GPU the resolve rides the store the scope does anyway: the only
@@ -216,7 +206,7 @@ struct GxWriterDesc
 	VkDeviceSize streamBytes = 8ull << 20;
 	uint32_t vsBlockBytes = 0, psBlockBytes = 0;   // the FF blocks' sizes (GxRecordLayout)
 	bool check = false;                            // check mode (also GX_REC_CHECK=1)
-	uint32_t lookFeatures = 0;                     // S7 P2: GxRecordLayout's look mask (bit 0 = set 2, the shadow map's receivers)
+	uint32_t lookFeatures = 0;                     // GxRecordLayout's look mask (bit 0 = set 2, the shadow map's receivers)
 };
 
 class GxShadowCasters;
@@ -235,7 +225,7 @@ public:
 	// S7: the shadow-map caster list (null = off: no capture, no INIT pass - the writer behaves exactly as before)
 	void setShadowCasters(GxShadowCasters* c) { m_casters = c; }
 	GxShadowCasters* shadowCasters() const { return m_casters; }
-	// S7 P2 (A36 items 3-4): set 2's atlas view (the layout's immutable samplers read it). Required before the first draw when the
+	// Set 2's atlas view (the layout's immutable samplers read it). Required before the first draw when the
 	// layout has set 2. Set 2 is bound at the first draw of each command buffer and again after any state reset (outsideScope, an
 	// in-pass clear); its UBO slice (one per frame slot, GxLookFrame.h) is written at endFrame from the casters' final pass.
 	bool setLookAtlas(VkImageView view);
@@ -247,12 +237,12 @@ public:
 	bool beginFrame();                                      // false: the slot wait failed (device lost / timeout)
 	uint64_t endFrame(const Vk::SubmitDesc& extra = Vk::SubmitDesc());   // 0 on failure
 	bool frameOpen() const { return m_open; }
-	// GX_GPUTIME (A16; default OFF): one "frame" scope per writer frame on a VALIDATED VkGpuTimer
+	// GX_GPUTIME (default OFF): one "frame" scope per writer frame on a VALIDATED VkGpuTimer
 	// initialised with `sets` (>= framesInFlight) frame sets; a set is read when it comes round again. Between frames; nullptr = off.
-	// slot = the frame ring slot of the frame measured; ms = the whole frame; A17: passMs / passes = its render-pass
+	// slot = the frame ring slot of the frame measured; ms = the whole frame; passMs / passes = its render-pass
 	// scopes (each from just before vkCmdBeginRendering to just after vkCmdEndRendering), presentMs = its "present" scope
-	// refused = scopes of THIS frame the timer had no room for: its parts are partial, its whole-frame ms is not (A17 P2)
-	// S7 A92 (PREREG A27; the integrator's P4 ruling 03:2xZ 19/10): under GX_GPUTIME the set is reset and `frame` begins at the TOP of the
+	// refused = scopes of THIS frame the timer had no room for: its parts are partial, its whole-frame ms is not
+	// Under GX_GPUTIME the set is reset and `frame` begins at the TOP of the
 	// INIT buffer (opened every frame), so ms spans INIT (front copies, the caster pass) and MAIN. shadowMs = the caster pass's own
 	// diagnostic scope (never summed, never present); shadow = none (no pass this frame) / read / MISSING (expected, scope refused or its
 	// stamps unavailable - never 0 ms); logicFrame = the game frame the writer frame drew (testSetLogicFrame; 0 = never set)
@@ -364,7 +354,7 @@ private:
 	std::vector<Slot> m_slots;
 	VkDescriptorPool m_persistentPool = VK_NULL_HANDLE;
 	std::map<std::pair<VkBuffer, VkBuffer>, VkDescriptorSet> m_uniformSets;   // ring buffer pairs (persistent)
-	VkDescriptorPool m_lookPool = VK_NULL_HANDLE;   // S7 P2: set 2 (one persistent set) and its per-slot UBO
+	VkDescriptorPool m_lookPool = VK_NULL_HANDLE;   // set 2 (one persistent set) and its per-slot UBO
 	VkDescriptorSet m_lookSet = VK_NULL_HANDLE;
 	VkBuffer m_lookUbo = VK_NULL_HANDLE;
 	VmaAllocation m_lookMem = nullptr;
@@ -437,8 +427,8 @@ private:
 		VkIndexType ibType = VK_INDEX_TYPE_MAX_ENUM;
 		VkDescriptorSet sets[2] = {};
 		uint32_t uboOffsets[2] = { ~0u, ~0u };
-		bool lookBound = false;                 // S7 P2: set 2 bound in this command buffer since the last reset
-		// per-draw state the stream repeats (rw3-T, cap-S2a: push constants 94-96%, PS block 99.4-99.98%, VS block ~50%,
+		bool lookBound = false;                 // set 2 bound in this command buffer since the last reset
+		// per-draw state the stream repeats (push constants 94-96%, PS block 99.4-99.98%, VS block ~50%,
 		// all 8 samplers 99.5% identical to the previous draw): recorded / looked up only when the bytes change
 		uint32_t pushBytes = 0;                 // the push constants last recorded into this command buffer
 		uint8_t push[GxRecordLayout::kPushBytes] = {};

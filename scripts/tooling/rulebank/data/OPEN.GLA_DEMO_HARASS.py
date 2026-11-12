@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule OPEN.GLA_DEMO_HARASS: Demolition GLA's opening harass ends in a
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule OPEN.GLA_DEMO_HARASS: Demolition GLA's opening harass ends in a
 # Bomb Truck. Stock Demolition Hard's first Bomb Truck is optional in the 3rd-wave guard team. This adds team "GX Demo Bomb Truck" (one
 # Bomb Truck, one at a time) once an own Palace is complete (the truck needs one, INIZH) and from _GX_CLOCK >= ceil(bomb_truck_t / 10); on
 # creation it stops and runs the stock flank attack ("GLA Attack Enemy Base Flank"; the Bomb Truck attack sequences read the enemy and may

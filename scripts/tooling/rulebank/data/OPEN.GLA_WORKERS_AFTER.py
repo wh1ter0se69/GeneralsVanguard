@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule OPEN.GLA_WORKERS_AFTER: GLA trains more Workers once its Arms
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule OPEN.GLA_WORKERS_AFTER: GLA trains more Workers once its Arms
 # Dealer stands and again after its first Tunnel Network. Stock GLA Hard's opening Worker teams ("GLA Worker": 4, or OPEN.START_ORDER's
 # count) come before both. Per GLA general this adds two one-time teams, copied from the general's own stock Worker team: "GX Workers After
 # Dealer <g>" once an own Arms Dealer is complete and, with after_tunnel = 1, "GX Workers After Tunnel <g>" once an own Tunnel Network is

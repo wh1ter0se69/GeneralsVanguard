@@ -87,6 +87,7 @@ protected:
 
 	static PolygonTrigger* ThePolygonTriggerListPtr;
 	static Int s_currentID; ///< Current id for new triggers.
+	static UnsignedInt s_gxListGeneration; ///< GeneralsX: moves whenever the list changes (ScriptEngine::getQualifiedTriggerAreaForParam)
 
 protected:
 	void reallocate();
@@ -103,6 +104,7 @@ public:
 
 public:
 	static PolygonTrigger *getFirstPolygonTrigger() {return ThePolygonTriggerListPtr;}
+	static UnsignedInt gxGetListGeneration() { return s_gxListGeneration; }
 	static PolygonTrigger *getPolygonTriggerByID(Int triggerID);
 	static Bool ParsePolygonTriggersDataChunk(DataChunkInput &file, DataChunkInfo *info, void *userData);
 	/// Writes Triggers Info
@@ -130,6 +132,8 @@ public:
 
 	void getCenterPoint(Coord3D* pOutCoord) const;
 	Real getRadius() const;
+	/// GeneralsX: the bounding box pointInTrigger tests first (PartitionManager::getClosestObjectInArea)
+	const IRegion2D &gxGetBounds() const { if (m_boundsNeedsUpdate) updateBounds(); return m_bounds; }
 
 public:
 	const ICoord3D *getPoint(Int ndx) const {if (ndx<0) ndx=0; if (ndx>=m_numPoints) ndx=m_numPoints-1; return m_points+ndx;} ///< Get a point.

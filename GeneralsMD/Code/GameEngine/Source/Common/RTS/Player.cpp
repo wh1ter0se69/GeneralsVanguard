@@ -100,7 +100,7 @@
 #include "GameLogic/VictoryConditions.h"
 
 #include "GameNetwork/GameInfo.h"
-#include "GameLogic/GXRules/GXRuleBank.h"	// GeneralsX 30/10/2026 rb-core: gxRuleTierOf + the tier filter
+#include "GameLogic/GXRules/GXRuleBank.h"	// gxRuleTierOf + the tier filter
 
 
 //Grey for neutral.
@@ -299,6 +299,7 @@ void PlayerRelationMap::loadPostProcess()
 Player::Player( Int playerIndex )
 {
 	m_memberTemplateCountsValid = FALSE;
+	m_gxWakeRecordsValid = FALSE;
 	m_isPreorder = FALSE;
 	m_isPlayerDead = FALSE;
 
@@ -926,8 +927,8 @@ void Player::initFromDict(const Dict* d)
 			// Now add teams.
 
 			AsciiString originalPlayerName = TheSidesList->getSkirmishSideInfo(skirmishNdx)->getDict()->getAsciiString(TheKey_playerName);
-			// GeneralsX: rb-core: the tier filter for teams - this owner's teams in their stock order, copied in
-			// the plan's order under the plan's names (the identity, and so the stock loop, unless a team name is marked).
+			// The tier filter for teams: this owner's teams in their stock order, copied in the plan's order under the
+			// plan's names (the identity, and so the stock loop, unless a team name is marked).
 			std::vector<Int> gxTeamIdx;
 			std::vector<std::string> gxTeamNames;
 			for (i=0; i<TheSidesList->getNumSkirmishTeams(); i++) {
@@ -1685,11 +1686,11 @@ void Player::onStructureConstructionComplete( Object *builder, Object *structure
 		m_ai->onStructureProduced( builder, structure );
 
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX: A built structure's special powers became usable never. Without
+	// GeneralsX: A built structure's special powers must become usable. Without
 	// RETAIL_COMPATIBLE_CRC every SpecialPowerModule starts at the 0xFFFFFFFF ready frame (TheSuperHackers #1218), and a
 	// structure built UNDER_CONSTRUCTION skips startPowerRecharge in that constructor, so only a SpecialPowerCreate module
-	// (the superweapons) ever moved it. The Strategy Center has none: its battle plans and CIA Intelligence stayed
-	// "not ready" for the whole match - drawn in colour, dead to every click and key (live report, 0.9.54, 04/10).
+	// (the superweapons) ever moved it. The Strategy Center has none: its battle plans and CIA Intelligence would stay
+	// "not ready" for the whole match - drawn in colour, dead to every click and key.
 	// Charge any power still at the sentinel to ready now, as retail's 0 did. Ported from TheSuperHackers PR #2781
 	// (bobtista, closed upstream in favour of the larger, still-open #1461); adopt #1461 if it merges.
 	// A shared-sync power (a general's power) is skipped before getReadyFrame: its timer lives on the Player, and asking
@@ -1819,6 +1820,51 @@ void Player::iterateObjects( ObjectIterateFunc func, void *userData ) const
 	{
 		(*it)->iterateObjects( func, userData );
 	}
+}
+
+//=============================================================================
+// GeneralsX: gxGetWakeRecords' array, built by iterateObjects itself.
+void Player::gxAppendWakeRecord( Object *obj, void *userData )
+{
+	const Player *self = (const Player *)userData;
+	const Coord3D *pos = obj->getPosition();
+	GXWakeRecord rec;
+	rec.x = pos->x;
+	rec.y = pos->y;
+	rec.z = pos->z;
+	rec.vision = obj->getVisionRange();
+	rec.obj = obj;
+	obj->friend_gxSetWakeRecord( self, (Int)self->m_gxWakeRecords.size() );
+	self->m_gxWakeRecords.push_back( rec );
+}
+
+//=============================================================================
+const Player::GXWakeRecord *Player::gxGetWakeRecords( Int &count ) const
+{
+	if( !m_gxWakeRecordsValid )
+	{
+		m_gxWakeRecords.clear();
+		iterateObjects( gxAppendWakeRecord, (void *)this );
+		m_gxWakeRecordsValid = TRUE;
+	}
+	count = (Int)m_gxWakeRecords.size();
+	return count > 0 ? &m_gxWakeRecords[0] : nullptr;
+}
+
+//=============================================================================
+// GeneralsX: the check that makes a stale (owner, index) harmless: an object that left us, or
+// whose slot a rebuild gave to someone else, no longer finds itself in the record it remembers.
+void Player::gxWriteWakeRecord( const Object *obj, Int index, const Coord3D *pos, Real vision ) const
+{
+	if( index < 0 || index >= (Int)m_gxWakeRecords.size() )
+		return;
+	GXWakeRecord &rec = m_gxWakeRecords[index];
+	if( rec.obj != obj )
+		return;
+	rec.x = pos->x;
+	rec.y = pos->y;
+	rec.z = pos->z;
+	rec.vision = vision;
 }
 
 //=============================================================================
@@ -2290,7 +2336,7 @@ void Player::transferAssetsFromThat(Player *that)
 	std::list<Object *> objsToTransfer;
 
 	// let's not transfer beacons
-	// GeneralsX @bugfix The neutral player is constructed with init(nullptr), and a
+	// GeneralsX: The neutral player is constructed with init(nullptr), and a
 	// map whose playerFaction is absent from PlayerTemplate.ini also survives on a
 	// compiled-out assert — so getPlayerTemplate() can be null here. Team.cpp
 	// carries a dated @bugfix for this exact beacon lookup; this site was missed.
@@ -2782,7 +2828,7 @@ Bool Player::attemptToPurchaseScience(ScienceType science)
 		TheControlBar->markUIDirty();
 	}
 
-	// GeneralsX @feature Announce the purchase during replay playback. The gate and all formatting
+	// GeneralsX: Announce the purchase during replay playback. The gate and all formatting
 	// live in InGameUI, so this stays one unconditional line in a file the SimID digest covers.
 	// Only the success path announces, so a purchase refused for points or prereqs says nothing.
 	// grantScience() is deliberately NOT hooked: a granted science is not a purchase.
@@ -4247,7 +4293,7 @@ void Player::xfer( Xfer *xfer )
 {
 
 	// version
-	const XferVersion currentVersion = 9;	// GeneralsX @bugfix 9: m_visionSpies
+	const XferVersion currentVersion = 9;	// GeneralsX: 9: m_visionSpies
 	XferVersion version = currentVersion;
 	xfer->xferVersion( &version, currentVersion );
 

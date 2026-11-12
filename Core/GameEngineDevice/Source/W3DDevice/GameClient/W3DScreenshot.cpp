@@ -27,7 +27,7 @@
 #include "WW3D2/surfaceclass.h"
 #include "WWLib/mpsc_intrusive_queue.h"
 #include <stb_image_write.h>
-// GeneralsX @build Upstream #1785 threads screenshot encoding with Win32 APIs. The three it
+// GeneralsX: Upstream #1785 threads screenshot encoding with Win32 APIs. The three it
 // uses - CreateDirectory, CreateThread, CloseHandle - have no CompatLib coverage reachable
 // from Core, so the non-Windows arms below use the standard library directly.
 #if !defined(_WIN32)

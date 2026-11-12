@@ -667,24 +667,8 @@ static void TriggerMiniDump()
 	if (TheMiniDumper && TheMiniDumper->IsInitialized())
 	{
 		// GeneralsX @bugfix wh1ter0se 12/08/2026 The full dump is opt-in here too, and THIS is the
-		// path that matters most for a new user.
-		//
-		// The twin of this gate went into WinMain.cpp's UnHandledExceptionFilter first, and that
-		// commit called this path "a different, rarer path". That was wrong, and the evidence
-		// arrived within the hour: ReleaseCrash() is what runs when the game fails at STARTUP -
-		// wrong DLLs, an asset root it cannot resolve, a broken install - which is the most likely
-		// crash anybody hits on a machine that has never run the game successfully. It is not a
-		// rare path, it is the front door.
-		//
-		// Measured on a real misconfigured launch: a startup failure wrote CrashMZ 0.24 MB and
-		// CrashFZ 190.6 MB. The same crash at full runtime writes 1.4-1.5 GB. Same bug; the cost
-		// scales with how far the game got before dying, and the disk it fills belongs to the
-		// person least equipped to work out why their game will not start.
-		//
-		// The minimal dump is still always written and it is what actually gets used: an exit
-		// crash was root-caused end to end tonight out of a 0.63 MB minimal dump - exception code,
-		// faulting instruction, registers, full backtrace and the loaded-module list. Set
-		// GX_FULL_CRASHDUMP=1 when full memory is genuinely wanted.
+		// path that matters most: ReleaseCrash() runs on startup failures. A startup crash wrote CrashFZ 190.6 MB
+		// against CrashMZ 0.24 MB; a full runtime crash writes 1.4-1.5 GB. Set GX_FULL_CRASHDUMP=1 for full memory.
 		TheMiniDumper->TriggerMiniDump(DumpType_Minimal);
 
 		const char* wantFull = getenv("GX_FULL_CRASHDUMP");
@@ -702,22 +686,10 @@ static void TriggerMiniDump()
 void ReleaseCrash(const char *reason)
 {
 #ifndef _WIN32
-	// GeneralsX: Say why we died on stderr, and say it FIRST.
-	//
-	// On Windows the reason reaches the player through the ::MessageBox at the bottom of this
-	// function. On macOS and Linux that MessageBox is a stub that returns 0 without drawing
-	// anything (CompatLib/Source/wnd_compat.cpp:68), so until this line the ONLY record of the
-	// reason was ReleaseCrashInfo.txt. A headless peer, a harness, or anyone reading a terminal
-	// saw nothing at all but "exit 1".
-	//
-	// It goes at the very top because every single statement below it can fail to produce that
-	// file and produce it silently: TheGlobalData can be null (we exit without writing), the user
-	// data path can be unwritable, fopen can fail and is not checked past the if. Emitting here
-	// means no ordering of those failures can cost us the reason.
-	//
-	// ReleaseCrashLocalized() prints the same "FATAL: release crash:" line (see below), so one
-	// grep finds either kind. GXStderrLog mirrors stderr, so this also lands in
-	// generals-stderr.log next to the crash file.
+	// Say why we died on stderr, and say it FIRST. On macOS and Linux the MessageBox at the bottom of this function is a
+	// stub (CompatLib/Source/wnd_compat.cpp:68), so otherwise the only record is ReleaseCrashInfo.txt. Every statement
+	// below can fail to write that file (null TheGlobalData, unwritable user data path, unchecked fopen).
+	// ReleaseCrashLocalized() prints the same FATAL: release crash: line, so one grep finds either kind.
 	fprintf(stderr, "\nFATAL: release crash: %s\n", reason ? reason : "(no reason given)");
 	fflush(stderr);
 #endif
@@ -736,19 +708,9 @@ void ReleaseCrash(const char *reason)
 	char curbuf[ _MAX_PATH ];
 
 	// We are shutting down, and TheGlobalData has been freed.  jba. [4/15/2003]
-	//
-	// GeneralsX: Skip the crash FILE here rather than leaving the
-	// function. This used to `return`, which made ReleaseCrash() the one crash handler that can
-	// hand control back to its caller - and every caller is written on the opposite assumption.
-	// GameEngine.cpp:1612 says so in as many words ("Release CRASH doesn't return, so don't worry
-	// about executing additional code") before falling out of a catch block straight back into the
-	// frame loop with a half-dead engine.
-	//
-	// Only the file needs TheGlobalData (for the user data path), so only the file is skipped: the
-	// function now falls through to the reporting tail and the _exit(1) that already ends it. That
-	// keeps the Windows MessageBox on this path, which neither the `return` nor an _exit(1) here
-	// would have - on a GUI launch with no console, that MessageBox is the only notification there
-	// is. Review (gpt-5.6-sol) raised exactly this against the _exit(1) that stood here first.
+	// Skip only the crash FILE, which needs it for the user data path; do not
+	// return: callers such as GameEngine.cpp:1612 assume Release CRASH never returns and would resume the frame loop with a
+	// half-dead engine. Falling through keeps the Windows MessageBox, the only notice on a GUI launch, and the _exit(1).
 	if (TheGlobalData != nullptr) {
 		strlcpy(prevbuf, TheGlobalData->getPath_UserData().str(), ARRAY_SIZE(prevbuf));
 		strlcat(prevbuf, RELEASECRASH_FILE_NAME_PREV, ARRAY_SIZE(prevbuf));
@@ -834,22 +796,10 @@ extern const Bool TheSystemIsUnicode;
 
 void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 {
-	// GeneralsX: A null TheGlobalData means TheGameText is already
-	// DANGLING, so it has to be caught here, before the fetches below - not further down at the
-	// point where the user data path is needed.
-	//
-	// Subsystems are torn down in reverse registration order (SubsystemInterface.cpp
-	// shutdownAll()). TheWritableGlobalData registers at GameEngine.cpp:608 and TheGameText at
-	// :847, so TheGameText is deleted FIRST - and ~GameTextManager does not null the pointer,
-	// while ~GlobalData does (GlobalData.cpp:1140). Once TheGlobalData reads null, TheGameText is
-	// therefore guaranteed to be a non-null pointer to freed memory, and the `!TheGameText` test
-	// on its own cannot see that. Fetching a label through it SIGSEGVs in precisely the shutdown
-	// window this guard exists for. Found by review (gpt-5.6-sol) against the first version of this
-	// fix, which put the TheGlobalData check after the two fetches.
-	//
-	// ReleaseCrash() is the right fallback rather than a bare _exit: it prints the reason to
-	// stderr, keeps the Windows MessageBox, and exits. The label key goes out untranslated, which
-	// is what an untranslatable crash looks like and is strictly better than losing the report.
+	// A null TheGlobalData means TheGameText is already DANGLING, so catch it before the fetches below. Subsystems
+	// shut down in reverse registration order (shutdownAll()): TheGameText goes first and ~GameTextManager does not
+	// null the pointer, while ~GlobalData does. ReleaseCrash() prints the reason, keeps the Windows MessageBox and
+	// exits.
 	if (!TheGameText || TheGlobalData == nullptr) {
 		ReleaseCrash(m.str());
 		// This won't ever return
@@ -862,9 +812,9 @@ void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 	UnicodeString mesg = TheGameText->fetch(m);
 
 	// GeneralsX: UTF-8 copies, for everything below that is not a wide
-	// API. The stderr line used to pass the WideChar strings to %s, which stops at the first zero
-	// byte of a 4-byte wchar_t, so every reason printed as its first letter; and %ls, which the
-	// crash file used, does not write UTF-8 in the "C" locale (measured on macOS: a u-umlaut
+	// API. Passing the WideChar strings to %s stops at the first zero
+	// byte of a 4-byte wchar_t, so every reason would print as its first letter; and %ls
+	// does not write UTF-8 in the "C" locale (on macOS a u-umlaut
 	// came out as the lone Latin-1 byte 0xFC).
 	AsciiString promptA, mesgA;
 	promptA.translate(prompt);

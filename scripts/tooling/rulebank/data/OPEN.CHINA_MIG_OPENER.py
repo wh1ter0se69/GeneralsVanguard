@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule OPEN.CHINA_MIG_OPENER: China Infantry opens Barracks, supply,
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule OPEN.CHINA_MIG_OPENER: China Infantry opens Barracks, supply,
 # Air Field and four MiGs, with the War Factory late. Stock Infantry Hard builds its War Factory at the first supply centre and its Air
 # Field only at _ESCALATION >= 10 ("China Air Field - H", enemy-gated: a rule may neither retime it nor read that clock). Here:
 #   a one-shot "GX MiG Opener Stock Air Field Off - H" switches the stock Air Field script off at the start (the one reference the

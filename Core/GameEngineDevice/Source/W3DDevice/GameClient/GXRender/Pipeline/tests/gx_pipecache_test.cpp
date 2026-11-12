@@ -1,44 +1,25 @@
-// gx_pipecache_test - WS-D's gates and fail arms. Offscreen, no window.
-//
-//   gx_pipecache_test [--validation] [--device <sel>] [--cache-dir <dir>] [--workers <n>]
-//                     [--set builtin|<stream file>] [--configs C:D:S,...] [--drop-key <index>]
-//                     [--replay <stream file>] [--with-builtin] [--draw] [--expect-miss <n>] [--expect-cache-loaded 0|1]
-//                     [--arm none|bad-key|bad-offset|draw-unset|fail-last|miss-record|corrupt-cache|corrupt-payload|
-//                            truncate-cache|bad-header-size|save-fail|torn-keys|session-16bit|caller-fail-first|
-//                            caller-in-flight|keys-repair-fail|keys-append-short|custom-record|custom-record-off|
-//                            custom-record-unbuildable|a2c-off|a2c-twins|a2c-twins-none|a2c-twins-unset|a2c-recorded|
-//                            a2c-plain-twin-none|a2c-recorded-custom|a2c-recorded-custom-nocheck|a2c-modules|a2c-modules-swap|
-//                            a2c-prebuild-again|a2c-prebuild-again-cumulative|a2c-retarget-unbuildable[-nocheck]]
-//
-// --set: the generic set's draw parts - the compiled GxGenericSet.inc, or the parts of a census stream (census.py
-// --emit-stream); its attachment configurations are the stream's plus --configs (VkFormat:VkFormat:samples), each mapped to
-// what this device supports. --replay looks up every FF pipeline of a stream, in first-use order, through get() after the
-// prebuild: generic_miss counts the census entries the set lacks. Exit 0 = every expectation held, 1 = one did not, 2 = setup.
-// --drop-key N: the N-th FINAL generic key (after closure, normalisation and de-duplication) is left out of the prebuild; the
-// replay must then miss exactly once, on exactly that key (asserted by bytes), and nothing else.
-// --with-builtin adds the compiled GxGenericSet.inc (incl. its source-derived parts, e.g. the snow POINT part) to a stream set.
-// Every arm asserts its validation errors BY ID (captured through VkCtx's log hook): a clean arm allows none; a fail arm must
-// show its own VUID and nothing outside its allowed set, so an unrelated error can never pass for the planted one.
-// Arms: bad-key (TEST-ONLY mutant: no zero stream -> VUID-VkGraphicsPipelineCreateInfo-Input-07904); bad-offset (an attribute
-// offset above maxVertexInputAttributeOffset -> VUID-VkVertexInputAttributeDescription-offset-00622); draw-unset (see --draw);
-// fail-last (the worker of the LAST queued key fails -> prebuildComplete() must be false; every clean arm asserts true);
-// miss-record (with --drop-key and --replay: the miss is recorded, a second cache on the same dir prebuilds it -> 0 misses);
-// corrupt-cache (this device's name, a foreign UUID), corrupt-payload (one payload byte flipped), truncate-cache (cut to half),
-// bad-header-size (headerSize 64, checksum recomputed): each damages a file a VALID save produced, verifies the damage, and
-// must be refused for its own reason with no data handed to the driver.
-// caller-fail-first / caller-in-flight: a key of the set a caller's get() failed before the prebuild / is compiling during it
-// (TEST-ONLY hooks) -> prebuildComplete() false (and true once the in-flight key publishes). keys-repair-fail /
-// keys-append-short (with --cache-dir): a failed repair / a torn append of the miss record is never appended behind.
-// custom-record (with --cache-dir, rw3-P-2, item 1): a custom (WS-E) key one session builds through
-// buildCustom() - the native device's miss path - is recorded, and a second session's prebuild builds it before any draw
-// (custom_miss 0). custom-record-off: the TEST-ONLY noCustomRecord plant - the second session must miss it (exactly 1).
-// custom-record-unbuildable: the second session has no custom modules (as an older/other build would lack the program) - the
-// recorded key is skipped (recorded_skipped 1, never queued), its prebuild still completes and the draw misses.
-// a2c-* (a2c-2, A108): the alpha-to-coverage twins, plain twins, per-key modules and prebuild completion - see the block.
-// --validation refuses to run (exit 2) unless the context really runs core AND sync validation (GX_VK_VALIDATION=0/core).
-// --draw: every prebuilt pipeline is bound inside an offscreen rendering of its own attachment configuration, with every
-// dynamic state set and its real + null vertex streams bound, and draws once; the work is submitted and waited (validation
-// must stay clean). Arm draw-unset: the first draw leaves vkCmdSetCullMode out - validation must report it.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// gx_pipecache_test - pipeline-cache gates and fail arms. Offscreen, no window.
+// Options: --validation --device --cache-dir --workers --set --replay --drop-key --draw --arm.
+// Every arm asserts its validation errors BY ID: a clean arm allows none, a fail arm only its own VUID.
+// Exit 0 = every expectation held, 1 = one did not, 2 = setup failed.
 #include "../GxPipelineCache.h"
 #include "VkCtx.h"
 #include "vk_mem_alloc.h"
@@ -166,7 +147,7 @@ bool hasStencilFmt(uint32_t f) {
 // The draw arm (header). Returns the number of draws recorded, or -1 on a setup failure.
 int drawAll(Vk::VkCtx& ctx, const GxPipelineCache& cache, const GxGenericShaders& sh, bool skipOneDynamic,
             TestKit::FFResources& res) {
-	// rw2-D: the FF ubershader statically reads both uniform blocks, the 8 samplers and the push block: every draw binds them
+	// The FF ubershader statically reads both uniform blocks, the 8 samplers and the push block: every draw binds them
 	// (D3D8 device defaults packed by GxPackFF - these draws are for validation, not pixels).
 	GxD3D8FFState ffs;
 	GxD3D8FFDefaults(&ffs);
@@ -378,7 +359,7 @@ void captureLog(Vk::LogLevel, const char* line, void*) {
 	g_errorIds[std::string(p, e ? size_t(e - p) : std::strlen(p))]++;
 }
 
-// (the integrator's condition b, a2c-modules): every vkCreateGraphicsPipelines call's fragment module and alphaToCoverageEnable,
+// a2c-modules: every vkCreateGraphicsPipelines call's fragment module and alphaToCoverageEnable,
 // seen at the Vulkan boundary (volk's pointer swapped for the arm's span, restored after it)
 struct CgpSeen { VkShaderModule fs; bool a2c; };
 std::mutex g_cgpLock;
@@ -542,7 +523,7 @@ int main(int argc, char** argv) {
 		g_errorIds.clear();
 	}
 
-	// The generic pair + the one layout every FF pipeline shares (push constants only until WS-C/F1 add descriptors).
+	// The generic pair + the one layout every FF pipeline shares.
 	GxGenericShaders sh;
 	auto module = [&](const uint32_t* code, size_t bytes) {
 		VkShaderModuleCreateInfo ci = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
@@ -555,7 +536,7 @@ int main(int argc, char** argv) {
 	sh.vs = module(spv_gx_ff_vert, sizeof(spv_gx_ff_vert));
 	sh.fs = module(spv_gx_ff_frag, sizeof(spv_gx_ff_frag));
 	sh.fsFlat = module(spv_gx_ff_flat_frag, sizeof(spv_gx_ff_flat_frag));
-	TestKit::FFLayout ffLayout;   // rw2-D: the FF layout (rw2-F1's GxRecordLayout contract, GxFFState.h)
+	TestKit::FFLayout ffLayout;   // the FF layout (GxRecordLayout contract, GxFFState.h)
 	ffLayout.create(ctx.device());
 	sh.layout = ffLayout.layout;
 	// Every exit destroys these before the device (an early return - session refusal, unreadable stream, N/A arm - used to
@@ -576,24 +557,10 @@ int main(int argc, char** argv) {
 		~SharedGuard() { destroy(); }
 	} shared = { ctx.device(), sh, ffLayout };
 
-	// (A108; the integrator's ruling (5)): the A2C twins. The builtin set x the production session
-	// configs at 4x (GxSessionAttachConfigs, X8R8G8B8 = 22). a2c-off: twins off -> exactly today's queue (no A2C key, the count of the
-	// distinct normalised candidates). a2c-twins: on -> + one twin per eligible candidate (multisampled, blending off, colour writes on),
-	// and every eligible key's A2C pipeline is there before any draw (generic_miss 0). a2c-twins-none: the noA2cTwins plant - the same
-	// draws must MISS (one per twin). a2c-recorded (--cache-dir): an A2C key a key-on session missed is recorded; a key-off session skips it,
-	// COUNTS it and prebuilds its PLAIN twin instead ((1): drawing that state = 0 first-use miss); a
-	// key-on session prebuilds the A2C key. a2c-plain-twin-none (--cache-dir): the noA2cPlainTwins plant - the key-off draw misses exactly once.
-	// a2c-recorded-custom (--cache-dir): a recorded CUSTOM A2C key's plain twin passes the custom-module check (skipped without the program,
-	// built with it); -nocheck: the plainTwinNoCustomCheck plant - the unbuildable twin fails the prebuild. a2c-retarget-unbuildable
-	// (--cache-dir): an MSAA Reset never retargets a recorded key the session cannot build; -nocheck: the plant.
-	// (the integrator's conditions after :3876): a2c-modules - every vkCreateGraphicsPipelines call (seen at the Vulkan boundary)
-	// uses an a2c-family fragment module IFF its alphaToCoverageEnable is set (FF smooth + flat, a custom PS, plain and A2C);
-	// a2c-modules-swap: the a2cModuleSwapOne plant (one plain key on the a2c module) - exactly 1 mismatch. a2c-prebuild-again - a prebuild
-	// with a planted failure is not complete (as today), its failure dropped, a second prebuild re-queues exactly that key and IS complete
-	// (prebuildComplete reads the last prebuild); a2c-prebuild-again-cumulative: the plant that reads every prebuild's failures - not complete.
-	// (:3876 (3)): every a2c arm draws what it built (--draw) and ends with the suite's common validation checks;
-	// a2c-twins-unset is a2c-twins with drawAll's planted missing dynamic state - those checks must FAIL it (VUID-vkCmdDraw-None-07840).
-	// Plant arms (-none, -swap, -cumulative) PASS only when the plant's symptom is seen ("PLANT NOT DETECTED" otherwise).
+	// A2C twins over the builtin set x the production session configs at 4x. a2c-off queues exactly the old set;
+	// a2c-twins adds one A2C twin per eligible candidate (no first-use miss); a2c-recorded: a key-off session
+	// prebuilds the plain twin. a2c-modules: an a2c-family fragment module is used IFF alphaToCoverageEnable.
+	// Plant arms PASS only if the symptom is seen.
 	if (arm.compare(0, 4, "a2c-") == 0) {
 		std::vector<GxAttachConfig> sc;
 		if (!GxSessionAttachConfigs(ctx, 22u, 4u, sc, &why)) {

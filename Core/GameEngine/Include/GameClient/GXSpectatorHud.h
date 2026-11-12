@@ -1,23 +1,26 @@
 /*
-**	GeneralsX: the pure half of the GeneralsX spectator HUD (the owner's pick of 05/10/2026:
-**	"C2" caster layout + the "B3" Tab scoreboard, in the game's blue). The drawing lives in
-**	GeneralsMD/Code/GameEngine/Source/GameClient/GXSpectatorHud.inl; this header holds every decision that can go
-**	wrong without anything looking wrong, so it can be driven with no engine:
-**	scripts/test/spectator-hud-model-test.cpp (`c++ -std=c++17 -I Core/GameEngine/Include ...`).
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
 **
-**	  * SETTINGS live in <userdata>/GXHud.ini next to the HUD anchor, NOT in Options.ini: a key read through
-**	    GlobalData/OptionPreferences would sit in Core/.../Common, inside the SimID digest, and a display toggle would
-**	    then split every lobby (InGameUI.cpp's GXHud note). The launcher writes the same keys; the in-game panel writes
-**	    them back with writeSettings(), which keeps every line it does not own.
-**	  * KEYBINDS are `MOD+KEY_x` values in CommandButtonHotKeys.ini, the format the launcher's Keybinds > GENERAL tab
-**	    already writes (MetaEvent.cpp gxParseChord). Unlike those, a bare key is allowed: these fire for a spectator
-**	    only, who has no command a bare key could also mean.
-**	  * STATUS: "Left" (quit or dropped) wins over "Dead", because a player who leaves is also destroyed a moment later
-**	    and the reason is the news. A replay has no network, so it can only ever say "Dead".
-**	  * DOCKING: everything starts docked to its tab; a panel can be dragged anywhere; clicking the tab
-**	    of a MOVED panel snaps it home instead of closing it.
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
 **
-**	Client-only, read by nothing the simulation runs; no engine types, so it cannot reach the digest either.
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+**	The pure half of the spectator HUD (tested by scripts/test/spectator-hud-model-test.cpp).
+**	  * SETTINGS live in <userdata>/GXHud.ini, NOT Options.ini: an OptionPreferences key would sit in the SimID digest.
+**	  * KEYBINDS: MOD+KEY_x in CommandButtonHotKeys.ini (gxParseChord); a bare key is allowed (spectators only).
+**	  * STATUS: "Left" wins over "Dead" (a leaver is destroyed a moment later); a replay can only say "Dead".
 */
 
 #pragma once
@@ -201,7 +204,7 @@ inline std::string writeSettings( const std::string &iniText, const Settings &s 
 // ---------------------------------------------------------------------------------------------------------------------
 // The file
 //
-// GeneralsX: The panel's own reader took ANY fopen failure, and an fread error, for an empty
+// The panel's own reader took ANY fopen failure, and an fread error, for an empty
 // GXHud.ini (file-wipe class, the sweep after). The load then gave the defaults - the LEGACY UI among them -
 // and the next toggle merged them into nothing and renamed that over the file: the launcher's HUD anchor, the message
 // delay, SpectatorUI=generalsx and every other line were gone. ONLY a file that is not there (ENOENT) is empty now. An
@@ -409,7 +412,7 @@ inline ViewState viewAfterClick( ViewState cur, int clickedSlot, Status clickedS
 /// one click switches between the whole map and the FOLLOWED player's eyes (his fog of war, through
 /// the retail toggle's own call). Nobody followed, or a followed player with no eyes left (dead, left): the click does nothing.
 /// canViewAs: the engine can look through a player's eyes at all - rts::changeObservedPlayer refuses to begin unless
-/// PlayerObserverEnabled is on and every player's ghosts are tracked (spectator-occupants r1); going back always works.
+/// PlayerObserverEnabled is on and every player's ghosts are tracked; going back always works.
 inline ViewState viewAfterChip( ViewState cur, Status followedStatus, bool canViewAs )
 {
 	if (cur.follow < 0)
@@ -483,7 +486,7 @@ struct PowerNote { unsigned caster; int player; int science; unsigned power; uns
 ///   * A superweapon row names its launcher and its power (rowCaster, rowPower): that launcher's newest order for that power, at
 ///     any age - the order comes first and a SCUD Storm held by an EMP may fire much later - up to `after` frames past the row.
 ///   * A general's-skill row names the player and the skill: his note for a power needing it, the nearest within `window` frames.
-///   * Any other row (an upgrade names its building but no power) matches nothing (spectator-click r1-BC P2).
+///   * Any other row (an upgrade names its building but no power) matches nothing.
 inline int pickPowerNote( const PowerNote *notes, int count, unsigned rowCaster, unsigned rowPower, int rowPlayer, int rowScience,
 	unsigned rowFrame, unsigned window, unsigned after )
 {
@@ -530,7 +533,6 @@ inline int nextLevelXP( const int *needed, int levelCount, int rank )
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Player mode: the GeneralsX UI for a player still playing.
-//
 // ---------------------------------------------------------------------------------------------------------------------
 enum Mode { MODE_LEGACY, MODE_SPECTATOR, MODE_PLAYER };
 
@@ -581,7 +583,7 @@ inline bool playerChordAllowed( const std::string &mod, const std::string &key )
 
 /// The player Tab board's blocks: one per team, my own team first, then the others in the order they first appear;
 /// players with no team (-1) share one last block, so a free-for-all is one block. `out` holds up to n + 1 entries.
-/// Owner, 05/10/2026: "how would a 2v2v2v2v2v2 look like then?" - six blocks of two, not one list.
+/// A 2v2v2v2v2v2 lobby gets six blocks of two, not one list.
 inline int teamBlocks( const int *teams, int n, int ownTeam, int *out )
 {
 	int count = 0;
@@ -608,7 +610,7 @@ inline int teamBlocks( const int *teams, int n, int ownTeam, int *out )
 /// The retail radar window in the map's own shape on its home rect's bottom-left corner (the GeneralsX panels, where the
 /// bar's corner is). The radar draws, clips its view box and maps clicks through that window's rect. Where the GeneralsX UI
 /// keeps the retail box instead, W3DRadar::draw fills the margins of a map that does not fill it with the map's own
-/// out-of-bounds terrain, dimmed; the legacy look keeps retail's black margins (21/10).
+/// out-of-bounds terrain, dimmed; the legacy look keeps retail's black margins.
 inline Rect fitRadar( const Rect &home, int mapW, int mapH )
 {
 	if (mapW <= 0 || mapH <= 0)
@@ -619,9 +621,8 @@ inline Rect fitRadar( const Rect &home, int mapW, int mapH )
 	return r;
 }
 
-/// The retail bar under the GeneralsX UI (F11, a campaign;
-/// - asked of the legacy look, which since 21/10 is retail's own radar again: "These shouldn't
-/// change if the UI is legacy"): the radar window in the map's own shape, in the bottom-left corner of its home rect, so
+/// The retail bar under the GeneralsX UI (F11, a campaign; the legacy look keeps retail's own radar again):
+/// the radar window in the map's own shape, in the bottom-left corner of its home rect, so
 /// Radar::findDrawPositions has no bars to leave. A map whose shape already fills the box (within 2 px - the radar draws it
 /// inset by 1) keeps the home rect untouched, so a square map stays exactly as retail draws it.
 inline Rect fitRadarCentred( const Rect &home, int mapW, int mapH )
@@ -675,7 +676,7 @@ inline int focusHiddenTop( int placedTop, int clearance ) { return placedTop < c
 
 /// The FOCUS tab's bottom line (the tab, tabW x tabH at tabX, is drawn tabRise px above it). It never leaves the top edge, and a tab
 /// over the replay strip, which takes input first, goes just above the strip - or just below it when the strip is docked at the top
-/// edge and there is no room above (the scb-r7 top clamp put it back under such a strip). The top clamp comes
+/// edge and there is no room above (a top clamp put it back under such a strip). The top clamp comes
 /// BEFORE the overlap test: a full panel at the top edge was tested off screen and then clamped under the strip.
 inline int focusTabY( int tabY, int tabX, int tabW, int tabH, const Rect &strip, int tabRise, int gap )
 {
@@ -791,8 +792,8 @@ inline int pingShown( int pingMs, bool isRouterRow, bool localIsRouter, int loca
 	return localIsRouter ? 0 : (localPingMs >= 0 ? localPingMs : -1);
 }
 
-/// Board colour class of a figure: 0 = no figure (the neutral colour), 1 = good, 2 = warning, 3 = bad (owner
-/// 06/10: "show ping in colors ... and same for fps"). Ping: < 100 ms good, < 200 warning, else bad. FPS: >= 50 good,
+/// Board colour class of a figure: 0 = no figure (the neutral colour), 1 = good, 2 = warning, 3 = bad.
+/// Ping: < 100 ms good, < 200 warning, else bad. FPS: >= 50 good,
 /// >= 30 warning, else bad.
 inline int pingClass( int ms ) { return ms < 0 ? 0 : ms < 100 ? 1 : ms < 200 ? 2 : 3; }
 inline int fpsClass( int fps ) { return fps < 0 ? 0 : fps >= 50 ? 1 : fps >= 30 ? 2 : 3; }
@@ -829,7 +830,7 @@ inline bool boardGateTakes( bool boardOpen, const Rect &board, int x, int y, int
 /// Retail Diplomacy's rule for its mute buttons: not yourself, not an AI, not a player who is no longer in the game.
 inline bool mayMute( bool human, bool own, bool inGame ) { return human && !own && inGame; }
 
-/// GeneralsX: No GX overlay (spectator HUD, replay strip, vote banner, net/pacing readouts, match
+/// No GX overlay (spectator HUD, replay strip, vote banner, net/pacing readouts, match
 /// timer) draws while the load screen is up. The game's own signals, not a timer: GameLogic::startNewGame raises
 /// m_loadScreenRender with the load screen and lowers it at its very end, m_loadingMap / m_loadingSave bracket the load.
 inline bool mayDrawOverlays( bool loadScreenRender, bool loadingMap, bool loadingSave )
@@ -852,7 +853,7 @@ inline bool toastShows( unsigned bornMs, unsigned nowMs, unsigned ttlMs, unsigne
 	return matchLoaded && (nowMs - bornMs) < ttlMs && (int)(bornMs - matchStartMs) >= 0;
 }
 
-/// GeneralsX: The geometry the event toasts are laid out against, out of GXSpectatorHud.inl so the
+/// The geometry the event toasts are laid out against, out of GXSpectatorHud.inl so the
 /// model test builds the very rects the HUD draws. Every length is a 1080p design pixel scaled by `scale` (= screen height / 1080),
 /// rounded as the HUD's own S() rounds.
 inline int hudS( float v, float scale ) { return (int)(v * scale + 0.5f); }
@@ -862,7 +863,7 @@ inline bool rectsMeet( const Rect &a, const Rect &b )
 }
 
 /// The player bar's home rect (before any drag), its card width and its centre block's width.
-/// GeneralsX: More players than the band has room for at its normal card size (32-player maps,
+/// More players than the band has room for at its normal card size (32-player maps,
 /// 31 cards in one row, every name cut to "Hard ..."): the cards keep that size, each half shows what fits and pages through the
 /// rest with two buttons at its outer end. 14 players or fewer never page: their band is what it always was.
 enum { BAR_UNPAGED_MAX = 14 };
@@ -921,7 +922,7 @@ inline int barWindow( int count, int fit, bool pinLast, int &first, int *idx )
 	return n;
 }
 
-/// GeneralsX: The player lists (Tab board, spectator board) show at most maxRows rows and never more than
+/// The player lists (Tab board, spectator board) show at most maxRows rows and never more than
 /// roomPx holds, and scroll through the rest. At least one row is always shown.
 inline int listRowsShown( int rows, int maxRows, int roomPx, int rowH )
 {
@@ -1325,7 +1326,7 @@ struct CameoFit
 
 /// One row of availW px: every occupant then every free slot, at the largest cell size from maxIcon down to minIcon that fits
 /// them all. If none does, the free boxes give way first, then the last occupants give way to one "+N" cell - and with no room
-/// for even one cell, nothing is drawn past the row (spectator-occupants r1).
+/// for even one cell, nothing is drawn past the row.
 inline CameoFit fitCameos( int units, int freeSlots, int availW, int maxIcon, int minIcon, int gap )
 {
 	CameoFit f = { maxIcon, units, freeSlots, 0, false };

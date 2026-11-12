@@ -1,36 +1,25 @@
 /*
-** GeneralsX: how much bigger a message box must get to show its body, as
-** a pure function.
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
 **
-** gogoMessageBox used to grow the box DOWN only, clamped to the screen. That is enough for a few
-** sentences and not for the desync report, which is one row per player and a lobby is twelve now
-** (MAX_SLOTS). Computed with this engine's FreeType metrics and Build_Sentence_Not_Centered's wrap
-** rule, against the three MessageBox.wnd copies a normal install mounts (retail 800x600-authored,
-** ControlBar Pro 1920x1080 and its 3840x2160 fix): the rows are wider than the authored body and
-** wrap. With ControlBar Pro at 1920x1080 a 20-line report becomes 36 lines, and the last twelve -
-** most of the table, including the DIFFERS row - fall below the screen clamp.
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
 **
-** Three steps, each taken only when the one before cannot show the whole body:
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
 **
-**   1. The body fits the layout as authored: return nothing. Every retail message box, unchanged.
-**   2. It does not: widen the box so no line wraps - but ONLY for a body of short lines, and only
-**      if that is possible within the screen. A table has short lines and is exactly what
-**      wrapping destroys. Prose is a paragraph: unwrapping one turns the box into a banner (a
-**      123-character error under ControlBar Pro at 1920x1080 went 540 wide to 1529), so it keeps
-**      growing down as it always did. "Short lines" is judged on the whole body: wrapping at the
-**      authored width makes it less than three times as tall as unwrapped. A paragraph that
-**      overflows a box holding k lines wraps to k+1 or more from one, so every retail and
-**      ControlBar Pro layout (k >= 2 at all thirteen resolutions checked) reads as prose; the
-**      desync report, measured for two to twelve players on the same layouts, stays under 2.6.
-**      Widening never happens partially, so a box is either the retail width or exactly its text.
-**   3. Still taller than the screen: step the body's point size down, same face, to no less than
-**      three quarters of what the layout asked for. Past that the end of the body is clipped, as
-**      before - an unreadably small table is not a better answer than a truncated one.
-**
-** No new art, no colour, no second control: the box keeps MessageBox.wnd's frame, fonts and
-** button, which is what "it must look like the game" rules in and out.
-**
-** Pure so it can be checked without an engine or a display - scripts/test/message-box-fit-test.cpp.
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+** Pure function: how much bigger a message box must get to show its body (scripts/test/message-box-fit-test.cpp).
+** 1. Fits as authored: change nothing. 2. Short-line body (a table): widen so nothing wraps, if the screen allows;
+** prose keeps growing down. 3. Still too tall: shrink the font to at least 3/4 of the layout's, then clip.
 */
 
 #pragma once

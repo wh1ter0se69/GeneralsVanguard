@@ -121,7 +121,7 @@ Bool SDL3Keyboard::getCapsState(void)
 	return 0;
 }
 
-// GeneralsX: The character the active layout puts on a key, unshifted (see
+// The character the active layout puts on a key, unshifted (see
 // Keyboard::getLayoutKey): on French AZERTY the key at US ';' types "m", and this says so where the
 // engine's US key table cannot. 0 for a key that types no printable character.
 static WideChar layoutCharOf(SDL_Scancode scancode)
@@ -145,20 +145,9 @@ WideChar SDL3Keyboard::getLayoutKey(KeyDefType key)
  */
 void SDL3Keyboard::getKey(KeyboardIO *key)
 {
-	// GeneralsX: An unmapped key must not end the frame's batch.
-	//
-	// KEY_NONE has two meanings that this function used to conflate. To Keyboard::updateKeys()
-	// it is the END-OF-STREAM sentinel - its read loop is
-	// `do { getKey(&m_keys[index]); } while (m_keys[index++].key != KEY_NONE);` - but
-	// translateScanCodeToKeyVal() also returns KEY_NONE for any scancode it does not map.
-	// So one press of an unmapped key truncated the whole frame's keyboard batch: everything
-	// still queued behind it was deferred a frame, and the modifier post-pass at the bottom of
-	// updateKeys() ran against a half-read batch.
-	//
-	// That is not hypothetical on macOS. Command (SDL_SCANCODE_LGUI / RGUI) has no KeyDefType
-	// at all - KeyDefs.h has no KEY_LWIN - so every Cmd-Tab, Cmd-Space and Cmd-anything a Mac
-	// user presses hit this path. Skipping unmapped events instead consumes them and keeps
-	// reading, so KEY_NONE once again means only "no more keys".
+	// An unmapped key must not end the frame's batch. KEY_NONE is the END-OF-STREAM sentinel for
+	// Keyboard::updateKeys(), but translateScanCodeToKeyVal() also returns it for unmapped scancodes.
+	// On macOS this is routine: Command (LGUI/RGUI) has no KeyDefType.
 	key->key = KEY_NONE;
 	key->status = KeyboardIO::STATUS_UNUSED;
 	key->state = 0;
@@ -349,26 +338,9 @@ KeyVal SDL3Keyboard::translateScanCodeToKeyVal(SDL_Scancode scan)
 		case SDL_SCANCODE_Y: return KEY_Y;
 		case SDL_SCANCODE_Z: return KEY_Z;
 
-		// GeneralsX: Finish the table. Every key below is a
-		// MappableKeyType (MetaEvent.h) - i.e. the engine allows a command to be bound to it -
-		// and every one of them was falling through to KEY_NONE, so the binding could never fire
-		// on any SDL3 platform (macOS, Linux, iPadOS). The Windows DirectInput path has always
-		// delivered them, which is why this reads as a Mac-only "hotkey doesn't work".
-		//
-		// Confirmed dead against the SHIPPED CommandMap.ini (Data\English\CommandMap.ini inside
-		// W3DEnglishZH.big), not against a guess at the defaults:
-		//   KEY_TICK      -> OPTIONS
-		//   KEY_BACKSLASH -> CREATE_FORMATION
-		//   KEY_MINUS / KEY_EQUAL -> BEGIN/END_PREFER_SELECTION
-		//   KEY_KP4/KP6   -> BEGIN/END_CAMERA_ROTATE_LEFT / RIGHT
-		//   KEY_KP8/KP2   -> BEGIN/END_CAMERA_ZOOM_IN / OUT
-		//   KEY_KP5       -> CAMERA_RESET
-		// and against MetaMap::generateMetaMap(), which binds the frame-pacing commands to the
-		// keypad +/- :
-		//   CTRL+KP_PLUS / CTRL+KP_MINUS             -> INCREASE/DECREASE_MAX_RENDER_FPS
-		//   SHIFT+CTRL+KP_PLUS / SHIFT+CTRL+KP_MINUS -> INCREASE/DECREASE_LOGIC_TIME_SCALE
-		// The second pair IS the game-speed control, and with no KEY_KPPLUS/KEY_KPMINUS reaching
-		// the meta map it could never match - the reported "gamespeed edits dont work".
+		// Finish the table. Each key below is a MappableKeyType that fell through to KEY_NONE, so its binding never
+		// fired on any SDL3 platform: KEY_TICK, KEY_BACKSLASH, KEY_MINUS/KEY_EQUAL and the keypad camera keys.
+		// KEY_KPPLUS/KEY_KPMINUS also carry the frame-pacing and game-speed commands (MetaMap::generateMetaMap()).
 
 		// Keypad. KEY_KPENTER is above with the other Enter keys.
 		case SDL_SCANCODE_KP_0: return KEY_KP0;
@@ -407,17 +379,9 @@ KeyVal SDL3Keyboard::translateScanCodeToKeyVal(SDL_Scancode scan)
 
 		case SDL_SCANCODE_INSERT: return KEY_INS;
 
-		// Deliberately NOT mapped, so the reason is on the record rather than looking like
-		// another gap in the table:
-		//   SDL_SCANCODE_LGUI / RGUI (Command on a Mac, Windows key on a PC) - KeyDefs.h has no
-		//     KeyDefType for it at all. Mapping Command onto KEY_LCTRL would make Cmd+1 assign a
-		//     control group, which some Mac players will expect, but it is a deliberate change to
-		//     what the key bindings MEAN and would silently shadow the OS's own Cmd chords. That
-		//     is a product decision, not a bug fix, so it is left out of this change.
-		//   SDL_SCANCODE_CAPSLOCK - KEY_CAPS exists, but Keyboard::translateKey() treats it as a
-		//     latching toggle driven by press events, and macOS reports caps lock as a
-		//     down-on-engage / up-on-disengage pair rather than a press-release. Wiring it up
-		//     needs its own test; nothing is bound to it today.
+		// Deliberately NOT mapped:
+		//   SDL_SCANCODE_LGUI / RGUI (Command / Windows key): no KeyDefType; KEY_LCTRL would shadow OS Cmd chords.
+		//   SDL_SCANCODE_CAPSLOCK: KEY_CAPS is a latching toggle, but macOS reports engage/disengage pairs.
 		default:
 			return KEY_NONE;
 	}

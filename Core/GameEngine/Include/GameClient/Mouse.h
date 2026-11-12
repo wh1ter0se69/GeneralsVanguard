@@ -293,7 +293,7 @@ public:
 	void refreshCursorCapture(); ///< refresh the mouse capture
 	Bool isCursorCaptured(); ///< true if the mouse is captured in the game window
 
-	// GeneralsX @feature tilt-thumb-buttons 06/10/2026 Thumb buttons (4 back = 1, 5 forward = 2) are not part of MouseIO, so they
+	// GeneralsX: Thumb buttons (4 back = 1, 5 forward = 2) are not part of MouseIO, so they
 	// are held state set by the device layer and polled by LookAtTranslator.
 	void setThumbButton( Int which, Bool down ) { if (which == 1) m_thumbBack = down; else if (which == 2) m_thumbForward = down; }
 	Bool isThumbBackDown() const { return m_thumbBack; }

@@ -429,6 +429,8 @@ public:
 
 	Real getVisionRange() const;				///< How far can you see?  This is dynamic so it is in Object.
 	void setVisionRange( Real newVisionRange );	///< Access to setting someone's Vision distance
+	/// GeneralsX: Player only: our record in its packed wake array, kept current by gxSyncWakeRecord.
+	void friend_gxSetWakeRecord( const Player *owner, Int index ) { m_gxWakeOwner = owner; m_gxWakeIndex = index; }
 	Real getShroudRange() const;				///< How far can you shroud?  Even more dynamic since it'll start at zero for everyone.
 	void setShroudRange( Real newShroudRange );	///< Access to setting someone's shrouding distance
 	Real getShroudClearingRange() const;				///< How far do you clear shroud?
@@ -592,6 +594,7 @@ public:
 	ObjectShroudStatus getShroudedStatus(Int playerIndex) const;
 
 	DisabledMaskType getDisabledFlags() const { return m_disabledMask; }
+	const void* getDisabledFlagsAddress() const { return &m_disabledMask; }	///< GeneralsX: only for the sleepy dispatch's prefetch
 	Bool isDisabled() const { return m_disabledMask.any(); }
 	Bool clearDisabled( DisabledType type );
 
@@ -695,6 +698,7 @@ protected:
 	void removeThreat();
 
 	virtual void reactToTransformChange(const Matrix3D* oldMtx, const Coord3D* oldPos, Real oldAngle) override;
+	void gxSyncWakeRecord();	///< GeneralsX: our position or vision changed; tell the packed record, if we have one
 
 private:
 
@@ -737,6 +741,9 @@ private:
 	SightingInfo	*m_partitionLastValue;	///< Where and for whom I last dealt with value, so I can undo its effects when I stop
 
 	Real					m_visionRange;										///< looking range
+	// GeneralsX: where our Player::GXWakeRecord is (NOT saved; may be stale, the Player checks)
+	const Player	*m_gxWakeOwner = nullptr;
+	Int						m_gxWakeIndex = -1;
 	Real					m_shroudClearingRange;						///< looking range for shroud ONLY
 	Real					m_shroudRange;										///< like looking range, this is how far I shroud others' looks
 

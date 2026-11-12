@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule NOFLOAT.CLONE_GATES: never float a bank - keep adding producers
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule NOFLOAT.CLONE_GATES: never float a bank - keep adding producers
 # (rows 22, 65, 148). Stock Hard adds a 2nd Barracks / War Factory / Air Field only at $15,000 (the recipe's RICH1 clones) or $30,000.
 # For USA, the Air Force and China vanilla (China Tank and Nuke stay EXEMPT: the recipe's NO_SPEND, their clones hurt them):
 #   clone_cash   -> the RICH1 clones' credit gate (their _ESCALATION gate is left exactly as it is);
@@ -6,6 +8,8 @@
 #   + chinook_reserve + (k-1) * bank_max, _GX_CLOCK >= esc_min (0 = no clock gate) and exactly base_T + k - 1 of T stand - so it is
 #   self-limiting and keeps chinook_reserve in the bank (a lost Chinook - 950 or 1200 on the Air Force - can be replaced).
 # NOT here: "research at one Air Field while the others produce" - no scb lever reserves a producer: ENGINE.
+# Not for USA on a base built with the generator's USA_GENOME: that scales America's RICH1 credit gates x1.4 (15,000 -> 21,000), and
+# clone_cash would overwrite the tuned value. apply() refuses America by name there; the Air Force and China apply as before.
 RULE_ID = 'NOFLOAT.CLONE_GATES'
 SCOPE = ('SkirmishAmerica', 'SkirmishAmericaAirForceGeneral', 'SkirmishChina')
 PARAMS = ('float_cash_max', 'chinook_reserve', 'bank_max', 'esc_min', 'clone_cash', 'extra_prod')
@@ -17,6 +21,7 @@ BASE = {('SkirmishChina', 'ChinaWarFactory'): 2}                        # stock 
 MAX_RUNGS = 5
 LADDER, GROUP = 'GX NoFloat %d %s', 'GX NOFLOAT.CLONE_GATES'
 STOCK_RICH1 = 15000
+GENOME_RICH1 = 21000        # America's RICH1 gates on a USA_GENOME base: round(15000 x 1.4)
 
 
 def _rich1(scb, owner):
@@ -47,6 +52,13 @@ def threshold(p, t, k):
 
 def apply(scb, scope, p):
     me = ('SIDE', rb.SIDE_ME)
+    if 'SkirmishAmerica' in scope:                  # checked before anything is written
+        for s in _rich1(scb, 'SkirmishAmerica'):
+            for l in rb.leaves(s):
+                n, ps = rb.decode(scb, l)
+                assert not (n == 'PLAYER_HAS_CREDITS' and ps[0] == ('INT', GENOME_RICH1)), (
+                    'not for SkirmishAmerica on a base with USA_GENOME on (its RICH1 credit gates are %d, not %d, and clone_cash would '
+                    'overwrite them); pass generals without SkirmishAmerica' % (GENOME_RICH1, STOCK_RICH1))
     for o in scope:
         rich = _rich1(scb, o)
         assert len(rich) == 3, '%s: %d RICH1 clones' % (o, len(rich))

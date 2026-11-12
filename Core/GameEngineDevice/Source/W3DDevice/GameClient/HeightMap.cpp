@@ -45,7 +45,7 @@
 //-----------------------------------------------------------------------------
 //         Includes
 //-----------------------------------------------------------------------------
-#include "GameClient/GXGfxProbe.h"	// [GXGFXF] (graphics P2 c3-12)
+#include "GameClient/GXGfxProbe.h"	// [GXGFXF]
 #include "W3DDevice/GameClient/HeightMap.h"
 
 #ifndef USE_FLAT_HEIGHT_MAP // Flat height map uses flattened textures. jba. [3/20/2003]
@@ -90,7 +90,7 @@
 #include "W3DDevice/GameClient/W3DCustomScene.h"
 
 #include "Common/UnitTimings.h" //Contains the DO_UNIT_TIMINGS define jba.
-#include "GameClient/GXWaterRA3.h"	// GeneralsX @feature RA3 water: the shore tiles' tint pass, late in Render
+#include "GameClient/GXWaterRA3.h"	// GeneralsX: RA3 water: the shore tiles' tint pass, late in Render
 
 
 #define no_OPTIMIZED_HEIGHTMAP_LIGHTING	01
@@ -645,10 +645,9 @@ Int HeightMapRenderObjClass::updateVBForLight(DX8VertexBufferClass	*pVB, VERTEX_
 		{
 			const Int mapY = getYWithOrigin(j);
 			const Int yCoord = mapY+m_map->getDrawOrgY()-m_map->getBorderSizeInline();
-			// GeneralsX: The per-cell test below looped over EVERY enabled light for
-			// every cell of a lit tile (the hottest lines of the terrain relight in the Mini profile). Its Y halves
-			// depend on the row alone, so the lights whose current or previous rect covers this row are collected
-			// here once, and a cell tests only their X halves: the same predicate, with 1-3 lights instead of all.
+			// GeneralsX: The per-cell test would loop over EVERY enabled light for every cell of a lit tile (the hot path of the
+			// terrain relight). Its Y halves depend on the row alone, so the lights whose current or previous rect covers this row
+			// are collected here once, and a cell tests only their X halves: the same predicate, with 1-3 lights instead of all.
 			// An empty row is exactly !rowTouchesLight(yCoord).
 			W3DDynamicLight *rowCur[MAX_ENABLED_DYNAMIC_LIGHTS];
 			W3DDynamicLight *rowPrev[MAX_ENABLED_DYNAMIC_LIGHTS];
@@ -960,13 +959,11 @@ static Int ringSpans(Int lo, Int hi, Int origin, Int period, Int out[2][2])
 	return 1;
 }
 
-// GeneralsX: Terrain row 1g. The
-// extra blend pass relit every visible tile from scratch every frame - getStaticDiffuse on 4 corners: a normal from the
-// heights, then every scene and global light - 3.5% of the Mac Mini's main thread in a whole-map 6v6 view. Its inputs
-// (heights, the time-of-day terrain lights, the map's point lights) change only where the base pass relights too: a
-// full update (m_needFullUpdate: map load, time of day, load game, terrain LOD) or doPartialUpdate (a building's flatten,
-// a crater). So renderExtraBlendTiles keeps each tile's corners (m_extraBlendLight) and those two drop them.
-// GX_BLENDLIGHT=0 relights every frame as before; 2 also relights every kept corner and compares it bit for bit
+// GeneralsX: The extra blend pass relit every visible tile from scratch every frame - getStaticDiffuse on 4 corners: a normal from the
+// heights, then every scene and global light. Its inputs (heights, the time-of-day terrain lights, the map's point lights) change only
+// where the base pass relights too: a full update (m_needFullUpdate: map load, time of day, load game, terrain LOD) or doPartialUpdate
+// (a building's flatten, a crater). So renderExtraBlendTiles keeps each tile's corners (m_extraBlendLight) and those two drop them.
+// GX_BLENDLIGHT=0 relights every frame; 2 also relights every kept corner and compares it bit for bit
 // ([GXBLENDLIGHT] chk= bad=); 3 is that check's fail arm: nothing is dropped and a tile is matched by index only, so once
 // the heights or the tile list change the compare must count mismatches.
 static Int blendLightMode()
@@ -1325,13 +1322,12 @@ void HeightMapRenderObjClass::setTerrainDrawSize(Int width, Int height)
 	//m_shroud = nullptr;
 
 	// GeneralsX: One full vertex rewrite per resize, not two.
-	// initHeightData used to rewrite every vertex here, at the draw origin before recentring and with
-	// no lights, and scheduleFullUpdate then made the next updateCenter rewrite every vertex again at
-	// the recentred origin with the scene's lights - so the first pass was always thrown away. Nothing
+	// initHeightData skips the vertex rewrite here (it would run at the draw origin before recentring and with
+	// no lights); scheduleFullUpdate makes the next updateCenter rewrite every vertex once, at
+	// the recentred origin with the scene's lights. Nothing
 	// can draw in between: W3DDisplay::draw runs updateViews() right before it renders, and
 	// W3DView::update reaches updateTerrain() -> updateCenter() whenever doesNeedFullUpdate() is set
-	// (W3DView::updateTerrain calls updateCenter itself, straight after this). Measured on the Mac
-	// Mini, 78 resizes: the two rewrites were ~85% of a resize's cost (4.1 + 3.7 ms median).
+	// (W3DView::updateTerrain calls updateCenter itself, straight after this).
 	m_deferRewriteToCenter = TRUE;
 	initHeightData(m_map->getDrawWidth(), m_map->getDrawHeight(), m_map, nullptr, FALSE);
 	m_deferRewriteToCenter = FALSE;

@@ -57,7 +57,7 @@ struct ProviderInfo
 };
 
 struct PlayingAudio;
-// GeneralsX: Declared 'class' where it is defined (OpenALAudioCache.h);
+// Declared 'class' where it is defined (OpenALAudioCache.h);
 // the 'struct' form here is MSVC C4099 noise on every TU that sees both.
 class OpenALAudioFileCache;
 class OpenALAudioStream;
@@ -167,12 +167,10 @@ protected:
 	virtual void setDeviceListenerPosition(void);
 	const Coord3D *getCurrentPositionFromEvent(AudioEventRTS *event);
 	Bool isOnScreen(const Coord3D *pos) const;
-	// GeneralsX: Shell map world SFX attenuation is folded into
-	// getEffectiveVolume() because the 25/08/2026 "ONE RULE FOR GAIN, NOT TWO" change made this the
-	// single place gain is computed - adjustPlayingVolume(), adjustVolumeOfPlayingAudio() and
-	// processFadingList() all route through it. applyShellMapScale=FALSE yields the volume WITHOUT
-	// the attenuation, for the m_minVolume cull in processPlayingList() which RELEASES a sound
-	// outright rather than lowering it, and so must decide on an unattenuated basis.
+	// Shell map world SFX attenuation is folded into getEffectiveVolume(), the single place gain is computed:
+	// adjustPlayingVolume(), adjustVolumeOfPlayingAudio() and processFadingList() all route through it.
+	// applyShellMapScale=FALSE yields the volume WITHOUT the attenuation, for the m_minVolume cull in
+	// processPlayingList(), which RELEASES a sound outright and so must decide on an unattenuated basis.
 	Real getEffectiveVolume(AudioEventRTS *event, Bool applyShellMapScale = TRUE) const;
 
 	// Looping functions

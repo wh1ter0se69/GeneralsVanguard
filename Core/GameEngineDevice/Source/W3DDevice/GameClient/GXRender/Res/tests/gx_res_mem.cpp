@@ -1,20 +1,25 @@
-// GeneralsX: WS-C week 2: the phys_footprint A/B of "+" - native
-// upload-then-drop vs classic DXVK MANAGED on the SAME texture set, one arm per process (macOS only: task_vm_info).
-//
-//   gx_res_mem --arm classic|classic-empty|native-drop|native-keep|native-empty --dir <dir of .dds/.tga> [--settle S]
-//
-// Every texture in --dir is created the way the game creates file art: MANAGED, every level filled through a lock.
-//   DDS (DXT1/DXT3/DXT5, A8R8G8B8, X8R8G8B8): its own format and mip count, bytes copied as stored.
-//   TGA (type 2, 24/32-bit): X8R8G8B8 / A8R8G8B8 with a full 2x2-box mip chain (harness rule, not the game's loader).
-// classic       DXVK d3d8 (the shipped dylib) on a 64x64 SDL3 window: CreateTexture MANAGED + LockRect + PreLoad, GPU synced.
-// native-drop   GXRES MANAGED: lock/unlock each level, dropHostCopy() at once (queued uploads keep their staging snapshot),
-//               submitPending(wait) every 16 MB.
-// native-keep   the same without the drop - the FAIL arm: the host share must come back (else the A/B cannot see it).
-// *-empty       the same process and device with no set texture: the null arm (its delta must stay ~0).
-// Every arm first loads a warm-up (64x64 A8R8G8B8 + DXT1, kept alive) and only then takes the baseline (init): the first
-// upload's one-time device costs belong to neither arm's textures.
-// Prints phys_footprint at init, after the load, after --settle seconds, and after malloc pressure relief, plus the lifetime
-// peak; then runs `footprint <pid>` (the category split, IOAccelerator = graphics) into --footprint-out if given.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// gx_res_mem - phys_footprint A/B of upload-then-drop vs classic DXVK MANAGED on the SAME texture set,
+// one arm per process (macOS only).
+//   gx_res_mem --arm classic|classic-empty|native-drop|native-keep|native-empty --dir <dir of .dds/.tga>
+// native-keep is the FAIL arm (the host share must come back); *-empty is the null arm (delta ~0).
 #include "gx_res_mem.h"
 #include "gx_res_build_sha.h"
 
@@ -326,8 +331,8 @@ int main(int argc, char** argv)
 	for (const TexFile& t : set)
 		setBytes += t.bytes();
 	say("[GXMEM] set dir=%s textures=%zu bytes=%.1f MB (all levels, as created)", dir.c_str(), set.size(), mb(setBytes));
-	// Warm-up, loaded by EVERY arm before the baseline: the first upload of each kind pays one-time device costs (the smoke
-	// on the MacBook M5 showed +138 MB graphics for a 10 MB set without it), which belong to neither arm's textures.
+	// Warm-up, loaded by EVERY arm before the baseline: the first upload of each kind pays one-time device costs (+138 MB graphics
+	// for a 10 MB set without it), which belong to neither arm's textures.
 	std::vector<TexFile> warm(2);
 	for (int i = 0; i < 2; ++i) {
 		warm[i].name = i ? "warm-dxt1" : "warm-argb";

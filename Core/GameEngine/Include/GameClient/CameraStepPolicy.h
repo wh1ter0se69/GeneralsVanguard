@@ -16,19 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: The time a once-per-DRAW camera step covers.
-//
-//
-// The camera's zoom and ground-follow easing (W3DView::zoomCameraToDesiredHeight, movePivotToGround) run once per draw,
-// from W3DView::update, and stepped by the pacer's LAST ITERATION (FramePacer::getBaseOverUpdateFpsRatio). At 1x every
-// iteration draws, so the two are the same time. Under fast forward only 1 iteration in k draws (FramePacer::
-// isFastForwardDrawDue) - and so does a network tick catch-up pass - so each draw stepped 1/k of the time that passed:
-// the zoom eased at half speed at 2x, a quarter at 4x, a tenth at 10x, and nearly stopped whenever the iteration before
-// a draw was a short unpaced one repaying a slow draw. The step is the loop time since the previous draw instead.
-//
-// Client-only: nothing here or at its call sites is in the simulation digest (the loop clock is GameClient.cpp's
-// gxRenderLoopSeconds, not FramePacer's), and nothing it moves is read by the logic.
-// Header-only and free of engine types so scripts/test/camera-step-test.sh can drive it.
+// The time a once-per-DRAW camera step covers: the loop time since the previous draw. The pacer's last iteration
+// under-steps under fast forward and network catch-up (1 iteration in k draws), so the zoom eased at 1/k speed.
+// Client-only (the loop clock is GameClient.cpp's gxRenderLoopSeconds); nothing it moves is read by the logic.
+// Header-only, free of engine types (scripts/test/camera-step-test.sh).
 
 #pragma once
 

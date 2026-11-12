@@ -1,4 +1,22 @@
-// GeneralsX: Which slots' peers share an address with another slot's peer:
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Which slots' peers share an address with another slot's peer:
 // the slots ConnectionManager::arrivedFrom must match by PORT as well as address. Pure, so
 // scripts/test/shared-addr-test.cpp can drive it - ConnectionManager.cpp cannot be compiled alone.
 //
@@ -11,7 +29,7 @@
 // addr[i] is slot i's remote address; 0 for the local slot and for a slot with no human.
 #pragma once
 
-// GeneralsX: scale32: slot masks are 64 bits (RelayMaskType), a 32-bit holder cannot name slots 32-33.
+// scale32: slot masks are 64 bits (RelayMaskType), a 32-bit holder cannot name slots 32-33.
 // Self-contained (no NetworkDefs.h): unsigned long long is RelayMaskType, 1ULL the slot bit.
 inline unsigned long long GXSharedAddrSlots(const unsigned int *addr, int n)
 {

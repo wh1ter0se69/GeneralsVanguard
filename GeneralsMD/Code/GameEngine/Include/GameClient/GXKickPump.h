@@ -16,23 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: In-match kick: the KICKED client's half.
-//
-// A moderator kicks a player who is in a match. The relay sends that player's lobby socket
-// "GXKICK <ticket>" every second; this pump - called once a frame beside gxMatchDrainOperatorLines() -
-// verifies the ticket, surrenders exactly as the Surrender button does (MSG_SELF_DESTRUCT(TRUE), assets to a
-// living ally) with the ticket riding along as INTEGER arguments, and leaves the match five seconds after it
-// is dead with the ordinary synchronised PLAYERLEAVE (GameLogic::exitGame).
-//
-// WHY THIS CANNOT DESYNC: everything here decides only WHETHER this client appends its own surrender - as
-// peer-local as a human clicking the button. Once appended, the order is stamped frame+runAhead and executes
-// on every peer at one frame, the victim rebuilt from the sending slot, so no peer-local value can change who
-// dies or when. A client that ignores GXKICK (a modified one) is removed by the relay's backstop instead, and
-// the disconnect path's DESTROYPLAYER - sent by ConnectionManager::lockstepRouter(victim), the only sender the
-// shipped gate accepts - defeats it at one frame everywhere.
-//
-// ZERO HOUR ONLY, by path (decision D8, and GXMatchChat.h's reason: base Generals never pumps the lobby
-// socket during a match). NOT IN THE DIGEST: GeneralsMD/.../GameClient. HEADER ONLY, like GXMatchChat.h.
+// In-match kick, the KICKED client's half: the relay sends GXKICK <ticket> every second on the lobby socket.
+// This pump (once a frame) verifies the ticket, surrenders like the Surrender button, and leaves 5 s after death.
+// No desync: it only decides whether to append its own surrender, which executes on every peer at one frame.
+// Zero Hour only (base Generals never pumps the lobby socket during a match); not in the digest; header only.
 
 #pragma once
 

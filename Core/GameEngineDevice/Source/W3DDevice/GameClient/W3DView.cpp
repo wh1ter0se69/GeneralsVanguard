@@ -68,6 +68,7 @@
 #include "Common/ScriptedCameraClock.h"
 #include "GameClient/GameWindowManager.h"
 #include "GameClient/GXHostCamera.h"
+#include "GameClient/GXWholeMapView.h"
 #include "GameClient/GXPickProbe.h"
 #include "GameClient/Image.h"
 #include "GameClient/InGameUI.h"
@@ -119,6 +120,7 @@ Real TheW3DFrameLengthInMsec = MSEC_PER_LOGICFRAME_REAL; // default is 33msec/fr
 static const Real DRAWABLE_OVERSCAN = 75.0f;  ///< 3D world coords of how much to overscan in the 3D screen region
 
 constexpr const Real NearZ = MAP_XY_FACTOR; ///< Set the near to MAP_XY_FACTOR. Improves z buffer resolution.
+constexpr const Real GX_CAMERA_AREA_OFFSET_SCALE = 0.85f; ///< calcCameraAreaOffset's scale; the whole-map cap models it
 
 //-------------------------------------------------------------------------------------------------
 // Normalizes angle to +- PI.
@@ -222,6 +224,12 @@ W3DView::W3DView()
 	m_terrainDrawScale = 0.0f;
 	m_terrainDrawEntire = FALSE;
 	m_terrainDrawMaxHeight = 0.0f;
+	m_gxUncappedMax = 0.0f;
+	m_gxCappedMax = 0.0f;
+	m_gxCapSetting = 0.0f;
+	m_gxCapPlayerTop = 0.0f;
+	m_gxCapExtentX = 0.0f;
+	m_gxCapExtentY = 0.0f;
 	m_drawWalkChangeCount = 0;
 
 	m_cameraAreaConstraints.zero();
@@ -259,6 +267,7 @@ void W3DView::setHeight(Int height)
 	m_cameraAreaConstraintsValid = false;
 	m_recalcCamera = true;
 	m_lastScreenToTerrainValid = false;
+	recapToWholeMap();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -282,6 +291,7 @@ void W3DView::setWidth(Int width)
 	m_cameraAreaConstraintsValid = false;
 	m_recalcCamera = true;
 	m_lastScreenToTerrainValid = false;
+	recapToWholeMap();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -474,19 +484,10 @@ void W3DView::buildCameraTransform( Matrix3D *transform, const Vector3 &sourcePo
 	}
 }
 
-//-------------------------------------------------------------------------------------------------
 // TheSuperHackers @info Original logic responsible for zooming the camera to the desired height.
-// GeneralsX: ("the camera not to go that low over a gorge", then on the pictures "zoom
-// still needs a bit more zoom out"): the zoom height counts from the ground at the look-at point and the camera body sits
-// well behind that point, so looking into a valley next to a cliff the body came within 33 units of the rim behind it (his
-// 17/10 replay: retail's rule gives the same). The desired zoom is now raised
-// by GX_GORGE_ZOOM_OUT times however much higher the (5-sample average) ground under the camera body is than the ground at
-// the look-at point - nothing on flat ground or when looking uphill, more the deeper the valley you look into - and never
-// lets the body come closer than the minimum zoom height (m_minHeightAboveGround) to the ground under it. The zoom eases
-// there like any other zoom change, so the overlays, the terrain window and the map-edge constraints - all read from m_zoom
-// - follow. The body sits at the pivot plus u * h, h = getCameraOffsetZ() * zoom - m_pos.z (the height above the pivot) and
-// u fixed by the pitch and angle (buildCameraPosition), so h is solved directly; the ground under the body moves with h,
-// hence the passes. User camera only: the scripted and replay cameras are untouched. Capped at the max zoom.
+// GeneralsX: raise the zoom by GX_GORGE_ZOOM_OUT x how much higher the ground under the camera body (5-sample average)
+// is than at the look-at point, so the body clears a rim behind it; never closer than m_minHeightAboveGround.
+// Nothing on flat ground or uphill. User camera only (scripted and replay cameras untouched); capped at the max zoom.
 static const Real GX_GORGE_ZOOM_OUT = 1.5f;	// x the extra height of the ground under the camera; 1.0 = keep the zoom height over it
 
 Real W3DView::gxBodyClearedZoom(Real desiredZoom)
@@ -601,7 +602,11 @@ Bool W3DView::zoomCameraToDesiredHeight()
 {
 	const Real desiredZoom = gxBodyClearedZoom(getDesiredZoom(m_pos.x, m_pos.y));
 	const Real adjustZoom = desiredZoom - m_zoom;
-	if (fabs(adjustZoom) >= 0.001f)
+	// GeneralsX @feature The zoom is normalised by the max camera height setting (getCameraOffsetZ), so a fixed 0.001 would
+	// stop up to 50 units short with the Debug menu's 50000: past the player's 1000 the tolerance shrinks with the setting.
+	const Real effectiveMax = getEffectiveMaxCameraHeight();
+	const Real settleTolerance = (effectiveMax > (Real)CameraMaxHeightHi) ? 0.001f * (Real)CameraMaxHeightHi / effectiveMax : 0.001f;
+	if (fabs(adjustZoom) >= settleTolerance)
 	{
 		// GeneralsX: Steps by the time since the last draw, not the last iteration (update()).
 		const Real fpsRatio = m_drawFpsRatio;
@@ -706,6 +711,11 @@ void W3DView::calcCameraAreaConstraints()
 		Region3D mapRegion;
 		TheTerrainLogic->getExtent( &mapRegion );
 
+		// GeneralsX @feature A script that switches the map's active boundary (ScriptActions::doBorderSwitch) lands here
+		// through the constraints it invalidates: the whole-map cap is measured on the boundary, so take it again.
+		if (isWholeMapCapInForce() && (mapRegion.hi.x != m_gxCapExtentX || mapRegion.hi.y != m_gxCapExtentY))
+			recapToWholeMap();
+
 		// Update the 3D camera before using its transform to calculate the constraints with.
 		Vector3 sourcePos;
 		Vector3 targetPos;
@@ -766,7 +776,7 @@ Real W3DView::calcCameraAreaOffset(Real maxEdgeZ)
 	Real offset = center.length();
 
 	// TheSuperHackers @tweak Reduces the offset to allow scrolling closer to the edges.
-	offset *= 0.85f;
+	offset *= GX_CAMERA_AREA_OFFSET_SCALE;
 
 	if (TheGlobalData->m_debugAI) {
 		offset -= 1000; // push out the constraints so we can look at staging areas.
@@ -825,32 +835,10 @@ void W3DView::getPickRay(const ICoord2D *screen, Vector3 *rayStart, Vector3 *ray
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX: The shell map behind the main menu is an authored backdrop
-  * with a scripted camera, not a playfield. MaxCameraHeight is not just a zoom clamp - it is the
-  * base scalar for the camera's world-space height (getCameraOffsetZ), so a player's Extras or
-  * SagePatch zoom preference reframes the menu backdrop as a side effect. This hands back the
-  * height limits as they were parsed from the stock INI whenever the shell game is running, so the
-  * main menu always looks as designed while gameplay keeps the user's chosen limits.
-  *
-  * Both halves of the pair are overridden together: setCameraHeightAboveGroundLimitsToDefault()
-  * clamps max up to min, so pinning only max would let a raised MinCameraHeight lift the backdrop
-  * anyway.
-  *
-  * LAYERED OVER GXHostCamera, NOT AROUND IT. effectiveLimits() is called FIRST and unconditionally,
-  * even on the shell arm, because that module's contract is that every public entry point runs its
-  * match-state update. Short-circuiting before the call would stop this per-frame reader running
-  * that edge.
-  *
-  * The two overrides can never contend: isInShellGame() is m_gameMode == GAME_SHELL while
-  * GXHostCamera's gate is isInMultiplayerGame(), one enum field, so in the shell effectiveLimits()
-  * is already returning the local pair.
-  *
-  * Falls through to the GXHostCamera value when the capture never ran, so a build that never parsed
-  * GameData.ini degrades to exactly today's behaviour rather than to a constructor constant.
-  *
-  * Client-side only - View::crc() is empty and View::xfer() serialises no height state, so this
-  * cannot affect determinism or the replay CRC.
-  */
+/** GeneralsX: on the shell map return the height limits parsed from the stock INI, so a zoom preference
+  * does not reframe the menu backdrop (MaxCameraHeight scales getCameraOffsetZ). Min and max are set together:
+  * setCameraHeightAboveGroundLimitsToDefault() clamps max up to min. effectiveLimits() (GXHostCamera) runs first,
+  * even on the shell arm, so its match-state update still runs. Client-only; no effect on determinism. */
 //-------------------------------------------------------------------------------------------------
 void W3DView::getEffectiveCameraHeightLimits(Real *minHeight, Real *maxHeight) const
 {
@@ -900,28 +888,10 @@ Real W3DView::getCameraOffsetZ() const
 	return m_pos.z + getEffectiveMaxCameraHeight();
 }
 
-//-------------------------------------------------------------------------------------------------
-// GeneralsX: THE ZOOM RETAIL WOULD REPORT FOR THIS CAMERA.
-//
-// zoom = cameraHeight / getCameraOffsetZ(), and getCameraOffsetZ() above follows the EFFECTIVE max
-// camera height (host limits) where retail used MaxCameraHeight (310). With the camera allowed higher,
-// the same view reports a smaller zoom, and everything drawn at "size / zoom" in pixels - the health
-// bar, the ammo pips, the veterancy chevron, the formation marker - grew by effectiveMax / retailMax:
-// long thin lines over tiny infantry.
-// Rescaled from the LIVE zoom and the live offset, so it cannot lag a frame behind a zoom the way the
-// cached height above ground does. A scripted camera keeps its own offset in retail too
-// (getCameraOffsetZ's PRESERVE_RETAIL_SCRIPTED_CAMERA branch), so it keeps plain zoom.
-// m_defaultMaxCameraHeight is the stock GameData value, captured before SagePatch.ini or options move it.
-//
-// The STOCK CEILING is this view's max height above ground scaled back to retail's MaxCameraHeight, so the
-// aspect-ratio allowance setCameraHeightAboveGroundLimitsToDefault gives a widescreen view (which takes zoom
-// past 1.0 on its own: "zoom > 1" is not "camera extended") and any script scale stay in it. Up to
-// that ceiling this is the zoom the stock camera would report, pivot elevation included - with the stock limit
-// that is plain zoom, and iconScale is 1.0: exactly what retail draws.
-// Above it the camera distance - and so every unit on screen - follows the height above the PIVOT alone
-// (buildCameraPosition places the camera at getCameraOffsetZ() * zoom and subtracts m_pos.z), so the
-// overlays follow that height too and keep the overlay-to-unit proportion the stock camera has at its
-// ceiling, on any terrain (extrapolating the absolute-elevation ratio left them ~20% large).
+// GeneralsX: the zoom retail would report. getCameraOffsetZ() follows the effective max height, not retail's 310,
+// so a raised max gives a smaller zoom and overlays drawn at size / zoom (health bars, pips) would grow.
+// Up to the stock ceiling this is plain zoom (iconScale 1.0); above it overlays follow the height above the PIVOT.
+// A scripted camera keeps plain zoom, as in retail. m_defaultMaxCameraHeight is the stock GameData value.
 Real W3DView::getRetailReferenceZoom( Real *iconScale )
 {
 	if (iconScale)
@@ -936,7 +906,8 @@ Real W3DView::getRetailReferenceZoom( Real *iconScale )
 	if (retailMax <= 0.0f || effectiveMax <= 0.0f || retailOffset <= 0.0f)
 		return m_zoom;
 	const Real offset = getCameraOffsetZ();
-	const Real stockCeiling = m_maxHeightAboveGround * retailMax / effectiveMax;
+	// GeneralsX @feature against the max before the whole-map cap: the cap stops the camera, it is not a new setting
+	const Real stockCeiling = (isWholeMapCapInForce() ? m_gxUncappedMax : m_maxHeightAboveGround) * retailMax / effectiveMax;
 	const Real heightAbovePivot = offset * m_zoom - m_pos.z;
 	// One world unit of slack: at the stock max zoom offset * m_zoom - m_pos.z lands on the ceiling only to
 	// float precision, and "a hair above" would shave a pixel off every fixed-size icon in ordinary play.
@@ -1524,7 +1495,7 @@ static void drawablePostDraw( Drawable *draw, void *userData )
 	Object* obj = draw->getObject();
 	const Int localPlayerIndex = rts::getObservedOrLocalPlayerIndex_Safe();
 	// GeneralsX: query first, then drop it: getShroudedStatus recomputes a lazy sim cache
-	// (m_everSeenByPlayer) logic reads, so -noshroud / GX_NOSHROUD must not change which queries run (review r1).
+	// (m_everSeenByPlayer) logic reads, so -noshroud / GX_NOSHROUD must not change which queries run.
 	ObjectShroudStatus ss = (!obj) ? OBJECTSHROUD_CLEAR : obj->getShroudedStatus(localPlayerIndex);
 #if ENABLE_CONFIGURABLE_SHROUD
 	if (!gxShroudDrawn())
@@ -1571,30 +1542,13 @@ static void renderAIDebug()
 // ------------------------------------------------------------------------------------------------
 Bool W3DView::updateCameraMovements()
 {
-	// GeneralsX: THE SCRIPTED CAMERA STEPS ON LOGIC FRAMES (Common/ScriptedCameraClock.h).
-	//
-	// isCameraMovementFinished() is a script condition, CAMERA_MOVEMENT_FINISHED (ScriptConditions.cpp), and GameEngine::
-	// isTimeFrozen reads the same answer, so the logic frame a scripted move ends on is simulation state: it must not depend
-	// on how the frames were drawn. It used to step here, once per DRAW: the zoom/pitch/rotate counters on a draw that saw a
-	// new logic frame (06/08), the waypoint path by the pacer's per-draw slice, or by one logic frame under fast forward
-	// or while tick catch-up was eligible (07/10). Each patch left a case where a move ended on
-	// another frame - catch-up on vs off a frame apart (120 x 16.666666f = 1999.998), a pause before the draw losing a step,
-	// a skipped draw (P1a/P1b) - and a replay recorded one way could leave its CRCs played back another.
-	// It now steps once per new logic frame in stepScriptedCamera (stepView: GameClient::step, after every tick that
-	// advanced time), one logic frame long, in every mode; a draw only shows it, blended between the last two logic frames'
-	// poses (blendScriptedCamera).
-	//
-	// Except in frozen time. No logic frame advances while a script or a camera move freezes time, and W3DDisplay::draw runs
-	// `do { ... } while (freezeTime && !isCameraMovementFinished())` inside one iteration: the draw must step the move or that
-	// loop never ends. There it steps as it always has, the counters once per draw and the waypoint path by the pacer's slice.
-	// That loop runs a camera-only freeze's move to its end inside one draw, before any frozen update runs a script, so it
-	// ends on the frame time froze at; a loop cut short (a motion blur answering TRUE, a halted game, the time multiplier's
-	// skipped draws) leaves the rest to later draws - the one place a draw still decides how far a move got.
+	// GeneralsX: steps once per new logic frame (stepScriptedCamera), as the end frame of a move is simulation state.
+	// A camera-only freeze advances no frame, so the draw steps it; a script freeze steps in stepFrozenLogicUpdate.
 	// TheSuperHackers @tweak The scripted camera movement is now decoupled from the render update.
 	// The scripted camera will still move when the time is frozen, but not when the game is halted.
-	// A SCRIPT freeze is not stepped here either: its scripts still run once per gate pass, so the camera steps on those
-	// updates (stepFrozenLogicUpdate) - the freeze loop stops after one pass under it, and per draw a move ran fps times
-	// faster than the scripts watching it (catchup-reland r1). Only a camera-only freeze steps here.
+	// A SCRIPT freeze is not stepped here: its scripts still run once per gate pass and the camera steps on those updates
+	// (stepFrozenLogicUpdate); stepping it per draw would move it fps times faster than the scripts watching it.
+	// Only a camera-only freeze steps here.
 	const Bool frozen = (TheFramePacer != NULL) && TheFramePacer->isTimeFrozen()
 		&& !(TheScriptEngine->isTimeFrozenScript() || TheScriptEngine->isTimeFrozenDebug());
 	Bool didUpdate = false;
@@ -1649,8 +1603,8 @@ Bool W3DView::applyScriptedStep(unsigned did, Real waypointMs)
 // a move runs (the drawn camera, the blend's phase).
 
 // GeneralsX: GX_CAMTEST: the first time the VIEW drops a scripted move's state, say from where (a
-// backtrace where the platform has one). The test moves themselves live in TheScriptedCamera (simulation); this only finds
-// what cuts the view's own move (it was fullscreen edge scroll on the Mini). Once per run, off unless GX_CAMTEST is set.
+// backtrace where the platform has one). The test moves live in TheScriptedCamera (simulation); this finds
+// what cuts the view's own move (fullscreen edge scroll). Once per run, off unless GX_CAMTEST is set.
 static void gxCamTestWhoEnds(const char *what)
 {
 	static Bool said = FALSE;
@@ -1964,13 +1918,13 @@ void W3DView::update()
 		}
 		else
 		{
-			// GeneralsX: Cb-06a: every easing of the lock below was a fixed share per DRAW, so the camera
+			// GeneralsX: every easing of the lock below was a fixed share per DRAW, so the camera
 			// caught its target 4x as fast at 240 fps as at 60. Each now covers the draw's 60 fps reference frames (gxRef, from
 			// m_drawFpsRatio; GameClient/GXClientAnimPolicy.h): at any fps the path in time this game drew at 60 fps.
 			// The ramp steps in WHOLE reference frames, as it stepped once per 60 fps draw: a ramp growing
-			// every draw held more strength on average and arrived 6-15% early at 240 fps (measured 29/10, run set runs2).
+			// every draw held more strength on average and arrived 6-15% early at 240 fps.
 			// Its carry starts a tenth of a frame in: a 60 fps cap really draws at 59-61 fps, and from 0 the ramp fell a
-			// whole step behind there (client-anim-policy-test.sh: 0.12 off today's path from 0, 0.015 from 0.1).
+			// whole step behind there (client-anim-policy-test.sh: 0.12 off the 60 fps path from 0, 0.015 from 0.1).
 			if (followFactor<0) {
 				followFactor = 0.05f;
 				s_gxFollowCarry = GX_FOLLOW_RAMP_HEAD_START;
@@ -2313,8 +2267,8 @@ void W3DView::update()
 	}
 	// only when the drawn look-at moved: the blur keeps the last movement while the camera stands, as it always did, and an
 	// END_PAN normalises it (a zero vector there drew NaNs)
-	// the first draw of a game starts the history where the camera is, not at the last game's position (r7), and so does
-	// every load-screen draw: the start camera is placed after the first of them (r8)
+	// the first draw of a game starts the history where the camera is, not at the last game's position, and so does
+	// every load-screen draw: the start camera is placed after the first of them
 	if (firstDrawOfGame || TheGlobalData->m_loadScreenRender)
 	{
 		m_previousLookAtPosition = drawnLookAt;
@@ -2516,11 +2470,10 @@ void W3DView::draw()
 	CustomScenePassModes customScenePassMode  = SCENE_PASS_DEFAULT;
 	Bool preRenderResult = false;
 
-	// GeneralsX: The world/HUD seam (W3DWorldSeam.h): with an upscaler on, the world
-	// below draws into a private target at the render scale and pop() upscales it under everything drawn after it. One branch
-	// while GXUpscaler is off. Only the tactical view: pop() composites onto the whole target. Bypassed only for a filter that
-	// redirects the scene: every view sits on FT_VIEW_DEFAULT, whose preRender returns FALSE (W3DShaderManager.cpp:179-186), so it
-	// must not count (found by dlss-streamline-1 on wh1ter0se's PC: the seam never engaged).
+	// GeneralsX: the world/HUD seam (W3DWorldSeam.h): with an upscaler on, the world below draws into a private target at the
+	// render scale and pop() upscales it under everything drawn after. One branch while GXUpscaler is off. Only the tactical view.
+	// Bypassed only for a filter that redirects the scene: every view sits on FT_VIEW_DEFAULT, whose preRender returns FALSE
+	// (W3DShaderManager.cpp), so it must not count.
 	if (this == TheTacticalView)
 		W3DWorldSeam::push(m_3DCamera, m_viewFilterMode && m_viewFilter > FT_NULL_FILTER && m_viewFilter < FT_MAX &&
 			m_viewFilter != FT_VIEW_DEFAULT);
@@ -2646,7 +2599,7 @@ void W3DView::draw()
 		W3DShaderManager::filterPostRender(m_viewFilter, m_viewFilterMode, deltaScroll, doExtraRender);
 	}
 
-	W3DWorldSeam::pop();	// render-hud-seam-1: the world ends here; everything below is screen space at full resolution
+	W3DWorldSeam::pop();	// the world ends here; everything below is screen space at full resolution
 
 	if( TheGlobalData->m_debugAI )
 	{
@@ -3000,10 +2953,9 @@ void W3DView::setPitchToDefault()
 }
 
 //-------------------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------------------
-void W3DView::setCameraHeightAboveGroundLimitsToDefault(Real heightScale)
+// TheSuperHackers @fix Mauller Adjust the camera height to compensate for the screen aspect ratio
+static Real gxCameraAspectRatioScale()
 {
-	// TheSuperHackers @fix Mauller Adjust the camera height to compensate for the screen aspect ratio
 	Real baseAspectRatio = (Real)DEFAULT_DISPLAY_WIDTH / (Real)DEFAULT_DISPLAY_HEIGHT;
 	Real currentAspectRatio = (Real)TheTacticalView->getWidth() / (Real)TheTacticalView->getHeight();
 	Real aspectRatioScale = 0.0f;
@@ -3016,6 +2968,113 @@ void W3DView::setCameraHeightAboveGroundLimitsToDefault(Real heightScale)
 	{
 		aspectRatioScale = fabs(( 1 - ( baseAspectRatio - currentAspectRatio) ));
 	}
+	return aspectRatioScale;
+}
+
+//-------------------------------------------------------------------------------------------------
+// GeneralsX @feature THE TOP OF THE DEBUG MENU'S CAMERA RANGE IS THE WHOLE LOADED MAP.
+// The height above ground at which a camera looking at the middle of the map has all four
+// corners of its playable area on screen, for every pitch the player may take here (View::getPlayerPitchRange, and the
+// current default pitch) at the default yaw - so tilting never cuts the map, and turning the camera off its default yaw
+// can - and from every pivot the area constraints still allow at that height (calcCameraAreaConstraints: the pivot keeps
+// GX_CAMERA_AREA_OFFSET_SCALE x the bottom edge's ground distance from each edge, at most the shorter half side, so a
+// rectangular map's pivot roams along its long side). The body sits at the pivot plus h / sin(default pitch) along the
+// view (buildCameraPosition), and the view's own frustum supplies the fields of view. 0 with no map, no view or the scripted real-zoom camera.
+Real W3DView::getWholeMapHeightAboveGround()
+{
+	if (TheTerrainLogic == nullptr || m_3DCamera == nullptr || m_useRealZoomCam)
+		return 0.0f;
+	Region3D extent;
+	TheTerrainLogic->getExtent(&extent);
+	const Real halfX = 0.5f * (extent.hi.x - extent.lo.x);
+	const Real halfY = 0.5f * (extent.hi.y - extent.lo.y);
+	Vector2 planeMin, planeMax;
+	m_3DCamera->Get_View_Plane(planeMin, planeMax);
+	Real lo, hi;
+	View::getPlayerPitchRange(&lo, &hi);
+	const Real yaw = m_defaultAngle - ViewDefaultYawRadians;
+	const Real maxDist = 1.0e6f;
+	const Real offsetBias = TheGlobalData->m_debugAI ? -1000.0f : 0.0f;	// calcCameraAreaOffset's own
+	enum { GX_WHOLE_MAP_PITCH_STEPS = 16 };
+	Real worst = 0.0f;
+	for (Int i = 0; i <= GX_WHOLE_MAP_PITCH_STEPS + 1; ++i)
+	{
+		const Real pitch = (i <= GX_WHOLE_MAP_PITCH_STEPS) ? lo + (hi - lo) * (Real)i / (Real)GX_WHOLE_MAP_PITCH_STEPS : getDefaultPitch();
+		const Real dist = gxWholeMapDistance(halfX, halfY, pitch, yaw, planeMax.X, planeMax.Y, maxDist, GX_CAMERA_AREA_OFFSET_SCALE, offsetBias);
+		if (dist < 0.0f)
+			return 0.0f;	// not within reach at all: leave the setting alone
+		if (dist > worst)
+			worst = dist;
+	}
+	return worst * sinf(ViewDefaultPitchRadians);
+}
+
+//-------------------------------------------------------------------------------------------------
+// A Debug-range max (a setting above the player's CameraMaxHeightHi) stops at the whole map: past it the map only
+// shrinks into the middle of the screen. Never below the player's own top, so the Debug range never gives less than the
+// launcher's. Inside the player's range - every multiplayer match with a second human - nothing changes.
+// What it capped is kept (m_gxUncappedMax...): the selection overlays size themselves against the uncapped max
+// (getRetailReferenceZoom), and the cap depends on the viewport, so setWidth/setHeight take it again (recapToWholeMap).
+Real W3DView::capToWholeMap(Real maxAboveGround, Real effectiveMaxHeight, Real playerTopAboveGround)
+{
+	m_gxCappedMax = 0.0f;
+	if (effectiveMaxHeight <= (Real)CameraMaxHeightHi)
+		return maxAboveGround;
+	const Real whole = getWholeMapHeightAboveGround();
+	if (whole <= 0.0f)
+		return maxAboveGround;
+	m_gxUncappedMax = maxAboveGround;
+	m_gxCapSetting = effectiveMaxHeight;
+	m_gxCapPlayerTop = playerTopAboveGround;
+	Region3D extent;
+	TheTerrainLogic->getExtent(&extent);
+	m_gxCapExtentX = extent.hi.x;
+	m_gxCapExtentY = extent.hi.y;
+	m_gxCappedMax = std::min(maxAboveGround, std::max(whole, playerTopAboveGround));
+	return m_gxCappedMax;
+}
+
+//-------------------------------------------------------------------------------------------------
+// TRUE while the max in force is the one capToWholeMap set (anything that sets the max since has replaced it).
+Bool W3DView::isWholeMapCapInForce() const
+{
+	return m_gxCappedMax > 0.0f && m_maxHeightAboveGround == m_gxCappedMax;
+}
+
+//-------------------------------------------------------------------------------------------------
+// setZoom's scale is the max before the cap, as it was before the cap existed: a bookmark (View::getLocation keeps the
+// zoom, which getCameraOffsetZ normalises by the setting) comes back at the height it was taken at.
+Real W3DView::getZoomReferenceHeight()
+{
+	return isWholeMapCapInForce() ? m_gxUncappedMax : m_maxHeightAboveGround;
+}
+
+//-------------------------------------------------------------------------------------------------
+void W3DView::recapToWholeMap()
+{
+	if (!isWholeMapCapInForce())
+		return;
+	m_maxHeightAboveGround = capToWholeMap(m_gxUncappedMax, m_gxCapSetting, m_gxCapPlayerTop);
+	if (m_minHeightAboveGround > m_maxHeightAboveGround)
+		m_maxHeightAboveGround = m_minHeightAboveGround;
+	// a lower cap brings the player's camera down to it now, as the wheel's own clamp would
+	if (m_isUserControlled && m_heightAboveGround > m_maxHeightAboveGround)
+		setHeightAboveGround(m_maxHeightAboveGround);
+}
+
+//-------------------------------------------------------------------------------------------------
+Real W3DView::getWholeMapCameraHeightSetting()
+{
+	const Real whole = getWholeMapHeightAboveGround();
+	const Real aspectRatioScale = gxCameraAspectRatioScale();
+	return (whole > 0.0f && aspectRatioScale > 0.0f) ? whole / aspectRatioScale : 0.0f;
+}
+
+//-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
+void W3DView::setCameraHeightAboveGroundLimitsToDefault(Real heightScale)
+{
+	const Real aspectRatioScale = gxCameraAspectRatioScale();
 
 	// GeneralsX: Host-authoritative camera limits: see GXHostCamera.h.
 	// One call, not two, so min and max can never come from different sides of a match boundary.
@@ -3024,6 +3083,7 @@ void W3DView::setCameraHeightAboveGroundLimitsToDefault(Real heightScale)
 	Real effectiveMinHeight, effectiveMaxHeight;
 	getEffectiveCameraHeightLimits(&effectiveMinHeight, &effectiveMaxHeight);
 	m_maxHeightAboveGround = effectiveMaxHeight * aspectRatioScale * heightScale;
+	m_maxHeightAboveGround = capToWholeMap(m_maxHeightAboveGround, effectiveMaxHeight, (Real)CameraMaxHeightHi * aspectRatioScale * heightScale);
 	// GeneralsX: Only the MAX takes the aspect allowance, as in Generals Online:
 	// GO scales m_maxHeightAboveGround alone (GameClient W3DView.cpp setDefaultView,
 	// 1 + (w/h - 4/3)) and its view takes the min height unscaled (View.cpp View::init). Scaling the min too left a
@@ -3032,6 +3092,24 @@ void W3DView::setCameraHeightAboveGroundLimitsToDefault(Real heightScale)
 
 	if (m_minHeightAboveGround > m_maxHeightAboveGround)
 		m_maxHeightAboveGround = m_minHeightAboveGround;
+
+	// GeneralsX @feature One line whenever the player's camera range changes (a match start, Camera Apply, a resolution
+	// change): the limits above ground, the whole-map height, the pitch range and the default pitch in force, so a run
+	// can show which range applied. Release-visible like [GXHCAM]; printed on a change only.
+	{
+		static Real s_said[6] = { -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f };
+		Real pitchLo, pitchHi;
+		View::getPlayerPitchRange(&pitchLo, &pitchHi);
+		const Real now[6] = { m_minHeightAboveGround, m_maxHeightAboveGround, getWholeMapHeightAboveGround(),
+			RAD_TO_DEGF(pitchLo), RAD_TO_DEGF(pitchHi), RAD_TO_DEGF(getDefaultPitch()) };
+		if (memcmp(now, s_said, sizeof(now)) != 0)
+		{
+			memcpy(s_said, now, sizeof(now));
+			fprintf(stderr, "[GXCAMLIMIT] min=%.1f max=%.1f whole_map=%.1f setting=%.1f pitch_range=%.1f..%.1f default_pitch=%.1f debug_range=%s\n",
+				now[0], now[1], now[2], effectiveMaxHeight, now[3], now[4], now[5], GXHostCamera::debugRangeAllowed() ? "yes" : "no");
+			fflush(stderr);
+		}
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -3043,6 +3121,7 @@ void W3DView::setDefaultView(Real pitch, Real angle, Real maxHeight)
 	setDefaultPitch(pitch);
 	// GeneralsX: Host-authoritative camera limits: see GXHostCamera.h.
 	m_maxHeightAboveGround = getEffectiveMaxCameraHeight()*maxHeight;
+	m_maxHeightAboveGround = capToWholeMap(m_maxHeightAboveGround, getEffectiveMaxCameraHeight(), (Real)CameraMaxHeightHi * maxHeight);
 	if (m_minHeightAboveGround > m_maxHeightAboveGround)
 		m_maxHeightAboveGround = m_minHeightAboveGround;
 }
@@ -3067,7 +3146,7 @@ void W3DView::setHeightAboveGround(Real z)
 // the camera height.
 void W3DView::setZoom(Real z)
 {
-	m_heightAboveGround = m_maxHeightAboveGround * z;
+	m_heightAboveGround = getZoomReferenceHeight() * z;
 	m_zoom = getDesiredZoom(m_pos.x, m_pos.y);
 
 	stopDoingScriptedCamera();
@@ -3520,7 +3599,7 @@ void W3DView::moveCameraTo(const Coord3D *o, Int milliseconds, Int shutter, Bool
 
 	setupWaypointPath(orient);
 	// ...and its "do it instantly" pose step stays, 1 ms of its 1 ms: base Generals' walk (>) puts the camera at the target here,
-	// so a rotation chained in the same script starts there (camera-sim-B); Zero Hour's (>=) ends the walk first and
+	// so a rotation chained in the same script starts there; Zero Hour's (>=) ends the walk first and
 	// moves it on the first step, as it always did
 	if (m_camTimeline.waypointPath().total == 1.0f)
 	{
@@ -3536,7 +3615,7 @@ void W3DView::rotateCamera(Real rotations, Int milliseconds, Real easeIn, Real e
 {
 	m_rcInfo.trackObject = FALSE;
 	m_camTimeline.rotate(milliseconds, 0, easeIn, easeOut);	// GeneralsX: its frames and multiplier; it ends a path
-	setUserControlled(false);	// before the start pose, where addScriptedState ran (camera-sim-B)
+	setUserControlled(false);	// before the start pose, where addScriptedState ran
 	m_rcInfo.angle.startAngle = m_angle;
 	m_rcInfo.angle.endAngle = m_angle + 2*PI*rotations;
 	m_CameraArrivedAtWaypointOnPathFlag = false;
@@ -3606,7 +3685,7 @@ void W3DView::zoomCamera( Real finalZoom, Int milliseconds, Real easeIn, Real ea
 {
 	m_camTimeline.zoom(milliseconds);	// GeneralsX: its frames (Common/ScriptedCameraClock.h)
 	// before the start zoom is taken, where addScriptedState ran: under PRESERVE_RETAIL_SCRIPTED_CAMERA it converts m_zoom into
-	// scripted coordinates (camera-sim-B: the zoom started from the user's)
+	// scripted coordinates (the zoom would otherwise start from the user's)
 	setUserControlled(false);
 	if (milliseconds<1) milliseconds = 1;
 	m_zcInfo.startZoom = m_zoom;
@@ -4495,42 +4574,10 @@ bool W3DView::getDesiredTerrainDrawSize(ICoord2D &dimensions) const
 		dimensions.y = static_cast<Int>(dimensions.y * terrainScale);
 	}
 
-	// GeneralsX: Scale the terrain draw window with camera HEIGHT.
-	//
-	// The size chosen above depends only on camera PITCH. Zooming out scales the camera position
-	// uniformly on X/Y/Z (buildCameraPosition, :298-300), so the pitch angle is INVARIANT under zoom
-	// and neither branch above ever changes as you zoom. The drawn terrain therefore stayed a fixed
-	// square - 129 cells, or 135 with the default 1.05 TerrainDrawDistanceScale, i.e. ~1350 world
-	// units - no matter how far out the camera went.
-	//
-	// Past roughly the design height that square stops covering the view, and everything outside it
-	// is simply never submitted, so it renders BLACK. Reported as "zoomed out to the max and most of
-	// the screen is black"; scrolling re-centres the same window and the missing ground appears,
-	// which is what proves the terrain exists and is merely undrawn.
-	//
-	// Objects keep drawing out there because they are bounded differently: the heightmap is
-	// Set_Force_Visible(TRUE) (BaseHeightMap.cpp) so it is never frustum-culled and its extent comes
-	// solely from this draw size, while props and trees are culled per-instance against the frustum
-	// with bounds covering the whole map. Hence buildings floating over black.
-	//
-	// EnforceMaxCameraHeight = No (SagePatch.ini) is what lets the camera get up there at all, but
-	// clamping the camera instead would only hide this - the window is already undersized at the
-	// stock 310 limit on a wide aspect.
-	//
-	// Snapped to the renderer's 1 + 32k tiling: HeightMap.cpp derives its vertex-buffer column count
-	// from (width-1) and handles a partial trailing block, but keeping to whole tiles avoids relying
-	// on that. Ratio is clamped at 1.0 so normal play is bit-for-bit unchanged - this only ever
-	// grows the window, never shrinks it below the tuned defaults.
-	//
-	// GeneralsX: Sized for the MAX height as well as the current one, so the window a
-	// player can zoom out to is drawn at once rather than found one 32-cell step at a time. The window only grows
-	// within a game (updateTerrain) and every step rebuilds the whole terrain: measured, Alpine Assault
-	// at 16:9, the first zoom-out after the Debug menu raised the max mid-match cost 4-5 frames of 30-35 ms (55.3 TPS).
-	// A match starts at the max (setZoomToMax), so this draws no more terrain than the player's own starting view; it
-	// only moves a raise of the max (Debug/Extras Apply, a host's pair arriving) to one rebuild, instead of several
-	// spread over the next zoom-out. setTerrainDrawSize clamps the window to the map. Only while the player holds the
-	// camera: a scripted one (a cutscene, the shell map) never goes where the player's limit allows, so it keeps its
-	// own height and the window grows to the max when control returns.
+	// GeneralsX: scale the terrain draw window with camera HEIGHT. Zoom leaves pitch unchanged, so the window was a fixed
+	// square (129 cells; 135 at the default draw scale) and zoomed-out views rendered black beyond it.
+	// Snapped to the renderer's 1 + 32k tiling; the ratio is clamped at 1.0, so normal play is unchanged.
+	// Sized for the MAX height too, so the zoom-out range is drawn at once instead of rebuilding the terrain per step.
 	const Real sizingHeight = m_isUserControlled ? std::max(m_currentHeightAboveGround, m_maxHeightAboveGround) : m_currentHeightAboveGround;
 	const Real heightRatio = sizingHeight / ViewDefaultMaxHeightAboveTerrain;
 	if (heightRatio > 1.0f)
@@ -4553,19 +4600,10 @@ void W3DView::updateTerrain()
 
 	if (getDesiredTerrainDrawSize(drawSize))
 	{
-		// GeneralsX: Grow at once, never shrink within a game (reset() clears it).
-		// Every size change rebuilds the whole terrain (HeightMapRenderObjClass::setTerrainDrawSize). At 16:9
-		// a zoom from max to min crosses 225 -> 193 -> 161 -> 135 and back, and the 225 step sits at a height
-		// of 444.2 against a max (and default) zoom of 447.8, so ground wobble under the pivot flipped it
-		// even while merely scrolling: 76 rebuilds in 6 minutes with no zoom at all. Measured on the Mac
-		// Mini in a skirmish, where the 60 fps cap makes logic one tick per rendered frame: a rebuild is
-		// ~14 ms even written once, so each crossing still cost a tick. A match starts at the max zoom with
-		// the largest window already drawn, so keeping it never draws more terrain than the player's own
-		// default view; growing is never delayed, so the ground never goes black.
-		// A live settings change (Extras/Debug TerrainDrawDistanceScale, DrawEntireTerrain) starts the window
-		// over, so lowering the draw distance to recover performance takes effect at once. So does a
-		// LOWER camera max: the window is sized for the max (getDesiredTerrainDrawSize), and a window kept for a
-		// max the player has since lowered would be drawn for the rest of the match.
+		// GeneralsX: grow at once, never shrink within a game (reset() clears it); each size change rebuilds the whole terrain
+		// (setTerrainDrawSize); ground wobble near max zoom flipped the 225 step 76 times in 6 minutes of scrolling.
+		// A match starts at max zoom with the largest window already drawn, so keeping it draws no extra terrain.
+		// A live settings change (TerrainDrawDistanceScale, DrawEntireTerrain) or a lower camera max restarts the window.
 		const Real drawScale = TheGlobalData != nullptr ? TheGlobalData->m_terrainDrawDistanceScale : 1.0f;
 		const Bool drawEntire = TheGlobalData != nullptr && TheGlobalData->m_drawEntireTerrain;
 		if (drawScale != m_terrainDrawScale || drawEntire != m_terrainDrawEntire || m_maxHeightAboveGround < m_terrainDrawMaxHeight)

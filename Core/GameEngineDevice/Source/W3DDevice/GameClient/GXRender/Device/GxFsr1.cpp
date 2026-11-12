@@ -1,4 +1,22 @@
-// GeneralsX: GxFsr1.h. Vulkan plumbing patterned on GxNativePresent.cpp (dynamic
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GxFsr1.h. Vulkan plumbing patterned on GxNativePresent.cpp (dynamic
 // rendering, a full-screen triangle from DXVK's present vertex shader, a combined image sampler at set 0 binding 0, push constants).
 #include "GxFsr1.h"
 
@@ -27,7 +45,7 @@ float rcasStops(float sharpness)
 	return 2.0f * (1.0f - s);
 }
 
-const uint32_t kPushBytes = 80;   // EASU's con0..con3 + the source rect (P1-3); RCAS uses the first 16
+const uint32_t kPushBytes = 80;   // EASU's con0..con3 + the source rect; RCAS uses the first 16
 
 } // namespace
 

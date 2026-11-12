@@ -1,22 +1,26 @@
-// GeneralsX: WS-B VkCtx v0: the native renderer's Vulkan device layer.
-//
-// Owns: the Vulkan library handle (the SAME one the process already uses - see VkCtxDesc::getInstanceProcAddr), the
-// instance (+ core and synchronization validation when asked), the physical/logical device, one graphics queue and an
-// optional dedicated transfer queue, a timeline semaphore per queue, the VMA allocator and a retirement list.
-// Everything the frame ring, upload ring and GPU timer do is keyed by those timeline values, so "is the GPU done with X"
-// always has one answer: completed(queue) >= the value of the submission that used X.
-//
-// Threading (v0): one thread owns the context and submits. completed() and the validation counters may be read from any
-// thread. Render-only: nothing here is read by the simulation.
-// Submit thread: with VkCtxDesc::submitThread (or
-// GX_VK_SUBMIT_THREAD=1) a "gx-vk-submit" thread owns the queues: submit() and present() enqueue (a submit's timeline value
-// is assigned at enqueue, in today's order) and the thread runs them FIFO with MoltenVK's own submits SYNCHRONOUS. A refused
-// submit first DRAINS the device on the thread (every earlier accepted batch completes; not for VK_ERROR_DEVICE_LOST) and only
-// then LATCHES the context: every op behind it is skipped, submit() returns 0, deviceLost() (= terminal) is true, and
-// Timeline::wait() of a value that never ran returns false - by then nothing accepted still runs, so a caller acting on that
-// false (a resource last used by the refused value) cannot race the GPU (A21 amendment 1 (1) / 2 (1)). A wait on an
-// earlier value stays a real wait (only a DRIVER loss turns waits into counter reads). After a drained latch every retirement
-// settles. Host waits first wait for the op to have executed. Every device-wide wait goes through waitIdle(), which drains first.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// VkCtx: the native renderer's Vulkan device layer. Owns the instance, devices, a graphics queue, an optional
+// transfer queue, a timeline semaphore per queue, the VMA allocator and a retirement list, all keyed by timeline
+// values. One thread owns the context and submits. With submitThread (GX_VK_SUBMIT_THREAD=1) a submit thread
+// runs submits FIFO; a refused submit drains the device, then LATCHES it: later ops skip, submit() returns 0 and
+// deviceLost() is true. Render-only: nothing here is read by the simulation.
 #pragma once
 
 #include "VkCommon.h"
@@ -39,7 +43,7 @@ typedef void (*LogFn)(LogLevel level, const char* line, void* user);
 
 enum class QueueKind { Graphics = 0, Transfer = 1 };
 
-// R19 submit thread: Default = off unless GX_VK_SUBMIT_THREAD=1; On = on unless GX_VK_SUBMIT_THREAD=0 (the off switch);
+// Submit thread: Default = off unless GX_VK_SUBMIT_THREAD=1; On = on unless GX_VK_SUBMIT_THREAD=0 (the off switch);
 // Off = never (a test whose refusal probe needs a context that survives a refused submit - gx_record_test order-units)
 enum class SubmitThreadMode { Default, On, Off };
 
@@ -78,7 +82,7 @@ struct VkCtxDesc
 	LogFn log = nullptr;
 	void* logUser = nullptr;
 
-	SubmitThreadMode submitThread = SubmitThreadMode::Default;   // R19: a gx-vk-submit thread owns every queue op (header comment)
+	SubmitThreadMode submitThread = SubmitThreadMode::Default;   // a gx-vk-submit thread owns every queue op (header comment)
 };
 
 struct ValidationCounters
@@ -147,13 +151,13 @@ struct SubmitRefusal
 	VkResult result = VK_SUCCESS;
 };
 
-// FG P0 H2 (rw3-T-7's shape): called just before and just after vkQueuePresentKHR, on the thread
-// that calls it - the caller with the submit thread off (no lock held there, rw3-T-7 correction (a)), gx-vk-submit with it on (under
+// Called just before and just after vkQueuePresentKHR, on the thread
+// that calls it - the caller with the submit thread off (no lock held there), gx-vk-submit with it on (under
 // hostLock and the queue mutex). Only a present that reaches the driver calls it: a latched, stopped, skipped or TEST-injected present
 // calls neither. end gets the driver's answer. Neither may call into this VkCtx (submit / present / waitOp / waitIdle / quiesce) or take
 // its locks - nor block on ANYTHING a thread waiting for the submit thread may hold (a caller that holds lock L and
 // then waits in waitOp / waitIdle / quiesce / takePresentStatus deadlocks a hook that takes L). Copied BY VALUE into the op: ctx must stay
-// valid until the present ran (waitOp). Streamline's PCL ePresentStart / ePresentEnd go here (H3), so they bracket vkQueuePresentKHR
+// valid until the present ran (waitOp). Streamline's PCL ePresentStart / ePresentEnd go here, so they bracket vkQueuePresentKHR
 // alone, on the presenting thread, with the presented frame's token.
 struct PresentHook
 {
@@ -176,7 +180,7 @@ struct SubmitOp
 	VkSemaphore wait = VK_NULL_HANDLE;
 	std::mutex* hostLock = nullptr;
 	VkResult* result = nullptr;
-	PresentHook hook;         // Present: FG P0 H2, copied at enqueue (hasHook = one was passed)
+	PresentHook hook;         // Present: copied at enqueue (hasHook = one was passed)
 	bool hasHook = false;
 	struct TestCtl   // the thread-read TestMutants fields, taken under the op lock when the thread takes this op
 	{
@@ -224,7 +228,7 @@ struct DeviceFeatures
 	bool portabilitySubset = false; // MoltenVK (and other layered drivers): VK_KHR_portability_subset enabled
 	bool calibratedTimestamps = false;
 
-	// Dynamic state (WS-D decides which pipeline-state dimensions may be dynamic per backend). EDS1 and the base of EDS2
+	// Dynamic state (which pipeline-state dimensions may be dynamic is decided per backend). EDS1 and the base of EDS2
 	// are core in Vulkan 1.3 and always present on a qualifying device; the rest are extensions, enabled when listed.
 	bool extendedDynamicState2LogicOp = false;            // VK_EXT_extended_dynamic_state2
 	bool extendedDynamicState2PatchControlPoints = false; // VK_EXT_extended_dynamic_state2
@@ -277,7 +281,7 @@ public:
 	// vkQueuePresentKHR on the graphics queue, holding hostLock (the swapchain's host-access mutex). Synchronous: *result is
 	// written now and 0 returned. Submit thread: enqueued after every earlier op; *result is written when it ran (read it after
 	// waitOp(the returned sequence number)); a present queued behind a refusal is skipped and reads VK_ERROR_DEVICE_LOST.
-	// hook (FG P0 H2, may be null = the present exactly as before): see PresentHook.
+	// hook (may be null = the present exactly as before): see PresentHook.
 	uint64_t present(VkSwapchainKHR swapchain, uint32_t image, VkSemaphore wait, std::mutex* hostLock, VkResult* result,
 		const PresentHook* hook = nullptr);
 	// Submit thread: blocks until the op with this sequence number ran or was skipped (0 / synchronous: returns at once).
@@ -306,10 +310,10 @@ public:
 	// TEST-ONLY: changes g_testMutants under the op lock (the thread reads its fields under it) - for every field the thread reads.
 	// The callback runs under that lock: it must not call back into this context.
 	void testSet(const std::function<void(TestMutants&)>& set);
-	// TEST-ONLY (FG P0 H2 arm): whether some thread holds the queue mutex NOW, probed by a helper thread's try_lock (a try_lock by the
+	// TEST-ONLY: whether some thread holds the queue mutex NOW, probed by a helper thread's try_lock (a try_lock by the
 	// holder itself would be undefined). Never blocks; safe inside a present hook.
 	bool testQueueMutexHeld();
-	// TEST-ONLY (FG P0 H2 arm): gx-vk-submit's id (a default id without the thread) - the hook arms compare the
+	// TEST-ONLY: gx-vk-submit's id (a default id without the thread) - the hook arms compare the
 	// thread their callbacks ran on with it, not with each other
 	std::thread::id testSubmitThreadId() const { return m_thread.get_id(); }
 	// TEST-ONLY boundaries: threads now inside a blocking driver wait (Timeline::wait's vkWaitSemaphores,
@@ -390,7 +394,7 @@ private:
 	struct Retirement { QueueKind kind; uint64_t value; std::function<void()> fn; };
 	std::vector<Retirement> m_retirements;
 
-	// The submit thread (R19). m_opMutex guards the op queue, m_executed, the latch, the stats and the hold; m_queueMutex is host
+	// The submit thread. m_opMutex guards the op queue, m_executed, the latch, the stats and the hold; m_queueMutex is host
 	// access to the VkQueue(s) (the thread's driver calls, waitIdle's vkDeviceWaitIdle).
 	bool m_threaded = false;
 	std::thread m_thread;
@@ -416,7 +420,7 @@ private:
 	mutable std::atomic<int> m_blockedWaits { 0 };
 	mutable std::atomic<uint64_t> m_semWaitEntries { 0 };
 	uint64_t m_presentCount = 0;
-	// FG P0 H2: the one vkQueuePresentKHR call site, inline and thread path alike - hook start, the driver, hook end
+	// The one vkQueuePresentKHR call site, inline and thread path alike - hook start, the driver, hook end
 	// overrideAt / overrideResult: TestMutants::presentResultAfterDriver* (the thread's snapshot, or the producer's own read inline)
 	VkResult doPresent(const VkPresentInfoKHR& info, const PresentHook* hook, uint64_t overrideAt, VkResult overrideResult);
 	std::atomic<uint64_t> m_drivenPresents { 0 };   // TEST bookkeeping: presents that reached the driver (doPresent)

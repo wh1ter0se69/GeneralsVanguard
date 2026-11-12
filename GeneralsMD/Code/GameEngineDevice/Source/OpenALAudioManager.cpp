@@ -210,7 +210,7 @@ void OpenALAudioManager::reset()
 	stopAudio(AudioAffect_All);
 	m_isMusicPlaying = false;
 	m_currentMusicTrack = AsciiString::TheEmptyString;
-	undoOverrideLoads();	// GeneralsX @bugfix: a map.ini's audio edits end with the map - after every sound stopped
+	undoOverrideLoads();	// a map.ini's audio edits end with the map - after every sound stopped
 	fprintf(stderr, "DEBUG: OpenALAudioManager::reset()\n");
 }
 
@@ -407,7 +407,7 @@ AudioHandle OpenALAudioManager::addAudioEvent(const AudioEventRTS *eventToAdd)
 		return AHSV_Error;
 	}
 
-	// GeneralsX @bugfix Bender 09/05/2026 Route audio events through the shared queue so aircraft voice lines reach OpenAL.
+	// Route audio events through the shared queue so aircraft voice lines reach OpenAL.
 	return AudioManager::addAudioEvent(eventToAdd);
 }
 

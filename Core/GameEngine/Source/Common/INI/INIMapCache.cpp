@@ -134,7 +134,7 @@ const FieldParse MapMetaDataReader::m_mapFieldParseTable[] =
 	{ "Player_11_Start",				INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 10 },
 	{ "Player_12_Start",				INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 11 },
 	// GeneralsX: MAX_SLOTS 34: every slot's start, or a 13..34-start map loses them on reload
-	// (and 13/14 never had them: the table stopped at 12 when MAX_SLOTS went to 14).
+	// (the table stopped at 12 when MAX_SLOTS went to 14).
 	{ "Player_13_Start",				INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 12 },
 	{ "Player_14_Start",				INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 13 },
 	{ "Player_15_Start",				INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 14 },
@@ -180,7 +180,7 @@ void INI::parseMapCacheDefinition( INI* ini )
 {
 	const char *c;
 	AsciiString name;
-	// GeneralsX @bugfix MapMetaDataReader has no constructor, so its scalar members started out
+	// GeneralsX: MapMetaDataReader has no constructor, so its scalar members started out
 	// indeterminate, and initFromINI() only DEBUG_CRASHes on an unknown or missing field - which
 	// compiles away in release, leaving the block parsed but the member never written. MapCache.ini
 	// lives in a writable user directory (the app sandbox on iOS), so a truncated or foreign-written
@@ -202,7 +202,7 @@ void INI::parseMapCacheDefinition( INI* ini )
 	md.m_isOfficial = mdr.m_isOfficial != 0;
 	md.m_doesExist = TRUE;
 	md.m_isMultiplayer = mdr.m_isMultiplayer != 0;
-	// GeneralsX @bugfix numPlayers comes from the cache file, but nothing validated it on the way in.
+	// GeneralsX: numPlayers comes from the cache file, but nothing validated it on the way in.
 	// MapCache::writeCacheINI only ever emits a count that WaypointMap::update() clamped to
 	// [1, MAX_SLOTS], so clamping here cannot change any cache file we wrote ourselves; it stops a
 	// hand-edited or corrupted entry from claiming more start positions than exist. The count is
@@ -253,7 +253,7 @@ void INI::parseMapCacheDefinition( INI* ini )
 #endif
 
 	AsciiString startingCamName;
-	// GeneralsX @bugfix keep the read of mdr.m_waypoints bounded by the array it indexes, not only by
+	// GeneralsX: keep the read of mdr.m_waypoints bounded by the array it indexes, not only by
 	// the (now clamped) player count, so this loop stays safe if the count above is ever widened.
 	for (Int i=0; i<md.m_numPlayers && i<MAX_SLOTS; ++i)
 	{
@@ -281,48 +281,10 @@ void INI::parseMapCacheDefinition( INI* ini )
 		lowerName.toLower();
 		md.m_fileName = lowerName;
 
-		// GeneralsX: DROP CACHE ENTRIES WHOSE FILE IS NO LONGER THERE.
-		//
-		// MapCache.ini keys a user map by its ABSOLUTE path, and on iOS that path contains the app's
-		// data-container UUID - which iOS reassigns on every reinstall. Measured 2026-08-19 on the
-		// iPad: all 15 cached entries sat under container 6723c9a0-... while the live container was
-		// 51f6c02b-..., so every lookup missed and the lobby refused to start with "is not in the map
-		// cache" for a map the directory scan had just listed as available one line earlier.
-		//
-		// Keeping a dead entry is never useful: the cache exists to avoid re-reading a map file that
-		// IS there. Dropping it costs one rescan and lets the scan re-add the map under its current,
-		// real path. Self-healing beats a stale entry that shadows a perfectly good map.
-		//
-		// Deliberately NOT re-keying the cache on a container-relative path, which is the tempting
-		// larger fix: this key is also the multiplayer map identity (GameInfo::setMap ->
-		// percentEncodeMapName), so changing its shape changes what peers compare and is an
-		// all-peers-at-once contract change, not a local repair.
-		// GeneralsX: THIS PRUNE CANNOT BE DONE HERE, AND DOES NOT NEED TO BE.
-		//
-		// It used to call doesFileExist(lowerName) and drop the entry when that failed. On iOS
-		// lowerName is exactly the path this file's own note establishes cannot be resolved - the
-		// container UUID is uppercase on a case-sensitive volume - so the test failed for VALID
-		// current entries just as it did for stale ones. Every launch therefore discarded the whole
-		// user-map cache, re-parsed every map and recomputed every CRC, which is the opposite of
-		// what a cache is for and makes startup scale with the size of the collection.
-		//
-		// The self-healing the original note wanted now lives in two places that can actually tell a
-		// stale entry from a live one, because this one could not:
-		//
-		//   MapCache::clearMapsOutsideRoot erases user-map entries that are not under the current
-		//   user map root - i.e. written under a previous container UUID. clearUnseenMaps CANNOT do
-		//   that, and an earlier revision of this comment wrongly said it could: it and
-		//   prepareUnseenMaps both only inspect keys starting with the root they are given, so an
-		//   old-UUID key is never examined by either, and md.m_doesExist = TRUE above means it would
-		//   survive anyway. Caught by a cross-model review of that revision.
-		//
-		//   MapCache::addMap decides the live ones, from the directory scan's own results, and now
-		//   also stores the case-intact path on a cache HIT - which the path fix depends on and did
-		//   not get before, because this prune was keeping the iOS cache permanently cold and hiding
-		//   the gap.
-		//
-		// The trace stays, because a prune that never fires and one that fires on everything look
-		// identical from the outside and that ambiguity has already cost a build cycle here.
+		// Keep every cache entry: existence is decided by the scan, not doesFileExist. Pruning here discarded the whole
+		// user-map cache on every iOS launch, because the container UUID in the path is uppercase on a case-sensitive
+		// volume, so lowerName cannot be resolved. Stale old-UUID entries go in MapCache::clearMapsOutsideRoot;
+		// MapCache::addMap decides live ones and stores the case-intact path on a cache hit.
 		if (gxMapDiag())
 		{
 			fprintf(stderr, "[MAPDIAG] cache entry KEEP '%s' (existence decided by the scan)\n",

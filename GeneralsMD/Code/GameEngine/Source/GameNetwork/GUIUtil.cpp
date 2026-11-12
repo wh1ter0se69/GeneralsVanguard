@@ -353,25 +353,9 @@ void PopulateTeamComboBox(Int comboBox, GameWindow *comboArray[], GameInfo *myGa
 		return;
 	}
 
-	// GeneralsX: Each team gets its own colour in the picker.
-	//
-	// Every entry used to be drawn in the RANDOM colour - white - so twelve rows of team numbers
-	// were twelve identical white digits and telling "who is on 2" apart from "who is on 3" meant
-	// reading each row. At 8 slots that was tolerable; at 12 it is not.
-	//
-	// The palette is taken from the multiplayer colour table rather than invented, so it matches
-	// the colours already on screen in the Color column and moves with the INI if it is ever
-	// re-tuned. Team N takes colour index N-1, which is stable because FILE ORDER IS THE WIRE INDEX
-	// for MultiplayerColor blocks (see the comment block in Data/INI/Multiplayer.ini) - so a given
-	// team keeps its colour across peers and across launches.
-	//
-	// getColor() clamps out of range, but numTeams is MAX_SLOTS/2 = 6 against sixteen colours, so
-	// this cannot run out unless MAX_SLOTS passes 32. Falling back to the RANDOM colour if it ever
-	// did is the same white it used to be - a degradation, not a break.
-	//
-	// PURELY COSMETIC AND CLIENT-SIDE. Nothing here is sent, stored or hashed: the entry colour is
-	// a draw attribute of a combo box row, the team NUMBER is what travels on the wire via
-	// SetItemData below, and this file is under Source/GameNetwork but this function only paints.
+	// Each team gets its own colour in the picker, taken from the multiplayer colour table (team N takes colour index
+	// N-1; file order is the wire index for MultiplayerColor blocks). Cosmetic and client-side: the team number is what
+	// travels, via SetItemData.
 	const Int teamColorCount = TheMultiplayerSettings->getNumColors();
 
 	for (Int c=0; c<numTeams; ++c)

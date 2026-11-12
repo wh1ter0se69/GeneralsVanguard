@@ -1,8 +1,26 @@
-// GeneralsX: S7 PREREG A44 (A23/A31): the ORDER of the early cast-only flush that captures the
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The ORDER of the early cast-only flush that captures the
 // off-screen shadow casters - pure logic over its operations, host-tested (scripts/test/sm-fit/sm-fit-test.cpp A44-seq-*, with the
 // compile-time mutants sm-fit-test.sh builds), used by the ZH glue (W3DShadowMap.cpp), which supplies the real operations. Render-only.
 //
-// The integrator's T6 conditions (17/10 22:1xZ) are part of the order: the motion-units bridge stays null across
+// These conditions are part of the order: the motion-units bridge stays null across
 // every Render AND both flushes; the PREVIOUS static-sort value and mesh-renderer camera come back; a frame with foreign pending work (or a
 // flush-site tag already set) submits nothing and touches nothing.
 #pragma once
@@ -18,11 +36,11 @@ struct Result { uint32_t submitted = 0, dirty = 0, groups = 0; };
 //      void setStaticSort(bool); void render(size_t i); void* useCasterCamera(); void restoreCamera(void*); void flushMeshes();
 //      void flushSorted(); void clearOwn(); void renderGroup(size_t g); void setGroupOwn(size_t g);
 // castOnlyTag: the tags held across the submission and both flushes; tagsAfter: what the scene starts with (RECEIVE).
-// A61/A62 (the integrator's A61 ruling): `groups` = the own-light groups of the SORTED caster meshes (rotor discs).
+// `groups` = the own-light groups of the SORTED caster meshes (rotor discs).
 // After the opaque phase, per group: its meshes Render()ed under CAST_ONLY (static sort off), the mesh flush queues them into the
 // sorting renderer (containerEnd clears CAST and the own light there), then CAST_ONLY | solidTags (CAST | SOLID) and the group's own
 // light hold for that group's sorting flush ALONE (the sorting renderer interleaves nodes by depth: one own light per flush), and
-// CAST_ONLY comes back before anything else runs. groups == 0: today's order exactly (A62 (3)).
+// CAST_ONLY comes back before anything else runs. groups == 0: today's order exactly.
 template <class Ops> Result run(Ops& ops, size_t n, size_t groups, uint32_t castOnlyTag, uint32_t solidTags, uint32_t tagsAfter)
 {
 	Result r;

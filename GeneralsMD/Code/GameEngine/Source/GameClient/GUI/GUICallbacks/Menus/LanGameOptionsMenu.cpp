@@ -165,37 +165,14 @@ static GameWindow *buttonMapStartPosition[MAX_SLOTS] = {0};
 
 //external declarations of the Gadgets the callbacks can use
 GameWindow *listboxChatWindowLanGame = nullptr;
+static void lanGameRow( const UnicodeString &tag, const UnicodeString &line, Color color );	// with the chat seam
+static void lanGameSay( const UnicodeString &line, Color color );
 NameKeyType listboxChatWindowLanGameID = NAMEKEY_INVALID;
 WindowLayout *mapSelectLayout = nullptr;
 
-// GeneralsX: A host-only password row, built in code above the chat list.
-//
-// WHY THIS EXISTS AT ALL. LANAPI.h:527-533 states, as a constraint rather than a preference, that
-// "the host and join screens are .wnd layouts inside WindowZH.big, editing one moves dataID ...
-// There is no way to add a text box." BOTH HALVES ARE FALSE, and the second does not even need the
-// first:
-//
-//   * .wnd layouts are EXPLICITLY EXCLUDED from dataID, by design and in code. The allow-list is
-//     SimulationId.cpp's SIMID_LOOSE_SCANS (Data\Scripts\*.scb, and Data\INI\*.ini narrowed to the
-//     three commandbar prefixes) plus SIMID_PROBE_FILES (five .scb/.ini names). There is no
-//     Data\Window entry in either, and the design note at SimulationId.cpp:266-268 says why:
-//     "Cursors, fonts, shell art, .wnd layouts, .csf strings, sounds, shaders - all client-only.
-//     A skinned UI has no effect on the simulation and must not be a compatibility barrier."
-//   * And no .wnd is touched here regardless. CodeGui builds the controls at runtime, which is
-//     what CodeGuiSearchField already does on four map screens - a text entry parented into a
-//     stock layout, with no .wnd change and no FunctionLexicon row.
-//
-// The stale comment lives in Core/GameEngine/Include/GameNetwork/LANAPI.h, which IS inside the
-// SimID source digest, so correcting the text there would move the digest and force an atomic
-// four-platform rebuild for a comment. It is left alone deliberately; this note is the correction.
-//
-// WIRING. The row does NOT reimplement the feature and does not call setHostPassword (which is
-// protected, and which on its own would skip m_joinPassword and the carried static that
-// GENERALSX_LANPASS also feeds). It synthesises the very line a player would type and hands it to
-// LANAPI::RequestChat - the one funnel the chat box uses, which intercepts lobby commands at its
-// top (LANAPI.cpp:1447-1462), echoes the reply locally with LANCHAT_SYSTEM and returns WITHOUT
-// sending, so the password still never reaches the wire in any form. Typing /password and using
-// this row are therefore the same code path by construction, not by agreement.
+// Host-only password row built in code above the chat list (no .wnd change), as CodeGuiSearchField does.
+// It hands the line a player would type to LANAPI::RequestChat, which handles lobby commands locally, so the
+// password never reaches the wire. It skips setHostPassword (protected; would miss m_joinPassword).
 static GameWindow *s_pwEntry = nullptr;
 static GameWindow *s_pwLabel = nullptr;
 static GameWindow *s_pwSetButton = nullptr;
@@ -213,30 +190,10 @@ static void lanPasswordRowReset( void )
 	s_pwPrivateCheck = nullptr;
 }
 
-/// Drop one of the row's windows in behind the chat listbox's siblings, keeping it just in FRONT of
-/// the listbox itself.
+/// Send one of the row's windows behind the chat listbox's siblings but just in front of the listbox itself.
 ///
-/// GeneralsX: The child list is front to back, HEAD FIRST:
-/// GameWindowManager::drawWindow walks to the tail and paints back through m_prev, so the head is
-/// painted last, and GameWindow::winPointInChild walks from the head and returns the FIRST hit, so
-/// the head also wins the click. Every CodeGui factory goes through winCreate, which PREPENDS - so
-/// this row was landing on top of every other control on the screen.
-///
-/// That is wrong for exactly one thing, and it is the thing that matters: a combo box opens its
-/// drop-down DOWNWARD (GadgetComboBox grows the box by the list's height and hangs the list below
-/// the edit box), and the bottom slot rows' open lists reach down into this row's strip. The row
-/// was painting over them AND eating their clicks - which is the "cannot select proper enemies"
-/// report, and it is not new at twelve slots: with the retail eight, ComboBoxPlayer7 sits at y 293
-/// and its five-entry list runs to roughly y 396, straight through this row at y 364..385.
-///
-/// The anchor is the chat listbox rather than the end of the list, and that is deliberate. Behind
-/// EVERYTHING would work today only because the two lines at the bottom of lanPasswordRowCreate
-/// move the listbox out from under the row; the listbox is authored at exactly x 78 y 364 w 636
-/// h 117 - the row's whole strip - so if that reposition were ever dropped, a row at the tail would
-/// be painted over and made unclickable by the listbox, and the row would look like it had never
-/// been built. Sitting immediately in front of the listbox survives that. Nothing else in the
-/// layout overlaps the strip: checked against LanGameOptionsMenu.wnd, the nearest siblings are
-/// ComboBoxStartingCash and CheckboxLimitSuperweapons, both of which end at y 356.
+/// The child list is front to back and winCreate prepends, so a new row would cover the bottom combo boxes' open lists.
+/// The chat listbox is the anchor because it is authored over the row's strip and lanPasswordRowCreate moves it away.
 static void lanPasswordRowSendBehind( GameWindow *win )
 {
 	if( win == nullptr || TheWindowManager == nullptr || listboxChatWindowLanGame == nullptr )
@@ -271,6 +228,39 @@ static void lanPasswordApply( const AsciiString &command )
 	TheLAN->RequestChat( line, LANAPIInterface::LANCHAT_NORMAL );
 }
 
+/// The authored Starting Money caption. The .wnd gives it no name: it is the static text that ends where the
+/// starting-cash drop-down begins, on the same line.
+static GameWindow *lanStartingCashCaption( void )
+{
+	if( comboBoxStartingCash == nullptr || comboBoxStartingCash->winGetParent() == nullptr )
+		return nullptr;
+
+	Int cx = 0, cy = 0;
+	comboBoxStartingCash->winGetPosition( &cx, &cy );
+	const Int slack = CodeGuiAtLeast( CodeGuiScaleX( 2 ), 3 );
+	for( GameWindow *win = comboBoxStartingCash->winGetParent()->winGetChild(); win != nullptr; win = win->winGetNext() )
+	{
+		if( !BitIsSet( win->winGetStyle(), GWS_STATIC_TEXT ) )
+			continue;
+		Int x = 0, y = 0, w = 0, h = 0;
+		win->winGetPosition( &x, &y );
+		win->winGetSize( &w, &h );
+		if( abs( y - cy ) <= slack && abs( x + w - cx ) <= slack )
+			return win;
+	}
+	return nullptr;
+}
+
+/// The row's height: the options row's own (Limit Superweapons), so the two lines read as one grid. The seat rows'
+/// share of the chat (InitLanGameGadgets) budgets the same number.
+static Int lanPasswordRowHeight( void )
+{
+	Int w = 0, h = 0;
+	if( checkboxLimitSuperweapons != nullptr )
+		checkboxLimitSuperweapons->winGetSize( &w, &h );
+	return CodeGuiAtLeast( h, CodeGuiAtLeast( CodeGuiScaleY( 21 ), 21 ) );
+}
+
 /// Build the row above the chat listbox, shrinking it to make room. Host only.
 static void lanPasswordRowCreate( void )
 {
@@ -294,16 +284,72 @@ static void lanPasswordRowCreate( void )
 
 	// Int-only arithmetic throughout: Lib/BaseType.h replaces the min/max macros with
 	// template<typename T> T max(T,T), so mixing Int and UnsignedInt is a hard compile error.
-	const Int rowH   = CodeGuiAtLeast( CodeGuiScaleY( 21 ), 21 );
+	const Int rowH   = lanPasswordRowHeight();
 	const Int gap    = CodeGuiAtLeast( CodeGuiScaleY( 4 ), 3 );
-	const Int labelW = CodeGuiAtLeast( CodeGuiScaleX( 62 ), 50 );
-	const Int setW   = CodeGuiAtLeast( CodeGuiScaleX( 46 ), 40 );
-	const Int privW  = CodeGuiAtLeast( CodeGuiScaleX( 78 ), 64 );
+	const Int minEntryW = CodeGuiAtLeast( CodeGuiScaleX( 90 ), 70 );
+
+	// GeneralsX @bugfix The row wears the screen's own controls, not the CodeGui theme: the caption is a twin of
+	// the Starting Money caption, the box of the chat entry, Set of the Select Map button, Private of Limit
+	// Superweapons. And it sits on the options row's grid, as if authored with it: the caption in the Starting
+	// Money column, the box from where the starting-cash drop-down starts, Set ending where Limit Superweapons
+	// ends, Private in the Limit Armies column. Without those templates (another layout) it keeps the plain row.
+	GameWindow *captionLook = lanStartingCashCaption();
+	GameWindow *entryLook = ( textEntryChat != nullptr && textEntryChat->winGetParent() == listParent ) ? textEntryChat : nullptr;
+	GameWindow *buttonLook = ( buttonSelectMap != nullptr && buttonSelectMap->winGetParent() == listParent ) ? buttonSelectMap : nullptr;
+	const Bool onGrid = captionLook != nullptr && captionLook->winGetParent() == listParent && comboBoxStartingCash != nullptr &&
+											checkboxLimitSuperweapons != nullptr && checkboxLimitSuperweapons->winGetParent() == listParent;
+
+	Int labelX = lx, labelW = CodeGuiAtLeast( CodeGuiScaleX( 62 ), 50 );
+	Int setW = CodeGuiAtLeast( CodeGuiScaleX( 46 ), 40 );
+	Int privW = CodeGuiAtLeast( CodeGuiScaleX( 78 ), 64 );
+	Int entryX = labelX + labelW + gap;
+	Int setX = 0, privX = 0;
+	Bool gridFits = FALSE;
+	if( onGrid )
+	{
+		Int cy = 0, ch = 0, cashX = 0, sx = 0, sy = 0, sw = 0, sh = 0;
+		captionLook->winGetPosition( &labelX, &cy );
+		captionLook->winGetSize( &labelW, &ch );
+		comboBoxStartingCash->winGetPosition( &cashX, &cy );
+		checkboxLimitSuperweapons->winGetPosition( &sx, &sy );
+		checkboxLimitSuperweapons->winGetSize( &sw, &sh );
+
+		const Int gridSetW = CodeGuiAtLeast( CodeGuiScaleX( 64 ), 48 );
+		const Int gridSetX = sx + sw - gridSetW;
+		Int ax = sx + sw + gap, aw = sw;
+		if( checkboxLimitArmies != nullptr && checkboxLimitArmies->winGetParent() == listParent )
+		{
+			Int ay = 0, ah = 0;
+			checkboxLimitArmies->winGetPosition( &ax, &ay );
+			checkboxLimitArmies->winGetSize( &aw, &ah );
+		}
+		// The Private column must be a whole one inside the parent: Limit Armies is absent, or cut short, when its
+		// strip has no room, and a box built from it would be unreachable.
+		Int pw = 0, ph = 0;
+		listParent->winGetSize( &pw, &ph );
+		if( gridSetX - gap - cashX >= minEntryW && aw >= privW && ax + aw <= pw )
+		{
+			entryX = cashX;
+			setW = gridSetW;
+			setX = gridSetX;
+			privX = ax;
+			privW = aw;
+			gridFits = TRUE;
+		}
+	}
+	if( !gridFits )
+	{
+		labelX = lx;
+		labelW = CodeGuiAtLeast( CodeGuiScaleX( 62 ), 50 );
+		entryX = labelX + labelW + gap;
+		setX = lx + lw - privW - gap - setW;
+		privX = setX + setW + gap;
+	}
 
 	// Refuse to shrink the chat into uselessness on a small backbuffer, and refuse to build a row
 	// whose entry would be narrower than the caption beside it.
-	const Int entryW = lw - labelW - setW - privW - ( gap * 3 );
-	if( lh <= ( rowH + gap ) * 2 || entryW < CodeGuiAtLeast( CodeGuiScaleX( 90 ), 70 ) )
+	const Int entryW = setX - gap - entryX;
+	if( lh <= ( rowH + gap ) * 2 || entryW < minEntryW )
 		return;
 
 	// FETCH_OR_SUBSTITUTE returns a UnicodeString by value and the CodeGui factories take
@@ -311,35 +357,53 @@ static void lanPasswordRowCreate( void )
 	// alive for the duration of the call, but naming them keeps that from being something the next
 	// reader has to re-derive.
 	const UnicodeString labelText   = TheGameText->FETCH_OR_SUBSTITUTE( "GUI:LanPasswordLabel", L"Password" );
-	const UnicodeString setText     = TheGameText->FETCH_OR_SUBSTITUTE( "GUI:LanPasswordSet", L"Set" );
+	const UnicodeString setText     = TheGameText->FETCH_OR_SUBSTITUTE( "GUI:LanPasswordSet", L"SET" );		// capitals, as every retail button caption
 	const UnicodeString setTipText  = TheGameText->FETCH_OR_SUBSTITUTE( "GUI:LanPasswordSetTip",
 		L"Require this password to join. Leave the box empty to clear it." );
 	const UnicodeString privateText = TheGameText->FETCH_OR_SUBSTITUTE( "GUI:LanPrivateGame", L"Private" );
 
-	Int x = lx;
-	s_pwLabel = CodeGuiLabel( listParent, x, ly, labelW, rowH, nullptr,
-		labelText.str(), FALSE, 12, TRUE );
-	x += labelW + gap;
+	if( gridFits )
+		s_pwLabel = CodeGuiLabelLike( captionLook, listParent, nullptr, labelX, ly, labelW, rowH, labelText.str() );
+	if( s_pwLabel == nullptr )
+		s_pwLabel = CodeGuiLabel( listParent, labelX, ly, labelW, rowH, nullptr, labelText.str(), FALSE, 12, TRUE );
 
 	// maxTextLen is bounded by s_carriedLobbyPassword[65] in LANAPI.cpp, which strlcpy-truncates;
 	// stopping short of that here means what the player typed is what gets bound, always.
-	s_pwEntry = CodeGuiTextEntry( listParent, x, ly, entryW, rowH,
-		"LanGameOptionsMenu.wnd:TextEntryLobbyPassword", 32, 12, FALSE );
+	s_pwEntry = CodeGuiTextEntryLike( entryLook, listParent, "LanGameOptionsMenu.wnd:TextEntryLobbyPassword",
+		entryX, ly, entryW, rowH, 32 );
+	if( s_pwEntry == nullptr )
+		s_pwEntry = CodeGuiTextEntry( listParent, entryX, ly, entryW, rowH,
+			"LanGameOptionsMenu.wnd:TextEntryLobbyPassword", 32, 12, FALSE );
 	if( s_pwEntry == nullptr )
 	{
 		lanPasswordRowReset();
 		return;
 	}
-	x += entryW + gap;
 
-	s_pwSetButton = CodeGuiButton( listParent, x, ly, setW, rowH,
-		"LanGameOptionsMenu.wnd:ButtonLobbyPasswordSet",
-		setText.str(), setTipText.str() );
-	x += setW + gap;
+	s_pwSetButton = CodeGuiButtonLike( buttonLook, listParent, "LanGameOptionsMenu.wnd:ButtonLobbyPasswordSet",
+		setX, ly, setW, rowH, setText.str(), setTipText.str() );
+	if( s_pwSetButton == nullptr )
+		s_pwSetButton = CodeGuiButton( listParent, setX, ly, setW, rowH,
+			"LanGameOptionsMenu.wnd:ButtonLobbyPasswordSet",
+			setText.str(), setTipText.str() );
 
-	s_pwPrivateCheck = CodeGuiCheckbox( listParent, x, ly, privW, rowH,
-		"LanGameOptionsMenu.wnd:CheckboxLobbyPrivate",
-		privateText.str(), TheLAN->isHostingPrivate() );
+	// The retail checkbox's twin. Its state bit is set by hand: GadgetCheckBoxSetChecked sends GBM_SELECTED, which
+	// would reach lanPasswordRowHandle and re-send /private while the screen is still being built.
+	if( checkboxLimitSuperweapons != nullptr && checkboxLimitSuperweapons->winGetParent() == listParent )
+		s_pwPrivateCheck = CodeGuiCheckboxLike( checkboxLimitSuperweapons,
+			"LanGameOptionsMenu.wnd:CheckboxLimitSuperweapons", "LanGameOptionsMenu.wnd:CheckboxLobbyPrivate",
+			privX, ly, privW, privateText.str(), nullptr );
+	if( s_pwPrivateCheck != nullptr )
+	{
+		if( TheLAN->isHostingPrivate() )
+			BitSet( s_pwPrivateCheck->winGetInstanceData()->m_state, WIN_STATE_SELECTED );
+	}
+	else
+	{
+		s_pwPrivateCheck = CodeGuiCheckbox( listParent, privX, ly, privW, rowH,
+			"LanGameOptionsMenu.wnd:CheckboxLobbyPrivate",
+			privateText.str(), TheLAN->isHostingPrivate() );
+	}
 
 	// Reflect a password carried in from GENERALSX_LANPASS or from a /password typed in the lobby
 	// before hosting, so the box agrees with what the host is actually enforcing. The plaintext is
@@ -421,23 +485,9 @@ static Bool lanPasswordRowHandle( UnsignedInt msg, GameWindow *control )
 	return FALSE;
 }
 
-// GeneralsX: Ready-gated start, forced start, and a host-only cancel.
-//
-// The rule the operator asked for: the host cannot start until every other human has accepted,
-// and starting then runs a visible countdown; alternatively the host may force a start, which
-// gives the stragglers a fixed window to accept before the same countdown runs. Only the host can
-// abort either, and aborting must leave a lobby that is editable again.
-//
-// NOTHING NEW GOES ON THE WIRE. The countdown itself is retail's own MSG_GAME_START_TIMER, which
-// every peer already understands and which LANAPI ticks off timeGetTime(); the force window and
-// the cancel ride on ordinary LANCHAT_SYSTEM chat. That matters more than it looks: LANMessage
-// lives in Core/GameEngine/Include/GameNetwork and is inside the simulation digest, so one new
-// message type would have forced an atomic four-platform rebuild for a lobby-only feature.
-//
-// The state is deliberately host-only and menu-local. A joiner never arms it, because the two
-// things that would set it - StartPressed and the countdown driver - are both behind AmIHost(),
-// and because LANAPI::RequestGameStartTimer/RequestGameStart return immediately unless slot 0 is
-// the local IP. A non-host therefore has no cancel to press and no timer to cancel.
+// Ready-gated start, forced start and host-only cancel. The host cannot start until every other human has
+// accepted, or may force a start after a fixed window. No new wire message (LANMessage is in the digest):
+// the countdown is retail's MSG_GAME_START_TIMER; force and cancel ride on LANCHAT_SYSTEM chat. State is host-only.
 static LanStart::State s_lanStart = { LanStart::PHASE_IDLE, 0, -1 };
 
 /// Slots this menu closed when the start began, so a cancel reopens exactly those and does not
@@ -588,24 +638,11 @@ enum GxStartControl
 	GXSTART_CTRL_CANCEL     ///< a start is running: press to abort it
 };
 
-/// Re-apply the host's start control to whatever the lobby currently is.
+/// Re-apply the host's start control to the current lobby state.
 ///
-/// WHY THE CONTROL IS RELABELLED RATHER THAN GREYED OUT
-///
-/// The two rules asked for pull against each other on a screen that has exactly one button: "the
-/// host cannot start until everyone else is ready" and "the host can force a start anyway". Grey
-/// the button out for the first rule and the second becomes unreachable - a disabled GameWindow
-/// receives no input at all - and a new button is not an option, because LanGameOptionsMenu.wnd is
-/// game DATA and every peer would then refuse to join on dataID.
-///
-/// So the gate is expressed in what the button DOES and says, not in whether it is clickable:
-/// PLAY GAME (start now) genuinely is unavailable until every other human has accepted. What is
-/// offered instead is labelled FORCE START, it cannot start anything for LanStart::FORCE_WINDOW_MS,
-/// and it announces itself to the whole lobby the moment it is pressed. The host can still see at
-/// a glance that they are not clear to start, which is the point of the rule.
-///
-/// Only the host is touched here. On a joiner the same button is the ACCEPT button and its enabled
-/// state belongs to EnableAcceptControls, which drives it from that player's own accept flag.
+/// Relabelled, not greyed: a disabled window receives no input, and a new button would mean editing the .wnd.
+/// PLAY GAME is unavailable until every other human accepted; FORCE START is offered instead, inert for
+/// LanStart::FORCE_WINDOW_MS. Joiners' button is ACCEPT, owned by EnableAcceptControls.
 static void gxUpdateStartControl()
 {
 	if( buttonStart == nullptr || TheLAN == nullptr || !TheLAN->AmIHost() )
@@ -894,10 +931,7 @@ void StartPressed()
 		return;
 	}
 
-	// GeneralsX: THE START RULE is GameInfo::getStartVerdict, one function for every
-	// setup screen and inside the SimID digest. An all-AI lobby (humans only as observers) may start: retail
-	// refused it here with GUI:NeedHumanPlayers. It starts as a sandbox, counted in nobody's stats (owner,
-	// 27/09/2026), and is announced below.
+	// THE START RULE is GameInfo::getStartVerdict, one function for every setup screen and inside the SimID digest. An all-AI lobby (humans only as observers) may start; retail refused it here with GUI:NeedHumanPlayers. It starts as a sandbox, counted in nobody's stats, and is announced below.
 	const GameInfo::StartVerdict startVerdict = myGame->getStartVerdict();
 
 	// Check for too few players
@@ -975,7 +1009,7 @@ void StartPressed()
 		{
 			UnicodeString msg;
 			msg.format(TheGameText->fetchGameOnly("GUI:PlayerNoMap"), slot->getName().str(), mapDisplayName.str());
-			GadgetListBoxAddEntryText(listboxChatWindowLanGame, msg , chatSystemColor, -1, 0);
+			lanGameSay(msg, chatSystemColor);
 			allHaveMap = false;
 		}
 		if( slot->isHuman() && slot->getPlayerTemplate() != PLAYERTEMPLATE_OBSERVER )
@@ -1364,19 +1398,9 @@ static void handleLimitArmiesClick()
 	}
 }
 
-// GeneralsX: THE LAN HOST'S ARMIES SURVIVE A MATCH, A RE-HOST AND A RESTART (a tester, via)
-// All three lost them the same way. There is no room to go back to:
-// LanGameOptionsMenuInit pops to the lobby after a match, LanLobbyMenuInit's TheLAN->reset() drops the game, and Host Game has
-// LANAPI::RequestGameCreate build a new LANGameInfo whose slots are all GameSlot::reset's SLOT_CLOSED until adjustSlotsForMap
-// opens them. Init only ever read the map, cash and limits back from LANPreferences, so that is where these go too (Network.ini).
-//
-// In this file because everything else it could live in moves the digest: LANAPI*, GameInfo and UserPreferences.h are all
-// inside it, and this is a menu.
-//
-// LobbySlots holds the armies by slot, plus the host's own team and start position, which the armies were arranged around. It is
-// written as soon as the host changes anything (like Limit Armies, below), not at the start: Back and a crash keep it too, and
-// a slot left on Random is written before GameLogic resolves it, so it comes back Random. An open, closed or human slot is not
-// written, so nobody's seat is ever filled but an army's. LobbySlotsMap is the map those start positions were picked on.
+// The LAN host's armies survive a match, a re-host and a restart, so they are stored in LANPreferences (Network.ini).
+// LobbySlots holds armies by slot plus the host's team and start position, written as soon as the host changes them.
+// LobbySlotsMap is the map those positions were picked on. In this file because LANAPI* is in the digest.
 static AsciiString s_lanSlotMemoryWritten;	///< the room's last state as compared by lanSlotMemoryUpdate; "" = no armies
 
 /// A room hosted from the NETWORK screen. A relay room and a Direct Connect room both come in with isDirectConnect set, and
@@ -1564,6 +1588,7 @@ void InitLanGameGadgets()
 	buttonBack = TheWindowManager->winGetWindowFromId( parentLanGameOptions,  buttonBackID);
 	DEBUG_ASSERTCRASH(buttonBack, ("Could not find the buttonBack"));
 	listboxChatWindowLanGame = TheWindowManager->winGetWindowFromId( parentLanGameOptions, listboxChatWindowLanGameID );
+	GXChatBoxUseTimeColumn(listboxChatWindowLanGame);	// GeneralsX @feature the gray time column, before the first row
 	DEBUG_ASSERTCRASH(listboxChatWindowLanGame, ("Could not find the listboxChatWindowLanGame"));
 	textEntryChat = TheWindowManager->winGetWindowFromId( parentLanGameOptions, textEntryChatID );
 	DEBUG_ASSERTCRASH(textEntryChat, ("Could not find the textEntryChat"));
@@ -1611,24 +1636,10 @@ void InitLanGameGadgets()
 	//Tooltip function is being set for techBuildings, and supplyDocks
 	windowMap->winSetTooltipFunc(MapSelectorTooltip);
 
-	// GeneralsX: The .wnd authors eight of every per-slot control; the loop
-	// below binds MAX_SLOTS of them, and a row the layout does not contain is not a short list - it
-	// is a null dereference on the very next line, because GadgetComboBoxGetEditBox() and
-	// winSetTooltipFunc() are called on the result without a check. Build whatever the layout is
-	// short of BEFORE anything looks a row up. At the shipped MAX_SLOTS every one of these calls
-	// measures the column and returns without touching a rect.
-	//
-	// ButtonMapStartPosition is NOT a column: those markers are children of MapWindow and are placed
-	// over the preview from the map's own start waypoints, so they only need to exist. They need it
-	// badly, though - positionStartSpotControls walks the array to the marker it is placing with no
-	// null check of its own.
-	//
-	// GeneralsX: The seat columns SCROLL instead.
-	// The chat stays: the rows take
-	// ONE row from the top of the chat history - nine rows at the authored size - as long as the history keeps the
-	// host's Private / password row, which lanPasswordRowCreate (below) builds on its top with the same arithmetic, plus
-	// LAN_CHAT_KEEP_LINES lines of chat; on a screen where it cannot, the room keeps the authored eight. Host and joiners
-	// get the same layout; a joiner, who has no password row, sees more chat lines.
+	// The .wnd authors eight of every per-slot control but the loop binds MAX_SLOTS and uses the results unchecked,
+	// so build what the layout lacks BEFORE any row lookup.
+	// Seat columns scroll; rows take one row from the top of the chat history if it keeps the password row plus
+	// LAN_CHAT_KEEP_LINES lines, else the authored eight stay.
 	static const char * const lanSeatColumns[] =
 	{
 		"LanGameOptionsMenu.wnd:ComboBoxPlayer%d",
@@ -1643,7 +1654,7 @@ void InitLanGameGadgets()
 	{
 		const Int rowGap = CodeGuiAtLeast( CodeGuiScaleY( 4 ), 3 );
 		const Int lineH = TheWindowManager->winFontHeight( listboxChatWindowLanGame->winGetFont() ) + 1;	// computeTotalHeight's row
-		chatKeep = CodeGuiAtLeast( CodeGuiScaleY( 21 ), 21 ) + rowGap + LAN_CHAT_KEEP_LINES * lineH + rowGap;
+		chatKeep = lanPasswordRowHeight() + rowGap + LAN_CHAT_KEEP_LINES * lineH + rowGap;
 	}
 	CodeGuiRowsScrollSetup( parentLanGameOptions, lanSeatColumns, (Int)( sizeof( lanSeatColumns ) / sizeof( lanSeatColumns[ 0 ] ) ), MAX_SLOTS,
 													listboxChatWindowLanGame, 1, chatKeep, listboxChatWindowLanGame );
@@ -2038,33 +2049,8 @@ void LanGameOptionsMenuShutdown( WindowLayout *layout, void *userData )
 	EnableSlotListUpdates(FALSE);
 	LANisShuttingDown = true;
 
-	// GeneralsX: THE MAP SELECTOR IS A TOP-LEVEL LAYOUT AND THE SHELL DOES
-	// NOT OWN IT, so leaving this screen with it open leaked the whole window tree.
-	//
-	// mapSelectLayout (:164) is created by the Select Map button (:2175) with no null check of the
-	// value it overwrites, and it was destroyed in exactly three places - this screen's own Back
-	// button (:2132) and the selector's Back and OK (LanMapSelectMenu.cpp:450, :500, the latter only
-	// inside `if (selected != -1)`). Every OTHER way out of this screen left it alive: it is not a
-	// child of LanGameOptionsMenu.wnd, so Shell::doPop's destroyWindows() on that layout does not
-	// reach it, and it was put up with hide(FALSE) and bringForward() - so its windows stay in the
-	// window manager's list, drawn and hit-tested, for the rest of the process. The next Select Map
-	// then overwrites the pointer and adds another tree.
-	//
-	// The ways out that skipped it are the ones nobody clicks: LANAPI::OnHostLeave and
-	// OnPlayerLeave both TheShell->pop() (LANAPICallbacks.cpp:1206, :1233), and LanGameOptionsMenuInit
-	// popImmediate()s on the way back from a finished match (:1499).
-	//
-	// ABOVE THE popImmediate EARLY RETURN so it runs on BOTH ways out of this function. OnHostLeave
-	// and OnPlayerLeave use TheShell->pop(), which passes immediatePop FALSE (Shell.cpp:428-429) and
-	// reaches the animated branch below; only the post-match popImmediate takes the early return.
-	// This is the same four lines WOLGameSetupMenuShutdown already runs
-	// (WOLGameSetupMenu.cpp:1586-1590) for its own copy of this layout - the LAN half simply never
-	// got them.
-	//
-	// DEFENSIVE, NOT A REPRODUCED LEAK: there is no repro or log, and no known path reaches these
-	// exits with the selector open - joiners cannot open it (Select Map disabled, :1570), the host's
-	// Back is disabled while it is up (LanMapSelectMenu.cpp:111-113), and Select Map is disabled
-	// under the start countdown (:639). Its static controls are cleared on GWM_DESTROY either way.
+	// The map selector is a top-level layout the Shell does not own, so Shell::doPop's destroyWindows() misses
+	// it; leaving with it open would leave its windows drawn and hit-tested. Above the popImmediate early return.
 	if( mapSelectLayout )
 	{
 		mapSelectLayout->destroyWindows();
@@ -2107,22 +2093,10 @@ void LanGameOptionsMenuShutdown( WindowLayout *layout, void *userData )
 
 //-------------------------------------------------------------------------------------------------
 /** Lan Game Options menu update method */
-//-------------------------------------------------------------------------------------------------
-/// <summary>
-/// Put the LOBBY'S NAME over the slot list, instead of the word "GAME OPTIONS".
+/// Put the lobby's name over the slot list instead of "GAME OPTIONS".
 ///
-/// GeneralsX: The host types a name when creating the lobby
-/// (PopupHostGame), and until now that name was visible only in the browser - the moment you were
-/// inside, every lobby looked identical. The heading is the one piece of chrome nobody was reading,
-/// because it said the same thing on every screen; it is now the one that tells you which game you
-/// are actually in.
-///
-/// Refreshed rather than set once: the name arrives with the slot list for a joiner, so at Init
-/// time it is usually still empty. Written only when it CHANGES, so this is a compare and not a
-/// gadget write every frame.
-///
-/// Falls back to the stock GUI:GameOptions label whenever there is no name - an unnamed lobby, or
-/// the moment before the first slot list lands - so the screen never shows a blank heading.
+/// Refreshed because a joiner's name arrives with the slot list, after Init; written only when it changes.
+/// Falls back to the stock GUI:GameOptions label when there is no name.
 static void gxRefreshLobbyTitle( void )
 {
 	if (staticTextLobbyTitle == nullptr)
@@ -2192,7 +2166,6 @@ static void gxRefreshLobbyTitle( void )
 	}
 }
 
-static void lanGameSay( const UnicodeString &line, Color color );	// defined below, with the chat seam
 
 void LanGameOptionsMenuUpdate( WindowLayout * layout, void *userData)
 {
@@ -2211,7 +2184,7 @@ void LanGameOptionsMenuUpdate( WindowLayout * layout, void *userData)
 	// hidden under this screen, now stands aside when hidden so it cannot eat the line first - and this
 	// one does the same, for the same reason, when something is on top of it.
 	if (!layout->isHidden())
-		gxLobbyDrainRelayNotices(lanGameSay, chatSystemColor);
+		gxLobbyDrainRelayNotices(lanGameRow, chatSystemColor);
 
 	// GeneralsX: The forced-start deadline and the countdown watchdog.
 	//
@@ -2262,42 +2235,32 @@ WindowMsgHandledType LanGameOptionsMenuInput( GameWindow *window, UnsignedInt ms
 }
 
 
-// GeneralsX: /nickname works on THIS screen too, not just the lobby.
-//
-// The name shown in the slot list is the LAN name, which is a different identity from the
-// relay-held nickname the lobby browser uses - so a name set out in the lobby vanished the moment
-// you joined and the slot list reverted to the machine name. GXApplyNickname sets all three
-// identities (LAN slot list, relay, persisted preference) from one command; this just gives the
-// game-options chat box a way to call it.
-//
-// Returns TRUE when the line was a slash command and has been dealt with.
-//
-// GeneralsX: This is now also the seam into the shared lobby command
-// table, and the order of the three tests is load-bearing:
-//
-//   1. GXLobbyChatCommand FIRST, because the verbs it retires (/pass, /nopassword, /lobbyhelp) are
-//      still recognised DOWNSTREAM by LANAPI::applyLobbyCommand - which this branch deliberately
-//      does not edit, LANAPI.cpp being inside the SimID source digest.
-//   2. /nick, which is this screen's own and needs the slot-list redraw below.
-//   3. GXLobbyGuardUnknownCommand LAST, which knows from the same table that /password, /private
-//      and /public are live here and lets them through to RequestChat, and refuses everything else
-//      beginning with '/' rather than announcing it to the lobby.
-//
-// txtInput is non-const because a "//" escape rewrites the line in place; the caller must send
-// what comes back, not what was typed.
-static void lanGameSay( const UnicodeString &line, Color color )
+// gxHandleLobbySlashCommand (below lanGameRow): /nickname works here too (GXApplyNickname sets all three names).
+// Returns TRUE when the line was a slash command. Test order is load-bearing: (1) GXLobbyChatCommand, since verbs
+// it retires are still recognised by LANAPI::applyLobbyCommand (in the digest); (2) /nick, needing the slot-list
+// redraw; (3) GXLobbyGuardUnknownCommand. txtInput is non-const because a // escape rewrites it; send what comes back.
+// GeneralsX @feature One row into this screen's chat box (GXChatBoxAdd): `tag` is "[S]", "[L]" or empty.
+static void lanGameRow( const UnicodeString &tag, const UnicodeString &line, Color color )
 {
 	// Same reasoning as the relay lobby's sink: a headless run has no listbox, and silently
 	// dropping the line is what made the lobby untestable without a GUI.
 	if (listboxChatWindowLanGame == NULL)
 	{
+		UnicodeString whole = tag;
+		whole.concat(line);
 		AsciiString plain;
-		plain.translate(line);
+		plain.translate(whole);
 		fprintf(stderr, "[GXLOBBY] %s\n", plain.str());
 		fflush(stderr);
 		return;
 	}
-	GadgetListBoxAddEntryText(listboxChatWindowLanGame, line, color, -1, 0);
+	GXChatBoxAdd(listboxChatWindowLanGame, tag, line, color);
+}
+
+// A notice this client raised: "[S]", gray (a refusal keeps its red).
+static void lanGameSay( const UnicodeString &line, Color color )
+{
+	lanGameRow(UnicodeString(L"[S]"), line, GXChatNoticeColor(color));
 }
 
 static Bool gxHandleLobbySlashCommand( UnicodeString &txtInput )

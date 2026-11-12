@@ -16,44 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// FILE: GXHostCamSeam.h /////////////////////////////////////////////////////////////////////////
-//
-// GeneralsX: The GameNetwork side of the host-camera seam.
-//
-// WHY THIS FILE EXISTS AT ALL, which is the first thing to check before deleting it.
-//
-// Host-authoritative camera limits are TWO independent changes that were deliberately built on
-// two branches:
-//
-//   feat/hostcam-apply   GameClient/GXHostCamera.{h,cpp} - decides what a peer's camera actually
-//                        does with a pair of numbers. Outside the simulation digest, so it can
-//                        ship to one platform at a time.
-//   feat/hostcam-wire    this branch - carries the host's pair to its peers over LANMessage.
-//                        Inside the digest (Core/GameEngine/{Include,Source}/GameNetwork), so it
-//                        forces an atomic four-platform rebuild.
-//
-// The two must not be merged into one branch (this fork's rule is one branch per fix) and neither
-// may edit the other's files. But a branch that does not compile on its own cannot be reviewed,
-// built or verified on its own either. So the wire branch talks to the seam through this header:
-// when GXHostCamera.h is on disk it is included and used verbatim; when it is not, the same
-// signatures are supplied as no-ops so the call sites compile, link, and DO NOTHING.
-//
-// THE NO-OP ARM IS NOT A SIMULATION OF THE FEATURE. It answers FALSE to everything. On this
-// branch alone, the host therefore sends no pair (getLocalLimits fails), the receiver hands what
-// it read to a setter that discards it, and no camera anywhere moves. That is the intended
-// standalone behaviour of feat/hostcam-wire: it is the transport, and the transport alone is not a
-// behaviour change. The wire codec itself (GXHostCamWireWrite/Read in LANAPI.h) is pure and is
-// fully exercisable without either arm - see scripts/test/hostcam-wire-selftest.cpp.
-//
-// WHAT HAPPENS WHEN THE TWO BRANCHES MEET. __has_include finds the real header, GX_HOSTCAM_SEAM_
-// PRESENT becomes 1, the whole stub block below compiles out, and the call sites bind to the real
-// implementation with no edit to either branch and no merge conflict - this file touches nothing
-// under GameClient/. If a future session ever brings the seam into this repository permanently,
-// this header can be reduced to a plain #include, or deleted and the includes repointed.
-//
-// DO NOT ADD LOGIC HERE. In particular do not "helpfully" make the stub clamp or validate: the
-// point of a stub that answers FALSE is that a build without the apply branch is unmistakably
-// inert rather than half-working.
+// GameNetwork side of the host-camera seam. The apply side (GameClient/GXHostCamera.h) is outside the simulation
+// digest; the wire side is inside it. When GXHostCamera.h exists it is included (GX_HOSTCAM_SEAM_PRESENT is 1);
+// otherwise no-op stubs answering FALSE are supplied, so a build without it compiles and does nothing.
+// Do not add logic to the stubs (no clamping or validation): they must stay unmistakably inert.
 
 #pragma once
 

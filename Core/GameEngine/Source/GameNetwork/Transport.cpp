@@ -53,38 +53,21 @@
 #include <TargetConditionals.h>
 #endif
 
-// GeneralsX @feature Relay transport. The registration datagram is plaintext on purpose: the
+// GeneralsX: Relay transport. The registration datagram is plaintext on purpose: the
 // relay recognises its own control traffic by its tag alone and never has to look at, let alone
 // decrypt, a single game packet. The line itself is GXRelayAuth.h's gxRelayRegistrationLine.
-// GeneralsX @feature Server list. Advertising a game is what puts it in the relay's browser, and
+// GeneralsX: Server list. Advertising a game is what puts it in the relay's browser, and
 // NOT advertising is what keeps a private game out of it. See tools/relay/relay.js.
 static const char RELAY_ADVERTISE_TAG[] = "GXADV";
 // GeneralsX: And taking it back out again. See UNADV_TAG in relay.js and
 // Transport::withdrawGameAdvertisement.
 static const char RELAY_WITHDRAW_TAG[] = "GXUNAD";
 
-// GeneralsX: The relay's REGION, so the browser can label a row the way
-// Generals Online does - "[EU] FFA 10k NO RULES".
-//
-// NOT a compiled-in constant, and that is the whole design constraint: "adding a relay must not
-// require updating clients". A region baked into the binary means the second relay
-// needs a client release, which is exactly what that rule exists to prevent. So it arrives as
-// data, from two sources in priority order:
-//
-//   1. the relay itself, in a GXREGION line that rides the GXLIST reply. This fits the pattern the
-//      relay already uses for things only it knows - it assigns virtual addresses and it appends
-//      the host's RTT to a listing - and it costs ONE datagram per browser refresh rather than a
-//      field on every row, which matters because the advertisement is length-capped;
-//   2. failing that, Options.ini's RelayRegion, so a relay that predates GXREGION can still be
-//      labelled correctly without anybody rebuilding a client;
-//   3. failing that, "EU", because that is where the only relay is and a sensible row beats "[??]".
-//
-// A relay that does not send GXREGION leaves source 1 silent, and every row then reads [EU] via
-// source 3.
-//
+// The relay region, used to label browser rows. Not compiled in, so a new relay needs no client release: it arrives
+// in a GXREGION line on the GXLIST reply, else from Options.ini RelayRegion, else EU.
 static const char RELAY_REGION_TAG[] = "GXREGION";
 static const char RELAY_REGION_DEFAULT[] = "EU";
-// GeneralsX @feature Matchmaking. Asks the relay to allocate our virtual address, so players do
+// GeneralsX: Matchmaking. Asks the relay to allocate our virtual address, so players do
 // not have to agree on one by hand. See Transport::requestRelayIdentity.
 static const char RELAY_WHO_TAG[] = "GXWHO";
 // GeneralsX: The goodbye, client -> relay only, sent here from the throwaway
@@ -119,28 +102,17 @@ static const char RELAY_NICK_TAG[] = "GXNICK";
 static const char RELAY_PLAT_TAG[] = "GXPLAT";
 // GeneralsX: Relay round trip, reported by each host. See Transport.h.
 static const char RELAY_PING_TAG[] = "GXPING";
-// GeneralsX: The lobby's display name, reported by each host.
-//
-// THE NAME IS "GXLNAM" AND ITS LENGTH IS LOAD-BEARING. A relay that cannot parse a control tag
-// drops it cleanly only when the tag has the control-tag SHAPE, and older relays test that shape as
-// /^GX[A-Z]{3,4} / - at most four letters after "GX". "GXLNAM" is exactly four (L,N,A,M) and all
-// capitals, so every relay either parses it or drops it. "GXLOBBY" (five) would not have fitted.
-//
-//
-//
-//
-//
-// Six characters overall, like the tags above, so no tag is a byte-prefix of another under the
-// fixed-length memcmp dispatch. Nothing else in this set begins "GXL" but GXLIST, which differs at
-// the fourth byte.
+// GXLNAM: the lobby display name. Four capitals after GX on purpose: an older relay refuses unknown control tags of
+// three or four capitals after GX and would broadcast a longer one to the room on the lockstep socket. Six characters
+// overall, so no tag is a byte-prefix of another under the fixed-length memcmp dispatch.
 static const char RELAY_LNAM_TAG[] = "GXLNAM";
 // The sentinel that means "this room has no lobby name". Same idiom as RELAY_IDN_CLEAR and the
 // relay's own "GXYOU <room> -": the parsers below all require a non-empty third field, so an empty
 // value cannot be spelled as nothing - it has to be spelled as something.
 static const char RELAY_LNAM_CLEAR[] = "-";
 // GeneralsX: A hosted lobby's seats, for the admin console. See
-// GXRelaySlotsWire.h for the format. FOUR capitals after "GX", like GXLNAM and for its reason: an older
-// relay drops an unknown tag cleanly only when it matches /^GX[A-Z]{3,4} /. Nothing else
+// GXRelaySlotsWire.h for the format. FOUR capitals after "GX", like GXLNAM and for its reason: the relay
+// deployed today drops any /^GX[A-Z]{3,4} / tag it does not know rather than broadcasting it. Nothing else
 // begins "GXSL"; GXSAY and GXSEEN differ at the fourth byte.
 static const char RELAY_SLOT_TAG[] = "GXSLOT";
 // GeneralsX: Durable identity and presence. Five and six characters, and
@@ -150,9 +122,9 @@ static const char RELAY_SLOT_TAG[] = "GXSLOT";
 static const char RELAY_KEY_TAG[]  = "GXKEY";
 // GeneralsX: The VERIFIED identity. Five characters, and no tag is a
 // byte-prefix of another under the fixed-length memcmp dispatch: nothing else in this set begins
-// "GXI". It also matches /^GX[A-Z]{3,4} /, the control-tag shape an OLDER relay drops cleanly when
-// it does not know the tag.
-//
+// "GXI". It also matches /^GX[A-Z]{3,4} /, which is what an OLDER relay's unknown-control guard
+// tests - a tag that missed that shape would be handed to forward(), which cannot parse a routing
+// header and would BROADCAST it to every member on the socket carrying lockstep traffic.
 static const char RELAY_IDN_TAG[]  = "GXIDN";
 // The sentinel that means "forget my identity" - /logout. A bare '-' cannot be mistaken for a
 // document: the shortest legal assertion is far longer and '-' fails every field check.
@@ -169,16 +141,9 @@ static GXRelayIdentityDebt s_relayIdentityDebt;
 static char s_authFenceRoom[32] = { 0 };
 static UnsignedInt s_authFenceVirtualIP = 0;
 static UnsignedShort s_authFencePort = 0;
-// GeneralsX: Is this that membership? The fence, and what
-// Transport::isRelayIdentityStranded counts. NOT gated on the debt: a sign-in settles the debt
-// when the new assertion is SENT, not when the relay has it, so a GXAUTH arriving after it can still come
-// from a member that carries the account left behind. Only a different membership is out of scope - which
-// is how GXLobbyPresence lifts its own fence (GXYOU). The port keeps it off the in-match socket (8088),
-// which shares the lobby's (room, id) in a hosted game. That socket DOES carry an account - relay.js gives
-// every non-lobby member its lobby twin's sub/role/subExp (adoptLobbyAccount, at register and in the sweep)
-// - but it needs no fence: every sign-out is made on TheLAN's lobby transport, the account the 8088 member
-// holds follows the twin that sign-out cleared, and each match builds a new Transport, so it never holds a
-// secret issued before that match began.
+// True for the (room, id) membership that was signed out. Not gated on the debt: a GXAUTH can still arrive from a
+// member carrying the old account after a new sign-in is sent. The in-match socket needs no fence: every sign-out is
+// made on the lobby transport, and each match builds a new Transport.
 static Bool gxIsSignedOutMembership( UnsignedShort port, const char *room, UnsignedInt virtualIP )
 {
 	return s_authFenceRoom[0] != '\0' && s_authFencePort == port && s_authFenceVirtualIP == virtualIP
@@ -187,83 +152,21 @@ static Bool gxIsSignedOutMembership( UnsignedShort port, const char *room, Unsig
 static const char RELAY_SEEN_TAG[] = "GXSEEN";
 static const char RELAY_HERE_TAG[] = "GXHERE";
 
-// GeneralsX: The unicast peer line - see sendRelayPeerLine in Transport.h.
-//
-// This tag lives INSIDE a relayed datagram, after the 12-byte GXR1 routing header, where a game
-// packet would be. It is therefore NOT a relay control tag and is never compared against one: the
-// relay's parseHeader succeeds on the datagram, so the payload is forwarded opaquely and its first
-// bytes are never inspected. That is what keeps it off the broadcast path on every relay build,
-// including ones that have never heard of this feature.
-//
-// It is matched BEFORE decryption, against ciphertext-shaped bytes, so a false positive would eat a
-// real game packet. Seven bytes of fixed pattern makes that about one in 2^56 - the same argument
-// the relay's own unknown-control guard makes for its five-byte shape test, with two more bytes of
-// margin because a mistake here is silent rather than logged.
+// The unicast peer line (see sendRelayPeerLine in Transport.h). The tag lives inside a relayed datagram after the
+// 12-byte GXR1 routing header, so it is never a relay control tag and the relay forwards it opaquely.
 static const char RELAY_PEER_TAG[] = "GXPEER ";
 
-// GeneralsX: Direct peer-to-peer. The relay's capability announcement,
-// and the only new tag on the wire between a client and a relay.
-//
-//     GXCAPS <flags> <a.b.c.d:port>        relay -> client, unprompted, riding each GXRLY
-//
-// It travels relay -> CLIENT and never the other way, and that direction is the entire
-// compatibility argument: this change adds NO client -> relay tag at all. The relay volunteers
-// this in answer to the registration it already parses, an older relay simply never says it, and
-// a client that never hears it keeps every datagram on the relay.
-//
-//
-//
-//
-//
-//
-// <flags> is a comma-separated token list so a later capability costs no new tag. "p2p" is the one
-// token this build looks for. Its ABSENCE, in a GXCAPS that is otherwise well formed, is an
-// explicit and immediate "off" - that is the server-pushed kill switch, and it does not need a
-// relay restart, because this rides the 5 s registration keepalive.
-//
-// <a.b.c.d:port> is the source endpoint the relay observed this very datagram's request arriving
-// from - our server-reflexive candidate, per socket, for free. Taken from the relay's observation
-// and never from any client's claim, which is the one rule that makes it worth anything.
+// GXCAPS <flags> <a.b.c.d:port>: relay -> client only, riding each GXRLY. No client -> relay tag is added, because an
+// older relay broadcasts an unknown control tag to the room on the lockstep socket; it simply never says it.
+// flags is a comma-separated token list; its absence in an otherwise well-formed GXCAPS turns direct off (kill switch).
+// The endpoint is the source the relay observed for the request, never a client claim.
 static const char RELAY_CAPS_TAG[] = "GXCAPS";
 static const char RELAY_CAP_P2P[] = "p2p";
 
-// GeneralsX: Per-packet authentication. The capability token that replaces
-// 'p2p', and the key-distribution tag that goes with it.
-//
-//     GXCAPS p2pauth <a.b.c.d:port>                        relay -> client (existing tag)
-//     GXPKEY <room> <ourId> <peerId>:<key> ...             relay -> the member ALONE
-//
-// RELAY -> CLIENT ONLY, riding the registration the relay already parses, exactly like GXCAPS and
-// GXAUTH and for the identical reason: this change adds no client -> relay tag at all. An older
-// relay simply never says 'p2pauth', never sends a GXPKEY, and every client stays relayed.
-//
-//
-//
-//
-// "GXPKEY" is six characters and is a byte-prefix of nothing and prefixed by nothing in the tag
-// set - it differs from GXPING and GXPLAT at the third byte and from GXKEY at the third byte too,
-// which matters because the dispatch below is a fixed-length memcmp. tools/relay/test-identity.js
-// asserts both that property and the /^GX[A-Z]{3,4} / shape an older relay's unknown-tag guard
-// requires; the tag is added to that array with this change.
-//
-// Each entry is `<peerId>:<key>` where peerId is the dotted virtual address every other part of
-// this protocol already speaks and key is 16 bytes of base64url, 22 characters, no padding. Seven
-// peers at 38 bytes plus a 55-byte preamble is at most 321 bytes, inside the 476 that is safe on
-// this socket.
-//
-// THE KEY IS A CREDENTIAL and is treated as one throughout: it is never logged, not truncated and
-// not "just the first few characters", and there is no accessor that returns one. What IS logged is
-// how many arrived.
-// GeneralsX: 'p2pauth' REPLACES 'p2p'; it does not join it, and this
-// client no longer honours the bare token at all.
-//
-// A whole-token compare is what makes that work in both directions. A client older than this change
-// looks for exactly "p2p", finds nothing in "p2pauth", and stays relayed - which is where a client
-// that cannot authenticate belongs, and it is why the relay was changed to swap the token rather
-// than append one. This client looks for exactly "p2pauth", finds nothing in "p2p", and also stays
-// relayed - so a relay that predates this, or one with the feature off, leaves the direct path dark
-// instead of taking it with no authentication. Every combination that is not "both sides have this"
-// ends on the relay.
+// GXCAPS p2pauth <a.b.c.d:port> and GXPKEY <room> <ourId> <peerId>:<key> ...: both relay -> client only (see GXCAPS).
+// p2pauth replaces p2p; the bare token is no longer honoured, so any mismatched pair stays relayed.
+// Keys are 16 bytes of base64url (22 characters) and are credentials: never logged, no accessor returns one.
+// GXPKEY differs from GXPING, GXPLAT and GXKEY at the third byte, so the memcmp dispatch stays unambiguous.
 static const char RELAY_CAP_P2PAUTH[] = "p2pauth";
 // GeneralsX: Whether we say GX_RELAY_SEATS_WORD, per relay. See GXRelaySeats, and relay.js
 // SEATS_WORD. STATIC, because requestRelayIdentity is static and has to learn this before any transport exists. Set only by a reply that
@@ -279,22 +182,9 @@ static const char GX_AUTH_DOMAIN[] = "GXA1";
 // And the domain for the key ID derivation. Separate, so an id can never collide with a tag.
 static const char GX_AUTH_ID_DOMAIN[] = "GXAID/1";
 
-// GeneralsX: The relay's proof-of-holding secret for our virtual address.
-//
-//     GXRLY <room> <id> [<secret>]     client -> relay
-//     GXAUTH <room> <id> <secret>      relay -> the claimant ALONE
-//
-// Six characters, and it differs from GXADV at the fourth byte, so it is not a byte-prefix of any
-// existing tag under the fixed-length memcmp dispatch below.
-//
-// RELAY -> CLIENT to establish, and that direction is again the whole compatibility story - the
-// same shape as GXCAPS. The client sends the THREE-word registration until a relay has handed it a
-// secret, and only a relay carrying this change ever does. That is not politeness: relay.js's
-// parseRegistration tests the word count exactly, so a four-word GXRLY aimed at an older relay is
-// not ignored, it is REFUSED, and this client would be off the relay entirely with nothing in any
-// log to explain it.
-//
-// See m_relayAuth in Transport.h for what the secret is for and why it is never logged.
+// GXRLY <room> <id> [<secret>] (client -> relay) and GXAUTH <room> <id> <secret> (relay -> the claimant alone).
+// The client sends the three-word registration until a relay hands it a secret: relay.js parseRegistration tests the
+// word count exactly, so a four-word GXRLY to an older relay is refused, not ignored. See m_relayAuth in Transport.h.
 static const char RELAY_AUTH_TAG[] = "GXAUTH";
 static const Int RELAY_SECRET_LEN = 22;			///< 16 bytes of base64url, no padding. relay.js SECRET_RE.
 
@@ -382,30 +272,10 @@ static UnsignedShort relayLobbyPortFor( const char *relayHost )
 }
 
 
-// GeneralsX: Direct peer-to-peer timings and wire constants.
-//
-// The peer-to-peer control datagram. It is NOT a relay tag and is never addressed to the relay as
-// a control message; it is an ordinary payload inside the GXR1 routing envelope, so the relay
-// forwards it to one peer exactly as it forwards a game packet, without looking at it. That is why
-// this needs no relay change to carry, and why a probe - which goes peer to peer and never touches
-// the relay at all - has the identical framing to the traffic it is trying to prove:
-//
-//     [ GXR1 header (12) ][ 'GXD1' (4) ][ subtype (1) ][ nonce (4) ][ room tag (4) ][ payload ]
-//
-//     subtype 0 PROBE    - no payload.                                25 bytes on the wire
-//     subtype 1 PROBEOK  - no payload, echoes the PROBE's nonce.      25 bytes
-//     subtype 2 CAND     - [ count (1) ][ (addr 4, port 2) * count ]  26..74 bytes
-//
-// GeneralsX: The room tag is new, and it grew each control datagram by
-// exactly four bytes: PROBE and PROBEOK 21 -> 25, CAND 22..70 -> 26..74. See m_p2pRoomTag for what
-// it is for. It is placed after the nonce rather than in front of the subtype so that the fixed
-// prefix every subtype shares stays one contiguous run.
-//
-// Byte budget: these are whole DATAGRAMS, not payload, and not LANMessages - they never travel
-// inside one and never touch the 471-byte sizeof(LANMessage) that LANAPI.h static_asserts against.
-// MAX_PACKET_SIZE is untouched at 476 and nothing is added to TransportMessage or CommandPacket.
-// The largest control datagram this build can emit is 12 + 4 + 1 + 4 + 4 + 1 + 8*6 = 74 bytes,
-// against a MAX_NETWORK_MESSAGE_LEN of 1024 and a 476-byte relayed-packet budget.
+// Direct peer-to-peer control datagram: an ordinary payload in the GXR1 envelope, not a relay tag, so no relay change.
+// [ GXR1 header (12) ][ GXD1 (4) ][ subtype (1) ][ nonce (4) ][ room tag (4) ][ payload ]
+// subtype 0 PROBE, 1 PROBEOK: no payload (25 bytes); 2 CAND: [ count (1) ][ (addr 4, port 2) * count ], 26..74 bytes.
+// Whole datagrams, never inside a LANMessage; the largest is 74 bytes, within MAX_PACKET_SIZE (476).
 static const UnsignedByte GX_P2P_MAGIC[4] = { 'G', 'X', 'D', '1' };
 static const UnsignedByte GX_P2P_SUB_PROBE = 0;
 static const UnsignedByte GX_P2P_SUB_PROBEOK = 1;
@@ -427,67 +297,19 @@ static const UnsignedInt GX_P2P_CAND_NOKEY = 1;
 // switch work without a relay restart, and a relay restart is what drops every match in progress.
 static const UnsignedInt GX_P2P_CAP_TTL_MS = 45000;
 
-// Probe hard for ten seconds, then stop caring. The spike upgraded a LAN pair in 102 ms and a
-// cross-NAT pair in 266 ms - so a pair that has not converged by then is behind a NAT that will not
-// be punched, and hammering it is noise on the lockstep socket. The slow retry afterwards is not
-// optimism, it is there because a peer's network can change mid-match; it costs one datagram per
-// peer per thirty seconds.
-//
-// GeneralsX: THE BUDGET IS PER PEER, NOT PER CANDIDATE, and the sentence
-// above used to claim "~40 probes per candidate". Read the loop at the bottom of p2pUpdate: it
-// sends ONE probe per probeEvery and advances nextProbe round robin. So a burst is
-// GX_P2P_BURST_MS / GX_P2P_PROBE_MS = 33 datagrams TOTAL, shared out across candCount candidates.
-// A peer offering a reflexive address plus three local interfaces therefore gets EIGHT attempts at
-// the reflexive endpoint - the only one of the four that a remote peer can ever use - spaced 1.2 s
-// apart, and that is the entire first attempt for the whole match.
-//
-// That asymmetry is why a peer on the same LAN converges every time and a remote peer often never
-// does: the LAN candidate needs no punch and succeeds on its first hit, while the reflexive one
-// needs both sides sending inside the same window, with both candidate lists and both pair keys
-// already installed - and all four of those arrive over the relay's 5 s keepalive, i.e. on a
-// schedule that has no relationship to when this window opens.
+// Probe hard for GX_P2P_BURST_MS, then back off to GX_P2P_PROBE_IDLE_MS: a pair that has not converged is behind a NAT
+// that will not be punched. The budget is per peer, not per candidate: one probe per interval goes round robin, so a
+// burst is about 33 datagrams shared across all candidates, and the reflexive endpoint gets only a few attempts.
 static const UnsignedInt GX_P2P_BURST_MS = 10000;
 static const UnsignedInt GX_P2P_PROBE_MS = 300;
 static const UnsignedInt GX_P2P_PROBE_IDLE_MS = 30000;
 static const UnsignedInt GX_P2P_CAND_MS = 1000;
 static const UnsignedInt GX_P2P_CAND_IDLE_MS = 30000;
 
-// GeneralsX: A BOUNDED re-burst for a peer that is still relayed.
-//
-// WHAT THIS FIXES, precisely: not a demotion - fc0450ac4 already re-arms the window at every site
-// that clears a route, and a demotion is evidence the route once worked. This is the other half,
-// and it is the one the 2026-08-13 report was actually about: a pair that NEVER converged. Measured
-// on the relay, the two sessions in that report carried full match traffic end to end
-// (~90 packets/s, flat, for every five-minute bucket) with no direct-floor episode at any point, so
-// nothing was ever demoted and there was nothing for the demotion re-arm to fire on.
-//
-// WHY A LATER ATTEMPT CAN SUCCEED WHERE THE FIRST DID NOT - this is the part that has to be true,
-// because a retry over a deterministic failure is just a slower deterministic failure. The punch
-// does not fail because the path is incapable; it fails because the first window is spent before
-// its preconditions are all in place. Every one of them arrives asynchronously over the relay:
-//
-//   * the far side's candidate list (GXCAND, published at candEvery),
-//   * the pair key (GXPKEY, minted and re-announced on the relay's 5 s registration keepalive),
-//   * the relay's own capability declaration (GXCAPS, same keepalive),
-//   * and, on the in-game socket, both peers actually pumping doSend rather than grinding through
-//     a map load - p2pUpdate is driven from doSend and nothing else.
-//
-// A window opened before those have landed is spent on probes that cannot be answered. A window
-// opened a minute later runs with all of them already installed and both sockets steady. Different
-// preconditions, not the same attempt repeated - which is the whole difference between a retry that
-// is worth making and one that is not.
-//
-// THE BOUND, because an unbounded retry against a genuinely un-punchable NAT is a flood with extra
-// steps. One re-burst per minute, five of them, and then this peer is left alone for the rest of
-// the match. That is ~33 padded probes per burst, ~16 KB, on a socket already carrying ~90
-// packets/s - about a 0.4% addition for ten seconds, five times. A player behind a symmetric NAT
-// ends up exactly where they are today, five minutes later and no worse: the burst cannot install a
-// route that does not work, because the only ways in are a PROBEOK answering our own nonce or a
-// PROBE from an endpoint the peer itself published.
-//
-// The allowance is restored on demotion rather than shared with it, deliberately: a route that
-// worked and then died is a BETTER candidate than one that never existed, and it must not inherit
-// an allowance already spent by a pair that was struggling before the match even started.
+// Bounded re-burst for a peer still relayed (a pair that never converged; demotions re-arm the window elsewhere).
+// A later window can succeed because the preconditions have arrived over the relay by then: the far side candidates
+// (GXCAND), the pair key (GXPKEY), the capability (GXCAPS) and both peers pumping doSend.
+// One re-burst per minute, five at most, then the peer is left alone. The allowance is restored on demotion.
 static const UnsignedInt GX_P2P_REBURST_MS = 60000;
 static const UnsignedInt GX_P2P_REBURST_MAX = 5;
 
@@ -497,21 +319,10 @@ static const UnsignedInt GX_P2P_REBURST_MAX = 5;
 static const UnsignedInt GX_P2P_KEEPALIVE_MS = 1000;
 static const UnsignedInt GX_P2P_DEAD_MS = 3000;
 
-// GeneralsX: Probes are padded to the size of the largest real datagram
-// (MAX_PACKET_SIZE payload; the relay header and auth trailer ride on top exactly as they do for
-// game traffic), so a successful PROBE/PROBEOK round trip proves the path carries what the game
-// will actually send. Without the padding, a route through a NAT or link that silently drops
-// ~500-byte datagrams but passes small ones looks perfectly healthy - probes and ACKs keep
-// arriving, lastDirectRecvMs stays fresh - while every file-transfer chunk and full game packet
-// dies until the 60 s transfer timeout bounces the lobby. The parser has always accepted any
-// length >= GX_P2P_CTRL_MIN, so padded probes are compatible in both directions.
-//
-// GX_P2P_BIGDEAD_MS demotes a route whose padded probes stop coming back: keepalives go once per
-// GX_P2P_KEEPALIVE_MS, so 3500 ms means three consecutive unanswered round trips. Cheap to trip -
-// a demoted pair plays on via the relay, and a wrongly-kept route does not play at all.
-//
-// The pad length itself - GX_P2P_PROBE_PAD_LEN - lives in Transport.h beside the auth trailer
-// size it is derived from.
+// Probes are padded to the largest real datagram (MAX_PACKET_SIZE payload plus relay header and auth trailer), so a
+// PROBE/PROBEOK round trip proves the path carries full-size game packets, not just small ones.
+// GX_P2P_BIGDEAD_MS demotes a route whose padded probes stop returning: 3500 ms is three unanswered keepalives
+// (GX_P2P_KEEPALIVE_MS). The pad length GX_P2P_PROBE_PAD_LEN lives in Transport.h.
 static const UnsignedInt GX_P2P_BIGDEAD_MS = 3500;
 
 
@@ -679,20 +490,9 @@ void Transport::p2pReset()
 	m_p2pRandState = 0;
 }
 
-// GeneralsX: Every peer forgotten, and nothing else.
-//
-// Split out of p2pReset for setRelayRoom, which has to forget the peers and must not forget the
-// rest. A virtual peer address is allocated PER ROOM out of a /24 that is only eight wide, so
-// 10.42.0.3 in the new room is a different human from 10.42.0.3 in the old one - while everything
-// this table holds about that address (its candidate list, its working route, its nonces) still
-// describes the old one's real endpoint. Keeping any of it means the new room's traffic is sent to
-// the old room's machine, and the old peer's own probes can keep the stale route fresh for as long
-// as it cares to send them.
-//
-// The capability flag, the reflexive endpoint and our own interface list are deliberately NOT
-// touched here: they are properties of this socket and of the relay, both of which survive a room
-// change unchanged, and dropping them would put the client back on the relay for a full keepalive
-// for no reason.
+// Forget every peer and nothing else. A virtual peer address is allocated per room out of a /24 only eight wide, so
+// the same address in a new room is a different human, while this table still holds the old one candidates and route.
+// The capability flag, reflexive endpoint and own interface list are kept: they belong to the socket and the relay.
 void Transport::p2pForgetPeers()
 {
 	for (Int i = 0; i < GX_P2P_MAX_PEERS; ++i)
@@ -754,19 +554,10 @@ Bool Transport::p2pEndpointStillOffered( const P2PPeer *peer, const P2PEndpoint 
 	return p2pHasCandidateEndpoint(peer, ep.addr, ep.port);
 }
 
-// GeneralsX: Drop the outstanding probes a new candidate list invalidated.
-//
-// The CAND handler replaced candCount and nextProbe and left probeNonce/probeNoncePrev with their
-// probeTo/probeToPrev endpoints alone, so a PROBEOK still in flight to an endpoint the peer had
-// just WITHDRAWN was still accepted on the (nonce, endpoint) pair and still installed as the route.
-// The withdrawal is the peer saying that endpoint is no longer theirs; honouring it a moment later
-// and then adopting it anyway is worse than not honouring it at all.
-//
-// Cleared per pair rather than wholesale, because wholesale would have a cost: candidate repeats
-// run every second in the opening burst and the keepalive probe runs every second too, so blanking
-// both nonces on every CAND would let a peer whose repeats happen to land between our probe and its
-// reply stop us ever accepting a PROBEOK - and the route would then die on the 3 s demotion with
-// nothing wrong with the path.
+// Drop the outstanding probes a new candidate list invalidated: otherwise a PROBEOK in flight to an endpoint the peer
+// just withdrew would still be accepted on its (nonce, endpoint) pair and installed as the route.
+// Cleared per pair, not wholesale: blanking both nonces on every CAND could stop us accepting a PROBEOK, and the
+// route would die on the 3 s demotion with nothing wrong with the path.
 void Transport::p2pForgetStaleProbes( P2PPeer *peer )
 {
 	if (peer == nullptr)
@@ -786,7 +577,7 @@ void Transport::p2pForgetStaleProbes( P2PPeer *peer )
 	}
 }
 
-// GeneralsX @feature Relay transport. Everything the relay needs is decided here, once per
+// GeneralsX: Relay transport. Everything the relay needs is decided here, once per
 // socket, and every check that fails leaves relay mode off rather than half on: a half-configured
 // relay would send game traffic to nowhere while the lobby still believed it was on a LAN.
 void Transport::initRelay( UnsignedShort port )
@@ -846,18 +637,9 @@ void Transport::initRelay( UnsignedShort port )
 	// for the lobby socket and lobby + 2 for the game socket - see relayPortFor.
 	const UnsignedShort relayLobbyPort = prefs.getRelayPort();
 
-	// GeneralsX: The player's veto, read once per socket alongside every
-	// other relay setting. Note this only ALLOWS direct connections; it does not enable them. See
-	// Transport::p2pActive - the relay still has to declare the capability, and a relay that has
-	// never heard of it leaves this client behaving exactly as it does today.
-	//
-	// GeneralsX: AND NEVER ON THE LOBBY SOCKET. The lobby's critical
-	// traffic is single datagrams - Game Options, Set Accept, Game Start - with no lockstep retry
-	// behind them, so one sent down a direct path the far side has silently stopped accepting (its
-	// pair key revoked by a GXPKEY snapshot) is simply lost: on 2026-09-23 that lost a Game Start.
-	// The relay already carries all of it, and nothing on 8086 needs the latency - map transfer runs
-	// on the in-game socket (FileTransfer.cpp -> TheNetwork). A peer on an older build cannot go
-	// direct to us here either: it has no candidate of ours to probe, and we never probe it.
+	// The player veto, read once per socket. This only allows direct connections; Transport::p2pActive still needs the
+	// relay capability. Never on the lobby socket: its single datagrams (Game Options, Set Accept, Game Start) have no
+	// lockstep retry, so one sent down a dead direct path is lost. Map transfer uses the in-game socket.
 	m_p2pAllowed = !prefs.getRelayOnly() && (port != RELAY_LOBBY_PORT);
 	if (!m_p2pAllowed)
 	{
@@ -887,13 +669,9 @@ void Transport::initRelay( UnsignedShort port )
 			strlcpy(m_relayRegion, token, sizeof(m_relayRegion));
 	}
 
-	// GeneralsX: EVERY way this function can leave relay mode off while the
-	// player asked for it is release-visible from here down. DEBUG_LOG is compiled out of a shipping
-	// build, which is how the 2026-09-18 Linux host ran for hours as a plain LAN peer with nothing
-	// saying so; fixing only the resolve branch left the other exits with exactly that defect.
-	// The two returns below stay quiet ON PURPOSE and are not the same class: no RelayAddress is
-	// LAN play, not a failure, and a non-relay port is every other socket the game opens - printing
-	// there would be noise on a correct run, which is how a real line gets ignored.
+	// Every way this function can leave relay mode off while the player asked for it is release-visible from here down:
+	// DEBUG_LOG is compiled out of a shipping build, so a host could run for hours as a plain LAN peer with nothing saying so.
+	// The two returns below stay quiet on purpose: no RelayAddress is LAN play, and a non-relay port is every other socket.
 	if (relayHost.isEmpty())
 		return;		// No relay configured - ordinary LAN behaviour.
 
@@ -910,20 +688,10 @@ void Transport::initRelay( UnsignedShort port )
 	}
 
 #ifndef _WIN32
-	// Two instances on one machine share the port and are told apart only by a per-instance
-	// 127.x bind, which the wildcard bind relay mode needs would collide with. They are on the
-	// same machine anyway, so they have nothing to gain from a relay.
-	//
-	// _WIN32 is excluded because Windows never does that narrow bind - the code that applies it in
-	// Transport::init is itself #ifndef _WIN32, so there is nothing here to collide with. On
-	// Windows RTS_MULTI_INSTANCE only changes the name of the single-instance mutex.
-	//
-	// That distinction is load-bearing, not pedantry. The Windows dev build sets
-	// RTS_DEBUG_MULTI_INSTANCE so it can run alongside retail Generals and Generals Online, which
-	// share a mutex name with it. Without this guard being platform-gated, every Windows build made
-	// that way silently loses relay mode: initRelay returns early, the bind falls back to the
-	// virtual address, and the game dies with WSAEADDRNOTAVAIL on an address that is on no
-	// interface. Which is exactly what happened on the first Windows relay attempt.
+	// Two instances on one machine share the port and are told apart only by a per-instance 127.x bind, which the
+	// wildcard bind that relay mode needs would collide with. They share a machine, so a relay gives them nothing.
+	// _WIN32 is excluded: Windows never does that narrow bind (Transport::init does it under #ifndef _WIN32), and there
+	// RTS_MULTI_INSTANCE only renames the single-instance mutex.
 	if (rts::ClientInstance::isMultiInstance())
 	{
 		fprintf(stderr, "[GXRELAY] port %d: relay mode OFF: multi-instance clients need the narrow per-instance bind\n", port);
@@ -935,9 +703,8 @@ void Transport::initRelay( UnsignedShort port )
 	const UnsignedInt relayAddr = ResolveIP(relayHost);
 	if (relayAddr == 0 || relayAddr == INADDR_NONE)
 	{
-		// GeneralsX: Release-visible, not DEBUG_LOG. On 2026-09-18 the
-		// standing Linux host could not resolve its RelayAddress and ran for hours as a plain LAN
-		// host: this was the only line that said so, and a shipping build compiles it out.
+		// Release-visible, not DEBUG_LOG: a host that cannot resolve its RelayAddress would otherwise run as a plain LAN host
+		// with no sign of it, since a shipping build compiles DEBUG_LOG out.
 		fprintf(stderr, "[GXRELAY] port %d: relay mode OFF: could not resolve RelayAddress '%s'\n",
 			port, relayHost.str());
 		fflush(stderr);
@@ -1007,7 +774,7 @@ UnsignedShort Transport::relayPortFor( UnsignedShort localPort ) const
 	return localPort;
 }
 
-// GeneralsX @feature Relay transport. The header is written and read here rather than through
+// GeneralsX: Relay transport. The header is written and read here rather than through
 // queueSend, for the same reason sendRelayRegistration bypasses it: everything that goes through
 // the normal path is CRC'd and XOR-encrypted, and the relay has to be able to read the destination
 // without being able to interpret - or corrupt - anything else in the packet.
@@ -1029,12 +796,9 @@ Int Transport::writeRelayHeader( UnsignedByte *dest, UnsignedInt dstVirtualIP ) 
 	return GX_RELAY_HEADER_SIZE;
 }
 
-// GeneralsX: The DESTINATION is read and returned now. It used to be
-// skipped entirely - the comment above describes a 12-byte header and this function parsed eight
-// of them - on the reasoning that the relay had already routed the datagram, so whatever arrived
-// was for us by construction. That reasoning was retired by the direct path and nobody noticed:
-// a peer-to-peer datagram never passes the relay at all, so the ONLY thing that ever checked
-// "addressed to you" is no longer on the path. See relayHeaderIsForUs for what is done with it.
+// GeneralsX: The DESTINATION is read and returned. The comment above describes a 12-byte header, and a
+// peer-to-peer datagram never passes the relay, so nothing else checks "addressed to you".
+// See relayHeaderIsForUs for what is done with it.
 Bool Transport::readRelayHeader( const UnsignedByte *src, Int len, UnsignedInt &srcVirtualIP,
 	UnsignedInt &dstVirtualIP ) const
 {
@@ -1064,7 +828,7 @@ Bool Transport::relayHeaderIsForUs( UnsignedInt dstVirtualIP ) const
 	return (m_localVirtualIP != 0) && (dstVirtualIP == m_localVirtualIP);
 }
 
-// GeneralsX @feature Relay transport. Written straight to the socket rather than through
+// GeneralsX: Relay transport. Written straight to the socket rather than through
 // queueSend, which would CRC and encrypt it: the relay has to be able to spot this packet without
 // understanding anything else on the wire.
 void Transport::sendRelayRegistration()
@@ -1082,33 +846,10 @@ void Transport::sendRelayRegistration()
 	seats.sent();
 	m_udpsock->Write((const unsigned char *)m_relayRegistration, m_relayRegistrationLen, m_relayAddr, m_relayPort);
 
-	// GeneralsX: The signed identity - or the sign-out clear still owed - WITH
-	// EVERY REGISTRATION and directly after it. It used to ride the 30 s tag tick below.
-	//
-	// Any registration can CREATE the membership rather than refresh it, and the client is never told
-	// which: after a relay restart, or once a retired binding it could reclaim is gone, the relay files
-	// this socket as a fresh member with no identity. Declaring the identity with every registration
-	// means a fresh membership carries its account from its first keepalive, not up to 30 s later. (A
-	// reclaim WITH the registration secret already carries the account across.)
-	//
-	//
-	//
-	//
-	//
-	//
-	// AFTER the registration, never before: the relay silently discards an identity from an endpoint
-	// it has not filed as a member. And BEFORE the advertisement, so the relay's advert gate judges a
-	// fresh member with its account already on it.
-	//
-	// WHY THE 30 s ARGUMENT BELOW DOES NOT HOLD THIS TAG BACK. It protects the room from a relay too old
-	// to know a tag, and such a relay drops GXIDN (it has the control-tag shape). The
-	// lobby presence socket already sends GXIDN to the same relay port (8086) every 5 s. And only the
-	//
-	//
-	// LOBBY transport ever holds an identity: the in-match transport (8088), the one carrying lockstep
-	// traffic, holds none and owes no clear, so nothing here is ever written on it (see
-	// GXRelayIdentityWire.h). A no-op for a player who never signed in. Cost while signed in: one
-	// ~300-byte datagram per 5 s keepalive, and one Ed25519 verify on the relay.
+	// Send the signed identity (or the sign-out clear still owed) with every registration and right after it, not on the
+	// 30 s tag tick: any registration can create the membership (e.g. after a relay restart), and a member with no
+	// identity cannot be muted or banned. Sent after the registration (the relay discards an identity from a non-member)
+	// and before the advertisement. Only the lobby transport holds an identity.
 	resendRelayIdentity();
 	resendRelayAdminKey();	// GeneralsX: same cadence, same socket; see Transport.h
 
@@ -1119,17 +860,9 @@ void Transport::sendRelayRegistration()
 
 	m_lastRelayRegistration = timeGetTime();
 
-	// GeneralsX: The OS tag and the relay RTT also need re-sending
-	// rather than announcing once, because the relay holds them on the member record and a relay
-	// restart forgets them - a peer that announced at join time would stay permanently untagged
-	// after a relay restart, which looks exactly like the feature being broken.
-	//
-	// But NOT on the 5 s registration cadence: a relay that predates these tags has to discard each
-	// one, and every 30 s costs a sixth of that. It costs nothing in the normal case because both
-	// values are sticky on the relay.
-	//
-	//
-	//
+	// The OS tag and relay RTT are re-sent, because the relay keeps them on the member record and a restart forgets them.
+	// Not on the 5 s registration cadence: a relay that predates these tags broadcasts an unrecognised control datagram to
+	// every member of the room on the lockstep socket. 30 s costs a sixth of that.
 	static const UnsignedInt RELAY_TAG_INTERVAL = 30000;
 	if (m_lastRelayTagsMs == 0 || (m_lastRelayRegistration - m_lastRelayTagsMs) >= RELAY_TAG_INTERVAL)
 	{
@@ -1146,19 +879,9 @@ void Transport::sendRelayRegistration()
 		// out directly after every registration, above, because a member the relay creates afresh
 		// must be identified the moment it exists. Do not add it back here as well.
 
-		// GeneralsX: The lobby name, on this same 30 s cadence and for the
-		// same two reasons: it lives on the per-ROOM member record so a relay restart or a room
-		// change forgets it, and an un-updated relay is charged one dropped datagram every 30 s
-		// rather than one every 5 s.
-		//
-		// HOSTS ONLY, and only hosts that have ACTUALLY NAMED SOMETHING. The name describes a
-		// LISTING, so this is gated on the same m_advertisementLen the roster request below uses;
-		// and a lobby that was never named has nothing to keep alive, because the state the relay
-		// forgets on a restart - no name - is the state we want. That makes the common case free
-		// rather than one datagram every 30 s, which matters most against a relay too old to
-		// recognise the tag: there it is not an ignored datagram, it is a BROADCAST to every peer in
-		// the room. The declared latch is what keeps a CLEARED name re-sending, so the single '-'
-		// that retracts a name is not a lost-packet away from a permanently wrong browser row.
+		// Lobby name, on the same 30 s cadence and for the same reasons (per-room member record; an older relay broadcasts
+		// the unknown tag). Hosts only, and only once something was named. The declared latch keeps a cleared name
+		// re-sending, so the sentinel that retracts a name is not lost to one dropped datagram.
 		if (m_advertisementLen > 0 && (m_relayLobbyName[0] != '\0' || m_relayLobbyNameDeclared))
 			resendRelayLobbyName();
 
@@ -1241,23 +964,9 @@ Bool Transport::buildRelayRegistration( const char *room )
 }
 
 /*
- * GeneralsX: Take the relay's registration secret off the wire and start
- * presenting it. See RELAY_AUTH_TAG and m_relayAuth.
- *
- * CALLER-GATED ON THE SOURCE, like every other relay capture, and here the gate matters as much as
- * it does for GXCAPS: what this writes is the word this client will present as proof of who it is.
- * A GXAUTH from anywhere but the relay's address AND the relay's port is not the relay speaking,
- * and accepting one would let a stranger overwrite a working credential with a wrong one - which
- * the relay would then read as a client that has lost its secret, so the honest client would be
- * refused the moment its NAT rebound. The gate is in doRecv, beside the other captures.
- *
- * THREE FIELDS ALL CHECKED, not just parsed. The room and the id have to be the ones we are
- * actually registering under, because a secret is issued per (room, identity) pair: applying one
- * meant for a room we have left, or for an address we no longer hold, would send a credential that
- * cannot match and would stop us ever presenting the right one.
- *
- * NOTHING IS LOGGED THAT CONTAINS THE SECRET. The line below deliberately names the room and says
- * only that a secret arrived.
+ * Take the registration secret off the wire and present it from now on. See RELAY_AUTH_TAG and m_relayAuth.
+ * Caller-gated on the source (relay address and port, in doRecv): a stranger could overwrite a working credential.
+ * Room and id are both checked: a secret is issued per (room, identity) pair. Nothing logged contains the secret.
  */
 Bool Transport::captureRelayAuth( const UnsignedByte *msg, Int len )
 {
@@ -1301,44 +1010,10 @@ Bool Transport::captureRelayAuth( const UnsignedByte *msg, Int len )
 	// count (gxRelayAuthHasCap). A relay that answers without 'gxm1' - an older one, a rollback - clears it.
 	m_relayRecordsMatch = gxRelayAuthHasCap(line + tagLen + 1, "gxm1") ? TRUE : FALSE;
 
-	// GeneralsX: FENCED AFTER A SIGN-OUT, or the clear above is undone within one
-	// keepalive.
-	//
-	// The relay repeats the secret on any registration from the owning endpoint that did not present it
-	// (relay.js AUTH_TAG, "!provenNow && !presentsProof"). Our first bare keepalive after a sign-out is
-	// exactly that, and while the membership is still live it is answered with THE SAME member.secret -
-	// so without this the credential is back 5 s later and the reclaim it enables comes back with it.
-	// Not a rare race: it is the guaranteed path.
-	//
-	// GeneralsX: NOT LIFTED BY A SIGN-IN. It used to lift when a new
-	// assertion was declared, "because a reclaim then restores the account we have just declared" - but
-	// declaring is SENDING. With the clear and the first new GXIDN both lost, the member still carries the
-	// old account when the relay's GXAUTH arrives, and nothing in a GXAUTH says which account it was issued
-	// under. Taken, that secret reclaims the old sub/role/ban, and a banned one is dropped on every
-	// keepalive before the new assertion can attach. So this id stays bare for as long as it is ours, which
-	// costs one repeated GXAUTH per keepalive and means a public-address change loses the id.
-	//
-	// NOT the same trade GXLobbyPresence took, and costlier in two ways:
-	//  - The way out, isRelayIdentityStranded, is taken only by the Online screen while it is idle (no game,
-	//    nothing in flight - WOLLobbyMenu relayReacquireIfStranded). A player who signed out, then hosts from
-	//    this membership and has the NAT rebind, loses the staging room with no recovery; the presence socket
-	//    re-asks GXWHO wherever it is.
-	//  - The presence socket keeps a DIFFERENT secret for its signed-out (room, id) once a GXYOU has re-assigned
-	//    it (gxRelayFenceAdmits). This socket never does: it has no re-assignment signal, and without one a
-	//    different secret may be a re-mint for the signed-out member itself, landing after the sign-out - the
-	//    case r6 keeps strict. Its only escape from a reused number is enterRelayRoom's re-ask (FIX-12), so a
-	//    fresh membership minted WITHOUT a new entry (a relay redeploy, or every record lapsing while the socket
-	//    keeps its id) is fenced too, and strands on a later rebind the same way.
-	// Liveness only, both of them: nothing the fence refuses can restore an account.
-	//
-	// GeneralsX: ONLY FOR THE MEMBERSHIP THAT WAS SIGNED OUT. Fenced on the port
-	// alone, every later membership on 8086 - a Direct Connect join, a browser join - lost its secret
-	// until the next sign-in, and with it its id across a NAT rebind. None of those ever carried the
-	// account signed out of, so their secret cannot restore it and is safe to take.
-	//
-	// GeneralsX: BELOW the (room, id) checks now, so the answer above is counted
-	// first; the copies of a secret we are refusing are wiped here, as GXLobbyPresence wipes its own. The
-	// lost id is no longer a lockout: see isRelayIdentityStranded.
+	// Fenced after a sign-out: the relay repeats the secret on any registration that did not present it, so without this
+	// the cleared credential is back one keepalive later and the reclaim restores the account just signed out of.
+	// A sign-in does not lift the fence: a GXAUTH does not say which account it was issued under. Only the signed-out
+	// (room, id) membership is fenced. The copies of a refused secret are wiped; see isRelayIdentityStranded.
 	if (gxIsSignedOutMembership(m_port, m_relayRoom, m_localVirtualIP))
 	{
 		gxSecureClear(gotSecret);
@@ -1372,22 +1047,10 @@ Bool Transport::captureRelayAuth( const UnsignedByte *msg, Int len )
 	return TRUE;
 }
 
-// GeneralsX: THE FENCE'S TRADE, CLOSED THE WAY GXLobbyPresence CLOSED IT.
-//
-// captureRelayAuth keeps the signed-out membership bare, so once the public address changes relay.js's
-// register() refuses every keepalive - an unproven endpoint move while the old member lives, then a camp
-// on its own retired binding, and each refusal extends that binding. A later sign-in settles the debt but
-// brings no secret back, so it does not help either. GXLobbyPresence::update re-asks GXWHO after
-// GX_FENCED_UNACKED_MAX unanswered keepalives; this is the same count, kept from doSend's keepalive only.
-//
-// MORE THAN the max, because the count moves as each keepalive LEAVES: at max + 1 the max before it have
-// each had a whole interval to be answered - the moment the presence socket re-asks.
-//
-// THE TRANSPORT DOES NOT RE-ASK ITSELF. Its id is also LANAPI's m_localIP and every LANGameInfo's snapshot
-// of it, so a new one has to come in through the owner - enterRelayRoom then SetLocalIP, the sequence every
-// relaying path uses (see Transport::init). A new id is never the fenced one (relay.js assignIdentity skips
-// an id that is live, assigned or retired), and its secret restores no account, so nothing the fence
-// discards comes back. Silence is the only signal, so an older relay or a stricter one reads the same.
+// The fence trade: captureRelayAuth keeps the signed-out membership bare, so after a public address change the relay
+// refuses every keepalive. Same count as GXLobbyPresence (GX_FENCED_UNACKED_MAX), kept from doSend keepalives only.
+// The transport does not re-ask itself: its id is also LANAPI m_localIP, so a new id comes in through the owner
+// (enterRelayRoom then SetLocalIP). Silence is the only signal.
 Bool Transport::isRelayIdentityStranded() const
 {
 	return m_fencedUnacked > GX_FENCED_UNACKED_MAX;
@@ -1419,19 +1082,9 @@ Bool Transport::setRelayRoom( const char *room )
 	m_peerHead = 0;
 	m_peerCount = 0;
 
-	// GeneralsX: Forget every direct route, candidate and probe nonce.
-	//
-	// This function already knew that a room slot means a different person after a room change -
-	// that is the whole argument for dropping the peer lines above - and then left the direct
-	// peer-to-peer table, which is keyed by exactly the same per-room addresses, entirely alone.
-	// So doSend went on sending the NEW room's traffic to the OLD room's real endpoint, silently
-	// and for the whole match: attribution above this layer is by virtual address, so nothing
-	// upstream could see it. Worse, the route did not even age out, because the old peer is still
-	// running and its own probes keep refreshing the liveness timer that the demotion reads.
-	//
-	// A candidate list is a claim and a route is a measurement, but both were measured about
-	// somebody else. Nothing here can be salvaged, and nothing needs to be: the relay path is
-	// always available and the pair re-converges in ~100 ms of probing.
+	// Forget every direct route, candidate and probe nonce. The direct table is keyed by the same per-room addresses as the
+	// peer lines above, so otherwise the new room traffic would go to the old room endpoint, and the old peer probes would
+	// keep the route fresh. The relay path always works and the pair re-converges quickly.
 	p2pForgetPeers();
 
 	// Announce at once rather than waiting out the keepalive. The caller is about to try to reach
@@ -1443,19 +1096,10 @@ Bool Transport::setRelayRoom( const char *room )
 	return TRUE;
 }
 
-// GeneralsX: Rooms we have direct evidence are dead, and the withdrawal
-// serial the browser watches. See the declarations in Transport.h for what they are for.
-//
-// PROCESS-WIDE STORAGE, deliberately, and that is the whole reason they are file statics rather
-// than members: the transport that learns a game is dead is routinely deleted before the browser
-// that needs to know can ask. Returning to the lobby after leaving a game runs
-// SetUpOnlineLobbyLAN(), which deletes TheLAN and builds a new one, so per-instance state would be
-// discarded by the exact transition this exists to cover.
-//
-// FOUR entries, fixed. A player can only watch one game die at a time and every entry expires on
-// the relay's own advert timeout, so the table is never under pressure. The room is stored whole
-// rather than hashed: captureGameListReply compares against the room the relay just named, and a
-// collision there would hide somebody else's live game.
+// Rooms with direct evidence of being dead, and the withdrawal serial the browser watches (see Transport.h).
+// Process-wide file statics on purpose: the transport that learns a game is dead is deleted before the browser asks
+// (returning to the lobby rebuilds TheLAN). Four fixed entries; the room is stored whole, not hashed,
+// so a collision cannot hide a live game.
 static const Int GX_SUPPRESSED_ROOMS = 4;
 struct SuppressedRoom
 {
@@ -1551,21 +1195,10 @@ UnsignedInt Transport::getAdvertWithdrawSerial()
 	return s_advertWithdrawSerial;
 }
 
-// GeneralsX: Transmit the advertisement the moment it is SET, not on the
-// next 5 s keepalive.
-//
-// Until now m_advertisement was only ever written to the socket by sendRelayRegistration(), which
-// doSend() calls on RELAY_REGISTRATION_INTERVAL. So setGameAdvertisement() filled a buffer that
-// might not leave the machine for up to five seconds, and the game was invisible to every browser
-// for that whole window. Measured 2026-08-08 with scripts/test/gxlist-probe.py against a headless
-// host: room ABSENT at +0.0 s, LISTED at +5.0 s - the publish waited out exactly one keepalive.
-// Worse in the case the operator hit: a host that reaches "starting match" inside that window is
-// never listed at all, because the first keepalive never fires while the lobby is up.
-//
-// The compare-before-store matters. RequestGameOptions is the hook that calls this, and it runs on
-// every slot-list change AND on the host's 10 s periodic, so sending unconditionally would put a
-// duplicate GXADV on the wire several times a second in a busy lobby. Only a CHANGED listing is
-// worth a datagram; an unchanged one is already being kept alive by the keepalive.
+// Transmit the advertisement as soon as it is set, not on the next 5 s keepalive, or the game stays invisible to
+// browsers (and is never listed if the match starts inside that window).
+// Compare before store: RequestGameOptions calls this on every slot change and on a 10 s periodic, so only a
+// changed listing is sent.
 void Transport::setGameAdvertisement( const char *name, const char *map, Int players, Int slots )
 {
 	if (!m_relayEnabled || m_relayRoom[0] == '\0')
@@ -1593,20 +1226,10 @@ void Transport::setGameAdvertisement( const char *name, const char *map, Int pla
 		safeMap[n++] = (*c == '|' || *c == '\n' || *c == '\r') ? '/' : *c;
 	safeMap[n] = '\0';
 
-	// Built into scratch first: a failed snprintf must not be able to destroy a listing that is
-	// currently good, which is what writing straight into m_advertisement used to allow.
-	//
-	// GeneralsX: THE PER-GAME ID, as "<slots>.<8 hex>". Drawn when a listing STARTS (none
-	// held) and kept for every refresh of it, so two games whose names, map and counts match are still two
-	// different GXADV byte strings. The relay binds a lobby's seats to those bytes (relay.js listingTag, SLOT_TAG)
-	// and GXSLOT names them (resendRelaySlots), so without this a host that ended game A - every GXUNAD lost - and
-	// listed an identical game B within the 15 s expiry had A's seats carried onto B until B's own GXSLOT landed
-	// No bytes would have told the relay the two apart; now the very first GXADV of B
-	// does. p2pNextNonce is the transport's own xorshift, not rand(), for the lockstep reason it gives.
-	//
-	// IN THE SLOTS WORD because every relay ever deployed reads it with Number.parseInt(parts[4], 10), which
-	// stops at the '.', so an older relay lists "8" exactly as before and hands no browser a byte of the id;
-	// a new field anywhere after it would be folded into the map name instead.
+	// Built into scratch first: a failed snprintf must not destroy a listing that is currently good.
+	// The per-game id rides in the slots word as slots.8hex, drawn when a listing starts and kept across refreshes. The
+	// relay binds seats to the GXADV bytes, so identical games re-listed within the 15 s expiry stay distinguishable.
+	// Older relays read the slots word with parseInt, which stops at the dot. p2pNextNonce is a xorshift, not rand().
 	if (m_advertisementLen <= 0)
 		m_advertGame = p2pNextNonce();
 	char built[sizeof(m_advertisement)];
@@ -1651,7 +1274,7 @@ void Transport::setGameAdvertisement( const char *name, const char *map, Int pla
 		sendRelayRegistration();
 }
 
-// GeneralsX @info This function only STARTS the silence. The relay delists a room when
+// GeneralsX: This function only STARTS the silence. The relay delists a room when
 // ADVERT_TIMEOUT_MS (15 s) passes without hearing about it, and that has to keep working without
 // cooperation - "a host that crashes, is killed, or loses its link simply stops advertising" is
 // the failure mode delisting exists for. What this guarantees is that the silence starts the moment
@@ -1667,19 +1290,9 @@ void Transport::clearGameAdvertisement()
 	m_advertisementLen = 0;
 }
 
-// GeneralsX: The ghost row: a game the player had just left was still
-// offered in the browser, and still dialable, for the better part of half a minute.
-//
-// Going quiet is not the same as saying the game is gone, and the difference is all of that delay:
-// the relay serves the listing until 15 s of silence have passed (ADVERT_TIMEOUT_MS) and reaps it
-// up to a sweep later, on top of which the client publishes the PREVIOUS browse sweep - see
-// publishGameList - for another 3-6 s. Withdrawing collapses the whole chain to one round trip.
-//
-// THE ROOM COMES OUT OF THE ARMED ADVERT, NOT OUT OF m_relayRoom. They are usually the same and the
-// case where they differ is the one that matters: a leaver can already have been moved into another
-// room by the time this runs, and withdrawing against m_relayRoom would then either name a room
-// whose listing is not ours - refused, correctly, by the relay's ownership test - or, worse, delist
-// a game we had just joined. The listing's own room is the only room this datagram may name.
+// Withdraw the listing instead of going quiet: the relay serves a listing until 15 s of silence (ADVERT_TIMEOUT_MS) and
+// the client publishes the previous browse sweep, so a left game stayed dialable for tens of seconds.
+// The room comes from the armed advert, not m_relayRoom: a leaver may already be in another room.
 void Transport::withdrawGameAdvertisement()
 {
 	// Nothing armed is nothing to withdraw. Silence about a room we are not listed in is not an
@@ -1775,22 +1388,9 @@ void Transport::clearAssignedIdentity()
 	s_assignedVirtualIP = 0;
 }
 
-// GeneralsX: RETIRING THE PIN WAS NOT ENOUGH, because the pin was never the
-// membership. The Online screen pins getLocalHostRoom() (SetUpOnlineLobbyLAN), and getLocalHostRoom()
-// is also where initRelay falls back with no pin, under OptionPreferences' default LocalVirtualIP
-// (10.42.0.1) - and the relay hands out .1 first in a fresh room. So with the pin cleared, Online ->
-// Back -> NETWORK still registered the online (room, id) from BOTH LAN-screen binds, byte for byte what
-// the pin would have sent, and TheLAN->reset() could send the surviving online transport's own keepalive
-// before either of them.
-//
-// So the LAN screen is LOCAL, not merely unpinned: while this is set initRelay turns no relay on (the
-// lobby socket, and the 8088 socket of a LAN game started from it, which no menu is near) and
-// sendRelayRegistration writes nothing. A fresh install's NETWORK screen stops relaying into its own
-// generated room with it - that room is the same one, and a lone member of it was never a LAN game.
-//
-// Lifted by enterRelayRoom, before it asks: every online entry calls that, answered or not, so
-// SetUpOnlineLobbyLAN's fall back to LocalVirtualIP when the relay is silent still relays. That is the
-// difference from fix/lan-local-default's gate, which read Options.ini and so turned it off.
+// While set, the LAN screen is local: initRelay turns no relay on and sendRelayRegistration writes nothing. Retiring
+// the pin was not enough, because getLocalHostRoom() also falls back to the default LocalVirtualIP (10.42.0.1), which
+// the relay hands out first. Lifted by enterRelayRoom, before it asks.
 void Transport::enterLocalScreen()
 {
 	clearAssignedIdentity();
@@ -1808,7 +1408,7 @@ static void mixRoomEntropy( UnsignedInt64 &h, UnsignedInt64 v )
 	}
 }
 
-// GeneralsX @feature Matchmaking. See the note on the declaration: one room holds exactly one
+// GeneralsX: Matchmaking. See the note on the declaration: one room holds exactly one
 // advertised game, so hosts must not share one.
 //
 // The token has to be unique against hosts on OTHER machines, so being unique within this process
@@ -1873,25 +1473,11 @@ Bool Transport::enterRelayRoom( const char *relayHost, const char *room, Unsigne
 	if (!requestRelayIdentity(relayHost, room, assigned, &first))
 		return FALSE;
 
-	// GeneralsX: NEVER ENTER AS THE SIGNED-OUT MEMBERSHIP. The fence is
-	// process-wide and never lifts, but relay.js lets every record of that (room, id) expire, after which
-	// assignIdentity hands the same id out again - in a generated room, .1 to its lone returning owner - and
-	// the fresh membership would then throw away every secret it is issued. Which of the two this answer is
-	// cannot be told from here: the sticky path (an assignment filed under an endpoint equal to this
-	// throwaway socket's) returns the id while the old membership is still live. So ask once more instead
-	// of lifting: this answer's own lease now holds that id, so the relay hands out another, and another id
-	// is never the fenced one. A silent relay keeps the first answer, fenced - the behaviour before this.
-	//
-	// GeneralsX: ...AND THE FIRST ANSWER'S LEASE IS GIVEN BACK.
-	// relay.js counts every lease as taken until its sweep releases it, MEMBER_TIMEOUT_MS after the ask, so
-	// the id nobody registered stayed one of the room's twelve for a minute: a host re-entering after a
-	// sign-out, then eleven joiners, and the last was refused. "GXBYE <room>" from the socket the lease is
-	// filed under releases it (relay.js leaveRoom: a goodbye from an endpoint that only asked); an older
-	// relay drops a stranger's datagram unanswered, so this costs nothing there. Sent twice, as every
-	// goodbye is: UDP loses datagrams and the second copy is silence at the relay. AFTER the second answer,
-	// never before it - released first, the fenced id is the lowest free one again and the second ask is
-	// handed it back. Holding the first socket open across the second ask also closes the ponytail note
-	// that stood here: an OS cannot re-issue an ephemeral port that is still bound.
+	// Never enter as the signed-out membership: the fence is process-wide and never lifts, but relay.js lets that (room,
+	// id) expire and re-issue the same id, and the fresh membership would discard every secret. If the answer is the
+	// fenced id, ask once more (the first lease now holds it); a silent relay keeps the first answer, fenced. Then
+	// release the first lease with GXBYE, sent twice (UDP), after the second answer: relay.js counts a lease as taken
+	// until its sweep, and releasing first would hand the fenced id back to the second ask.
 	UnsignedInt other = 0;
 	if (gxIsSignedOutMembership(s_authFencePort, room, assigned) && requestRelayIdentity(relayHost, room, other))
 	{
@@ -1964,21 +1550,9 @@ Bool Transport::requestRelayIdentity( const char *relayHost, const char *room,
 			if (len > 0)
 			{
 				/*
-				 * GeneralsX: It has to have come FROM THE RELAY.
-				 *
-				 * `from` was filled in and never looked at. Every OTHER relay control reply is
-				 * source-gated in doRecv - address AND port, because the relay answers from the
-				 * socket it was addressed on - and the claim was made that "all relay control is
-				 * source-gated". This one was not, and it is the earliest and most consequential of
-				 * them: the answer becomes our identity for the whole session. Anyone who could
-				 * reach this ephemeral port inside the 400 ms window could hand us an address the
-				 * relay had given to somebody else, and two clients sharing an identity is the exact
-				 * failure the assignment mechanism exists to remove - it does not fail cleanly, it
-				 * corrupts the lobby. Now that a held id is refused without its secret, it would
-				 * also mean being refused registration outright.
-				 *
-				 * A stray datagram is skipped rather than ending the attempt, so a scanner cannot
-				 * consume our one read and make the retry loop time out.
+				 * The reply must come from the relay (address and port): the answer becomes our identity for the whole session,
+				 * and a forged one could hand us an address held by someone else and corrupt the lobby.
+				 * A stray datagram is skipped rather than ending the attempt, so a scanner cannot use up our one read.
 				 */
 				if (ntohl(from.sin_addr.s_addr) != relayAddr || ntohs(from.sin_port) != lobbyPort)
 				{
@@ -2018,20 +1592,9 @@ void Transport::requestGameList()
 	if (!m_relayEnabled || !m_udpsock)
 		return;
 
-	// GeneralsX: Publish the PREVIOUS sweep; never blank the live list.
-	//
-	// This used to be `m_gameListCount = 0;` with the comment "the list is rebuilt from scratch
-	// each time". Rebuilding from scratch is right; doing it to the buffer callers are reading is
-	// not. The reply is a burst of one datagram per game, so zeroing here opened a window on EVERY
-	// refresh in which the browser read empty - which wiped the listbox, and with it the player's
-	// selection and the games' ids. See the note on getGameListCount() in Transport.h.
-	//
-	// Publishing on REQUEST is still the BACKSTOP, and it stays: settleGameList() normally has the
-	// previous sweep on screen long before this runs, but a sweep whose every reply was lost never
-	// arms the settle timer at all, and this is what keeps the suppression scrub in publishGameList()
-	// running on that path. It is no longer the primary route - see settleGameList() for why waiting
-	// a whole browse interval for a burst that completes in milliseconds was the browser's main
-	// source of staleness.
+	// Publish the previous sweep; never blank the live list. The reply is a burst of one datagram per game, so zeroing
+	// here made the browser read empty on every refresh and lose the selection. Publishing on request stays as the
+	// backstop for a sweep whose replies were all lost, which never arms the settle timer (see settleGameList()).
 	publishGameList();
 	m_gameListPendingCount = 0;
 	m_gameListSweepEmpty = FALSE;
@@ -2045,7 +1608,7 @@ void Transport::requestGameList()
 		m_udpsock->Write((const unsigned char *)query, queryLen, m_relayAddr, m_relayPort);
 }
 
-/// What one datagram turned out to be. Three outcomes, not two: "ours but not a game" has to be
+/// What one datagram is. Three outcomes, not two: "ours but not a game" has to be
 /// distinguishable from "not ours", because the live transport shares this socket with game
 /// traffic and must swallow the first while passing the second to the packet parser.
 enum RelayGameLineResult
@@ -2055,24 +1618,9 @@ enum RelayGameLineResult
 	GAMELINE_LISTING		///< A game, written into entry.
 };
 
-// GeneralsX: One sanitiser for the lobby name, used in BOTH directions.
-//
-// Shared on purpose rather than written twice. The send side has to guarantee the relay's own
-// parser is not disturbed; the receive side has to guarantee OUR renderer is not, against a relay
-// or a peer that never ran this code. Those are the same rule, and two copies of it are two places
-// for it to drift.
-//
-// What comes out is safe to place in a bar-delimited, space-separated wire field AND in a listbox
-// row: no '|' (it is the field separator on the GXGAME line), no control bytes (they forge lines in
-// the relay's journal and garbage a widget), nothing outside printable ASCII (every consumer below
-// is byte-oriented - the same judgement GameInfo::setLobbyName and GXApplyNickname already make),
-// and nothing longer than the caller's buffer. Spaces SURVIVE, because the lobby name is the last
-// field on both wires and a name like "FFA 10k NO RULES" is the entire point of the feature.
-//
-// Trimmed last, not first: a name whose tail was control bytes would otherwise end in the nothing
-// they turned into. This is the same order the relay's sanitizeLobbyName uses, and the two must not
-// diverge - strip, then bound, then trim - or a 25-character name cut at 24 would keep a trailing
-// space on one side of the wire and lose it on the other.
+// One sanitiser for the lobby name, used on both send (the relay parser) and receive (our renderer). Output is safe
+// in a bar-delimited wire field and a listbox row: no bar, no control bytes, printable ASCII, bounded by the buffer.
+// Spaces survive. Order is strip, bound, trim, as in relay sanitizeLobbyName, so both sides cut identically.
 static void gxCopySanitisedLobbyName( const char *src, char *dest, Int destSize )
 {
 	if (dest == nullptr || destSize <= 0)
@@ -2150,33 +1698,10 @@ static RelayGameLineResult parseRelayGameLine( const UnsignedByte *msg, Int len,
 		memcpy(entry.name, rest, nameLen);
 		entry.name[nameLen] = '\0';
 
-		// GeneralsX: The tail is "<name>|<map>" or "<name>|<map>|<ping>",
-		// where <ping> is the HOST's round trip to the relay in milliseconds.
-		//
-		// The third field is OPTIONAL and its absence is the whole compatibility story: a relay
-		// that has not been updated simply never appends it, this reads two fields exactly as
-		// before, and the browser shows no ping rather than a wrong map. Nothing here has to know
-		// which relay it is talking to.
-		//
-		// GeneralsX: A FOURTH field, the lobby's display name, on exactly
-		// the same terms. Four shapes are legal and all four are parsed here:
-		//
-		//     <name>|<map>                 an un-updated relay
-		//     <name>|<map>|<ping>          a relay with GXPING but not GXLNAM
-		//     <name>|<map>||<lobby>        a lobby name, and no ping for this host
-		//     <name>|<map>|<ping>|<lobby>  both
-		//
-		// THE EMPTY PING IN THE THIRD SHAPE IS A PLACEHOLDER AND MUST NOT BE OMITTED. This tail is
-		// positional, so dropping an unknown ping when a lobby name follows it would shift the name
-		// into the ping field - the same class of failure strtok's empty-field collapse produces in
-		// the LAN announce. The relay sends the empty field deliberately; see sendList().
-		//
-		// Note what that costs an OLD client, because it is the half that cannot be changed later:
-		// it finds the first bar after the map, takes the map correctly, and runs atoi() over
-		// "<ping>|<lobby>" or over "|<lobby>". atoi stops at the bar in the first case and at the
-		// leading bar in the second, so it reads the right ping or a 0, and a 0 is exactly what it
-		// already renders as "no measurement". The fourth field is invisible to it rather than
-		// corrupting.
+		// Tail is name|map, name|map|ping, name|map||lobby or name|map|ping|lobby; ping is the host round trip in ms.
+		// The extra fields are optional: an un-updated relay never sends them. The empty ping in name|map||lobby is a
+		// placeholder and must stay: the tail is positional, so omitting it would shift the name into the ping field.
+		// An old client runs atoi over the rest, which stops at the bar: right ping or 0 (no measurement).
 		const char *mapStart = bar + 1;
 		const char *pingBar = strchr(mapStart, '|');
 		if (pingBar != nullptr)
@@ -2378,18 +1903,9 @@ Bool Transport::takeRelayChat( char *outText, Int outSize, UnsignedInt *outSende
 	return TRUE;
 }
 
-// GeneralsX: Claim a display name, which the RELAY holds.
-//
-// Held server-side on purpose. A name announced peer-to-peer is only heard by whoever is already
-// in the room, so every later arrival would need everyone to re-announce - names would appear to
-// need a refresh, and a peer that joined late would just never see them. The relay keeps this on
-// the member record and hands it back with the roster, so one GXROOM tells a new arrival every
-// name at once.
-//
-// Charset restricted to what the relay accepts. The roster reply is space-separated with '|'
-// between id and name, so a name containing a space or a '|' would corrupt the reply for EVERY
-// client in the room, not just this one. Enforced on both ends for the same reason the chat
-// control-byte strip is: a peer talking to somebody else's relay still cannot do it.
+// Claim a display name, held by the relay on the member record and returned with the roster, so a late arrival learns
+// every name from one GXROOM. Charset is restricted to what the relay accepts: the roster reply is space-separated
+// with a bar between id and name, so a space or bar in a name would corrupt it for the whole room.
 Bool Transport::sendRelayNickname( const char *name )
 {
 	if (!m_relayEnabled || !m_udpsock || m_relayRoom[0] == '\0' || name == NULL || *name == '\0')
@@ -2691,20 +2207,9 @@ Bool Transport::sendRelayPing()
 	return TRUE;
 }
 
-// GeneralsX: Claim (or clear) this room's lobby name: "GXLNAM <room> <text>".
-//
-// Held on the relay's member record for the reasons set out beside setRelayLobbyName() in
-// Transport.h; the short version is that the game advertisement's tail cannot carry a new field
-// without an older relay folding it into the map name.
-//
-// AN EMPTY NAME IS SENT, NOT SKIPPED, and that is the whole reason this is a setter rather than a
-// fire-and-forget. The relay holds the value on a per-room member record and
-// getLocalHostRoom() generates one room per PROCESS, so a host who names a lobby "AAA", leaves it,
-// and hosts an unnamed game re-registers in the SAME room - and the relay would still be handing
-// "AAA" to every browser. Silence cannot express "no longer named"; the '-' sentinel can.
-//
-// Returns FALSE only when there is no relay to talk to. A name that sanitises away to nothing is a
-// successful CLEAR, not a failure - the caller asked for no name and got no name.
+// Claim or clear this room lobby name: GXLNAM <room> <text>. Held on the relay member record (see setRelayLobbyName()
+// in Transport.h). An empty name is sent, not skipped: getLocalHostRoom() gives one room per process, so a host that
+// unnamed a lobby would otherwise keep showing the old name. Returns FALSE only when there is no relay.
 Bool Transport::setRelayLobbyName( const char *name )
 {
 	if (!m_relayEnabled || !m_udpsock || m_relayRoom[0] == '\0')
@@ -2796,18 +2301,9 @@ Bool Transport::resendRelaySlots()
 	return TRUE;
 }
 
-// GeneralsX: Durable identity: "GXKEY <room> <playerId>".
-//
-// The shape is checked HERE as well as on the relay, and that is not belt-and-braces. The relay's
-// PID_RE refuses a malformed id, so a bad one would be dropped silently and the feature would look
-// like it simply did not work - while this client went on believing it had declared an identity and
-// reporting friends as offline forever. Refusing at the source turns a silent wrong answer into a
-// FALSE the caller can act on.
-//
-// Deliberately NOT validated by calling into GXPlayerIdentity::isValidPlayerId. That class lives
-// under GameClient/, which is outside the simulation digest precisely so social state can change
-// per platform; a call from here would tie the two together and make a friends-list change a
-// four-platform event. A dozen lines of alphabet test is the cheaper half of that trade.
+// Durable identity: GXKEY <room> <playerId>. The shape is checked here as well as on the relay, because the relay
+// drops a malformed id silently and the client would believe it had declared an identity. Not validated through
+// GXPlayerIdentity::isValidPlayerId: it lives under GameClient/, outside the simulation digest.
 Bool Transport::relayIdIsWellFormed( const char *id )
 {
 	if (id == NULL)
@@ -2873,13 +2369,11 @@ Bool Transport::sendRelayIdentity( const char *assertion )
 {
 	if (assertion == NULL || assertion[0] == '\0')
 	{
-		// GeneralsX: TELL THE RELAY. Found by cross-model review.
+		// GeneralsX: TELL THE RELAY.
 		//
-		// This used to clear the local copy and send nothing, on the reasoning that the relay drops
-		// the binding with the membership. That is true and far too slow: a membership outlives a
-		// logout by the whole member timeout, and until it lapses the relay still holds the sub and
-		// the role - so the player keeps their moderator colour and keeps being treated as that
-		// account for bans, after they have logged out.
+		// A membership outlives a logout by the whole member timeout, and until it lapses the relay
+		// still holds the sub and the role - so clearing only the local copy would leave the player
+		// with the moderator colour and treated as that account for bans, after they have logged out.
 		//
 		// The clear is authenticated the same way every other tag is, by the source endpoint, so it
 		// can only ever clear this peer's own identity.
@@ -2900,21 +2394,9 @@ Bool Transport::sendRelayIdentity( const char *assertion )
 		if (!wasDeclared)
 			return FALSE;
 
-		// GeneralsX: AND THE REGISTRATION SECRET GOES WITH IT. Half a sign-out
-		// is not a sign-out.
-		//
-		// m_relayAuth is a RECLAIM credential, not just proof of an address: relay.js's register()
-		// restores `sub`, `role` and `subExp` from the retired binding to whoever presents it (see the
-		// inherited fields there, and its own note that "the game socket - the account comes back with
-		// the binding"). So a membership that lapses on a link blip, or that enforceModeration drops for
-		// a ban, is reclaimed on the next 5 s keepalive WITH the account the player just signed out of -
-		// and for the ban case the "GXIDN <room> -" that follows then lands on a member the relay no
-		// longer has, so it never settles and the account is dragged back every 5 s, forever. The lobby
-		// presence socket already drops its copy for exactly this reason (GXLobbyPresence::clearIdentity).
-		//
-		// Rebuilt at once so the very next keepalive is the three-word first-claim form. While the
-		// membership is still live that is simply a bare refresh - the relay keeps the member and the
-		// room slot, and the clear above still rides the same keepalive - so nothing is lost by it.
+		// The registration secret goes with it: m_relayAuth is a reclaim credential, so a membership that lapses or is
+		// dropped for a ban would be reclaimed on the next 5 s keepalive with the account just signed out of (relay.js).
+		// Rebuilt at once: the next keepalive is the three-word first-claim form, a bare refresh while the member is live.
 		gxSecureClear(m_relayAuth);
 		// GeneralsX: AND THE COPY IN THE CACHED REGISTRATION. The four-word line
 		// holds the secret as its last word; the three-word one rebuilt over it ends at the space before
@@ -3141,27 +2623,10 @@ Bool Transport::sendRelayPeerLine( UnsignedInt dstSlot, const char *text )
 	return TRUE;
 }
 
-// Recognise a peer line whose relay header doRecv has already stripped and verified.
-//
-// The sender is the SOURCE VIRTUAL ADDRESS out of that header, never anything inside the payload.
-// That is the same rule the relay applies to GXSAY and it matters more here, not less: the relay
-// stamps a chat line's sender itself, whereas this line is composed entirely by another client. If
-// the payload could name its author, any member of the room could send a private message that
-// appeared to come from the host.
-//
-// GeneralsX: The header's SOURCE is checked at the one place that knows the
-// truth: the relay authorises the sending endpoint and knows which id it registered, and it refuses a
-// header that names a different one.
-//
-//
-//
-//
-//
-//
-//
-// Two things had to be true together for that to bind, and this file owns the second: a peer line is
-// accepted only when the datagram came FROM THE RELAY (see doRecv). Otherwise the forger skips the
-// relay entirely and the rewrite defends nothing.
+// Recognise a peer line whose relay header doRecv already stripped and verified. The sender is the source virtual
+// address from that header, never anything in the payload, or any member could send a message that appears to come
+// from the host. The relay refuses a header naming another id (relay.js forward()); that only binds because a peer
+// line is accepted only when the datagram came from the relay (see doRecv).
 Bool Transport::captureRelayPeerLine( const UnsignedByte *payload, Int len, UnsignedInt senderSlot )
 {
 	const Int tagLen = (Int)(sizeof(RELAY_PEER_TAG) - 1);
@@ -3220,34 +2685,10 @@ Bool Transport::captureRelayRoster( const UnsignedByte *msg, Int len )
 	if (memcmp(msg, RELAY_MEMB_TAG, sizeof(RELAY_MEMB_TAG) - 1) != 0)
 		return FALSE;
 
-	// GeneralsX: This was char[256] and that already truncated, before the
-	// OS field existed. A truncated datagram cuts the last token mid-way, so the symptom is a
-	// garbled name or a player silently missing from the list - not an obvious failure.
-	//
-	// Worst case is set by what the RELAY will accept, not by what we send. Its TOKEN_RE allows a
-	// member id of up to 31 characters (it is validated as a token, not parsed as an address), so:
-	// "GXMEMB "(7) + a 31-char room + 8 x (" " + 31-char id + "|" + 20-char nick + "|" + 3-char os)
-	// = 7 + 31 + 8*57 = 494. The socket read is MAX_NETWORK_MESSAGE_LEN (1024), so the wire was
-	// never the constraint; this buffer was. 512 covers that worst case, but only just - grow this
-	// alongside GX_ROSTER_MAX, GX_NICK_MAX or the relay's id/nick limits, never independently.
-	// GeneralsX: 640, was 512, and grown WITH the field that needed it
-	// rather than independently - which is exactly what the note above instructs. The arithmetic
-	// with the role field, at the relay's own limits: "GXMEMB "(7) + a 31-char room + 8 x (" " +
-	// 31-char id + "|" + 20-char nick + "|" + 3-char plat + "|" + 1-char role) = 7 + 31 + 8*59 =
-	// 510. Against the old 511-byte usable copy that is ONE byte of slack, which is not slack. The
-	// failure mode is silent: the last token is cut, and a partially-clipped id does not vanish - it
-	// resolves to the WRONG slot, and the roster feeds every chat line's name. The socket read is
-	// 1024, so the wire was never the constraint; this buffer was.
-	// GeneralsX: 768, grown WITH GX_ROSTER_MAX 8 -> 12 exactly as the two
-	// notes above instruct. Same worst case at twelve members: 7 + 31 + 12*59 = 746, plus the NUL,
-	// against a 767-byte usable copy. The socket read is still 1024, which bounds the wire at 746
-	// so the datagram itself remains unfragmented.
-	// GeneralsX: 1024, grown WITH GX_ROSTER_MAX 12 -> 14 (12 players + 2
-	// observers): 7 + 31 + 14*59 = 864, plus the NUL, against a 1023-byte usable copy. 1024 is the
-	// socket read itself (MAX_NETWORK_MESSAGE_LEN), so no roster the socket can deliver is cut here.
-	// GeneralsX: scale32: 2560, grown WITH GX_ROSTER_MAX 14 -> 34: 7 + 31 + 34*59 = 2044, plus the
-	// NUL, against a 2559-byte usable copy. MAX_NETWORK_MESSAGE_LEN is 3200 now, so the socket can deliver more than this
-	// buffer holds only for a roster longer than the relay's own 34-member cap.
+	// Sized for the worst relay roster: GXMEMB (7) + a 31-char room + 34 members x 59 (space, 31-char id, bar, 20-char
+	// nick, bar, 3-char plat, bar, 1-char role) = 2044, plus the NUL. Grow it with GX_ROSTER_MAX, GX_NICK_MAX or the
+	// relay limits; a clipped last token can resolve to the wrong slot. MAX_NETWORK_MESSAGE_LEN (3200) exceeds this
+	// only for a roster past the relay 34-member cap.
 	char line[2560];
 	Int copy = len;
 	if (copy > (Int)sizeof(line) - 1)
@@ -3268,29 +2709,10 @@ Bool Transport::captureRelayRoster( const UnsignedByte *msg, Int len )
 	if (strcmp(room, m_relayRoom) != 0)
 		return TRUE;
 
-	// GeneralsX: Stop the clock. Deliberately after the room match, so a
-	// roster for some other room can never be timed against our request.
-	//
-	// The stamp is cleared as it is consumed. Without that, a duplicated or retransmitted GXMEMB
-	// would be timed against a stamp that has already been paired and would report a round trip
-	// that is really the age of the request.
-	//
-	// GeneralsX: Reduce by MINIMUM, not by average. This was a smoothed
-	// mean and it reported roughly three times the truth.
-	//
-	// What this stopwatch actually measures is send -> "the engine got round to reading the
-	// socket". doRecv() runs once per engine tick, so every sample is the real round trip PLUS a
-	// uniform slice of one poll interval. Measured on 2026-08-07: ICMP from this Mac to the relay
-	// was 62 ms and the lobby claimed 182; the headless Linux host, which shares a machine with
-	// the relay and pings it in 0.107 ms, claimed 205. Averaging samples converges on
-	// true + poll/2 - it converges on the wrong answer, confidently.
-	//
-	// The minimum of N samples is the one where the reply happened to land just before a tick, so
-	// it converges DOWN to the truth as N grows. It is why ping(8) reports min alongside avg, and
-	// it needs no extra traffic - just a different reduction of the samples we already take.
-	//
-	// The ring is small so a genuine change in network conditions still shows up within a handful
-	// of refreshes rather than being pinned forever by one lucky early sample.
+	// Stop the clock only after the room matches, and clear the stamp as it is consumed, so a duplicated GXMEMB or another
+	// room roster is never timed against an already paired stamp.
+	// Reduce by minimum, not mean: doRecv runs once per engine tick, so each sample is the real round trip plus up to one
+	// poll interval and the mean converges on true + poll/2. The ring is small so real changes show quickly.
 	if (m_relayRosterSentMs != 0)
 	{
 		const UnsignedInt now = timeGetTime();
@@ -3325,23 +2747,9 @@ Bool Transport::captureRelayRoster( const UnsignedByte *msg, Int len )
 	     tok != NULL && m_rosterCount < GX_ROSTER_MAX;
 	     tok = strtok(NULL, " "))
 	{
-		// GeneralsX: A token is "<id>", "<id>|<nick>", "<id>|<nick>|<os>"
-		// or "<id>||<os>" - a member may have a platform and no name.
-		//
-		// The ID half really is forward-compatible: gxLastOctet stops at the '|' by itself, so an
-		// id-only token from an older relay reads identically. The NICK half is NOT, and the
-		// comment that used to sit here claimed otherwise. The old parser took EVERYTHING after
-		// the first bar as the name, so a relay emitting a third field made an un-updated client
-		// render "player|W" as the player's name - in the list and in every chat line, since
-		// relayNickFor() feeds both. That is why the client ships before the relay does.
-		// GeneralsX: A fourth field, the role: "<id>|<nick>|<os>|<role>",
-		// with empty middles where a member lacks one, exactly as the plat field already does.
-		// ABSENT for an ordinary player - almost everybody - so the common token is byte-identical
-		// to what it was before roles existed.
-		//
-		// An older relay sends three fields and this reads identically, which is the same
-		// forward-compatibility the warning above is about, in the other direction. The client still
-		// ships BEFORE the relay starts emitting this.
+		// A token is id, id|nick, id|nick|os, id|nick|os|role or id||os: a member may have a platform and no name; the role
+		// is absent for an ordinary player. Older relays send fewer fields and read identically, but an old parser took
+		// everything after the first bar as the name, so the client ships before the relay emits a new field.
 		char *bar = strchr(tok, '|');
 		char *osTok = NULL;
 		char *roleTok = NULL;
@@ -3401,22 +2809,10 @@ Int Transport::getRelayRoster( UnsignedInt *outIps, Int maxIps ) const
 	return n;
 }
 
-// GeneralsX: Swap the completed sweep in, if it said anything at all.
-//
-// A sweep that produced neither a game nor the relay's explicit empty-listing sentinel did not
-// finish - the datagrams were lost, or we are asking again before the answer arrived. Publishing
-// that as "no games" is the bug this exists to prevent, so the last known-good list stands.
-// GeneralsX: Scrub the dead room out of the list that STANDS, too.
-//
-// Suppression drops a known-dead room on the way in (captureGameListReply), which is enough for
-// every sweep that publishes. It is not enough for the sweep that does NOT publish: the guard
-// below deliberately keeps the last known-good list when a sweep heard nothing, and that list was
-// built before the room died, so the ghost would sit in the browser for exactly as long as the
-// relay kept failing to answer. Scrubbing here runs on every attempt, before the early return, so
-// "keep the previous list" can never mean "keep a game we have direct evidence is gone".
-//
-// This is also why the capture path must NOT mark the sweep non-empty to force a publish: that
-// would trade a ghost row for a blanked browser on any partial sweep.
+// Publish the sweep only if it said anything: one with neither a game nor the relay explicit empty-listing sentinel
+// did not finish, and publishing it would blank the browser, so the last known-good list stands.
+// Scrub the dead room out of the standing list too, before the early return: that list predates the room death.
+// A capture must not mark the sweep non-empty to force a publish: that would blank the browser on a partial sweep.
 void Transport::publishGameList()
 {
 	Int kept = 0;
@@ -3484,21 +2880,9 @@ Bool Transport::captureGameListReply( const UnsignedByte *msg, Int len )
 	if (result == GAMELINE_NOTHING)
 		m_gameListSweepEmpty = TRUE;
 
-	// GeneralsX: A room we know is dead never enters the sweep at all.
-	//
-	// FILTERED AT CAPTURE, NOT AT DRAW, and that is the same judgement the friends filter records at
-	// WOLLobbyMenu.cpp: a row hidden from the listbox but left in the table is still dialable from a
-	// stale selection, so the only safe place to drop it is before it becomes a row. Here it is also
-	// the only place that works at all, because two different browsers read this list.
-	//
-	// It does NOT mark the sweep empty. m_gameListSweepEmpty means one specific thing - the relay
-	// sent its explicit "no games" sentinel - and that is the only statement strong enough to
-	// justify overwriting a live browser with an empty list. Widening it to "we heard something"
-	// would re-open the very bug the guard in publishGameList() exists to prevent: a sweep in which
-	// this room's datagram arrived and two live games' datagrams were lost would then publish an
-	// empty list over a good one and blank the browser. The stale-list-still-contains-the-ghost
-	// case that the flag was reached for is handled where it belongs, by scrubbing the published
-	// list in publishGameList().
+	// A room known dead never enters the sweep: filtered at capture, not at draw, since a hidden row is still dialable
+	// from a stale selection and two browsers read this list. It does not mark the sweep empty: m_gameListSweepEmpty
+	// means only that the relay sent its explicit no-games sentinel, strong enough to overwrite a live list.
 	if (result == GAMELINE_LISTING && isRoomSuppressed(entry.room))
 		return TRUE;
 
@@ -3572,7 +2956,7 @@ void Transport::settleGameList()
 	m_gameListLastReplyMs = 0;			// disarm; the next arrival re-arms and re-evaluates
 }
 
-// GeneralsX @feature Matchmaking. Browsing from a throwaway socket, for the same reason
+// GeneralsX: Matchmaking. Browsing from a throwaway socket, for the same reason
 // requestRelayIdentity uses one: a joiner has to know which ROOM a game is in before it can ask
 // for an identity, and it cannot ask for an identity before the transport binds - so the whole
 // chain has to run ahead of the transport rather than on it.
@@ -3624,21 +3008,9 @@ Int Transport::requestRelayGameList( const char *relayHost, RelayGameListing *ou
 }
 
 //--------------------------------------------------------------------------
-// GeneralsX: Direct peer-to-peer, with per-pair relay fallback.
-//
-// Read, and read section 3 of it
-// before telling anyone this fixes lag. The short version, because it is the sentence people get
-// wrong: commands travel a STAR through the packet router at slot 0, not a mesh, and lockstep runs
-// at the worst remaining link. A direct route between two NON-router peers therefore improves acks
-// and direct-send traffic and nothing else. The pairs that set the pace are the N-1 pairs adjacent
-// to the packet router, and a single peer that stays relayed holds the whole match at the relayed
-// figure no matter how many other pairs went direct.
-//
-// The state machine is one field. `peer->route.addr == 0` means "send this peer's traffic to the
-// relay", which is today's behaviour; anything else is a real endpoint. There is no CONNECTING
-// state, no failure state, no negotiation and no acknowledgement, because there is nothing to
-// agree: the two directions are independent, and a pair that is direct one way and relayed the
-// other works perfectly - doRecv cannot tell the difference, and does not try.
+// Direct peer-to-peer with per-pair relay fallback. Commands travel a star through the packet router at slot 0, so a
+// direct route between two non-router peers helps acks only; lockstep runs at the worst remaining link.
+// State is one field: peer->route.addr == 0 means send via the relay. The two directions are independent.
 //--------------------------------------------------------------------------
 
 static inline UnsignedInt gxReadBE32( const UnsignedByte *p )
@@ -3728,33 +3100,10 @@ Bool Transport::p2pIsPeerAddress( UnsignedInt addr )
 	return (last != 0) && (last != 255);
 }
 
-// The master gate. Three independent conditions, and every one of them fails CLOSED onto the relay
-// path that already works:
-//
-//   1. relay mode is on at all - on a real LAN there is nothing to improve;
-//   2. the player has not asked to stay relayed (Options.ini RelayOnly);
-//   3. the relay declared the capability, recently.
-//
-// (3) is the part that matters most and it is doing three jobs at once. It is the compatibility
-// gate, because a relay that predates this says nothing and the client then sends exactly the
-// datagrams it sends today. It is the server-pushed kill switch, because a relay that stops saying
-// it takes every client back onto the relay inside GX_P2P_CAP_TTL_MS with no client update and no
-// restart. And it is what makes "adding a relay must not require updating clients" hold in the
-// other direction too - turning the feature OFF in the field is also data, not a release.
-//
-// GeneralsX: A FOURTH condition, and it is the one that keeps the direct
-// path dark until it can be authenticated: isPacketAuthActive().
-//
-// It is redundant TODAY, because captureRelayCaps sets both flags from the one 'p2pauth' token and
-// cannot set one without the other. It is here anyway, and stated rather than trimmed, because the
-// property it guards is the one this whole change exists for: BEFORE it, a relay configured with
-// RELAY_P2P=1 took every client direct, and a direct datagram is attributed by a field its sender
-// chose. If a later capability split those flags apart again - a second token, a local override, a
-// test hook - the direct path must not quietly come back without the authentication. This line is
-// what makes that a compile-time-visible decision instead of an accident.
-//
-// The cost of failing in this direction is a lobby that stays relayed and plays. The cost of
-// failing in the other is a match somebody else can inject orders into.
+// The master gate; each condition fails closed onto the relay path: relay mode on, RelayOnly not set (Options.ini),
+// and the relay declared the capability recently. That last one is the compatibility gate and the kill switch: a
+// relay that stops saying it returns every client to the relay within GX_P2P_CAP_TTL_MS.
+// isPacketAuthActive() is a redundant fourth condition, kept so direct never returns without authentication.
 Bool Transport::p2pActive() const
 {
 	if (!m_relayEnabled || !m_p2pAllowed || !m_p2pRelayCap)
@@ -4142,47 +3491,18 @@ Bool Transport::p2pHandleControl( const UnsignedByte *payload, Int len, Unsigned
 	if (srcVirtualIP == 0 || srcVirtualIP == m_localVirtualIP || !p2pIsPeerAddress(srcVirtualIP))
 		return TRUE;
 
-	// GeneralsX: WHICH ROOM DID THE SENDER THINK IT WAS IN.
-	//
-	// This is the check p2pForgetPeers() could not make. Clearing the table on a room change is
-	// necessary and was not sufficient: nothing on the wire said which room a datagram belonged to,
-	// so a CAND still in flight when we changed room arrived after the wipe with a source address
-	// that is perfectly valid HERE - the relay hands out the same eight addresses in every room -
-	// and rebuilt itself into the table as the candidate list of whoever now holds that slot. The
-	// route then pointed at the previous room's machine, and that machine's own probes kept it
-	// alive, so nothing aged it out.
-	//
-	// AHEAD of p2pFindOrAdd, like the source checks below it, because that call allocates and can
-	// evict; a datagram that is going to be refused must not be able to touch the table first.
-	//
-	// Swallowed rather than reported, like every other refusal here: this branch has established the
-	// datagram is not a game packet, and counting a peer's late datagram as "unknown" reads as a
-	// fault on the wire.
+	// Which room did the sender think it was in. A CAND still in flight across a room change would otherwise rebuild the
+	// table with a valid source (the relay reuses the same eight addresses in every room) and point the route at the
+	// previous room machine. Ahead of p2pFindOrAdd, which allocates and can evict; a refused datagram is swallowed.
 	if (gxReadBE32(payload + GX_P2P_ROOM_OFFSET) != m_p2pRoomTag || m_p2pRoomTag == 0)
 		return TRUE;
 
 	const UnsignedInt nonce = gxReadBE32(payload + 5);
 	const UnsignedInt now = timeGetTime();
 
-	// GeneralsX: Judge the SOCKET source before touching any state, and
-	// judge it differently per subtype. Both halves were missing.
-	//
-	// A CAND has to arrive FROM THE RELAY. It is the one control message this client never sends
-	// directly - p2pSendCandidates writes it to m_relayAddr, always, because if we could already
-	// reach the peer we would have nothing to tell them - so a direct one is by construction not
-	// from the peer it claims to be from. Accepting it was the whole attack: a forged CAND put the
-	// attacker's own address into a peer's candidate list, and the check further down that a route
-	// must be an address "they published" then passed, because the attacker is who published it.
-	// The relay refuses a header whose source is not the sender's registered id, so a relayed CAND's
-	// header source is the endpoint the relay authorised, which is what makes this check worth anything.
-	//
-	// A PROBE or a PROBEOK is the opposite: it must NOT have come from the relay, because a path
-	// through the relay is not a direct path and installing it as one would pin the pair to the
-	// relay while reporting it as direct.
-	//
-	// This also has to sit AHEAD of p2pFindOrAdd. That call allocates - and, in a full table,
-	// EVICTS the stalest relayed entry - so leaving it reachable from an unauthenticated datagram
-	// let anyone who could reach the port churn a peer table they could not otherwise touch.
+	// Judge the socket source before touching any state, and per subtype. A CAND must arrive from the relay: it is only
+	// ever sent to m_relayAddr, so a direct one is forged. A PROBE or PROBEOK must not come from the relay, since a
+	// relayed path is not a direct one. Ahead of p2pFindOrAdd, which allocates and can evict the stalest relayed entry.
 	const Bool fromRelay = (fromAddr != 0) && (fromAddr == m_relayAddr) && (fromPort == m_relayPort);
 	if (subtype == GX_P2P_SUB_CAND)
 	{
@@ -4200,21 +3520,9 @@ Bool Transport::p2pHandleControl( const UnsignedByte *payload, Int len, Unsigned
 
 	if (subtype == GX_P2P_SUB_CAND)
 	{
-		// GeneralsX: The peer holds no key for us, so it refuses everything
-		// we send it direct - leave the route NOW rather than when the DEAD timer notices, 3 s of
-		// frozen lockstep later. Trusted because a CAND is only accepted from the relay (above), which
-		// vouches for its source; the most a peer can do with it is put ITS OWN pair on the relay.
-		// A route cannot be installed while the peer is keyless (it can neither probe nor answer), so
-		// a marker only ever finds one that predates a revocation. Bookkeeping as the DEAD demotion.
-		//
-		// GeneralsX: (review) AT MOST ONCE PER GX_P2P_DEAD_MS PER PEER. A
-		// modified client that HOLDS its key can lie with the marker, re-install with one direct PROBE
-		// from its published endpoint, and repeat - and each half is a release-visible line with a
-		// blocking fflush on this socket's thread, so it set our log rate at its own send rate
-		// (measured: 200 demotions and 400 lines in 4 ms). Before the marker, a demotion it could
-		// force was timer-driven - go quiet for GX_P2P_DEAD_MS - and this holds it to that same
-		// ceiling. An honest keyless peer is never worse off than before the marker existed: its first
-		// marker acts at once, and a second revocation inside the window falls back to the DEAD timer.
+		// The peer holds no key for us and refuses everything sent direct: leave the route now, not after the DEAD timer
+		// (3 s of frozen lockstep). Trusted because a CAND is accepted only from the relay. At most once per GX_P2P_DEAD_MS
+		// per peer: a modified client holding its key could otherwise force a demotion and log lines per datagram.
 		if (nonce == GX_P2P_CAND_NOKEY && peer->route.addr != 0
 			&& (peer->lastNoKeyDemoteMs == 0 || (now - peer->lastNoKeyDemoteMs) >= GX_P2P_DEAD_MS))
 		{
@@ -4282,28 +3590,11 @@ Bool Transport::p2pHandleControl( const UnsignedByte *payload, Int len, Unsigned
 		p2pSendProbe(peer, back, GX_P2P_SUB_PROBEOK, nonce);
 
 		/*
-		 * Adopting it as OUR route is the part that needs the endpoint to be one they published.
-		 *
-		 * GeneralsX: ADDRESS AND PORT. This used to match the address alone
-		 * and then install the port AS OBSERVED, with a comment saying that was "the whole point of
-		 * a NAT mapping". It was not a mapping, it was an unauthenticated field: the peer's real
-		 * candidate 203.0.113.9:40000 authorised anything arriving from 203.0.113.9, so a hostile
-		 * machine sharing that public address - a second subscriber behind the same carrier NAT, or
-		 * anyone able to forge that source - probed from :45000 and had ITS endpoint installed as
-		 * the route. No nonce is required on this arm, so nothing else stopped it, and the attacker
-		 * could then hold the route open with CRC-valid game packets while the pair's real traffic
-		 * went into the dark. Half an endpoint is not an endpoint.
-		 *
-		 * WHAT THIS GIVES UP, because it is real and should not be discovered later: a peer behind
-		 * an ADDRESS-DEPENDENT (symmetric) NAT emits probes from a mapping that is not the one the
-		 * relay observed, so its source port will not match anything it published and this arm will
-		 * no longer adopt it. That pair stays on the relay for the match. It is the correct
-		 * direction to fail - a relayed pair plays, a hijacked route does not - and the pairs the
-		 * spike actually measured are unaffected, because an endpoint-independent NAT and a plain
-		 * LAN both produce a source port equal to the published one. The feature is not weakened to
-		 * make the hole go away; an endpoint that cannot be verified simply is not installed.
+		 * Adopting it as our route requires an endpoint the peer published: address and port both, since matching the
+		 * address alone let a hostile machine behind the same public address install its own endpoint as the route.
+		 * A peer behind an address-dependent (symmetric) NAT probes from a port it did not publish, so that pair stays relayed.
 		 */
-		// GeneralsX: (cross-model review) `!bigDemoted` is load-bearing: after
+		// GeneralsX: `!bigDemoted` is load-bearing: after
 		// the big-path check demotes this route, the peer - whose inbound direction still works -
 		// keeps probing us, and letting that probe reinstall would re-grant the black hole a fresh
 		// grace period every 4 seconds, forever. A big-demoted peer reinstalls only through the
@@ -4316,15 +3607,8 @@ Bool Transport::p2pHandleControl( const UnsignedByte *payload, Int len, Unsigned
 			// path that cannot carry them gets exactly one grace period - bigDemoted then gates
 			// every further install on proof.
 			peer->lastBigOkMs = now;
-			// GeneralsX: Release-visible, for the same reason the three
-			// demotions already are - and this is the half that was still missing. On a shipping
-			// preset DEBUG_LOG is ((void)0), so the engine recorded every way a pair could LOSE a
-			// direct route and no way it could win one. That asymmetry is why the 2026-08-13 report
-			// could not be answered from the client at all: "relayed all match" and "direct, then
-			// demoted before anyone looked" produce identical logs, and only the relay's packet
-			// counters on the far side could tell them apart. Bounded by the route.addr == 0 test
-			// above - the route is installed on the two lines before this, so it is once per
-			// promotion.
+			// Release-visible, like the demotions: DEBUG_LOG is compiled out of a shipping build, so the engine would log every
+			// way a pair loses a direct route and none by which it wins one. Once per promotion, bounded by the route.addr == 0 test above.
 			fprintf(stderr, "[GXP2P] port %d: peer %d.%d.%d.%d DIRECT via %d.%d.%d.%d:%d (their probe)\n",
 				m_port, PRINTF_IP_AS_4_INTS(peer->virtualIP), PRINTF_IP_AS_4_INTS(fromAddr), fromPort);
 			fflush(stderr);
@@ -4428,7 +3712,7 @@ void Transport::p2pUpdate( UnsignedInt now )
 		return;
 	}
 
-	// GeneralsX: The capability came back. Every peer is relayed and every
+	// GeneralsX: The capability is back. Every peer is relayed and every
 	// peer may probe again as of this instant, so the burst window starts HERE and not at the
 	// withdrawal above: the withdrawal path cannot probe at all, and GX_P2P_CAP_TTL_MS is 45 s, so a
 	// window armed there is always already expired by the time it could be spent.
@@ -4467,12 +3751,8 @@ void Transport::p2pUpdate( UnsignedInt now )
 		{
 			if (peer->route.addr != 0)
 			{
-				// GeneralsX: Release-visible, like the big-path demotion
-				// below and for the same reason: on a shipping preset DEBUG_LOG is ((void)0), so the
-				// engine used to record NOTHING when a match fell off its direct route. The only
-				// reason the 10 ms -> 80 ms report of 2026-08-12 was answerable at all is that the
-				// relay counts packets on the far side. Bounded by the route.addr test it sits
-				// under - the route is cleared on the next line, so this is once per demotion.
+				// Release-visible, like the big-path demotion below: on a shipping build DEBUG_LOG is ((void)0). Once per
+				// demotion, bounded by the route.addr test it sits under.
 				fprintf(stderr, "[GXAUTH] port %d: peer %d.%d.%d.%d lost its key - back on the relay\n",
 					m_port, PRINTF_IP_AS_4_INTS(peer->virtualIP));
 				fflush(stderr);
@@ -4483,7 +3763,7 @@ void Transport::p2pUpdate( UnsignedInt now )
 			// Re-armed on EVERY tick spent keyless, not once when the key was lost. Probing is
 			// blocked until a key arrives, so a window armed at the loss would be spent waiting for
 			// the relay's next keepalive instead of on probes. Arming it here means the ten seconds
-			// start at the moment the block lifts, whatever that gap turned out to be.
+			// start at the moment the block lifts, however long that gap is.
 			peer->burstStartedMs = now;
 			if (peer->lastCandSentMs == 0 || (now - peer->lastCandSentMs) >= GX_P2P_CAND_MS)
 			{
@@ -4530,43 +3810,16 @@ void Transport::p2pUpdate( UnsignedInt now )
 			peer->route.port = 0;
 			peer->lastProbeMs = 0;
 			peer->bigDemoted = TRUE;
-			// GeneralsX: Re-armed at the SAME full rate as the other two,
-			// which is worth arguing rather than assuming, because this path demoted precisely
-			// because the route is known bad for full-size datagrams and a burst of padded probes at
-			// it could read as a flood. Three things settle it:
-			//
-			//   1. Every GX_P2P_SUB_PROBE is padded (p2pSendProbe), so the burst IS the measurement
-			//      that decides whether the path recovered. Nothing cheaper can answer it.
-			//   2. The burst cannot reinstall a bad route. bigDemoted gates the inbound-probe install
-			//      arm, so the only way back is a PROBEOK answering one of our own padded probes -
-			//      i.e. proof the path just carried a full-size datagram. Against a still-black hole
-			//      the burst produces zero installs and simply stops after ten seconds.
-			//   3. The cost is bounded and one-shot: ~33 probes over 10 s for one peer, and it cannot
-			//      repeat without an intervening successful install, because with no route there is
-			//      nothing left to demote.
-			//
-			// The thrash worry - install, three unanswered keepalives, demote, burst, install - is
-			// self-limiting on exactly the statistic being measured: a path that answers a burst probe
-			// often enough to reinstall quickly is a lossy path, not a size-selective one, and will
-			// not then produce three consecutive unanswered keepalives. And the costs are asymmetric:
-			// staying wrongly relayed costs every peer the relay round trip for the rest of the match,
-			// while probing wrongly costs ~16 KB once.
+			// Re-armed at the same full rate as the other two demotions. The padded probes are the measurement that decides
+			// recovery; the burst cannot reinstall a bad route (bigDemoted gates the inbound-probe install arm, so only a
+			// PROBEOK to our own padded probe can); and it is one-shot, about 33 probes over 10 s.
 			peer->burstStartedMs = now;
 			peer->reburstsLeft = GX_P2P_REBURST_MAX;
 		}
 
-		// GeneralsX: The bounded re-burst. See GX_P2P_REBURST_MS for the
-		// argument; this is only its placement, and the placement is load-bearing in two ways.
-		//
-		// AFTER the demotions, so a route that died on this very tick spends the allowance the
-		// demotion just restored rather than one it had already used - and BEFORE `burst` is
-		// computed, so a re-burst armed here takes effect on this tick instead of leaving one tick
-		// at the idle cadence.
-		//
-		// Gated on route.addr == 0, so it can never touch a healthy direct pair. The keyless arm
-		// above stamps burstStartedMs on every tick it runs, so a peer that is blocked from probing
-		// can never satisfy the elapsed test and cannot burn an allowance on probes it is forbidden
-		// to send.
+		// The bounded re-burst (see GX_P2P_REBURST_MS). After the demotions, so a route that died this tick spends the
+		// allowance the demotion just restored; before burst is computed, so it takes effect this tick. Gated on
+		// route.addr == 0, so a healthy pair is untouched; the keyless arm stamps burstStartedMs, so it cannot burn one.
 		if (peer->route.addr == 0 && peer->reburstsLeft > 0
 			&& (now - peer->burstStartedMs) >= GX_P2P_REBURST_MS)
 		{
@@ -4637,7 +3890,7 @@ void Transport::p2pUpdate( UnsignedInt now )
 // CALLER-GATED ON THE SOURCE, and that gate is load-bearing rather than tidy. This function sets
 // m_p2pRelayCap, which IS the "dark until the relay says otherwise" gate and the operator's kill
 // switch, and m_p2pReflexive, which is published to every peer as an address to send us traffic at.
-// doRecv used to call it on any datagram that arrived. See the fromRelay test there.
+// doRecv must call it only for datagrams that came from the relay (the fromRelay test there).
 Bool Transport::captureRelayCaps( const UnsignedByte *msg, Int len )
 {
 	const Int tagLen = (Int)(sizeof(RELAY_CAPS_TAG) - 1);
@@ -4668,8 +3921,8 @@ Bool Transport::captureRelayCaps( const UnsignedByte *msg, Int len )
 	//
 	// GeneralsX: THE BARE "p2p" TOKEN NO LONGER ENABLES ANYTHING. It is
 	// still recognised, so that a relay offering the unauthenticated direct path says so once in the
-	// log rather than looking like a relay that is silent - whoever runs that relay and is wondering
-	// why nothing goes direct deserves to be told why.
+	// log rather than looking like a relay that is silent - an operator who has turned RELAY_P2P on
+	// and is wondering why nothing goes direct deserves to be told why.
 	Bool legacyOffer = FALSE;
 	Bool cap = FALSE;
 	const char *tok = flags;
@@ -4845,24 +4098,15 @@ void Transport::authInstallKey( AuthKey &dest, const UnsignedByte *key16 )
 	memset(idBuf, 0, sizeof(idBuf));
 }
 
-// One tag. Everything that decides where this datagram goes and who it is from is inside the MAC:
-// the domain, both virtual addresses out of the routing header, the key id, the sequence, and every
-// byte of the game packet exactly as transmitted.
-//
-// THE PACKET IS AUTHENTICATED IN ITS ENCRYPTED FORM, which is the only form that exists on the
-// wire. Authenticating the plaintext would mean decrypting before verifying, i.e. running the
-// transform over bytes nobody has vouched for yet - and the XOR here is not encryption in any
-// meaningful sense anyway (the mask is a compiled-in constant), so there is no confidentiality
-// argument on the other side.
-//
-// SRC AND DST BOTH, which is what stops a reflection: B cannot take a datagram A sent it and send
-// it back as though B had written it, because that needs src and dst swapped and both are covered.
-// The pair key is symmetric, so without this the tag would verify in either direction.
+// One tag covers the domain, both virtual addresses from the routing header, the key id, the sequence and every byte of
+// the game packet as transmitted. The packet is authenticated in its encrypted form, the only form on the wire:
+// decrypting first would run the transform on unverified bytes. Src and dst are both covered so a datagram cannot be
+// reflected back as if the receiver had written it; the pair key is symmetric.
 void Transport::authComputeTag( const AuthKey &key, const UnsignedByte *header12, UnsignedInt seq,
 	const UnsignedByte *packet, Int packetLen, UnsignedByte *outTag8 )
 {
 	// domain(4) + src(4) + dst(4) + keyId(1) + seq(4) = 17, then the packet. Gathered into one
-	// buffer and MACed contiguously; measured at 0.005 us against a 0.60 us MAC, i.e. free, which
+	// buffer and MACed contiguously; the copy costs 0.005 us against a 0.60 us MAC, i.e. free, which
 	// is why there is no streaming update() API here to get wrong.
 	static const Int PREAMBLE = 17;
 	// GeneralsX: bounded by GX_AUTH_MAX_PACKET (Transport.h): a 34-slot lobby message (up to
@@ -5142,11 +4386,8 @@ void Transport::authRevokePeer( P2PPeer *peer, const char *why )
 	if (peer == nullptr || (peer->key[0].id == 0 && peer->key[1].id == 0))
 		return;
 
-	// GeneralsX: Release-visible, and bounded: the test above returns once
-	// the keys are gone, so this is one line per revocation. It was DEBUG_LOG, which left a peer
-	// dropped by a key revocation with only its partner's misleading "went quiet" to read. Only while
-	// direct is live on this socket - elsewhere a key
-	// authenticates nothing, and a line there is noise.
+	// Release-visible and bounded: the test above returns once the keys are gone, so one line per revocation. Only while
+	// direct is live on this socket; elsewhere a key authenticates nothing.
 	if (m_p2pOn)
 	{
 		fprintf(stderr, "[GXAUTH] port %d: revoking keys for %d.%d.%d.%d (%s) - back on the relay\n",
@@ -5186,26 +4427,10 @@ Bool Transport::captureRelayPeerKeys( const UnsignedByte *msg, Int len )
 	if (memcmp(msg, RELAY_PKEY_TAG, tagLen) != 0 || msg[tagLen] != ' ')
 		return FALSE;
 
-	// Ours by tag from here on: every return below is TRUE, so a malformed or stale announcement is
-	// swallowed rather than counted as an unknown packet on the lockstep socket.
-	//
-	// GeneralsX: SIZED OFF THE PROTOCOL, AND A TOO-LONG ONE IS REFUSED
-	// RATHER THAN TRUNCATED.
-	//
-	// This was char[512] with a silent clamp to 511. That was safe only because the relay clipped
-	// its own datagram to 476 - two independently chosen constants that had to agree, with nothing
-	// tying them together and no arm that would fail if they drifted. At twelve members the wire
-	// worst case is 483, so the relay's bound had to move; had this buffer stayed, the truncation
-	// would have landed HERE instead, and it is much worse here. Parsing a prefix of a snapshot is
-	// not parsing a smaller snapshot: the revoke pass below tears down a working direct route for
-	// every peer the truncated text failed to name. Refusing outright leaves the previous keys
-	// standing, which is the safe direction and self-corrects on the next announcement.
-	//
-	// The buffer is GX_PKEY_BUF, which is deliberately larger than both the provable worst case
-	// (GX_PKEY_MAX_WIRE, 483 at twelve) and the relay's own cap - see the note by GX_PKEY_BUF for
-	// why accepting more than the relay will send is the right asymmetry. The socket read is
-	// MAX_NETWORK_MESSAGE_LEN (1024) and the capture chain runs before any game-packet size check,
-	// so a datagram this long arrives intact.
+	// Ours by tag from here on: every return below is TRUE, so a malformed or stale announcement is swallowed.
+	// A too-long announcement is refused rather than truncated: parsing a prefix of a snapshot would make the revoke
+	// pass below tear down direct routes for peers the text failed to name. Refusing leaves the previous keys standing.
+	// GX_PKEY_BUF exceeds GX_PKEY_MAX_WIRE and fits in MAX_NETWORK_MESSAGE_LEN.
 	CPP_11(static_assert(GX_PKEY_MAX_WIRE < GX_PKEY_BUF,
 		"the GXPKEY parse buffer must exceed the worst case, not merely meet it");)
 	CPP_11(static_assert(GX_PKEY_BUF <= MAX_NETWORK_MESSAGE_LEN,
@@ -5311,20 +4536,9 @@ Bool Transport::captureRelayPeerKeys( const UnsignedByte *msg, Int len )
 	}
 
 	/*
-	 * GeneralsX: AND EVERY PEER THE ANNOUNCEMENT DID NOT NAME IS REVOKED.
-	 *
-	 * This is a SNAPSHOT, not a list of additions, and the difference is the whole point of the
-	 * feature. A member that has left the room is no longer in the relay's answer - so if the keys
-	 * it was in were merely left alone, that member would keep a key that authenticates it as its
-	 * old virtual address for the rest of the session, and it could go on injecting orders into the
-	 * match it walked out of. The relay sends an EMPTY announcement rather than none when the last
-	 * peer goes, precisely so that "there is nobody left to talk to directly" is expressible.
-	 *
-	 * The same contract captureRelayRoster has, for the same reason it has it: the relay's answer is
-	 * the complete truth about the room at the moment it was sent.
-	 *
-	 * A peer whose entry was present but MALFORMED is revoked too - it never sets its bit. That is
-	 * the safe direction: it falls back to the relay, which works.
+	 * Every peer the announcement did not name is revoked. This is a snapshot, not a list of additions: a member that
+	 * left would otherwise keep a key authenticating its old virtual address and could inject orders into the match.
+	 * The relay sends an empty announcement when the last peer goes. A malformed entry is revoked too.
 	 */
 	Int revoked = 0;
 	for (Int i = 0; i < GX_P2P_MAX_PEERS; ++i)
@@ -5427,16 +4641,10 @@ Bool Transport::init( UnsignedInt ip, UnsignedShort port )
 	if (!m_udpsock)
 		return false;
 
-	// GeneralsX @bugfix A socket bound to a single unicast address is never handed a datagram
-	// addressed to the subnet broadcast, so the LAN lobby could announce itself but never hear
-	// anyone answer: the game browser stayed empty and joins timed out. Bind the wildcard
-	// address so broadcast discovery is actually delivered. Only the bind moves - `ip` remains
-	// the game's identity everywhere it matters (LANAPI::AmIHost, the senderIP == m_localIP
-	// self-filter in LANAPI::update, slot matching), and moving that would break the lobby far
-	// worse. Windows hands broadcasts to a specifically-bound socket already, so it keeps the
-	// address it asked for. Multi-instance clients are the case that still needs the narrow
-	// bind: they share port 8086 and are told apart only by a per-instance 127.x address, so a
-	// wildcard bind would fail the second instance with EADDRINUSE.
+	// A socket bound to one unicast address never gets subnet broadcasts, so the LAN lobby could announce but not hear
+	// answers. Bind the wildcard; only the bind moves, ip stays the game identity (LANAPI::AmIHost, m_localIP filter).
+	// Windows delivers broadcasts to a bound socket already. Multi-instance clients keep the narrow bind: they share port
+	// 8086 and a wildcard bind would fail the second with EADDRINUSE.
 	UnsignedInt bindIP = ip;
 #ifndef _WIN32
 	if (!rts::ClientInstance::isMultiInstance())
@@ -5445,35 +4653,14 @@ Bool Transport::init( UnsignedInt ip, UnsignedShort port )
 	}
 #endif
 
-	// GeneralsX: THE PINNED RELAY IDENTITY BELONGED TO ONE LOBBY SESSION AND
-	// NOTHING EVER RETIRED IT.
-	//
-	// s_assignedRoom/s_assignedVirtualIP are process-wide, and clearAssignedIdentity() had no caller at
-	// all - so the pin outlived the screen that minted it. Online -> Back -> NETWORK built a LAN lobby
-	// whose initRelay found a pin, turned relay mode ON and registered a LAN game into the production
-	// relay room. "It just will not connect" is never the outcome either: getRelayAddress() answers with
-	// the bootstrap host when Options.ini has no key (OptionPreferences.cpp), so it connects.
-	//
-	// The test is EQUALITY - every path that legitimately relays hands this socket the pinned address
-	// itself:
-	//   SetUpOnlineLobbyLAN, JoinDirectConnectGame, relayJoinSelectedGame - enterRelayRoom, then
-	//     SetLocalIP(<the address it just assigned>);
-	//   HeadlessMatch::setUpLan - the same, and its unanswered-GXWHO fallback pins the address it is
-	//     about to use before using it;
-	//   the in-match socket - ConnectionManager's m_localAddr is LANAPI's m_localIP (LANAPICallbacks),
-	//     which is that same address, so 8088 agrees with 8086 and both keep the pin.
-	// A LAN lobby passes a NIC address instead. Dropping the pin there is safe because every one of those
-	// paths re-pins before it builds a transport; nothing reads a pin it did not just write. It is NOT the
-	// whole defence (verifier, 23/09/2026): a TheLAN that survived ONLINE handed its first bind the pinned
-	// address too, so the LAN screen is kept local by LanLobbyMenuInit's enterLocalScreen(), and that bind
-	// is now 0 because LANAPI::reset() forgets m_localIP.
-	//
-	// ip == 0 is LANAPI::init() running before SetLocalIP has chosen anything. It decides nothing, and it
-	// must not retire the pin that the SetLocalIP directly after it is about to use.
+	// The pinned relay identity belongs to one lobby session: s_assignedRoom/s_assignedVirtualIP are process-wide, so
+	// unretired, a LAN lobby opened after Online -> Back would register into the production relay room.
+	// Equality test: every legitimate relaying path hands this socket the pinned address; a LAN lobby passes a NIC one.
+	// ip == 0 is LANAPI::init() before SetLocalIP; it decides nothing and must not retire the pin.
 	if (ip != 0 && s_assignedVirtualIP != 0 && ip != s_assignedVirtualIP)
 		clearAssignedIdentity();
 
-	// GeneralsX @feature Relay transport. In relay mode every datagram arrives from the relay's
+	// GeneralsX: Relay transport. In relay mode every datagram arrives from the relay's
 	// public address, which is on no local subnet, so the socket must be the wildcard on Windows
 	// too - `ip` is now a virtual LAN address and nothing would ever be delivered to it. This one
 	// bind covers both sockets: the lobby one via LANAPI::SetLocalIP and the in-game one via
@@ -5549,7 +4736,7 @@ Bool Transport::init( UnsignedInt ip, UnsignedShort port )
 		}
 	}
 
-	// GeneralsX @feature Relay transport. Register before anything else goes out so the relay can
+	// GeneralsX: Relay transport. Register before anything else goes out so the relay can
 	// pair the room and open the return path ahead of the first game datagram.
 	sendRelayRegistration();
 
@@ -5624,7 +4811,7 @@ Bool Transport::doSend() {
 		m_unknownBytes[m_statisticsSlot] = 0;
 	}
 
-	// GeneralsX @feature Relay transport keepalive. Re-registering on a timer teaches the relay a
+	// GeneralsX: Relay transport keepalive. Re-registering on a timer teaches the relay a
 	// new public address if our NAT rebinds, and holds the mapping open through a quiet lobby.
 	// This sits in doSend rather than update() because ConnectionManager drives the in-game socket
 	// by calling doSend/doRecv directly and never calls update().
@@ -5659,7 +4846,7 @@ Bool Transport::doSend() {
 		p2pUpdate(now);
 	}
 
-	// GeneralsX @feature Relay transport. Staging buffer for the relay header plus the packet.
+	// GeneralsX: Relay transport. Staging buffer for the relay header plus the packet.
 	// Declared once for the whole sweep rather than per message: this loop runs MAX_MESSAGES
 	// times every send and the buffer is a kilobyte.
 	//
@@ -5682,7 +4869,7 @@ Bool Transport::doSend() {
 			// Therefore, transmitted data needs to add the extra bytes of the network header to the payloads length
 			int bytesToSend = m_outBuffer[i].length + sizeof(TransportMessageHeader);
 
-			// GeneralsX @feature Relay transport. The datagram goes out to the relay instead of
+			// GeneralsX: Relay transport. The datagram goes out to the relay instead of
 			// to the peer, and the address the game chose - a virtual LAN address, or the LAN
 			// broadcast - travels in the relay header so the relay can deliver it to that one
 			// peer, or to the whole room if it is a broadcast. The PORT is deliberately left
@@ -5723,22 +4910,10 @@ Bool Transport::doSend() {
 				memcpy(relayScratch + headerLen, &m_outBuffer[i], bytesToSend);
 				Int wireLen = bytesToSend + headerLen;
 
-				// GeneralsX: A datagram that leaves this socket for a PEER
-				// carries the authentication trailer, and one that leaves it for the RELAY does not.
-				//
-				// That split is the whole rollout story. Relayed traffic is byte-for-byte what it is
-				// today, so a peer on either build reads it identically and there is no version at
-				// which one peer authenticates a relayed datagram and another does not. Direct
-				// traffic is the new shape, and the direct path only ever exists between two peers
-				// that have each been given the pair key by the relay and have each proven the path
-				// with an authenticated probe - so by the time anything takes this branch, both ends
-				// already agree.
-				//
-				// A ZERO IS NOT AN ERROR, it is a routing decision: no key for that peer, or no room
-				// in the buffer. The datagram then goes to the relay instead, which is a path that
-				// works and that the peer is listening on. There is no code path that puts an
-				// unauthenticated datagram on a direct socket - not on a key rotation, not on a
-				// table eviction, not when the capability is withdrawn mid-sweep.
+				// A datagram going to a peer carries the authentication trailer; one going to the relay does not. Relayed traffic
+				// stays byte-identical across builds, and a direct path only exists between peers that hold the pair key and
+				// have proven the path. Zero from authAppendTrailer is a routing decision (no key or no room): the datagram
+				// goes to the relay instead, so no unauthenticated datagram is ever put on a direct socket.
 				if (goingDirect)
 				{
 					const Int authed = authAppendTrailer(relayScratch, wireLen,
@@ -5782,7 +4957,7 @@ Bool Transport::doSend() {
 			}
 			else
 			{
-				// GeneralsX @bugfix "Not discarding message" is right only for a transient
+				// GeneralsX: "Not discarding message" is right only for a transient
 				// failure. A hard one - EHOSTUNREACH (what Darwin returns for a limited
 				// broadcast to 255.255.255.255, i.e. every LAN discovery send), EACCES,
 				// ENETUNREACH, EADDRNOTAVAIL - will never succeed on retry, so retaining the
@@ -5868,7 +5043,7 @@ Bool Transport::doRecv()
 	// whole buffer for every datagram. Merged in from upstream 810371bb.
 	size_t bufferIndex = 0;
 
-	// GeneralsX @feature Relay transport. Read into a staging buffer rather than straight into
+	// GeneralsX: Relay transport. Read into a staging buffer rather than straight into
 	// incomingMessage: a relayed datagram arrives with GX_RELAY_HEADER_SIZE bytes of routing
 	// ahead of the game packet, and the packet has to be decrypted and inspected without them.
 	// The extra copy is one sub-kilobyte memcpy against a CRC and an XOR pass over the same bytes.
@@ -5898,29 +5073,13 @@ Bool Transport::doRecv()
 		const UnsignedInt socketAddr = senderAddr;
 		const UnsignedShort socketPort = ntohs(from.sin_port);
 
-		// GeneralsX: Every relay CONTROL reply is now gated on the datagram
-		// having actually come from the relay.
-		//
-		// These captures used to run on any datagram that arrived, before the source address was so
-		// much as looked at. That is a hole in each of them, and in GXCAPS it is a hole through the
-		// feature gate itself: captureRelayCaps sets the peer-to-peer capability and the reflexive
-		// endpoint, so anyone who could reach this port could send "GXCAPS p2p 203.0.113.1:9999" and
-		// switch a client that had never heard of the feature into direct mode - and, because the
-		// capability is what the kill switch withdraws, could hold it there against the operator.
-		// "Dark until the relay says otherwise" is the property this feature was allowed to land on;
-		// without this check the relay was not the one saying it.
-		//
-		// The PORT is part of the identity, not decoration. The relay replies from the socket it was
-		// addressed on (relay.js binds one socket per port and answers from it), so a reply from the
-		// relay's address on some other port is not a reply from the relay's lobby or game socket.
-		//
-		// A control datagram that fails this falls through to readRelayHeader, fails that too, and is
-		// counted as an unknown packet - which is the correct degradation: it is visible in the
-		// statistics rather than silently discarded.
+		// Every relay control reply is gated on the datagram coming from the relay: address AND port, since the relay
+		// answers from the socket it was addressed on. Ungated, anyone reaching this port could send GXCAPS and switch
+		// a client into direct mode. A failing datagram falls through to readRelayHeader and is counted as unknown.
 		const Bool fromRelay = m_relayEnabled && (m_relayAddr != 0)
 			&& (socketAddr == m_relayAddr) && (socketPort == m_relayPort);
 
-		// GeneralsX @feature Server list. The relay's replies share this socket and are not game
+		// GeneralsX: Server list. The relay's replies share this socket and are not game
 		// packets, so they have to be taken off the wire before the parser sees them - otherwise
 		// they are counted as unknown packets and the browser never fills in.
 		if (fromRelay && captureGameListReply(recvScratch, rawLen))
@@ -5971,7 +5130,7 @@ Bool Transport::doRecv()
 		if (fromRelay && captureRelayPeerKeys(recvScratch, rawLen))
 			continue;
 
-		// GeneralsX @feature Relay transport. Strip our routing header and take the sender's
+		// GeneralsX: Relay transport. Strip our routing header and take the sender's
 		// identity from it. On a LAN the sender is the socket's source address; through a relay
 		// EVERY datagram arrives from the relay, which is not an identity anything above this
 		// layer can match against a slot - so the sender's virtual address travels in the header.
@@ -6008,29 +5167,10 @@ Bool Transport::doRecv()
 			}
 
 			/*
-			 * GeneralsX: AND IT HAS TO BE PROVEN, not merely claimed.
-			 *
-			 * THIS IS THE HOLE, and this line is where it was: the next statement takes the header's
-			 * source and makes it this datagram's identity. Everything downstream reads the result -
-			 * the peer-to-peer control handler, p2pNoteInboundDirect, and the m_inBuffer[].addr that
-			 * ConnectionManager matches against a player slot. While the relay was the only way a
-			 * datagram could arrive, the claim had already been checked by the one party that could
-			 * check it: relay.js refuses to forward a GXR1 whose src is not the sender's registered
-			 * id. A datagram delivered STRAIGHT TO THIS PORT has passed nobody.
-			 *
-			 * So the rule is about provenance, and it is decided before attribution rather than
-			 * after: a datagram from the relay is attributed as it always was, and a datagram from
-			 * anywhere else is attributed only if it carries a valid tag under the key we hold for
-			 * the source it names. There is no third case and nothing is sniffed - the sender knows
-			 * which of the two it is writing, and the socket tells us which one arrived.
-			 *
-			 * A REFUSAL COSTS THE DIRECT PATH AND NOTHING ELSE. It is counted as an unknown packet,
-			 * which is honest (we could not interpret it) and visible in the transport statistics;
-			 * the peer's real traffic keeps arriving over the relay, and p2pUpdate demotes the route
-			 * three seconds later if the direct path really has stopped working. There is no
-			 * configuration in which this makes one peer reject a datagram another peer accepted,
-			 * because a peer that cannot be authenticated is never given a direct route in the first
-			 * place - see p2pUpdate and authAppendTrailer.
+			 * The source must be proven, not claimed: the next statement takes the header source as this datagram identity.
+			 * A relayed datagram was already checked by relay.js; one delivered straight to this port has passed nobody,
+			 * so it must carry a valid tag under the key held for the source it names.
+			 * A refusal costs the direct path only: it is counted as unknown, and p2pUpdate demotes the route.
 			 */
 			if (!fromRelay)
 			{
@@ -6044,11 +5184,7 @@ Bool Transport::doRecv()
 					// fires, so an unbounded log line here is a way to fill somebody's disk from
 					// off the machine - and the count is the part that is actually diagnostic.
 					//
-					// GeneralsX: Release-visible, under that same limit - one
-					// line per 10 s per socket whatever the sender does. As DEBUG_LOG this was how a
-					// peer's whole direct stream was refused for 3 s at a time on 2026-09-23 with
-					// nothing in any shipping log - "no key" was a revoked pair. "its key" means a bad
-					// tag, a replay or a malformed datagram from a peer we do hold a key for.
+					// Release-visible under the same limit: one line per 10 s per socket whatever the sender does.
 					const UnsignedInt nowMs = timeGetTime();
 					if (m_authLastComplaintMs == 0 || (nowMs - m_authLastComplaintMs) >= 10000)
 					{
@@ -6069,40 +5205,14 @@ Bool Transport::doRecv()
 			packet += GX_RELAY_HEADER_SIZE;
 			len -= GX_RELAY_HEADER_SIZE;
 
-			// GeneralsX: The liveness refresh that used to sit here, and the
-			// peer-line capture that used to sit under it, have BOTH moved below isGeneralsPacket.
-			//
-			// The peer line moved because recognising it up here was unsafe: it ran before the
-			// decrypt and before the CRC check, matching raw wire bytes, so a valid ENCRYPTED game
-			// datagram whose plaintext happens to begin "GXPEER " after the routing header was
-			// swallowed and the real lockstep packet silently dropped. That was written off as a
-			// 2^-56 coincidence; it is not one. The XOR mask and the CRC are both public and static
-			// (see encryptBuf and isGeneralsPacket), so those bytes are constructible on purpose.
-			// p2pHandleControl was placed below isGeneralsPacket for exactly this reason and said so;
-			// the two are consistent now.
-			//
-			// The liveness refresh moved with it, and got stricter, because keeping it up here meant
-			// refreshing on a datagram that had not been validated at all - see p2pNoteInboundDirect.
+			// The liveness refresh and the peer-line capture live below isGeneralsPacket, not here: matching raw wire bytes before
+			// decrypt and the CRC check could swallow a valid encrypted game datagram whose plaintext begins with GXPEER, since the
+			// XOR mask and CRC are public and static. The refresh needs a validated datagram (see p2pNoteInboundDirect).
 		}
 
-		// Bound the length BEFORE copying into a fixed-size struct. A valid packet is at most one
-		// full payload plus its header, and incomingMessage is sized for exactly that; a datagram
-		// larger than it - corrupt, hostile, or from a build with a different payload cap - would
-		// otherwise overrun it. The raw read is already bounded, this bounds the copy.
-		//
-		// GeneralsX: The bound is the BUFFER's capacity, not the GAME
-		// packet constant - the receive twin of the queueSend fix. This socket carries the lobby's
-		// LANMessage as well as game packets, and that struct is 763 bytes for twelve human slots
-		// while MAX_PACKET_SIZE is 476. MEASURED: with this test still written against 476, sends
-		// left the joiner correctly and the HOST discarded every one of them as "oversize", so the
-		// join timed out at 60 s with code 1 and looked exactly like an unreachable host. The
-		// destination is sized MAX_NETWORK_MESSAGE_LEN under RETAIL_COMPATIBLE_NETWORKING, so this
-		// still refuses anything that would actually overrun it.
-		// GeneralsX: len here is the transport HEADER plus the payload and
-		// the copy below fills the packed struct from its first byte, so the capacity is header + data[]. Bounded by
-		// data[] alone, a full 1069-byte packet with RETAIL_COMPATIBLE_NETWORKING 0 (data[] is exactly MAX_PACKET_SIZE
-		// there) arrived as 1075 and was refused - the fullest packets of a busy match. Unchanged under the retail
-		// switch, where the raw read (1024) is already below data[] (1024) plus the header.
+		// Bound the length BEFORE copying into the fixed-size struct: a corrupt or hostile datagram would overrun it.
+		// The bound is the buffer capacity (transport header plus data[]), not MAX_PACKET_SIZE: this socket also
+		// carries the lobby LANMessage, which is larger, and bounding by data[] alone refused the fullest packets.
 		if (len > (Int)(sizeof(TransportMessageHeader) + sizeof(incomingMessage.data)))
 		{
 			DEBUG_LOG(("Transport::doRecv - oversize packet! len = %d", len));
@@ -6132,21 +5242,10 @@ Bool Transport::doRecv()
 				continue;
 			}
 
-			// GeneralsX: A unicast peer line - a relayed datagram carrying
-			// plaintext where a game packet would be - is recognised HERE, beside p2pHandleControl
-			// and for the identical reason: this branch has already established the datagram is not
-			// a game packet, so nothing recognised here can ever have been one. It used to run above
-			// the decrypt, where it could eat a valid packet; see the note further up.
-			//
-			// It must also have come FROM THE RELAY. sendRelayPeerLine always writes to m_relayAddr -
-			// it is a relayed unicast by construction, never a direct one - so a peer line arriving
-			// any other way did not pass the relay's registration check and is not from a member of
-			// this room at all. Without this the relay-side source fix would bind nothing, because
-			// the forger could simply bypass the relay.
-			//
-			// The sender is the header's source address and never anything in the payload; see
-			// captureRelayPeerLine. `packet` is still the untouched receive scratch - decryptBuf ran
-			// over the copy in incomingMessage - so what is matched here is what was on the wire.
+			// A unicast peer line (a relayed datagram carrying plaintext where a game packet would be) is recognised here, beside
+			// p2pHandleControl: this branch has established the datagram is not a game packet. It must come from the relay, since
+			// sendRelayPeerLine always writes to m_relayAddr; otherwise a forger could bypass the relay-side source check.
+			// The sender is the header source, never the payload. packet is still the untouched receive scratch.
 			if (fromRelay && captureRelayPeerLine(packet, len, senderAddr & 0xff))
 			{
 				continue;
@@ -6163,10 +5262,10 @@ Bool Transport::doRecv()
 		// anything".
 		//
 		// Below isGeneralsPacket, so only a datagram that carried a valid CRC over its own bytes
-		// counts - it used to be refreshed from anything with a well-formed routing header, which
-		// let junk hold a route open. p2pNoteInboundDirect additionally requires the socket endpoint
+		// counts: refreshing from anything with a well-formed routing header would let junk hold a
+		// route open. p2pNoteInboundDirect additionally requires the socket endpoint
 		// to BE the installed route, so a third party cannot refresh somebody else's timer. Cheap by
-		// construction: while everything is relayed - every deployed client today - this is one
+		// construction: while everything is relayed this is one
 		// compare and never enters the scan.
 		if (m_p2pOn && m_relayEnabled && socketAddr != m_relayAddr)
 		{
@@ -6193,10 +5292,10 @@ Bool Transport::doRecv()
 						(Int)(TheGlobalData->m_latencyAmplitude * sin(now * TheGlobalData->m_latencyPeriod)) +
 						GameClientRandomValue(-TheGlobalData->m_latencyNoise, TheGlobalData->m_latencyNoise);
 					m_delayedInBuffer[bufferIndex].message.length = incomingMessage.length;
-					// GeneralsX @bugfix Use POSIX s_addr here too - winsock #defines s_addr onto
+					// GeneralsX: Use POSIX s_addr here too - winsock #defines s_addr onto
 					// the S_un union, so it is the spelling that compiles on both, and this copy
 					// of the assignment was left behind when the one below was fixed.
-					// GeneralsX @feature Relay transport. Same sender resolution as the live path
+					// GeneralsX: Relay transport. Same sender resolution as the live path
 					// below, so simulated latency does not quietly opt out of it.
 					m_delayedInBuffer[bufferIndex].message.addr = senderAddr;
 					m_delayedInBuffer[bufferIndex].message.port = ntohs(from.sin_port);
@@ -6226,7 +5325,7 @@ Bool Transport::doRecv()
 				gxStored = TRUE;
 				m_inBuffer[bufferIndex].length = incomingMessage.length;
 				// GeneralsX: Use POSIX s_addr (no S_un union on Linux)
-				// GeneralsX @feature Relay transport. senderAddr is the socket source on a
+				// GeneralsX: Relay transport. senderAddr is the socket source on a
 				// LAN and the sender's virtual address through a relay - resolved once, above.
 				// This has to stay ahead of the memcpy, which overwrites header and data but
 				// stops short of these fields.
@@ -6241,7 +5340,7 @@ Bool Transport::doRecv()
 			++TheGxNetRecvDrops;
 	}
 
-	// GeneralsX @bugfix The socket-error test has to read the value the loop condition assigned.
+	// GeneralsX: The socket-error test has to read the value the loop condition assigned.
 	// Our relay staging buffer moved the read result into rawLen, but this test was left on len,
 	// which by here holds the last packet's payload length - so a socket error returned TRUE and
 	// the caller never learned the read failed.
@@ -6257,18 +5356,9 @@ Bool Transport::doRecv()
 Bool Transport::queueSend(UnsignedInt addr, UnsignedShort port, const UnsignedByte *buf, Int len /*,
 						  NetMessageFlags flags, Int id */)
 {
-	// GeneralsX: Bound by what the destination buffer ACTUALLY holds, not
-	// by the GAME packet constant. This transport carries two different things: game packets, which
-	// are bounded to MAX_PACKET_SIZE (476, retail-compatible) by the layer that builds them, and the
-	// LOBBY's LANMessage, which is a single fixed-size struct and is now 763 bytes for twelve human
-	// slots. TransportMessage::data is MAX_NETWORK_MESSAGE_LEN (1024) under
-	// RETAIL_COMPATIBLE_NETWORKING - the struct's own comment says as much - so the storage was
-	// always there; only this check was written against the wrong constant.
-	//
-	// MEASURED: with the lobby message at 763 and this check still at 476, every LANMessage was
-	// silently refused here. Twelve peers came up, the joiners' join requests were never sent, and
-	// each gave up after its 60 s action timeout with "join failed, code 1" - a TIMEOUT, which
-	// reads like a network fault and is really a send that never left the building.
+	// Bound by what the destination buffer holds, not the game packet constant: this transport also carries the lobby
+	// LANMessage, a fixed-size struct larger than MAX_PACKET_SIZE (476, retail-compatible). TransportMessage::data is
+	// MAX_NETWORK_MESSAGE_LEN under RETAIL_COMPATIBLE_NETWORKING. A check against 476 silently refused every LANMessage.
 	if (len < 1 || len > (Int)sizeof(m_outBuffer[0].data))
 	{
 		DEBUG_LOG(("Transport::queueSend - Invalid Packet size %d (buffer holds %d)",

@@ -140,16 +140,7 @@ void HackInternetAIUpdate::aiDoCommand(const AICommandParms* parms)
 
 	// TheSuperHackers @bugfix andrew-2e128 / Mauller 14/07/2025 prevent hacking hackers packing and unpacking when commanded to hack the internet
 	//
-	// GeneralsX: UNGATED from #if !RETAIL_COMPATIBLE_CRC, deliberately, at
-	// the owner's instruction. Upstream keeps this behind that macro because it changes simulation
-	// behaviour and therefore the frame CRC, which would desync a retail 1.08 client. GeneralsX has
-	// no retail peers to stay in step with - engineID/sourceID already refuse any peer whose engine
-	// differs - and the whole fleet rebuilds atomically, so the compatibility that macro protects
-	// buys us nothing while the bug costs real money every game.
-	//
-	// Kept identical to the Zero Hour twin on purpose; the full reasoning lives there.
-	// THIS IS THE ONLY SITE LIFTED. The macro itself still reads 1 and every other block behind it
-	// stays gated.
+	// GeneralsX: Not gated by RETAIL_COMPATIBLE_CRC: engineID/sourceID already refuse any peer with a different engine.
 	if (parms->m_cmd == AICMD_HACK_INTERNET && isUnpackingOrHacking)
 	{
 		return;

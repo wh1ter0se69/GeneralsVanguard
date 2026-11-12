@@ -162,13 +162,8 @@ protected:
 	*/
 /// How much of a typed lobby name survives to the wire.
 ///
-/// GeneralsX: 24 costs 28 announce bytes ("LN=" + 24 + ';'). Measured
-/// against the real budget rather than guessed: m_lanMaxOptionsLength is 692, and the twelve-slot
-/// worst case is 12*26 + 130 = 442, so this takes 470 of 692. g_announcePrefixAllowance is raised
-/// by the same 28 so the existing static_assert keeps covering the whole structure - the budget is
-/// the binding constraint on MAX_HUMAN_SLOTS, and a field that quietly ate headroom would surface
-/// later as "twelve players stopped announcing" rather than as this change.
-/// 23/09/2026: 551 of 692 since the stress battlefield's ST= field (+81, LANAPI.h).
+/// 24 costs 28 announce bytes ("LN=" + 24 + ';'). g_announcePrefixAllowance is raised by the same 28 so the
+/// static_assert still covers the whole structure; the announce budget is the binding constraint on MAX_HUMAN_SLOTS.
 static const Int g_lobbyDisplayNameLength = 24;
 
 class GameInfo
@@ -258,30 +253,9 @@ public:
 	virtual void closeOpenSlots();						///< close all slots that are currently unoccupied.
 
 	// CRC checking hack
-	//
-	// GeneralsX: THE CAP MUST SCALE WITH THE TICK RATE. At 60 Hz a hard
-	// 100 here desynchronises the CRC check itself.
-	//
-	// The host never comes through this setter: GameInfo::reset() assigns m_crcInterval directly
-	// from NET_CRC_INTERVAL (GameInfo.cpp:306, Network.cpp:68), which is
-	// (100 * LOGICFRAMES_PER_SECOND) / 30 - so 200 at 60 Hz. Clients DO come through here, applying
-	// the host's value as received off the wire (C=%d). With a hard 100 ceiling the host then checks
-	// on a 200-frame stride while every client checks on a 100-frame stride, and on each off-phase
-	// check only the clients have published - 2 of 3 peers - which GameLogic reports as a shortfall.
-	//
-	// MEASURED, not reasoned: a 60 Hz three-peer match produced 60 shortfalls, every single one
-	// got=2 expected=3, with full checks landing on a 200-frame stride and partials on the same
-	// stride offset by 100. Controls at 30 Hz: 1 shortfall in 5211 frames, and 0 in 28031 frames on
-	// a longer run. The 60 Hz lobby serialised C=200 while both clients held 100.
-	//
-	// At 30 Hz the ceiling and the default are both 100, so the clamp is inert and this has been
-	// invisible for the entire life of the code. It is a 60 Hz-only defect, and it is exactly the
-	// failure Network.cpp:60-67 declares impossible - a mismatched interval "makes peers emit CRCs
-	// on different frames ... and reports a FAKE desync indistinguishable from a real one".
-	//
-	// The clamp is KEPT, because it still bounds a hostile or garbage value arriving from the wire.
-	// Only the ceiling changes, and it is now expressed exactly the way the host expresses its own
-	// default, so the two cannot drift apart again.
+	// The ceiling must scale with the tick rate: the host sets m_crcInterval from NET_CRC_INTERVAL (200 at 60 Hz) and
+	// clients apply it from the wire. A fixed 100 would put clients on a different stride and report a fake desync.
+	// The clamp stays to bound a hostile or garbage wire value.
 	void setCRCInterval( Int val )
 	{
 		const Int maxInterval = (100 * LOGICFRAMES_PER_SECOND) / 30;
@@ -362,22 +336,9 @@ protected:
 
 	UnsignedInt m_localIP;
 
-	// GeneralsX: THE LOBBY'S DISPLAY NAME, which is NOT LANGameInfo's
-	// name. That one (LANGameInfo::getName) is the LOOKUP KEY - LANAPI.cpp:2239 finds a game with
-	// `while (theGame && theGame->getName() != gameName)` - which is why it is built as
-	// "%8.8X%8.8X" of IP and seed and why a human name concatenated onto it is truncated away by
-	// g_lanGameNameLength. It cannot carry text and stay unique, so this is a separate field.
-	//
-	// Before this existed there was nowhere to put the name the host types in PopupHostGame, so it
-	// was pushed through RequestSetName - i.e. it overwrote the host's PLAYER name, and the host's
-	// own slot in GAME OPTIONS showed the lobby name instead of who they are.
-	//
-	// The relay region is deliberately NOT stored here. Every peer in a lobby is on the same relay
-	// and each already knows its own region from the signed manifest, so "[EU] " is applied at
-	// display time from Transport::getRelayRegion() - the single runtime source the browser column
-	// already uses (WOLLobbyMenu.cpp:1754). Putting it on the wire would cost bytes out of a budget
-	// that is already the binding constraint on MAX_HUMAN_SLOTS, to send every peer a value it
-	// can derive.
+	// The lobby display name. Not LANGameInfo::getName, which is the lookup key (built from IP and seed, truncated by
+	// g_lanGameNameLength) and cannot carry text. The relay region is not stored: it is applied at display time from
+	// Transport::getRelayRegion(), saving bytes in an already tight announce budget.
 	AsciiString m_lobbyName;
 
 	// Game options

@@ -1,23 +1,25 @@
-// GeneralsX: S7 GPU sun shadow map: the caster list and its replay.
-//
-// PREREG: (A1, A21, A22, A23, A30); PLAN Task 2.
-//
-// The shadow map is drawn INSIDE the A23-B device worker, never from the caller: caster draws are CAPTURED by GxPacketWriter
-// while the frame records (after each draw's normal prologue - uploads flushed, buffers/textures bound, i.e. marked used and
-// TOUCHED, so no later upload into them can be hoisted ahead of the replay and no DISCARD slice they read can be reused), and
-// REPLAYED depth-only at endFrame into the frame's INIT command buffer (VkFrameRing::initCmd), which the submission runs BEFORE
-// the frame's MAIN commands. Receivers recorded earlier in MAIN therefore sample THIS frame's map: no frame of lag, no
-// store/reload of the main MSAA targets (the map pass is in another command buffer, before their scope), nothing on the main
-// thread.
-//
-// What INIT sees: the previous frames' contents plus the hoisted front uploads (GxResources::recordPendingFront, untouched
-// destinations only). So a caster is ELIGIBLE only if no MAIN command of this frame wrote any of its dependencies before its
-// draw (GxBuffer::mainWrite / GxImage::mainWrite) and every image it samples ENTERED the frame sampleable
-// (GxImage::layoutAtEntry). Ineligible casters are skipped and COUNTED - never silently dropped, never replayed stale.
-// The records hold raw Vulkan handles only (a GxBuffer destroyed mid-frame cannot dangle: its VkBuffer retires at lastUse).
-//
-// Families: v0 (Task 2) replays OPAQUE fixed-function casters (position float3, World from the packet). Alpha-tested and tree
-// casters (PS 17 / VS 1, A24/A32) are counted as `unsupported` until their task lands.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GPU sun shadow map: casters are captured while the frame records and replayed depth-only at endFrame into
+// the INIT command buffer, which runs before MAIN. A caster is eligible only if no MAIN command wrote its
+// dependencies first (GxBuffer::mainWrite / GxImage::mainWrite) and its images entered the frame sampleable.
+// Ineligible casters are skipped and counted.
 #pragma once
 
 #include "VkCommon.h"
@@ -31,8 +33,8 @@ namespace Vk { class VkCtx; }
 namespace Res { class GxImage; }
 namespace Rec {
 
-// S7 per-draw tags (the device's IGxShadowMap::SetShadowTags; GxShadowMap.h GX_SHADOW_TAG_* carry the same values):
-// RECEIVE = this draw samples the map (P2), CAST = it is also captured as a caster, CAST_ONLY = captured, never drawn, SOLID = (A61, only
+// Per-draw tags (the device's IGxShadowMap::SetShadowTags; GxShadowMap.h GX_SHADOW_TAG_* carry the same values):
+// RECEIVE = this draw samples the map, CAST = it is also captured as a caster, CAST_ONLY = captured, never drawn, SOLID = (only
 // under CAST_ONLY) a CAST draw is captured without z write (sorted CAST_SHADOW casters).
 enum : uint32_t { kShadowTagReceive = 1u, kShadowTagCast = 2u, kShadowTagCastOnly = 4u, kShadowTagSolid = 8u };
 
@@ -44,7 +46,7 @@ struct GxShadowPassDesc
 	VkRect2D rect[2] = {};                    // each cascade's atlas rectangle (the step's sub-rectangle)
 	float lightViewProj[2][16] = {};          // D3D element order: v' = v * M; clip space is Vulkan's (z 0..1)
 	float depthBias[3] = {};                  // constant, clamp, slope (vkCmdSetDepthBias)
-	// P2 (the receivers' UBO, GxLookFrame.h): what the frame's receivers need beyond the replay's own inputs
+	// The receivers' UBO (GxLookFrame.h): what the frame's receivers need beyond the replay's own inputs
 	uint32_t step = 3;                        // 0..3 (3 = off)
 	uint32_t shadowColor = 0;                 // ARGB, the map's
 	float depthRangeWU[2] = {};               // per cascade: the light depth range in world units (the fit's zFar - zNear)
@@ -96,7 +98,7 @@ public:
 	GxShadowCasters(const GxShadowCasters&) = delete;
 	GxShadowCasters& operator=(const GxShadowCasters&) = delete;
 
-	// capacity: records per frame (PREREG A30: 12,288 = 2.5x the measured peak)
+	// capacity: records per frame (12,288 = 2.5x the measured peak)
 	bool init(Vk::VkCtx& ctx, VkFormat depthFormat, uint32_t capacity, std::string* why);
 	void shutdown();
 

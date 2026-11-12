@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule OIL.CAPTURE_GATE_BUNKERS: GLA holds its oil capture until its
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule OIL.CAPTURE_GATE_BUNKERS: GLA holds its oil capture until its
 # defences stand and spends the opening on its army. Stock GLA Hard's capture team (one Rebel) is produced by "GLA Tech Capture Build"
 # as soon as a tech building lies near its base (smoke8: first own derrick at 130-143 s, every general). Here that script's gate also
 # waits for _GX_CLOCK >= ceil(cap_t / 10) and bunker_min own Tunnel Networks (GLA's garrisonable defence; 0 = no Tunnel gate). The stock

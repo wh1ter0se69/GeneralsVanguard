@@ -512,11 +512,9 @@ Int WeaponTemplate::getDelayBetweenShots(const WeaponBonus& bonus) const
 		delayToUse = GameLogicRandomValue( m_minDelayBetweenShots, m_maxDelayBetweenShots );
 
 #if GX_LOGIC_60HZ
-	// GeneralsX: GENERALS ONLINE PARITY.
-	// Before the rate-of-fire bonus, as GO does at 60 Hz: a nonzero delay is at least one retail aim-and-fire
-	// round (2 retail frames), and the China Gattling building's guns wait 1/1.5 as long (GO's own note on it: "HACK ...
-	// seems like an ini data bug"; it runs on GO's 30 Hz turret cadence, TurretAI::updateTurretAI). This replaces our 01/10 fix,
-	// which did the bonus arithmetic on the retail 30 Hz grid (exactly 2003); the owner chose GO's numbers instead.
+	// GeneralsX: Generals Online parity.
+	// Before the rate-of-fire bonus, as GO does at 60 Hz: a nonzero delay is at least one retail aim-and-fire round (2 retail frames).
+	// The China Gattling building guns wait 1/1.5 as long; they run on the 30 Hz turret cadence (TurretAI::updateTurretAI).
 	if( delayToUse != 0 && delayToUse < GX_FRAMES30(2) )
 		delayToUse = GX_FRAMES30(2);
 	const AsciiString name = getName();
@@ -3566,9 +3564,8 @@ void Weapon::xfer( Xfer *xfer )
 	}
 
 	// slot
-	// GeneralsX: A slot from a save file indexes m_weapons / barrel arrays later; refuse one out of
-	// range (net-hardening weapon-slot-r1, with sweep c099-01). An honest one always is in range. Checked before it is
-	// kept: a load that throws still runs the post-processing pass, which can read it.
+	// GeneralsX: a slot from a save file indexes m_weapons / barrel arrays later; refuse one out of range. An honest one
+	// always is in range. Checked before it is kept: a load that throws still runs the post-processing pass, which can read it.
 	WeaponSlotType xferSlot = m_wslot;
 	xfer->xferUser( &xferSlot, sizeof( WeaponSlotType ) );
 	if ((Int)xferSlot < 0 || (Int)xferSlot >= WEAPONSLOT_COUNT)
@@ -3576,8 +3573,8 @@ void Weapon::xfer( Xfer *xfer )
 	m_wslot = xferSlot;
 
 	// status
-	// GeneralsX: A status from a save file indexes s_wsfLookup (Object::adjustModelConditionForWeaponStatus) and
-	// more; refuse one out of range, before it is kept (net-hardening weapon-slot-r2). An honest one always is in range.
+	// GeneralsX: a status from a save file indexes s_wsfLookup (Object::adjustModelConditionForWeaponStatus) and more;
+	// refuse one out of range, before it is kept. An honest one always is in range.
 	WeaponStatus xferStatus = m_status;
 	xfer->xferUser( &xferStatus, sizeof( WeaponStatus ) );
 	if ((Int)xferStatus < 0 || (Int)xferStatus >= WEAPON_STATUS_COUNT)

@@ -16,42 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: Discord login, in the engine, on every platform.
-//
-// ================================================================================================
-// THE FLOW, WHICH IS ONE CLICK
-// ================================================================================================
-//
-// The player presses Online while signed out and is asked whether to sign in. If they say yes:
-// this module opens a single-shot listener on 127.0.0.1, opens their browser at the login service,
-// the service sends them to Discord's consent screen, they accept, and the service POSTs the
-// signed assertion back to that listener. Nothing is typed and nothing is polled.
-//
-// WHY THE ANSWER COMES BACK TO A LOCAL SOCKET is the entire security argument and it lives in
-// GXLoopback.h. In one line: the result is delivered to whichever machine's browser did the
-// consenting, so a login link mailed to somebody else logs THEM in on THEIR machine and hands the
-// sender nothing.
-//
-// ================================================================================================
-// THIS NOW WORKS ON WINDOWS, WHICH IS THE POINT
-// ================================================================================================
-//
-// The previous revision could not exist on Windows: it fetched over HTTPS, and vcpkg.json gates
-// curl to "!windows" while that box has no CA store either. Login had to be routed through the
-// launcher.
-//
-// This revision needs NO HTTP CLIENT AT ALL. The browser does every network request; the game
-// opens a socket, opens a URL, and verifies a signature. All three exist on all four platforms, so
-// this file is compiled unconditionally and the launcher's --login path is redundant.
-//
-// There is no worker thread, no curl handle and no generation counter any more. The previous
-// revision needed all three because it polled a remote service from a detached thread and a late
-// reply from an abandoned attempt could overwrite a newer one. With a socket that is closed on
-// cancel, an abandoned attempt has nowhere to deliver to, and the whole concurrency argument
-// disappears. What replaces it is a single non-blocking accept per frame.
-//
-// LAN AND OFFLINE PLAY NEVER REQUIRE ANY OF THIS. An absent assertion is a normal, permanent state
-// and every failure below lands in "play unauthenticated".
+// Discord login, in the engine, on every platform: a single-shot listener on 127.0.0.1, the browser opened at the
+// login service, and the service POSTs the signed assertion back to it (the security argument is in GXLoopback.h).
+// No HTTP client or worker thread: the game opens a socket and a URL and verifies a signature, so it builds
+// everywhere. LAN and offline play never require it; every failure lands in unauthenticated play.
 
 #ifndef GX_LOGIN_FLOW_H
 #define GX_LOGIN_FLOW_H

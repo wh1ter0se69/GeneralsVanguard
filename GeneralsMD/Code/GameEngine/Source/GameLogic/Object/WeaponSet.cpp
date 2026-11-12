@@ -53,6 +53,15 @@
 
 #include "GameLogic/Weapon.h"
 
+// GeneralsX: range-check skip for the PossibleToAttack filter.
+// That filter accepts POSSIBLE and
+// POSSIBLE_AFTER_MOVING alike, and for a mobile, uncontained source the range check decides nothing else: it only picks between the two
+// (okResult). The filter marks the exact (source, victim) of its call; getAbleToUseWeaponAgainstTarget takes the mark at entry, clears
+// it (so nested calls for garrisoned members or slaves never see it), and then skips the check. Never for a contact weapon against a
+// structure: that check walks the partition (iteratePotentialCollisions), which moves the shared walk flag of the scan that called us.
+const Object *g_gxRangeIrrelevantSource = nullptr;
+const Object *g_gxRangeIrrelevantVictim = nullptr;
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -285,9 +294,8 @@ void WeaponSet::xfer( Xfer *xfer )
 			xfer->xferSnapshot(m_weapons[i]);
 		}
 	}
-	// GeneralsX: A slot from a save file indexes m_weapons / barrel arrays later; refuse one out of
-	// range (net-hardening weapon-slot-r1, with sweep c099-01). An honest one always is in range. Checked before it is
-	// kept: a load that throws still runs the post-processing pass, which can read it.
+	// GeneralsX: a slot from a save file indexes m_weapons / barrel arrays later; refuse one out of range. An honest one
+	// always is in range. Checked before it is kept: a load that throws still runs the post-processing pass, which can read it.
 	WeaponSlotType xferCurWeapon = m_curWeapon;
 	xfer->xferUser(&xferCurWeapon, sizeof(xferCurWeapon));
 	if ((Int)xferCurWeapon < 0 || (Int)xferCurWeapon >= WEAPONSLOT_COUNT)
@@ -632,6 +640,11 @@ CanAttackResult WeaponSet::getAbleToAttackSpecificObject( AbleToAttackType attac
 CanAttackResult WeaponSet::getAbleToUseWeaponAgainstTarget( AbleToAttackType attackType, const Object *source, const Object *victim, const Coord3D *pos, CommandSourceType commandSource, WeaponSlotType specificSlot ) const
 {
 
+	// GeneralsX: take (and clear) the PossibleToAttack filter's mark, see g_gxRangeIrrelevantSource
+	const Bool gxRangeIrrelevant = victim != nullptr && source == g_gxRangeIrrelevantSource && victim == g_gxRangeIrrelevantVictim;
+	g_gxRangeIrrelevantSource = nullptr;
+	g_gxRangeIrrelevantVictim = nullptr;
+
 	//First determine if we are attacking an object or the ground and get the
 	//appropriate weapon anti mask.
 	WeaponAntiMaskType targetAntiMask;
@@ -669,6 +682,10 @@ CanAttackResult WeaponSet::getAbleToUseWeaponAgainstTarget( AbleToAttackType att
 	const Object *containedBy = source->getContainedBy();
 	Bool hasAWeaponInRange = FALSE;
 	Bool hasAWeapon				 = FALSE;
+	// GeneralsX: the caller cannot tell POSSIBLE from POSSIBLE_AFTER_MOVING, and only an
+	// immobile, spawn-weapon or contained source turns "not in range" into INVALID_SHOT (below), so for any other source the check is moot
+	const Bool gxSkipRange = gxRangeIrrelevant && containedBy == nullptr
+		&& !source->isKindOf( KINDOF_IMMOBILE ) && !source->isKindOf( KINDOF_SPAWNS_ARE_THE_WEAPONS );
 	for (Int slot = 0; slot < WEAPONSLOT_COUNT - 1; ++slot)
 	{
 		Weapon *weaponToTestForRange = m_weapons[ m_curWeapon ];
@@ -677,6 +694,8 @@ CanAttackResult WeaponSet::getAbleToUseWeaponAgainstTarget( AbleToAttackType att
 			hasAWeapon = TRUE;
 			if ((m_totalAntiMask & targetAntiMask) == 0)//we don't care to check for this weapon
 				continue;
+			if (gxSkipRange && !(weaponToTestForRange->isContactWeapon() && victim->isKindOf( KINDOF_STRUCTURE )))
+				continue;	// GeneralsX A2-G1: withinAttackRange stays FALSE, okResult POSSIBLE_AFTER_MOVING, which the caller treats as POSSIBLE
 
 			Bool handled = FALSE;
 			ContainModuleInterface *contain = containedBy ? containedBy->getContain() : nullptr;

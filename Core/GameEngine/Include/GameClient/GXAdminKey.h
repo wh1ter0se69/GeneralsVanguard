@@ -16,23 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: THIS CLIENT'S ADMIN KEY: the private half that signs its cheat orders when the
-// relay proves it an admin for a match (Common/GXAdminOrder.h says why a signature and not the sender field).
-//
-// ONE KEY PER MATCH. The client always holds a CURRENT key and offers its public half to the relay on its game socket
-// (GXAKEY, declared by gxDeclareIdentityIfChanged). The relay publishes it only while the account is a live admin
-// (relay.js GXAKR). When a match really begins with that key stamped for our slot, it becomes the MATCH key - the one
-// this match's orders are signed with - and is marked USED. A used key goes on being offered for as long as that
-// match's network is up, because the other peers verify the stamp against the relay's answer at their own start, which
-// can be after ours; the moment the network is gone a fresh key replaces it (gxAdminKeyCurrentB64). So a key signs
-// orders in one match - or, when a rematch is stamped with it because the relay had not yet heard the fresh one, in
-// further matches under seeds it never signed under (gxAdminKeyBeginMatch) - and an order signed in one match cannot
-// be replayed into another even by a host that reuses the seed. (Measured: minting the replacement AT the start made a joiner that started a moment after the admin
-// read the new key from the relay and refuse the start - "the relay proves 0x2 with other keys".)
-//
-// NOTHING HERE IS SIMULATION STATE. The simulation holds the stamped PUBLIC keys (GameLogic) and decides with
-// Common/GXAdminOrder.h, which is digested; this header only keeps secrets on the machine that owns them. Header only,
-// with one function-local static, main thread only.
+// THIS CLIENT'S ADMIN KEY: the private half that signs its cheat orders when the relay proves it an admin for a
+// match. ONE KEY PER MATCH: its public half is offered on the game socket (GXAKEY) and published only for a live
+// admin. A used key stays offered while that match's network is up, then a fresh one replaces it, so a signed
+// order cannot be replayed into another match. Nothing here is simulation state; main thread only.
 
 #pragma once
 
@@ -98,7 +85,7 @@ inline bool gxAdminKeyIsCurrent( const unsigned char stamped[32] )
 /// `gameSeed` the match's seed - the one every order's payload binds. When `stamped` is our current key - and not one
 /// already used for a match - that key becomes the match key (sequence numbers restart) and is marked used.
 ///
-/// GeneralsX: ...OR IT IS STILL THE LAST MATCH KEY. The fresh key goes to the
+/// ...OR IT IS STILL THE LAST MATCH KEY. The fresh key goes to the
 /// relay on the lobby socket (GXAKEY, resent on the keepalive), so a rematch started before it lands - or after it was
 /// lost - is stamped with the previous match's key, which every peer's own relay confirms, and the admin could not sign
 /// a thing all match. What one key per match protects is that no order signed in one match verifies in another, and a

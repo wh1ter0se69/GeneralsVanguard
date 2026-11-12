@@ -401,22 +401,9 @@ void TransitionGroup::addWindow( TransitionWindow *transWin )
 
 //-------------------------------------------------------------------------------------------------
 /** Give `cloneName` every transition this group gives `templateName`, and return how many it added.
-	*
-	* IDEMPOTENT, and that is the load-bearing property rather than a nicety. This list is built once
-	* by the INI parser and then lives for the whole process, while the screens that call in here are
-	* torn down and rebuilt every time the player opens them - the score screen rebuilds its rows on
-	* every end-of-match. Appending unconditionally would therefore grow the group without bound over
-	* a session and drive the same window through two transitions at once. One entry already carrying
-	* cloneName is proof this ran before, so we do nothing.
-	*
-	* Style and FrameDelay are COPIED from the template entry rather than chosen here. That is the
-	* whole point: the answer to "what should row 8 do?" is "whatever row 0 does", including whatever
-	* an override archive says it does - and three of the mounted archives ship their own
-	* WindowTransitions.ini. Deciding it in code would be a second, disagreeing copy of the data.
-	*
-	* m_win is deliberately NOT resolved here. TransitionWindow::init() looks the name up when the
-	* group starts, so an entry added while its windows do not exist yet is correct and an entry whose
-	* window is later destroyed is unlinked by GameWindow's own back-pointer. */
+	* IDEMPOTENT, and load-bearing: the group lives for the process but screens rebuild their rows each time, so one
+	* existing entry for cloneName means it already ran. Style and FrameDelay are COPIED from the template entry, so
+	* override archives apply. m_win is not resolved here: TransitionWindow::init() looks it up when the group starts. */
 //-------------------------------------------------------------------------------------------------
 Int TransitionGroup::mirrorWindow( AsciiString templateName, AsciiString cloneName, Bool groupIsLive )
 {
@@ -669,23 +656,9 @@ TransitionGroup *GameWindowTransitionsHandler::getNewGroup( AsciiString name )
 
 //-------------------------------------------------------------------------------------------------
 /** A window created in code should animate the way the window it was cloned from animates.
-	*
-	* WHY THIS EXISTS. A transition group is DATA - windowtransitions.ini names, one by one, the
-	* windows it animates - and it therefore only ever knows the windows a .wnd authored. Rows created
-	* at runtime by CodeGuiRowsEnsure carry names the artist never wrote, so no group names them, so
-	* they get no transition and simply appear, next to authored rows that animate. On the score
-	* screen that is players 9-12 popping in while 1-8 count up.
-	*
-	* Fixed here rather than by adding the four names to the .ini for the same reason
-	* codeGuiAdoptLook exists rather than a per-screen fixup: the code that CREATES a row is the only
-	* place that knows a row was created, and a name added to the data is right for exactly one
-	* screen at exactly one slot count. This also survives an override archive - the mounted set
-	* ships three separate WindowTransitions.ini and the mirror copies whichever one actually loaded.
-	*
-	* Every group is searched, not just the current one, because a window can be named by several -
-	* MainMenu.wnd:MapBorder2 is in eleven - and a caller has no way to know which. Groups that do not
-	* name the template are untouched, so this is a no-op on every screen whose rows the data never
-	* animated, which today is every cloned-row screen except this one. */
+	* Groups name only authored windows, so rows made by CodeGuiRowsEnsure get no transition and just appear.
+	* Fixed where the row is created, so it follows whichever WindowTransitions.ini loaded; every group is searched,
+	* since a window can be named by several. Groups that do not name the template are untouched. */
 //-------------------------------------------------------------------------------------------------
 Int GameWindowTransitionsHandler::mirrorWindowTransitions( AsciiString templateName, AsciiString cloneName )
 {

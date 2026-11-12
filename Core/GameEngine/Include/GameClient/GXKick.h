@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: In-match kick: the red line every peer draws, and the ticket's packing
+// In-match kick: the red line every peer draws, and the ticket's packing
 // into MSG_SELF_DESTRUCT. The decision itself is Common/GXKickTicket.h (digested); this is GameClient and
 // only gathers the inputs and draws.
 
@@ -40,7 +40,7 @@ void gxKickPackOrder( GameMessage *msg, const unsigned char *bytes, Int len );
 /// The ticket a MSG_SELF_DESTRUCT carries, or -1 when it carries none or anything malformed.
 Int gxKickUnpackOrder( const GameMessage *msg, unsigned char *out, Int outMax );
 
-/// GeneralsX: The reason= the [GXKICK] exec line prints. LOG TEXT ONLY: nothing reads
+/// The reason= the [GXKICK] exec line prints. LOG TEXT ONLY: nothing reads
 /// it back but people and scripts/test. `argCount` is the MSG_SELF_DESTRUCT's argument count. Every ordinary
 /// departure - the Surrender button, Network::quitGame, the disconnect path - appends its BOOLEAN and nothing
 /// else, so one argument means the order carried no ticket; with no relay copy deciding either

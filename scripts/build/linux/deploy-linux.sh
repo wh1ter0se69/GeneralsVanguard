@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # GeneralsX @build felipebraz 16/02/2026 Deploy Linux build to runtime directory
 # GeneralsX: Add non-empty check to guard against stale CMake placeholder files
 
@@ -82,7 +84,7 @@ cp -v "${SDL3_IMAGE_LIB_DIR}"/libSDL3_image.so* "${RUNTIME_DIR}/"
 echo "  Copying GameSpy library..."
 cp -v "${GAMESPY_LIB}" "${RUNTIME_DIR}/"
 
-# GeneralsX: The openal-soft this engine was built against, a warning and
+# The openal-soft this engine was built against, a warning and
 # not a refusal on a failed check - see the same block in deploy-linux-zh.sh and lib-openal.sh.
 echo "  Copying OpenAL library..."
 # shellcheck source=scripts/build/linux/lib-openal.sh
@@ -117,7 +119,7 @@ copy_ldd_deps() {
     done < <(ldd "${root}" | awk '{for (i = 1; i <= NF; ++i) { if ($i ~ /^\//) { print $i; break } }}' | sort -u)
 }
 
-# GeneralsX: Deploy FFmpeg runtime libs transitively so runtime does not depend on host SONAME layout.
+# Deploy FFmpeg runtime libs transitively so runtime does not depend on host SONAME layout.
 echo "  Copying FFmpeg runtime libraries..."
 shopt -s nullglob
 ffmpeg_roots=(

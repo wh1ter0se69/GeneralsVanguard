@@ -140,6 +140,12 @@ private:
 	// actually, it's not a real frame at all, it has phase info in the lower bits...
 	UnsignedInt m_nextCallFrameAndPhase;
 	Int m_indexInLogic;
+	// GeneralsX: GameLogic's sleepy-update wheel keeps its bookkeeping here (GameLogic/SleepyWheel.h):
+	// which container holds this module, its chunk there, and the seq that orders it among equal keys.
+	UnsignedByte m_sleepyWhere;
+	void* m_sleepyChunk;
+	UnsignedInt64 m_sleepySeq;
+	friend struct SleepyWheelOps;
 
 protected:
 
@@ -224,7 +230,10 @@ public:
 inline UpdateModule::UpdateModule( Thing *thing, const ModuleData* moduleData ) :
 	BehaviorModule( thing, moduleData ),
 	m_indexInLogic(-1),
-	m_nextCallFrameAndPhase(0)
+	m_nextCallFrameAndPhase(0),
+	m_sleepyWhere(0),
+	m_sleepyChunk(nullptr),
+	m_sleepySeq(0)
 {
 	// nothing
 }

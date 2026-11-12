@@ -16,61 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: The signed identity assertion, and the client's half of it,
-// which is VERIFICATION AND NOTHING ELSE.
-//
-// WHAT THIS IS FOR. GXPlayerIdentity.h:37 states plainly that today's player id "IS A BEARER TOKEN.
-// KNOWING IT IS BEING IT." Everything the project wants next runs into that: a short xxxx-nnnn
-// friend code is ~32 bits and brute-forceable, adding an offline player needs somewhere durable to
-// put the request, and moderation needs a durable answer to "who is banned". None of the three is
-// safe while the id is a secret. An assertion signed by a service converts the id into a HANDLE -
-// knowing someone's handle grants nothing - and that is what unblocks all three.
-//
-// WHY THE CLIENT ONLY EVER VERIFIES, WHICH IS THE DECISION THE WHOLE DESIGN TURNS ON.
-// The Windows engine has no HTTPS at all: vcpkg.json gates curl "platform": "!windows", and that
-// box has no CA store either. It cannot perform an OAuth round trip, and it never will. So the
-// browser does the OAuth dance, a service returns a SIGNED ASSERTION rather than a session, the
-// launcher writes it beside GXPlayer.ini, and the game checks a signature. Verification needs no
-// TLS, no CA store, and no secret in the client - which is exactly why it works on the platform
-// that cannot do anything else.
-//
-// FETCHING IS NOT IN THIS FILE AND MUST NOT ARRIVE IN IT. If a future edit here opens a socket,
-// the Windows build breaks and the design has been inverted.
-//
-// LAN AND OFFLINE PLAY MUST NEVER REQUIRE A LOGIN. An absent assertion is GX_ASSERT_ABSENT, which
-// is a normal state and not an error - it is what every LAN player and every offline player has,
-// forever. An invalid one is refused and the caller falls back to the local GXPlayerIdentity token
-// exactly as today. A service outage, an expired assertion, a player with no account and a player
-// whose system clock is wrong all land in the same place: they play, unauthenticated. As of Phase
-// 3a NOTHING CALLS THIS AT ALL, so that property is currently true by construction; the first
-// caller must keep it true by treating every non-OK status as "no account this session".
-//
-// THE FORMAT IS NOT NEW. It is tools/master/gxtoken.js's admission ticket with different claims,
-// deliberately: '~'-separated, version first, signature last over every byte before the final
-// separator, base64url, forward-compatible by appending a field before the signature. That file's
-// header sets the goal - "one algorithm, one key format, one set of test vectors" - and a second
-// bespoke format here would have cost exactly that. '~' is in none of the field charsets, so there
-// is no escaping rule to get wrong, and an assertion contains no space, so it survives a
-// space-delimited relay line whole if it ever has to travel on one.
-//
-//     1~<sub>~<name>~<iat>~<exp>~<sig>
-//
-//     1      format version, one digit. A version this code does not know is REFUSED, never
-//            guessed at: a newer signer may mean the same bytes differently, and misreading an
-//            identity claim is the one failure that must not be silent.
-//     sub    the account id at the issuing provider. ^[0-9]{1,20}$ TODAY because the provider is
-//            Discord and a snowflake is decimal - but see the warning on GXAssertionClaims::sub,
-//            because that is a validation policy and NOT a licence to treat it as a number.
-//     name   display name, 0-20 characters of [A-Za-z0-9_.-], the relay's own NICK_RE
-//            (tools/master/store.js:81). May be empty.
-//     iat    issued-at, unix seconds, decimal.
-//     exp    expiry, unix seconds, decimal.
-//     sig    Ed25519 over every byte before the final '~', base64url, 86 characters.
-//
-// DIGEST. This file and its .cpp live under GameClient/, which simsourcedigest_watcher.cmake does
-// NOT digest, so a change to the login format costs no four-platform rebuild. Nothing here may ever
-// be read by GameLogic - identity is social state, never simulation state. Measured, not assumed:
-// the digest was recorded before and after this work landed and did not move.
+// The signed identity assertion. The client only VERIFIES (the Windows engine has no HTTPS: a service returns a
+// signed assertion the launcher writes beside GXPlayer.ini). Fetching must never arrive in this file.
+// 1~<sub>~<name>~<iat>~<exp>[~<role>]~<sig>: unknown versions are REFUSED; Ed25519 covers all bytes before '~<sig>'.
+// LAN and offline play never require a login: ABSENT is normal. Not digested; GameLogic must not read it.
 
 #ifndef GX_IDENTITY_ASSERTION_H
 #define GX_IDENTITY_ASSERTION_H
@@ -100,20 +49,10 @@ enum GXAssertStatus
 	GX_ASSERT_NOKEY			///< no trust anchor is compiled in, so nothing can be trusted
 };
 
-// GeneralsX: The role the signer claims this account holds.
-//
-// WHAT A ROLE IS, AND MUCH MORE IMPORTANTLY WHAT IT IS NOT. This is a claim the SIGNER made. It is
-// not a permission, and no code in this client may treat it as one. Every rule that actually binds -
-// who may speak, who may enter a lobby - is enforced by the relay against the durable `sub`, because
-// a role the CLIENT decides is a COLOUR: anyone can patch a client to paint themselves orange, and a
-// patched client is exactly what the rule exists to stop.
-//
-// So the only legitimate use of this value in the engine is PRESENTATION - which decoration to draw
-// round a name, and which colour to draw a chat row in. If a future edit reaches for it to decide
-// whether an action is allowed, the design has been inverted and the check belongs at the relay.
-//
-// THE WIRE FORM IS ONE LOWER-CASE LETTER in field 5, and an ordinary player has NO field 5 at all -
-// so the assertion almost everybody holds is byte-identical to what was minted before roles existed.
+// The role the signer claims this account holds: a claim, NOT a permission. Rules that bind (who may speak,
+// enter a lobby) are enforced by the relay against the durable `sub`; a role the CLIENT decides is only a
+// COLOUR. Use it for PRESENTATION only. Wire form: ONE lower-case letter in field 5; an ordinary player has no
+// field 5, so most assertions are byte-identical to ones minted before roles existed.
 enum GXAssertRole
 {
 	GX_ROLE_PLAYER = 0,		///< the overwhelming majority; also what an absent or unknown field means
@@ -144,12 +83,12 @@ enum
 	// bounded by code that has already shipped.
 	GX_ASSERTION_MAX_LIFETIME_S = 30 * 24 * 3600,
 
-	// GeneralsX: A BOT login's cap: 48 h, the relay's BOT_MAX_LIFETIME_S. A
+	// A BOT login's cap: 48 h, the relay's BOT_MAX_LIFETIME_S. A
 	// bot's key sits on an unattended machine, so its assertion is minted for 24 h and re-minted on a
 	// timer; the cap bounds a stolen one. See verifyBot below.
 	GX_BOT_MAX_LIFETIME_S = 48 * 3600,
 
-	// GeneralsX: How often a running bot looks at its file for a renewal. See
+	// How often a running bot looks at its file for a renewal. See
 	// botRecheckDue below.
 	GX_BOT_RECHECK_S = 60
 };
@@ -175,21 +114,10 @@ struct GXAssertionClaims
 	long long iat;
 	long long exp;
 
-	// GeneralsX: GX_ROLE_PLAYER whenever field 5 is absent, empty, longer
-	// than one character, or a letter this build does not know.
-	//
-	// FAIL TO THE LEAST PRIVILEGE, NEVER REFUSE OVER A ROLE. Refusing an unknown letter would mean
-	// that the day a third role is minted, every client built before it stops recognising its
-	// holder's login entirely - which is exactly the breakage the append-before-the-signature rule
-	// exists to prevent. Being wrong in this direction costs a moderator their colour until they
-	// update; being wrong in the other direction costs them their account.
-	// GeneralsX @bugfix wh1ter0se 12/08/2026 `enum` KEYWORD REQUIRED - this header is included by C.
-	//
-	// A bare `GXAssertRole role;` is valid C++ and invalid C, and gxlaunch.c is C. Without the
-	// keyword the C compiler does not recognise the type, the whole struct fails to parse, and every
-	// later use of GXAssertionClaims collapses ("left of '.exp' must have struct/union type") - so
-	// the real error is nowhere near the real cause. The game builds either way because it is all
-	// C++, which is exactly why the four-platform verify stayed green while the launcher CI went red.
+	// GX_ROLE_PLAYER whenever field 5 is absent, empty, longer than one character, or a letter this build does not
+	// know. FAIL TO THE LEAST PRIVILEGE, NEVER REFUSE OVER A ROLE: refusing an unknown letter would log out every
+	// older client when a third role is minted. `enum` KEYWORD REQUIRED - this header is included by C (gxlaunch.c),
+	// where a bare `GXAssertRole role;` is invalid.
 	enum GXAssertRole role;
 };
 
@@ -198,18 +126,10 @@ struct GXAssertionClaims
 class GXIdentityAssertion
 {
 public:
-	// Verify against a caller-supplied key. Pure: no globals, no file access, and the clock is a
-	// PARAMETER rather than a call to time() - which is what makes expiry and not-yet-valid
-	// testable at all, and is the same trick scripts/test/lan-start-policy-test.cpp uses on the
-	// LAN start policy.
-	//
-	// `text` is a C string; embedded NULs therefore truncate it, and a truncated payload cannot
-	// verify. `nowS` is unix seconds.
-	//
-	// *out IS WRITTEN ONLY ON GX_ASSERT_OK. On every refusal it is left exactly as the caller left
-	// it. That is deliberate: it means a caller who forgets to check the status still cannot read a
-	// display name out of an expired or forged assertion, which turns a sloppy call site into a
-	// harmless one instead of an exploitable one. `out` may be NULL if only the status is wanted.
+	// Verify against a caller-supplied key. Pure: no globals, no file access, and the clock is a PARAMETER (nowS,
+	// unix seconds). `text` is a C string: embedded NULs truncate it and a truncated payload cannot verify.
+	// *out IS WRITTEN ONLY ON GX_ASSERT_OK and left as the caller left it on every refusal, so a caller who forgets
+	// to check the status still cannot read a name out of a forged or expired assertion. `out` may be NULL.
 	static GXAssertStatus verifyWithKey(const unsigned char pk[32], const char *text,
 	                                    long long nowS, GXAssertionClaims *out);
 
@@ -221,16 +141,16 @@ public:
 	// Only the first line is read, trailing whitespace is stripped, and anything larger than
 	// GX_ASSERTION_MAX is refused without being parsed.
 	//
-	// GeneralsX: `text`, when not NULL, receives the line that was VERIFIED
+	// `text`, when not NULL, receives the line that was VERIFIED
 	// (GX_ASSERTION_MAX + 1 bytes) and, like *out, is written only on GX_ASSERT_OK. A caller that sends
 	// the assertion on sends THESE bytes: reading the file again for them can return a file swapped in
-	// between, which nothing checked (review P3-1).
+	// between, which nothing checked.
 	static GXAssertStatus loadFileWithKey(const unsigned char pk[32], const char *path,
 	                                      long long nowS, GXAssertionClaims *out, char *text = NULL);
 	static GXAssertStatus loadFile(const char *path, long long nowS, GXAssertionClaims *out,
 	                               char *text = NULL);
 
-	// GeneralsX: BOT LOGINS (docs/superpowers/plans/2026-09-23-bot-identity.md).
+	// BOT LOGINS.
 	//
 	//     1~<sub>~<name>~<iat>~<exp>~b~<pub43>~<sig86>
 	//
@@ -252,8 +172,7 @@ public:
 	// how the iPad, one app container, is given one. Anything else with a separator in it is refused, as
 	// is a result that would not fit `cap` bytes with its NUL. `out` is written only on true.
 	static bool resolveBotPath(const char *env, const char *userDataDir, char *out, size_t cap);
-	// GeneralsX: THE BOT RELOAD'S DECISION, pure so gxidtest drives it (review P2:
-	// it keeps a headless host's 24 h login alive across the re-mint, and a dead one passed every test).
+	// THE BOT RELOAD'S DECISION, pure so gxidtest drives it: it keeps the standing host's 24 h login alive across the re-mint.
 	// botRecheckDue: the first call, then at most once per GX_BOT_RECHECK_S - a clock that stepped back
 	// re-arms - and records `now` in *checkedAt when due. NULL is never due.
 	// botReloadNeeded: the file's first line differs from the held line, or the held login has expired by
@@ -277,22 +196,10 @@ public:
 extern "C" {
 #endif	// __cplusplus
 
-// THE LAUNCHER'S DOOR INTO THIS FILE, and the reason it is a door rather than a copy.
-//
-// scripts/build/windows/launcher/gxlaunch.c is C, is built by its own .cmd with no CMake, and is
-// the program that FETCHES the assertion on Windows - because the Windows engine has no HTTPS at
-// all. It must not write a document the game will then refuse, so it has to run the same checks
-// the game runs: the same field charsets, the same clock rules, the same lifetime cap, above all
-// the same pinned key.
-//
-// The alternative was a second, simpler check in the launcher - "it looks like six fields, ship
-// it". That is how a launcher ends up writing an assertion the game rejects, on a player's
-// machine, with the launcher reporting success. One verifier, one pin, one set of test vectors:
-// the same argument that moved GXEd25519 out of the launcher directory in Phase 3a.
-//
-// These mirror the class exactly, including the rule that *out is written ONLY on GX_ASSERT_OK.
-// The status is returned as int because GXAssertStatus is a C enum here and an int there, and
-// spelling it int at the boundary is honest about that.
+// THE LAUNCHER'S DOOR: gxlaunch.c (C, its own .cmd) FETCHES the assertion on Windows, where the engine has no
+// HTTPS. It must not write a document the game will refuse, so it runs the same checks (charsets, clock,
+// lifetime cap, pinned key): one verifier, one pin, one set of test vectors. *out is written ONLY on
+// GX_ASSERT_OK. The status is returned as int across the C boundary.
 
 int gx_identity_verify_text(const char *text, long long nowS, struct GXAssertionClaims *out);
 int gx_identity_key_pinned(void);

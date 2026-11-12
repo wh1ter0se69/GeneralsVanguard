@@ -39,6 +39,7 @@
 #include <glob.h>     // glob() for Vulkan ICD discovery
 
 // USER INCLUDES (match WinMain.cpp pattern)
+#include "GameClient/GXEnvAllowList.h"  // GeneralsX: shipped builds ignore every GX_* not on the list
 #include "Lib/BaseType.h"
 #include "Common/CommandLine.h"
 #include "Common/CriticalSection.h"
@@ -161,30 +162,13 @@ static void FilterSoftwareVulkanICDs()
 }
 
 /**
- * FilterPipeWireOpenAL
- *
- * Sets ALSOFT_DRIVERS to skip PipeWire, falling back to pulse/alsa.
- *
- * Workaround for openal-soft PipeWire backend crash: alcOpenDevice() segfaults
- * inside the PipeWire backend while opening the default playback device.
- * The crash occurs in PipeWire's stream/context internals and is unrecoverable
- * from userspace. Excluding PipeWire via ALSOFT_DRIVERS causes openal-soft to
- * fall back to the PulseAudio backend, which works correctly on PipeWire systems
- * via the PulseAudio compatibility layer.
- *
- * NOTE: openal-soft reads ALSOFT_DRIVERS from a static global constructor when
- * libopenal.so is loaded by the dynamic linker, which is before main() runs.
- * This function is therefore only effective for builds that use lazy
- * initialization. The authoritative fix is in the launch scripts (run-linux-zh.sh
- * etc.), which set ALSOFT_DRIVERS before the binary starts.
- *
- * Only applied when ALSOFT_DRIVERS is not already set by the user.
- *
- * GeneralsX @bugfix 09/03/2026
+ * Sets ALSOFT_DRIVERS to skip PipeWire (alcOpenDevice() segfaults in its backend), falling back to pulse/alsa.
+ * openal-soft reads ALSOFT_DRIVERS before main(), so this only works for lazily initialised builds;
+ * the launch scripts (run-linux-zh.sh etc.) set it authoritatively. Skipped if ALSOFT_DRIVERS is already set.
  */
 static void FilterPipeWireOpenAL()
 {
-	// GeneralsX: PipeWire/OpenAL workaround is Linux-only; keep macOS CoreAudio backend selection untouched.
+	// PipeWire/OpenAL workaround is Linux-only; keep macOS CoreAudio backend selection untouched.
 	#if defined(__linux__)
 	// Crash: alcOpenDevice() hits 'movaps %xmm1,0x26260(%rbx)' — SSE movaps requires
 	// 16-byte alignment; a misaligned ALCdevice struct faults regardless of backend.
@@ -235,6 +219,8 @@ GameEngine *CreateGameEngine(void)
 int main(int argc, char* argv[])
 {
 	int exitcode = 1;
+	// GeneralsX: a shipped build reads only the GX_* variables on its allow-list: first, before anything reads one
+	gxScrubEnvironment();
 
 	// TheSuperHackers @build felipebraz 13/02/2026
 	// Store command line arguments in globals for CommandLine.cpp parser
@@ -268,7 +254,7 @@ int main(int argc, char* argv[])
 		// For now, let CommandLine::parseCommandLineForStartup() handle this
 		CommandLine::parseCommandLineForStartup();
 
-		// GeneralsX: Skip SDL3 window bootstrap for CLI/headless replay execution.
+		// Skip SDL3 window bootstrap for CLI/headless replay execution.
 		const bool isHeadlessMode = (TheGlobalData != nullptr && TheGlobalData->m_headless);
 		if (isHeadlessMode) {
 			fprintf(stderr, "INFO: Headless mode detected, skipping SDL3 video/Vulkan window initialization\n");
@@ -304,20 +290,9 @@ int main(int argc, char* argv[])
 			fprintf(stderr, "INFO: Creating SDL3 Vulkan window...\n");
 			Uint32 windowFlags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;  // Start hidden, show after D3D init
 #if defined(__APPLE__)
-			// GeneralsX: Request a native-resolution Metal drawable.
-			// Ported from the GeneralsMD twin (d5afaed6f). Without this the swapchain is built at
-			// POINT size and the compositor upscales the whole window: on a Retina Mac everything
-			// game-drawn is blown up 2x and blurred, while the OS-drawn cursor stays sharp and
-			// small - one cause, several symptoms.
-			//
-			// Safe on non-Retina hardware by construction: where pixel density is 1.0 the drawable
-			// and the point size are the same buffer, so this flag changes nothing at all.
-			//
-			// This is the flag half of a three-part change; the other two live in
-			// Generals/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DDisplay.cpp (scale the
-			// render resolution to pixels at device init, and divide back to points before
-			// SDL_SetWindowSize). All three go together - the flag alone leaves a point-size
-			// backbuffer, and the scaling alone would render 2x into a 1x drawable.
+			// Request a native-resolution Metal drawable. Without it the swapchain is built at POINT size and the
+			// compositor upscales the window 2x and blurs it on Retina. No effect where pixel density is 1.0.
+			// Pairs with the pixel scaling in W3DDisplay.cpp; the flag alone leaves a point-size backbuffer.
 			windowFlags |= SDL_WINDOW_HIGH_PIXEL_DENSITY;
 #endif
 			TheSDL3Window = SDL_CreateWindow(

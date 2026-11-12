@@ -1,4 +1,22 @@
-// GeneralsX: WS-F1: the shared FF pipeline layout (see GxRecordLayout.h).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// WS-F1: the shared FF pipeline layout (see GxRecordLayout.h).
 #include "GxRecordLayout.h"
 
 namespace GXRender { namespace Rec {
@@ -45,7 +63,7 @@ bool GxRecordLayout::init(VkDevice device, uint32_t vsBytes, uint32_t psBytes, s
 		sc.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
 		sc.addressModeU = sc.addressModeV = sc.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 		sc.compareEnable = VK_TRUE;
-		sc.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;   // P0-a (A35): 1 = lit when the receiver's depth <= the stored caster depth
+		sc.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;   // 1 = lit when the receiver's depth <= the stored caster depth
 		sc.maxLod = 0.f;
 		VkSamplerCreateInfo sr = sc;
 		sr.magFilter = sr.minFilter = VK_FILTER_NEAREST;

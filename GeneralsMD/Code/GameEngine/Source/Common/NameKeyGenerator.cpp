@@ -161,6 +161,19 @@ NameKeyType NameKeyGenerator::nameToKey(const AsciiString& name)
 }
 
 //-------------------------------------------------------------------------------------------------
+// GeneralsX: nameToKey's search, for a caller that must not allocate.
+Bool NameKeyGenerator::gxIsNameKnown(const AsciiString& name) const
+{
+	const UnsignedInt hash = calcHashForString(name.str()) % SOCKET_COUNT;
+	for (const Bucket *b = m_sockets[hash]; b; b = b->m_nextInSocket)
+	{
+		if (name.compare(b->m_nameString) == 0)
+			return true;
+	}
+	return false;
+}
+
+//-------------------------------------------------------------------------------------------------
 NameKeyType NameKeyGenerator::nameToLowercaseKey(const AsciiString& name)
 {
 	const UnsignedInt hash = calcHashForLowercaseString(name.str()) % SOCKET_COUNT;

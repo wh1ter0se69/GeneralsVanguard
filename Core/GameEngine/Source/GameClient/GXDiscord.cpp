@@ -1,22 +1,25 @@
-/* Discord Rich Presence: the local IPC client and the state it publishes.
- *
- * GeneralsX:
- *
- * See GXDiscord.h for why this lives under GameClient and why it carries no dependency.
- *
- * THE PROTOCOL, because it is small enough to write down and then nobody has to go and find it.
- * Discord's client listens on a local endpoint named discord-ipc-0 .. discord-ipc-9 - a named pipe
- * under \\.\pipe\ on Windows, a unix socket in $XDG_RUNTIME_DIR, $TMPDIR or /tmp elsewhere. Frames
- * are an 8-byte little-endian header (int32 opcode, int32 byte length) followed by UTF-8 JSON:
- *
- *     op 0  HANDSHAKE  { "v": 1, "client_id": "<application id>" }
- *     op 1  FRAME      { "cmd": "SET_ACTIVITY", "args": { "pid": N, "activity": {...} },
- *                        "nonce": "<any unique string>" }
- *     op 2  CLOSE
- *
- * Replies are read and discarded. Nothing this program does depends on what Discord says back, and
- * a client that blocked on a reply would be a client that can hang the render thread.
- */
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/* Discord Rich Presence: the local IPC client and the state it publishes (see GXDiscord.h).
+ * Endpoint discord-ipc-0 to discord-ipc-9: named pipe on Windows, else unix socket in $XDG_RUNTIME_DIR, $TMPDIR or /tmp.
+ * Frames: 8-byte LE header (int32 opcode, int32 length) + UTF-8 JSON; op 0 HANDSHAKE, 1 FRAME (SET_ACTIVITY), 2 CLOSE.
+ * Replies are read and discarded: blocking on one could hang the render thread. */
 
 #include "PreRTS.h"
 
@@ -43,23 +46,9 @@
 // Configuration
 // ================================================================================================
 
-// The Discord application this presence belongs to. An application id is PUBLIC - it is what a
-// Discord client is told in the handshake, and it names the app whose icon and title appear on the
-// profile. It is not a secret and it is not a token.
-//
-// GeneralsX: The application now exists, so presence is on by default.
-//
-// This is the SAME application that backs Discord sign-in - a Discord app has one id, used both as
-// the OAuth client_id and as the Rich Presence application id. There is nothing to create and
-// nothing to keep in step; reusing it means the icon and title on a player's profile are the same
-// ones they authorised when they logged in.
-//
-// PUBLIC, and safe to commit. An application id is what the client is told in the handshake and it
-// appears in every OAuth URL; it is not a token and it grants nothing. The application SECRET is a
-// different value, lives only in the Worker's secret store, and must never appear here.
-//
-// Still overridable per install with DiscordAppID in Options.ini, and DiscordPresence=no opts out
-// entirely. Setting it to empty restores the old off-by-default behaviour.
+// The Discord application id. It is PUBLIC (the handshake and OAuth URLs carry it), not a token.
+// It is also the Discord sign-in OAuth client_id. The application SECRET lives only in the Worker's secret store.
+// Override per install with DiscordAppID in Options.ini; DiscordPresence=no opts out; an empty id turns it off.
 static const char *const GX_DISCORD_DEFAULT_APP_ID = "1536552706167152680";
 
 // Discord rate-limits SET_ACTIVITY to roughly one update every 15 seconds and silently drops the
@@ -91,7 +80,7 @@ static AsciiString s_appId;
 static AsciiString s_lastPayload;
 static UnsignedInt s_lastSendMs = 0;
 static UnsignedInt s_lastPollMs = 0;
-// GeneralsX: Seconds in a time_t. This was UnsignedInt milliseconds, set as
+// Seconds in a time_t. This was UnsignedInt milliseconds, set as
 // time(NULL) * 1000u: ~1.79e12 wraps a 32-bit value, so Discord was sent a start in early 1970 and showed
 // ~496307 hours elapsed.
 static time_t s_startedS = 0;

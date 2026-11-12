@@ -1,4 +1,22 @@
-// GeneralsX: WS-B VkCtx v0: a host-visible upload ring that is safe under DELAYED
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// A host-visible upload ring that is safe under DELAYED
 // consumption.
 //
 // Every allocation carries the timeline value of the submission that consumes it (default: the consumer queue's next
@@ -67,7 +85,7 @@ private:
 	bool allocDedicated(VkDeviceSize size, uint64_t tag, Alloc* out);
 
 	VkCtx* m_ctx = nullptr;
-	VkAllocPolicy* m_policy = nullptr;   // A23-B §3.8: the owner of a failed dedicated allocation (null = fail as before)
+	VkAllocPolicy* m_policy = nullptr;   // owner of a failed dedicated allocation (null = fail as before)
 	QueueKind m_consumer = QueueKind::Graphics;
 	VkBuffer m_buffer = VK_NULL_HANDLE;
 	VmaAllocation m_allocation = nullptr;

@@ -92,7 +92,7 @@ void DefaultStaticSortListClass::Render_And_Clear(RenderInfoClass & rinfo)
 			}
 		}
 		if (render) {
-			GxFlushSiteNext = GXFS_STATIC_SORT;	// GeneralsX: WS-G (dx8renderer.h GxFlushSite)
+			GxFlushSiteNext = GXFS_STATIC_SORT;	// GeneralsX: dx8renderer.h GxFlushSite
 			TheDX8MeshRenderer.Flush();
 		}
 	}

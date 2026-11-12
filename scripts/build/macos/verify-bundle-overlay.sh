@@ -1,5 +1,7 @@
 #!/bin/bash
-# GeneralsX: Refuse to publish a macOS .app that cannot join a game.
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Refuse to publish a macOS .app that cannot join a game.
 #
 # WHY THIS EXISTS AS A SEPARATE SCRIPT RATHER THAN A FLAG. bundle-macos-zh.sh already refuses to
 # build an incomplete bundle by default, and GX_BUNDLE_ALLOW_NO_OVERLAY=1 is the documented escape
@@ -136,20 +138,9 @@ else
         [[ ${_known} -eq 1 ]] || fail "unexpected archive in GeneralsXPatch: ${_found} (moves dataID)"
     done < <(cd "${PATCH_DIR}" && ls -1 2>/dev/null | grep -E '\.big(\.off)?$')
 
-    # 6. optional.txt is what a launcher toggle UI reads, and the invariant is SET EQUALITY with
-    #    overlay-optional.txt - checked in BOTH directions, once per name.
-    #
-    #    The one-directional version of this check (every entry has a file) was wrong in exactly
-    #    the way this whole change is about, and review caught it: it passes an optional.txt that
-    #    lists ONE archive while four are staged. The player then gets a toggle UI that can reach a
-    #    quarter of the content in their own download, and nothing anywhere reports a problem. That
-    #    truncation is not hypothetical - it is the precise shape the swallowed producer status
-    #    produced in the bundler before this same commit fixed it, so a gate that cannot see it is
-    #    a gate against the bug's symptom rather than the bug.
-    #
-    #    A required archive appearing here is also a failure: mandatory archives are not toggleable,
-    #    and offering a switch that removes one hands the player a button that silently makes them
-    #    unjoinable.
+    # 6. optional.txt is what a launcher toggle UI reads; it must be SET EQUAL to overlay-optional.txt, in both
+    #    directions. A one-way check passes a list naming one archive while four are staged; a required archive
+    #    listed here also fails.
     if [[ ! -f "${PATCH_DIR}/optional.txt" ]]; then
         fail "GeneralsXPatch/optional.txt missing - nothing can enumerate the toggles."
     else
@@ -203,14 +194,12 @@ else
 
     # 6b. required.txt, and SET EQUALITY again for the same reason check 6 needs both directions.
     #
-    # G4: no macOS payload carried this file until 10/09/2026. `game::read_required()` came back
-    # empty on every Mac, so `discover()` could only ever answer `Verdict::Unknown` and a player
-    # with a complete install was told "This install has no required.txt ...". A gate is what stops
-    # that from being reintroduced by an edit to the bundler; a comment is not.
+    # A payload without it makes `game::read_required()` come back empty, so `discover()` can only answer
+    # `Verdict::Unknown` and a player with a complete install is told "This install has no required.txt ...".
+    # This gate stops an edit to the bundler from reintroducing that.
     #
-    # An entry that is NOT mandatory is a failure of its own: required.txt is what the launcher
-    # refuses to switch off, so a name that wandered in from the optional list would take a real
-    # toggle away from the player and give them no way to get it back.
+    # An entry that is NOT mandatory is a failure of its own: required.txt is what the launcher refuses to switch off,
+    # so a name that wandered in from the optional list would take a real toggle away from the player for good.
     if [[ ! -f "${PATCH_DIR}/required.txt" ]]; then
         fail "GeneralsXPatch/required.txt missing - the launcher can only answer 'Unknown' about \
 this install, whatever is actually in it."
@@ -268,11 +257,10 @@ else
         fi
     done < "${MANIFEST}"
     [[ ${_n_manifest} -gt 0 ]] || fail "gamedata.manifest is empty - it names nothing to install."
-    # GeneralsX: The Toxin Tractor balance file moves dataID, so a bundle
+    # The Toxin Tractor balance file moves dataID, so a bundle
     # without it matches no peer, stamp or no stamp.
-    # 26/09/2026: the same for every file the recipe writes - Weapon.ini and the Alpha Aurora fix files beside it
-    # (make-weapon-ini.py --list). Listed, and their BYTES: recomputed from this bundle's own CoreINI by
-    # the same recipe the bundler ran, so a hand-edited or stale copy cannot pass on its name alone.
+    # The same holds for every file the recipe writes - Weapon.ini and the Alpha Aurora fix files beside it (make-weapon-ini.py --list). Listed, and their BYTES:
+    # recomputed from this bundle's own CoreINI by the same recipe the bundler ran, so a hand-edited or stale copy cannot pass on its name alone.
     _recipe="$(python3 "${PROJECT_ROOT}/scripts/tooling/make-weapon-ini.py" --list 2>/dev/null)"
     [[ -n "${_recipe}" ]] || fail "cannot list the recipe's files (python3 missing?)."
     while IFS= read -r _rf; do
@@ -329,7 +317,7 @@ else
     else
         fail "launcher never sets GENERALSX_DATA_OVERLAY - the loose pair is never read, dataID is wrong."
     fi
-    # GeneralsX: The launcher must never write into the game folder.
+    # The launcher must never write into the game folder.
     if grep -qE '(^|[^#])[[:space:]]cp[[:space:]].*gx_' "${LAUNCHER}"; then
         fail "launcher copies files into the game folder - it must never write there."
     else
@@ -342,32 +330,9 @@ else
     fi
 fi
 
-# 9. The binary must not need the launcher to find its own libraries.
-#
-#    Check 8 above proves run.sh is the thing that mounts the overlay, which is correct. What was
-#    never checked is that run.sh is the ONLY thing it has to be. Until 23/09/2026 the executable
-#    carried four LC_RPATH entries into the build machine's home directory and ~25 absolute
-#    /opt/homebrew LC_LOAD_DYLIB entries, and run.sh's DYLD_LIBRARY_PATH hid every one of them -
-#    dyld searches DYLD_LIBRARY_PATH before the recorded path. Anything that exec'd
-#    Contents/Resources/bin/GeneralsXZH directly died at dyld, and every published .app shipped a
-#    username.
-#
-#    This is deliberately checked HERE as well as in the bundler, because the two answer different
-#    questions. The bundler proves the bundle it just built is portable. This proves the ARTIFACT
-#    IN FRONT OF IT is - a hand-assembled .app, one re-downloaded from an older run, or a tar
-#    somebody rebuilt by other means. Same reasoning as the OVERLAY-MISSING stamp check.
-#
-#    Nothing is executed: gx_macho_assert_portable reads load commands and performs the @rpath
-#    substitution dyld would perform. Running the game to find out would open a window on the
-#    machine doing the verifying.
-#
-#    ONLY A MAC RUNS THIS CHECK. release.yml runs this script on ubuntu-latest, which has no otool.
-#    The readers used to swallow that and this line printed "ok" over a bundle nothing had read.
-#    They now fail closed, so a non-Mac host says SKIP instead - out loud, and not as a pass. The
-#    property is still enforced where the bundle is built: bundle-macos-zh.sh and
-#    bundle-macos-generals.sh refuse a non-portable bundle unconditionally, and build-macos.yml runs
-#    this script on macOS against the unpacked artifact. A MAC without otool is not excused: there
-#    the readers fail and so does this check, because a Mac is where it is supposed to run.
+# 9. The binary must not need the launcher to find its libraries: run.sh's DYLD_LIBRARY_PATH would hide absolute
+#    LC_RPATH or /opt/homebrew entries, so a direct exec of Contents/Resources/bin/GeneralsXZH would die at dyld.
+#    Checked on the artifact, nothing executed. Only a Mac runs it: release.yml runs this on ubuntu-latest (no otool).
 if [[ ! -f "${PROJECT_ROOT}/scripts/build/macos/lib-macho.sh" ]]; then
     fail "scripts/build/macos/lib-macho.sh is missing - cannot check bundle portability."
 elif [[ "$(uname -s)" != "Darwin" ]]; then

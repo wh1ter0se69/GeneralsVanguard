@@ -482,7 +482,7 @@ public:
 	Int m_systemTimeFontSize;
 	Int m_gameTimeFontSize;
 	// TheSuperHackers @feature L3-M 05/11/2025 allow the player info list font size to be set, a size of zero disables it
-	Int m_inGameMessageFontSize;	///< GeneralsX @feature 0 = leave the INI/language message size alone
+	Int m_inGameMessageFontSize;	///< GeneralsX: 0 = leave the INI/language message size alone
 	Int m_playerInfoListFontSize;
 
 	// TheSuperHackers @feature L3-M 21/08/2025 toggle the money per minute display, false shows only the original current money
@@ -644,18 +644,9 @@ private:
 
 	static const FieldParse s_GlobalDataFieldParseTable[];
 
-	// GeneralsX: Restricted field table for SagePatch.ini.
-	//
-	// SagePatch.ini is auto-created in the user data directory and opens a "GameData" block, which
-	// meant it could set ANY field in s_GlobalDataFieldParseTable - including simulation constants.
-	// "Gravity = -0.5" in a user-editable text file desyncs every network game the user joins
-	// (Locomotor.cpp integrates m_gravity every frame on every peer) and is a trivial cheat that no
-	// CRC catches until the next mismatch check. The file is meant to carry a small set of
-	// client-only comfort settings, so it gets a table containing exactly those.
-	//
-	// Fields outside the table are silently ignored in release (INI::initFromINI reports an unknown
-	// field via DEBUG_CRASH only), so an existing SagePatch.ini keeps working and simply stops
-	// being able to reach the simulation.
+	// Restricted field table for SagePatch.ini: client-only comfort settings.
+	// Fields outside it are ignored, so the file cannot reach simulation constants
+	// (a user-edited Gravity would desync every network game).
 	static const FieldParse s_SagePatchFieldParseTable[];
 	static Bool s_restrictToSagePatchFields;
 

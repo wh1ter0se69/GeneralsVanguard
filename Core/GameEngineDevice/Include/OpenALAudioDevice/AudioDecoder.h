@@ -17,32 +17,9 @@
 */
 
 //////// AudioDecoder.h /////////////////////////
-// GeneralsX:
-/////////////////////////////////////////////////
-//
-// One decoder interface for the OpenAL backend, with two implementations selected at compile
-// time by RTS_BUILD_OPTION_FFMPEG:
-//
-//   * FFmpeg  - macOS, Linux, iOS. Wraps the existing FFmpegFile verbatim.
-//   * dr_wav / dr_mp3 - Windows x64, where FFmpeg is not available and is not needed.
-//
-// WHY THIS EXISTS. generalszh.exe is x64 and retail mss32.dll is x86, so Windows has no audio
-// at all; the fix is the OpenAL backend the other three platforms already run. That backend
-// hard-included libavcodec and held FFmpegFile* as struct members, which made it unbuildable
-// on a box with no FFmpeg. Rather than #ifdef the two call sites, they now name this class and
-// nothing else.
-//
-// WHY THE CONTRACT IS "INTERLEAVED". FFmpeg hands back planar audio for some codecs, and both
-// call sites carried their own copy of the planar->interleaved loop. That conversion now lives
-// inside the FFmpeg implementation, so the two call sites are identical on every platform.
-// dr_wav and dr_mp3 emit interleaved s16 for PCM, MS-ADPCM and IMA-ADPCM alike and never need
-// it. Measured over the 25 shipped BIGs: 3530 audio entries, 2572 IMA-ADPCM, 951 PCM, 7 MP3,
-// zero unhandled - so those two decoders are complete coverage, which is what keeps FFmpeg
-// (and therefore vcpkg.json, which IS digested) out of the Windows build entirely.
-//
-// NOTHING FFMPEG- OR DR-SPECIFIC MAY APPEAR IN THIS HEADER. It is included by
-// OpenALAudioCache.h, which is compiled on Windows where the FFmpeg headers do not exist. The
-// implementation types are hidden behind a pimpl for exactly that reason.
+// One decoder interface for the OpenAL backend, chosen at compile time by RTS_BUILD_OPTION_FFMPEG:
+// FFmpeg (macOS, Linux, iOS) or dr_wav / dr_mp3 (Windows x64, no FFmpeg). Output is interleaved PCM.
+// Nothing FFmpeg- or dr-specific may appear here: OpenALAudioCache.h includes it on Windows.
 
 #pragma once
 

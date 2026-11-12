@@ -784,9 +784,6 @@ GameMessageDisposition SelectionTranslator::onMouseLeftDoubleClick(MAYBE_UNUSED 
 			// isSelectable() lets objects that may never be part of a multi-unit group back
 			// into the group. Upstream TheSuperHackers PR #3169, sha 4f9fafe62.
 			//
-			//
-			//
-			//
 			// The
 			// change is about group membership only.
 			if (draw && draw->isMassSelectable()) {

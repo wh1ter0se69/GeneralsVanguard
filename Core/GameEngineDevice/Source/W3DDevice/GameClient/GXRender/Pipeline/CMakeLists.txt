@@ -1,4 +1,6 @@
-# GeneralsX: WS-D: gx_pipeline (PipelineKey + GxPipelineCache) and its gate test.
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# WS-D: gx_pipeline (PipelineKey + GxPipelineCache) and its gate test.
 #
 # Standalone (minutes):  cmake -S <this dir> -B <build> -G Ninja [-DGX_VKCTX_DIR=<a gx_vkctx source dir>] && cmake --build <build>
 # From the game: Core/GameEngineDevice/CMakeLists.txt adds it next to ../Vk when GX_RENDER_VK=ON. Render-only, outside every
@@ -40,8 +42,8 @@ option(GX_PIPELINE_TESTS "Build gx_pipecache_test (the WS-D gates and fail arms)
 if(GX_PIPELINE_TESTS)
     add_executable(gx_pipecache_test tests/gx_pipecache_test.cpp)
     target_link_libraries(gx_pipecache_test PRIVATE gx_pipeline)
-    # rw2-D: the FF ubershader gates - layout vs SPIR-V, generic-vs-specialised pixel identity, cold-cache replay.
-    # WS-E (rw2-E): the custom-shader catalogue's gates (no GPU).
+    # The FF ubershader gates - layout vs SPIR-V, generic-vs-specialised pixel identity, cold-cache replay.
+    # The custom-shader catalogue's gates (no GPU).
     add_executable(gx_cs_test tests/gx_cs_test.cpp)
     target_link_libraries(gx_cs_test PRIVATE gx_pipeline)
     # the suite's fail arm: the same tests against a catalogue that trusts file names (must FAIL: ctest-style WILL_FAIL)
@@ -51,8 +53,7 @@ if(GX_PIPELINE_TESTS)
     add_executable(gx_ff_test tests/gx_ff_test.cpp)
     target_link_libraries(gx_ff_test PRIVATE gx_pipeline)
 
-    # rw2-D: GxPackFF's key rules, no GPU. Its D3D8 numbers are checked against the headers the game is built with (rw1-C's
-    # d3d-values pattern); a worktree has empty submodules: pass -DGX_FF_D3D8_HINT=<dir of d3d8types.h> -DGX_FF_WINDOWS_HINT=<dir of windows_base.h>.
+    # GxPackFF's key rules, no GPU. Its D3D8 numbers are checked against the headers the game is built with; a worktree has empty submodules: pass -DGX_FF_D3D8_HINT=<dir of d3d8types.h> -DGX_FF_WINDOWS_HINT=<dir of windows_base.h>.
     add_executable(gx_ffstate_test tests/gx_ffstate_test.cpp GxFFState.cpp)
     target_include_directories(gx_ffstate_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     get_filename_component(GX_FF_REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../.." ABSOLUTE)

@@ -84,7 +84,7 @@ public:
 	virtual void serviceWindowsOS(void);
 	virtual Bool isActive(void);
 	virtual void setIsActive(Bool isActive);
-	virtual Int getDisplayRefreshRate(void);	///< GeneralsX: the max-FPS default (Common/FpsLimitPolicy.h)
+	virtual Int getDisplayRefreshRate(void);	///< the max-FPS default (Common/FpsLimitPolicy.h)
 
 	// Factory methods (override GameEngine)
 	virtual LocalFileSystem *createLocalFileSystem(void);
@@ -94,7 +94,7 @@ public:
 	virtual ModuleFactory *createModuleFactory(void);
 	virtual ThingFactory *createThingFactory(void);
 	virtual FunctionLexicon *createFunctionLexicon(void);
-	// GeneralsX: Match upstream GameEngine pure-virtual signatures after sync.
+	// Match upstream GameEngine pure-virtual signatures after sync.
 	virtual Radar *createRadar(Bool dummy);
 	virtual WebBrowser *createWebBrowser(void);
 	virtual ParticleSystemManager* createParticleSystemManager(Bool dummy);

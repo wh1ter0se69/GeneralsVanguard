@@ -1,20 +1,25 @@
-// GeneralsX: F-depth+: the world's depth and opaque colour, taken mid-frame for the readers
-// that draw with them (soft particles S10, native water S8b) - item 4.
-//
-// The game calls IGxSceneTap::OpaqueDone (GxSceneTap.h) after the opaque world and before water and every transparent. When a
-// registered reader is on, the device takes - from whatever colour target and depth-stencil are bound then:
-//  * depth  -> a single-sample image of the depth's format, SAMPLED, read through a DEPTH-aspect view (sample 0 of a multisample
-//    depth: VK_RESOLVE_MODE_SAMPLE_ZERO, the one mode every implementation has);
-//  * colour -> a single-sample image of the colour's format, SAMPLED (a multisample colour averaged: the refraction source).
-// How, cheapest first: (1) a multisample world: the resolve rides the world's OWN scopes (GxPacketWriter's GxScopeResolve, armed at
-// the previous tap) - on a tile GPU it is written at the store the scope does anyway, so the tap costs one scope split (one store and
-// reload of the multisample targets); (2) the first frame, a target change, or GX_FDEPTH_RESOLVE=pass (TEST-ONLY): an own resolve
-// pass (depth) / vkCmdResolveImage (colour); (3) a single-sample world: vkCmdCopyImage. The copies end in SHADER_READ_ONLY_OPTIMAL
-// through the writer's tracker, so a reader's draw never splits a scope, and they stay valid until Present.
-//
-// Off - no reader on - nothing is created, armed or recorded: the world's targets keep their usage and every frame its passes.
-// Ownership: render-motion-1's F-depth keeps the world depth's own SAMPLED usage (End-of-pass reads,
-// temporal); this is its mid-frame extension and never adds a usage bit to a world target. Render-only.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The world's depth and opaque colour, taken mid-frame for readers that draw with them (soft particles, native water).
+// IGxSceneTap::OpaqueDone runs after the opaque world and before water. A multisample world resolves in its OWN scopes
+// (one scope split); the first frame, a target change or GX_FDEPTH_RESOLVE=pass (TEST-ONLY) use an own resolve pass;
+// a single-sample world uses vkCmdCopyImage. Off (no reader): nothing is created.
 #pragma once
 
 #include "GxPacketWriter.h"

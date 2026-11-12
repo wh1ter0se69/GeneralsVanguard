@@ -441,7 +441,7 @@ void reallyDoStart()
 		maxFPS = 15;
 
   TheWritableGlobalData->m_mapName = TheSkirmishGameInfo->getMap();
-  TheSkirmishGameInfo->stampAiColours();	// GeneralsX @feature AI in three colours: before the recorder reads the game
+  TheSkirmishGameInfo->stampAiColours();	// GeneralsX: AI in three colours: before the recorder reads the game
   TheSkirmishGameInfo->startGame(0);
 
 		Bool isSkirmish = TRUE;
@@ -834,45 +834,12 @@ void positionStartSpots( GameInfo *myGame, GameWindow *buttonMapStartPositions[]
 	positionStartSpots(localMapFname, buttonMapStartPositions, mapWindow);
 }
 
-// GeneralsX: -------------------------------------------------------
-// Colour each map-preview start marker by the colour of whoever occupies that slot.
-//
-// The retail marker is a PUSHBUTTON whose art (MappedImage "PlayerStart" and its hilite / pushed /
-// disabled variants, all 25x25 sprites out of SCSmShellUserInterface512_001) is an OPAQUE BLACK
-// disc inside a light-blue ring, so every occupied position reads as the same generic circle with
-// a slot number in it.
-//
-// Two things rule out simply tinting the sprite. The image draw path ignores the window's colour
-// altogether - W3DGadgetPushButtonImageDrawOne() passes a hard-coded 0xffffffff multiplier unless
-// the button uses overlay states, which these do not - and even reaching that multiplier would not
-// help, because it modulates against blue-biased art: pure red would land as (162,0,0) and gold and
-// orange would collapse into two browns. DRAW_IMAGE_GRAYSCALE is not an escape either; that path
-// switches to the opaque preset shader and a DOT3 stage chain that discards the vertex colour
-// entirely (render2d.cpp Render2DClass::Render).
-//
-// So we keep the retail art and paint the disc's black centre with the player's colour. The centre
-// is opaque in the source texture, so nothing of the map preview is being covered that the retail
-// marker was not already covering, and the colour that lands on screen is exactly the RGB the
-// engine's own table defines - no palette is invented here.
-//
-// The colour comes from that table and nowhere else:
-//   GameSlot::getColor() (GameNetwork/GameInfo.h) is an INDEX into TheMultiplayerSettings' colour
-//   list, and MultiplayerSettings::getColor(idx)->getColor() (Common/MultiplayerSettings.cpp) is
-//   the packed Color that the lobby's own colour dropdown tints its entries with
-//   (GameNetwork/GUIUtil.cpp, PopulateColorComboBox). Preview and dropdown therefore cannot drift.
-//
-// This function is the single implementation behind every screen that shows the preview - the LAN
-// options menu, the Online/GameSpy staging room, skirmish, and both multiplayer load screens all
-// call it - and each of them already calls it whenever the slot list changes, so the markers track
-// joins, leaves and colour changes on the existing cadence with no new timer.
+// Colour each map-preview start marker by the colour of whoever occupies that slot, taken from
+// MultiplayerSettings::getColor() like the lobby's colour dropdown (GUIUtil.cpp), so the two cannot drift.
+// The retail disc cannot be tinted (the image draw path ignores the window colour), so the number carries the colour.
 static const Color GX_START_SPOT_UNOWNED = GameMakeColor( 0, 0, 0, 0 );
 
-// GeneralsX: The custom marker draw that used to live here is gone.
-// It painted the retail art, then a tint in the owner's colour, then the number - i.e. a fill behind
-// the number, which the operator corrected: the NUMBER carries the colour, nothing is drawn behind
-// it. With it removed the markers go back to the stock gadget draw and gxSetStartSpotNumberColor
-// sets the text colour, so the shipped art is untouched. Recoverable from git if a fill is ever
-// wanted again.
+// The marker is drawn by the stock gadget. A custom draw (retail art, a tint, then the number) was removed because the number, not a fill behind it, carries the colour: gxSetStartSpotNumberColor sets the text colour, so the shipped art is untouched.
 
 //-------------------------------------------------------------------------------------------------
 /** Colour a start-position marker's NUMBER, leaving the retail art alone.
@@ -1310,27 +1277,10 @@ void InitSkirmishGameGadgets()
 
 	windowMap->winSetTooltipFunc(MapSelectorTooltip);
 
-	// GeneralsX: The .wnd authors eight of every per-slot control; the loop
-	// below binds MAX_SLOTS of them and dereferences each one immediately, so a row the layout does
-	// not contain is a null crash at init rather than a short list. Build whatever the layout is
-	// short of BEFORE anything looks a row up. At the shipped MAX_SLOTS every one of these calls
-	// measures the column and returns without touching a rect.
-	//
-	// ComboBoxPlayer is authored 1..7 here, not 0..7 - slot 0 is the local player and its row is a
-	// text entry (TextEntryPlayerName), not a drop-down. CodeGuiRowsEnsure never backfills below the
-	// first authored index, so no phantom box lands on top of that field.
-	//
-	// ButtonMapStartPosition is NOT a column: those markers are children of MapWindow and are placed
-	// over the preview from the map's own start waypoints, so they only need to exist.
-	// GeneralsX: Row 0 of the Players column is TextEntryPlayerName, not a
-	// combo box, so it has to be handed to the band explicitly or the compression that fits rows
-	// 1..N-1 into the authored band passes it by. Measured at 1920x1080 with GX_FONT=2/GX_ROWFIT=1:
-	// every ComboBoxPlayer went 43 px/Arial 23 -> 25 px/Arial 13, TextEntryPlayerName stayed
-	// 43 px/Arial 23 and overhung the row below it.
-	//
-	// GeneralsX: The seat columns SCROLL instead.
-	// Skirmish has no chat to give up, so its band stays the authored eight rows and
-	// the rest scroll; the scroll bar wears ListboxInfo's art. See CodeGui.h.
+	// The .wnd authors eight of every per-slot control but the loop binds MAX_SLOTS and dereferences each at once,
+	// so build what the layout lacks BEFORE any row lookup. ComboBoxPlayer is authored 1..7 (slot 0 is a text entry),
+	// so row 0 must be handed to the band explicitly or it overhangs the row below. See CodeGui.h.
+	// The seat columns scroll; skirmish has no chat to give up, so the band stays the authored eight rows.
 	static const char * const skirmishSeatColumns[] =
 	{
 		"SkirmishGameOptionsMenu.wnd:ComboBoxPlayer%d",
@@ -1535,10 +1485,13 @@ void updateSkirmishGameOptions()
 	if (isSkirmish)
 	{
 		ShowUnderlyingGUIElements(TRUE, layoutFilename, parentName, gadgetsToHide, perPlayerGadgetsToHide );
+		// GeneralsX @bugfix The seat rows' scroll bar is not one of the named gadgets: it hides and shows with them.
+		CodeGuiRowsScrollShow( TRUE, layoutFilename, parentName );
 	}
 	else
 	{
 		ShowUnderlyingGUIElements(FALSE, layoutFilename, parentName, gadgetsToHide, perPlayerGadgetsToHide );
+		CodeGuiRowsScrollShow( FALSE, layoutFilename, parentName );
 		for (Int i=1; i<MAX_SLOTS; ++i)
 		{
 			GadgetComboBoxSetSelectedPos(comboBoxPlayer[i], 0);

@@ -60,69 +60,25 @@ static const Int m_lanMaxOptionsLength = MAX_LANAPI_PACKET_SIZE - ( 8 + (g_lanGa
 																														+ (g_lanLoginNameLength+1) + (g_lanHostNameLength+1) );
 static const Int g_maxSerialLength = 23; // including the trailing '\0'
 
-// GeneralsX: THE WIRE SIZE OF A LANMessage IS NOT sizeof(LANMessage),
-// AND SENDING IT AS IF IT WERE SPLIT THE PLAYER BASE.
-//
-// LANMessage is a UNION. Raising MAX_LANAPI_PACKET_SIZE from 476 to 768 for twelve human slots
-// grew exactly ONE member - GameOptions.options[], which is last in its struct. Every other
-// member (Chat, Accept, MapStatus, join, ready) is byte-identical in layout to the old build.
-//
-// But LANAPI::sendMessage sent sizeof(LANMessage) unconditionally, which is the size of the
-// LARGEST union member. So a two-word chat line and a ready tick both went out as ~763-byte
-// datagrams, and every peer still on a 476-capped build discarded them in silence. Observed
-// live: joining appeared to work and then the host could not see the joiner's chat or their
-// ready state, because the join got far enough to look alive and every message after it
-// vanished. Relay-mediated traffic (game list, room chat, friends) was unaffected, which is
-// what made it look like a lobby bug rather than a packet-size one.
-//
-// So the legacy extent is computed here from the same formula, against the retail packet size,
-// rather than hardcoded - a magic 471 would drift the moment any name length moves. A message
-// that fits it is byte-compatible with every pre-12-slot build in the wild.
+// The wire size of a LANMessage is not sizeof(LANMessage). The union grew by one member (GameOptions.options), but
+// sending the full sizeof made small messages oversized and peers on the retail 476-byte cap dropped them silently.
+// The legacy extent is computed from the same formula against the retail packet size, not hardcoded; a message that
+// fits it is byte-compatible with older builds.
 static const Int g_lanLegacyOptionsLength = RETAIL_GAME_PACKET_SIZE - ( 8 + (g_lanGameNameLength+1)*2 + 4 + (g_lanPlayerNameLength+1)*2
 																															+ (g_lanLoginNameLength+1) + (g_lanHostNameLength+1) );
 static_assert(g_lanLegacyOptionsLength > 0 && g_lanLegacyOptionsLength <= m_lanMaxOptionsLength,
 	"the legacy options extent must be a prefix of the current one, or old peers cannot be addressed");
 
-// GeneralsX: THE SECOND CONSTRAINT ON MAX_HUMAN_SLOTS, and the one
-// that used to be invisible. NetworkDefs.h's assert covers the relay destination mask; this one
-// covers the ANNOUNCE BUDGET, and the two are independent - widening the mask does not widen the
-// budget. Before this existed, raising the human-slot count satisfied a mask assert that appeared
-// to have checked both.
-//
-// Per-human WORST case in the compact encoding (GameInfoToAsciiString), name excluded. These
-// numbers were CORRECTED against a real twelve-peer run on 2026-08-12; the first version of this
-// assert used estimates, passed at 12, and the engine then measured a 418-byte string in the
-// field. Each small integer is allowed its full two characters ("-1" and "11" both occur - the
-// original estimate assumed one character and was wrong in the direction that hides a defect):
-//   H(1) ,(1) ip".255"(4) ,(1) port"."(1) ,(1) "TT"(2) ,(1) color(2) ,(1) template(2) ,(1)
-//   startPos(2) ,(1) team(2) ,(1) nat(1) :(1)   = 26 bytes
-// Prefix allowance covers US/M/MC/MS/SD/C/SR/SC/O plus the NP network prefix, "S=" and the
-// trailing ';'. MEASURED at 99 for a user-directory map path; 130 leaves room for a longer one.
-//
-// The elastic part is the names, and this bound deliberately excludes them: a lobby whose fixed
-// fields fit but whose names do not gets its names truncated (and, past that, is refused loudly
-// by [GXCAP]) rather than silently emitting a malformed announce. The assert bounds the
-// STRUCTURE; the [GXCAP] runtime trace measures the real string, and the trace is the authority.
-// GeneralsX: scale32: MAX_HUMAN_SLOTS 34 * 26 + 239 = 1123 against m_lanMaxOptionsLength 1324
-// (MAX_LANAPI_PACKET_SIZE 1400). The "of 692" / "470" figures in this comment block are the pre-scale32 numbers.
+// Second constraint on MAX_HUMAN_SLOTS: the announce budget. The relay mask (NetworkDefs.h) is checked separately.
+// Per-human worst case in the compact encoding, name excluded, small integers at two characters: 26 bytes.
+// Prefix allowance covers the fixed header fields; 99 was measured for a user-directory map path, 130 leaves room.
+// With 34 human slots: 34 * 26 + 239 = 1123 against m_lanMaxOptionsLength 1324.
+// Names are elastic and excluded; the runtime [GXCAP] trace measures the real string and is the authority.
 static const Int g_announceSlotWorstCase   = 26;
-// GeneralsX: +28 for the lobby display name: "LN=" + up to
-// g_lobbyDisplayNameLength (24) characters + the trailing ';'. Folded into the PREFIX allowance
-// rather than the per-slot one because it is written once per announce, not once per player.
-// Measured: this takes the twelve-slot worst case from 442 to 470 against a budget of 692.
-// GeneralsX: + GX_STRESS_ANNOUNCE_BYTES (81) for the stress battlefield's
-// "ST=" field at its widest. Written only by a stress-test host, so an ordinary lobby never spends it;
-// it is folded in here so the assert still bounds the structure of the lobbies that do (twelve-slot
-// worst case 470 -> 551 of 692). That keeps
-// THIS assert honest about the 692-byte buffer and nothing more: the binding limit is the 366-byte
-// announce room (g_lanAnnounceOptionsRoom, below), enforced at runtime by GameInfoToAsciiString,
-// which truncates names and then refuses with [GXCAP]. A stress lobby with many humans can stop
-// announcing; two humans + Hx4 with the widest option is checked to fit by
-// scripts/test/stress-option-test.cpp.
-// GeneralsX: NOT the relay-proven admin slots ("AD=", GameInfo::getGxAdminMask): no
-// lobby announces them. A host stamps them at the instant of a start and every peer clears them again when a start
-// only delivered the map (LANAPI::OnGameStart), so the field exists only in a started match's options - the replay
-// header - where GameInfoToAsciiString's name rebalancing absorbs its seven bytes like any other field.
+// +28 for the lobby display name: "LN=" + up to g_lobbyDisplayNameLength (24) characters + ';'. In the prefix
+// allowance because it is written once per announce. GX_STRESS_ANNOUNCE_BYTES covers the stress "ST=" field, written
+// only by a stress-test host. This assert bounds the structure; the binding limit is g_lanAnnounceOptionsRoom,
+// enforced at runtime by GameInfoToAsciiString. The AD= admin slots are not announced.
 static const Int g_announcePrefixAllowance = 130 + 28 + GX_STRESS_ANNOUNCE_BYTES;
 static_assert(MAX_HUMAN_SLOTS * g_announceSlotWorstCase + g_announcePrefixAllowance
 	<= m_lanMaxOptionsLength,
@@ -258,20 +214,10 @@ typedef uint16_t WideCharWindows;
 #define MAX_COMPUTERNAME_LENGTH 256
 void CopyWcharToWindowsWideChar( WideCharWindows *dest, const WideChar *src, UnsignedInt len );
 
-// GeneralsX: THE ONLY EXPORTED READER, AND IT IS THE SAFE ONE. This
-// header used to export `GetWindowsWideCharAsWchar(WideCharWindows*)`, which bounded its scan by
-// MAX_COMPUTERNAME_LENGTH (256) rather than by the field: pointed at the 13-element `name` field
-// it would read ~500 bytes past a 26-byte field, through the rest of LANMessage and beyond. It had
-// zero call sites - and that was exactly the hazard, because the SAFE form was file-local to
-// LANAPIhandlers.cpp while the dangerous one was the API a new caller could reach. The trap was
-// oriented the wrong way round. The pointer form is now deleted and the field-deducing template
-// lives here, so the bound comes from the field itself and no call site can get it wrong.
-//
-// `src` points straight into a received datagram, so both bounds matter: the FIELD bound stops a
-// scan running past a short datagram into residue from whatever packet last used that buffer slot,
-// and the buffer bound stops a hostile length overrunning the scratch. Always returns a terminated
-// string; truncation is the safe answer for a malformed field, since no legitimate value comes
-// near either bound.
+// The only exported reader, and the safe one: the bound comes from the field itself via the deducing template.
+// src points into a received datagram, so both bounds matter: the field bound stops a scan running past a short
+// datagram into residue, the buffer bound stops a hostile length overrunning the scratch.
+// Always returns a terminated string.
 inline wchar_t *WindowsWideCharToWchar( const WideCharWindows *src, size_t srcCount )
 {
 	static wchar_t buf[MAX_COMPUTERNAME_LENGTH];
@@ -316,43 +262,20 @@ const UnsignedInt SIMID_WIRE_TAG = 0x53494431u; // 'SID1'
 // of reading as present, and even then the digest that follows cannot match.
 const UnsignedInt LOBBYPW_WIRE_TAG = 0x47585057u; // 'GXPW'
 
-// GeneralsX: Build-kind detection, so a lobby can see what its peers are
-// actually running.
-//
-// WHY sourceID DOES NOT ALREADY COVER THIS, which is the first thing anybody assumes. sourceID is a
-// digest of the simulation SOURCE - `git ls-tree` plus a dirty-file overlay - not of the compiled
-// binary. A debug build and a release build of the same commit therefore have the SAME sourceID and
-// join each other happily. They are not the same simulation: a debug build takes different code
-// paths, runs asserts, and is slow enough to change the pacing every peer is clamped to. So the one
-// mechanism that looks like it should catch this is exactly the mechanism that cannot.
-//
-// A BITMASK RATHER THAN A BOOL, because "debug" is not one thing. A release build compiled with
-// _ALLOW_DEBUG_CHEATS_IN_RELEASE is a release build by every other measure and is the peer most
-// worth knowing about, and it would answer "no" to a boolean.
+// Build-kind detection, so a lobby can see what its peers run. sourceID digests the simulation source, not the
+// compiled binary, so a debug and a release build of one commit share a sourceID but pace differently.
+// A bitmask rather than a bool: a release build with _ALLOW_DEBUG_CHEATS_IN_RELEASE is the peer most worth flagging.
 const UnsignedInt BUILDKIND_WIRE_TAG = 0x4758424Bu; // 'GXBK'
 
-// GeneralsX: Presence sentinel for the game-start nonce. Same
-// blind-cast reasoning as the tags above. The nonce makes start re-sends IDEMPOTENT at the
-// receiver: the legacy duplicate gate was !isGameInProgress, which disarms the moment a
-// transfer-only start restores the lobby - so any copy arriving after that restore used to
-// START THE PEERS WITHOUT THE HOST, which is why the delivery window deliberately had no
-// reassert at all and one lost datagram starved the lobby for the whole transfer timeout
-// (round-2 run 6 class, 2026-08-10).
+// Presence sentinel for the game-start nonce, same blind-cast reasoning as the tags above. The nonce makes start
+// re-sends idempotent at the receiver: the legacy duplicate gate was !isGameInProgress, which disarms once a
+// transfer-only start restores the lobby, so a late copy would start the peers without the host.
 const UnsignedInt STARTNONCE_WIRE_TAG = 0x4758534Eu; // 'GXSN'
 
-// GeneralsX: Presence sentinel for the HOST's camera height limits.
-// Fifth tag in this file and the same idiom as the four above; see GXHostCamWire below for what
-// travels and GXHostCamSeam.h for what consumes it.
-//
-// THE SENTINEL IS NOT OPTIONAL HERE, and this is the one place it is easy to talk yourself out of
-// it: a camera height "looks like" a number a range check could screen instead. It is not.
-// LANAPI::fillInLANMessage does NOT memset the message (LANAPI.cpp), and RequestGameStart builds
-// its LANMessage on the stack without one either, so on a peer that does not write these bytes
-// they are whatever that stack held. A range check would not save you: measured over 2,000,000
-// uniform 32-bit patterns, 0.85% - about one in 117 - read back as a float inside the engine's
-// own 50..1000 camera range, and 99.6% are finite numbers a naive check would have to invent a
-// rule to reject. The tag is the ONLY thing that tells "the host told us its limits" apart from
-// "these are the union's dead bytes".
+// Presence sentinel for the host camera height limits (see GXHostCamWire and GXHostCamSeam.h). It is required:
+// fillInLANMessage does not memset the message and RequestGameStart builds its LANMessage on the stack, so unwritten
+// bytes are arbitrary. A range check cannot replace it: about 1 in 117 random 32-bit patterns reads as a float
+// inside the 50..1000 camera range.
 const UnsignedInt HOSTCAM_WIRE_TAG = 0x4758434Du; // 'GXCM'
 
 enum
@@ -363,26 +286,10 @@ enum
 	GX_BUILDKIND_SANITIZER    = 0x08, ///< -fsanitize=address: instrumented, and turns GameMemory off
 };
 
-/// WHICH OF THESE engineID ALREADY CATCHES, because it changes what this gate is for.
-///
-/// SimulationId's computeEngineID() sets engine bit 7 from RTS_DEBUG, and engineID is a tier1
-/// field - so a debug peer and a release peer are ALREADY refused, before this gate runs, with
-/// SIMID_ENGINE_DIFFERS. The value this adds for that case is therefore the DIAGNOSIS, not the
-/// refusal: "you are on a debug build" instead of "build mismatch, engine 0080 vs 0000", which is
-/// the difference between a person fixing it in ten seconds and a person asking somebody.
-///
-/// The cases engineID does NOT encode are the ones this gate refuses on its own:
-///
-///   PROFILE         RTS_PROFILE_LEGACY is not in the engine word at all
-///   DEBUG_CHEATS    _ALLOW_DEBUG_CHEATS_IN_RELEASE is not either, and it is the one that most
-///                   deserves to be visible - a release build with cheats compiled in
-///   SANITIZER       sets none of the macros above, and ASAN both instruments every access and
-///                   turns RTS_GAMEMEMORY_ENABLE off, so it is a large pacing difference wearing
-///                   an ordinary release build's identity
-///
-/// Getting this backwards - believing the whole feature is dead because engineID covers debug - is
-/// the reading to guard against, which is why it is written down here rather than left to be
-/// re-derived.
+/// engineID already refuses a debug peer against a release peer (engine bit 7 comes from RTS_DEBUG, giving
+/// SIMID_ENGINE_DIFFERS), so for that case this gate adds the diagnosis, not the refusal. It refuses on its own what
+/// engineID does not encode: PROFILE (RTS_PROFILE_LEGACY), DEBUG_CHEATS (_ALLOW_DEBUG_CHEATS_IN_RELEASE) and SANITIZER
+/// (ASAN also turns RTS_GAMEMEMORY_ENABLE off, which changes pacing).
 
 /// What this binary is, decided at COMPILE time.
 ///
@@ -457,25 +364,17 @@ struct GXHostCamWire
 	Real maxHeight;         ///< the sender's MaxCameraHeight, world units above ground
 };
 
-// GeneralsX: The relay-proven admin slots and their per-match keys, AUTHORITATIVE on
-// MSG_GAME_START - the same idiom and the same reason as the camera limits above: stamped at the instant the match
-// begins, so every peer starts on the host's exact mask and keys and none on a lobby string that may have gone stale.
-// A peer does not TRUST it: LANAPI::OnGameStart refuses to start unless a fresh answer from its own relay says exactly
-// this. At most GX_ADMIN_WIRE_KEYS admins; their keys in slot order, lowest first.
-//
-// GeneralsX: A HOST WHOSE OWN RELAY QUERY FAILED SAYS SO. It used to stamp a
-// plain empty mask, which a joiner whose query WAS answered read as "the host stripped the admin" and left a valid
-// game over. It now stamps ADMINMASK_UNCONFIRMED_WIRE_TAG with no mask and no keys: every peer, the host included,
-// then runs the match with no admin at all - one answer everywhere, and it grants nothing. A modified host could
-// send it to drop an admin from a match; that takes nothing from anyone that a host could not already take by
-// refusing to start or kicking the admin, and it can never give anybody a privilege.
+// The relay-proven admin slots and their per-match keys, authoritative on MSG_GAME_START like the camera limits
+// above. A peer does not trust it: LANAPI::OnGameStart refuses to start unless a fresh answer from its own relay says
+// exactly this. At most GX_ADMIN_WIRE_KEYS admins; keys in slot order, lowest first.
+// A host whose relay query failed stamps ADMINMASK_UNCONFIRMED_WIRE_TAG with no mask: every peer runs with no admin.
 const UnsignedInt ADMINMASK_WIRE_TAG = 0x47584144u; // 'GXAD'
 const UnsignedInt ADMINMASK_UNCONFIRMED_WIRE_TAG = 0x47584155u; // 'GXAU' - the host had no fresh answer; no admin
 enum { GX_ADMIN_WIRE_KEYS = 4 };	// == Common/GXAdminOrder.h GX_ADMIN_MAX_PER_MATCH, asserted in LANAPI.cpp
 struct GXAdminWire
 {
 	UnsignedInt tag;        ///< ADMINMASK_WIRE_TAG, or garbage/zero from a peer that never wrote it
-	RelayMaskType mask;     ///< bit i = slot i is a relay-proven admin (GeneralsX scale32: 64 bit)
+	RelayMaskType mask;     ///< bit i = slot i is a relay-proven admin (GeneralsX: 64 bit)
 	unsigned char keys[GX_ADMIN_WIRE_KEYS][32];	///< one per set bit, lowest slot first
 };
 
@@ -570,7 +469,7 @@ struct LANMessage
 		// nonceTag == STARTNONCE_WIRE_TAG means nonce is meaningful; the host stamps a fresh
 		// nonce per RequestGameStart and re-sends the SAME message verbatim, so receivers can
 		// drop repeats at ANY time - including after a transfer-only round restored the lobby,
-		// where the legacy !isGameInProgress gate is disarmed and a repeat used to be a stray
+		// where the legacy !isGameInProgress gate is disarmed and a repeat would be a stray
 		// start.
 		struct
 		{
@@ -626,67 +525,21 @@ struct LANMessage
 			// only tests length > 0 before blind-casting the buffer, so any size change would
 			// make a new build read its new fields out of memory past a short old-peer datagram.
 			SimIdWire sim;
-			// GeneralsX: Lobby password answer. Appended into the same
-			// dead bytes the sim field lives in, for the same reason and with the same rule:
-			// sizeof(LANMessage) MUST NOT MOVE. GameInfo is still the largest arm at 437 bytes;
-			// GameToJoin was 71 and is now 95, so 342 dead bytes remain and the message is still
-			// 471 of the 476-byte MAX_LANAPI_PACKET_SIZE budget.
-			//
-			// MEASURED AGAIN 09/08/2026, after the build-kind fields below, by instantiating an
-			// undefined template on each sizeof and reading the compiler's error - rather than by
-			// adding up the members, which is how the figure above would eventually stop being
-			// true. GameInfo 437, GameToJoin 103, GameNotJoined 102, GameJoined 90, LANMessage
-			// still exactly 471. 334 dead bytes remain behind GameInfo.
-			//
-			//
-			// MAX_LANAPI_PACKET_SIZE went 476 -> 768 for the twelve-slot
-			// announce, and `options` (:449, :582) is sized `m_lanMaxOptionsLength+1`, which is
-			// derived from that budget (:54). So the budget-dependent member grew by 292 bytes
-			// (m_lanMaxOptionsLength 400 -> 692) and sizeof(LANMessage) went 471 -> ~763.
-			//
-			// "sizeof(LANMessage) MUST NOT MOVE" still holds as a rule for adding FIELDS - it moved
-			// here only because the budget it is derived from moved deliberately, in the same
-			// change. The numbers above are the pre-12/08 measurement; re-measure with the template
-			// trick before quoting a new one rather than trusting this arithmetic.
-			//
-			// The fragmentation question this raises does NOT depend on the exact figure: the
-			// static_assert at the bottom of this file bounds sizeof(LANMessage) at 768, and every
-			// LANAPI send passes the WHOLE struct (LANAPI.cpp:335, :357, :380). Even at the bound,
-			// 768 + 6 (TransportMessageHeader) + 12 (relay header) + 8 (UDP) + 20 (IPv4) = 814,
-			// which clears a 1500 Ethernet MTU, a 1492 PPPoE MTU and a 1400-1428 cellular MTU. No
-			// common path fragments it.
-			//
-			// pwTag == LOBBYPW_WIRE_TAG means pwChallenge/pwResponse are meaningful. Otherwise the
-			// joiner offered no password, which is what every join looks like on the first knock
-			// and what a pre-feature peer always looks like.
+			// Lobby password answer, appended into the same dead bytes as the other late fields: sizeof(LANMessage) must not
+			// move when fields are added, or a new build reads its fields from memory past a short old-peer datagram.
+			// The datagram length comes from wireSize(). pwTag == LOBBYPW_WIRE_TAG means pwChallenge/pwResponse are
+			// meaningful; otherwise the joiner offered no password (the first knock, or a peer without the feature).
 			UnsignedInt pwTag;
 			UnsignedInt pwChallenge;											///< which challenge this answers
 			UnsignedByte pwResponse[LOBBYPW_DIGEST_BYTES];	///< never the password, see LobbyPassword.h
-			// GeneralsX: What the JOINER is running. Appended into the
-			// same dead bytes as the two features above and for the same reason: sizeof(LANMessage)
-			// MUST NOT MOVE. GameInfo is still the largest arm at 437 bytes and is sized to fill
-			// the packet by construction (see m_lanMaxOptionsLength), so every other arm has room
-			// and GameInfo has none - which is why this is NOT on the announce.
-			//
-			// buildTag == BUILDKIND_WIRE_TAG means buildFlags is meaningful. Without the sentinel a
-			// pre-feature peer's dead bytes would read as a build kind, and the receive path
-			// blind-casts the datagram, so there is nothing else to tell the two apart. Zero
-			// buildFlags with the tag PRESENT is a real answer - "a plain release build" - and is
-			// not the same as no answer at all.
+			// What the joiner runs, appended into the same dead bytes: sizeof(LANMessage) must not move. Not on the announce,
+			// where GameInfo is the largest arm. buildTag == BUILDKIND_WIRE_TAG means buildFlags is meaningful; zero flags
+			// with the tag present is a real answer (a plain release build).
 			UnsignedInt buildTag;
 			UnsignedInt buildFlags;		///< GX_BUILDKIND_* bits, see gxLocalBuildKind()
-			// GeneralsX: The JOINER's camera height limits. This one
-			// travels the OTHER way from the two below - it does not govern anything and nobody
-			// adopts it. It exists so the host can be told that this player's own settings differ
-			// from the host's and are about to be overridden, which is a thing only the host can
-			// act on (the host is the machine whose Options.ini decides for the lobby).
-			//
-			// THE NEGATIVE ARM MATTERS MORE HERE THAN ANYWHERE ELSE IN THIS UNION.
-			// MSG_REQUEST_JOIN is the FIRST message an unknown machine sends us and the host
-			// blind-casts it before it has decided whether to admit the sender at all, so
-			// uninitialised dead bytes here are the ordinary case rather than the exotic one.
-			// Only the sentinel separates them from an answer. Appended last; sizeof(LANMessage)
-			// MUST NOT MOVE.
+			// The joiner camera height limits. Nothing adopts it: it tells the host this player settings will be overridden.
+			// The sentinel matters most here: MSG_REQUEST_JOIN is the first message from an unknown machine, blind-cast
+			// before the host decides to admit it, so uninitialised bytes are the norm. sizeof(LANMessage) must not move.
 			GXHostCamWire cam;
 		} GameToJoin;
 
@@ -824,29 +677,10 @@ static_assert(offsetof(LANMessage, GameToJoin.cam) + sizeof(GXHostCamWire)
 	<= offsetof(LANMessage, GameOptions.options) + g_lanLegacyOptionsLength + 1,
 	"GameToJoin.cam now falls outside the bytes wireSize() actually sends - it would be written and never transmitted");
 
-// GeneralsX: THE ANNOUNCE'S OPTIONS FIELD IS SMALLER THAN THE BUFFER
-// IT IS COPIED INTO, and the producer was sizing against the buffer.
-//
-// wireSize() above sends a FIXED offsetof(GameOptions.options) + g_lanLegacyOptionsLength + 1
-// bytes for every message type except MSG_GAME_OPTIONS. That is the retail packet size and it
-// cannot grow without breaking LAN interop with retail peers. MSG_GAME_ANNOUNCE writes its string
-// into GameInfo.options, which begins LATER in the union than GameOptions.options, so it gets less
-// room than the legacy length suggests. Measured on this tree with a compile-time probe, not
-// derived by hand:
-//
-//     offsetof(LANMessage, GameOptions.options)   34
-//     offsetof(LANMessage, GameInfo.options)      69
-//     g_lanLegacyOptionsLength                   400   (RETAIL_GAME_PACKET_SIZE 476 - 76 overhead)
-//     ---------------------------------------------
-//     bytes an announce actually carries         366
-//     m_lanMaxOptionsLength (the buffer)        1324   (GeneralsX scale32 06/11/2026: MAX_LANAPI_PACKET_SIZE 768 -> 1400; was 692)
-//
-// GameInfoToAsciiString sized against 692. A string of 367..692 bytes therefore passed its fit
-// check, was strlcpy'd whole into the 693-byte buffer, and then had everything past byte 366 cut
-// off by wireSize() - unterminated, so ParseGameOptionsString rejects it and the lobby never
-// appears in anyone's game list. This fork's own comment in GameInfo.cpp already described that
-// failure and named the budget 400; the true figure is 366, because of the 35-byte offset
-// difference between the two union arms.
+// An announce at the legacy extent carries only 366 bytes of options: GameInfo.options starts later in the union
+// (offset 69) than GameOptions.options (offset 34), so the legacy length leaves 366 after the offset difference.
+// Sizing against the m_lanMaxOptionsLength buffer instead would send a cut-off, unterminated string that
+// ParseGameOptionsString rejects, and the lobby would never appear in anyone game list.
 static const Int g_lanAnnounceOptionsRoom =
 	(Int)(offsetof(LANMessage, GameOptions.options) + g_lanLegacyOptionsLength + 1
 	      - offsetof(LANMessage, GameInfo.options));
@@ -861,32 +695,16 @@ static_assert(offsetof(LANMessage, GameInfo.options) + g_lanAnnounceOptionsRoom
 // shorter: the terminator rides inside it. strlcpy puts a 366-byte string's NUL at options[366],
 // the first byte wireSize() does not send, so a string that passed `length <= room` arrived
 // unterminated and the receiver read whatever its buffer held past the datagram. The stress
-// ST= field made that boundary reachable by an ordinary two-human lobby (review of 4cea2ff7f).
+// ST= field made that boundary reachable by an ordinary two-human lobby.
 // GameInfoToAsciiString sizes against THIS; scripts/test/announce-terminator-selftest.cpp checks
 // the boundary against the real layout.
 static const Int g_lanAnnounceOptionsMaxLength = g_lanAnnounceOptionsRoom - 1;
 
-// GeneralsX: A LONG ANNOUNCE IS SENT AT ITS OWN LENGTH, so the options
-// string is bounded by the 1324-byte buffer (m_lanMaxOptionsLength; 692 before scale32), not by the 365 bytes the legacy
-// extent happens to leave an announce.
-//
-// MEASURED BEFORE THIS: a twelve-human lobby's options string is ~25 bytes a human before any name
-// (GameInfo.cpp's compact slot encoding) plus a ~100-byte prefix, so it cannot fit 365 bytes with
-// every name cut to nothing. GameInfoToAsciiString then logged [GXCAP] and returned the EMPTY string
-// - and that one string feeds both the announce and MSG_GAME_OPTIONS, so the joiners of a
-// twelve-human lobby never received options at all and the lobby could not start.
-//
-// An announce whose string fits the legacy room is sent at exactly the legacy extent, as before, so
-// every lobby that announced before is byte-identical on the wire. Only a longer one - which no
-// build before this could announce at all - goes out at offsetof(GameInfo.options) + its string +
-// the NUL, the same rule MSG_GAME_OPTIONS has always used. Neither ever sends GameInfo.isDirectConnect:
-// it sits after the 693-byte options array, beyond the legacy extent, and no GeneralsX build has
-// transmitted it since the lobby message grew to 768 (the receiver reads it as zero either way).
-// The ceiling is the struct: 69 + 1324 + 1 = 1394, below MAX_LANAPI_PACKET_SIZE (1400). GeneralsX scale32 06/11/2026:
-// this read "762, below 768, the 1024-byte socket read and the 1100-byte UDP payload"; the LAN receive buffer is now
-// sized from MAX_LANAPI_PACKET_SIZE (see LANAPI::update). A 34-human lobby's announce is ~1125 bytes of options, so the
-// datagram stays under a 1400-byte path MTU; only a pathological full-length string can approach it.
-// scripts/test/announce-terminator-selftest.cpp tests this function itself, not a copy of it.
+// A long announce is sent at its own length: offsetof(GameInfo.options) + string + NUL, as MSG_GAME_OPTIONS does.
+// One that fits the legacy room goes out at exactly the legacy extent, byte-identical to older builds. Without this
+// a many-human lobby string would not fit the 366-byte room, GameInfoToAsciiString would return empty, and joiners
+// would get no options. The longest is 69 + m_lanMaxOptionsLength + 1, below MAX_LANAPI_PACKET_SIZE.
+// isDirectConnect sits past the options array and is never sent.
 inline Int LANMessageWireSize( const LANMessage *msg )
 {
 	const Int legacy = (Int)(offsetof(LANMessage, GameOptions.options) + g_lanLegacyOptionsLength + 1);
@@ -909,23 +727,10 @@ static_assert(offsetof(LANMessage, GameInfo.options) + m_lanMaxOptionsLength + 1
 	&& sizeof(LANMessage) <= MAX_LANAPI_PACKET_SIZE,
 	"the longest announce LANMessageWireSize can send must lie inside the struct and the lobby packet");
 
-// GeneralsX: THE RECEIVER TERMINATES ITS OWN STRINGS; it never trusts the
-// sender's terminator.
-//
-// LANAPI::update blind-casts the receive slot to LANMessage. A datagram is usually SHORTER than
-// the struct (wireSize() sends the legacy extent, MSG_GAME_OPTIONS only its string), so every byte
-// past `length` is residue from whatever packet last used that slot. The narrow string fields are
-// then read with no bound at all - AsciiString(GameInfo.options), setHost(hostName),
-// setLogin(userName), setSerial(GameToJoin.serial), AsciiString(GameOptions.options) - so an
-// unterminated string (an old host's 366-byte announce, whose NUL is the first byte not sent, or a
-// hostile datagram) reads on through the residue and past the struct.
-//
-// Two steps, both needed: zero everything past what arrived (so no field can be made of stale bytes
-// and a string that ran to the end of the datagram ends right there, content intact), then put a
-// NUL in the last element of each narrow string of THIS type's arm (a full-size hostile datagram
-// has no tail to zero). Other arms are left alone - it is a union, and their last bytes are this
-// arm's data. The wide fields need nothing extra: they are only read through
-// GetWindowsWideCharFieldAsWchar, which bounds by the field. `msg` must own sizeof(LANMessage) bytes.
+// The receiver terminates its own strings and never trusts the sender terminator. LANAPI::update blind-casts the
+// receive slot and a datagram is usually shorter than the struct, so bytes past length are stale residue.
+// Zero everything past what arrived, then NUL the last element of each narrow string of this arm. Other arms are
+// left alone: it is a union. msg must own sizeof(LANMessage) bytes.
 inline void SanitizeReceivedLANMessage( LANMessage *msg, size_t length )
 {
 	if (length < sizeof(LANMessage))
@@ -987,23 +792,10 @@ inline Bool GXHostCamWireRead( const GXHostCamWire &w, Real *outMin, Real *outMa
 	return TRUE;
 }
 
-// GeneralsX: THE PREDICATE for the lobby notice: does the pair that will
-// GOVERN differ from the pair that is being overridden? Pure, returns a bitmask, touches no UI -
-// the same separation SimIdWarnFlags/PostSimWarningsToChat uses, and for the same reason: a rule
-// that decides and prints in one place cannot be tested without a chat window.
-//
-// PERSPECTIVE-NEUTRAL ON PURPOSE, because both sides of the lobby ask it:
-//
-//   on the JOINER   authoritative = the host's pair, overridden = our own
-//   on the HOST     authoritative = our own pair,    overridden = the joining player's
-//
-// It is symmetric (it compares absolute differences), so swapping the pairs cannot change the
-// answer - but naming them this way is what stops the two call sites reading as if one of them
-// had the arguments backwards.
-//
-// FEED IT RESOLVED VALUES, NOT WIRE VALUES. A pair off the wire is clamped by
-// GXHostCamera::validate before it means anything, so comparing the raw pair would warn about a
-// difference the clamp is about to remove. Both callers validate first.
+// Predicate for the lobby camera notice: does the pair that will govern differ from the pair being overridden?
+// Pure, returns a bitmask, touches no UI. Perspective-neutral: on the joiner authoritative is the host pair, on the
+// host it is our own. It is symmetric, so argument order cannot change the answer.
+// Feed it resolved values: a wire pair is clamped by GXHostCamera::validate first.
 enum
 {
 	GXHOSTCAM_DIFF_MIN = 0x01,  ///< the minimum camera height that governs is not the overridden one
@@ -1047,29 +839,10 @@ inline UnsignedInt GXHostCamDiffFlags( Real authoritativeMin, Real authoritative
 	return flags;
 }
 
-// GeneralsX: SAY EACH TIER2 CONDITION ONCE PER LOBBY, NOT ONCE PER JOIN.
-//
-// PostSimWarningsToChat is called per joining peer - the host emits inline from handleRequestJoin,
-// the joiner defers through flushPendingSimWarnings - so an N-player lobby repeated every condition
-// up to N times. Reported from a live 4-player lobby: three copies of the archives line and two of
-// the platform line, interleaved, in one chat box.
-//
-// THE SCOPE IS PER CONDITION, NOT PER PEER, and that is a deliberate choice rather than the
-// convenient one. The sentences never name the peer they came from, so a second copy is byte for
-// byte the first copy and carries literally no new information - "somebody here has different
-// archives" is a fact about the LOBBY. Naming which peer differs would be worth saying, but that is
-// a different message, not a de-duplicator, and the complaint being answered is volume.
-//
-// THE MASK IS NOT A MUTE. Every condition still reaches the chat box the first time it is true, and
-// a condition that only appears with the fourth joiner is still said then, because the bits are
-// accumulated rather than latched on the first join. Suppression is per bit.
-//
-// IT MUST BE RESET WHEN THE LOBBY IS LEFT, or the warning is silently lost for the whole session -
-// an annoyance traded for a silent failure, which is far worse than the annoyance. See the reset in
-// LANAPI::update(), which is keyed on being out of a game rather than on any one leave path.
-//
-/// The bits in `warn` that have not been said yet; records them in *said as now-said.
-/// A null `said` disables suppression (every call fresh), which is what the pre-fix behaviour was.
+// Say each tier2 condition once per lobby, not once per join: PostSimWarningsToChat runs per joining peer, so an
+// N-player lobby would repeat each condition N times. Bits accumulate, so a condition first true with a later joiner
+// is still said. Reset when the lobby is left (see LANAPI::update), or the warning is lost for the session.
+/// The bits in `warn` that have not been said yet; records them in *said. A null `said` disables suppression.
 inline UnsignedInt GXSimWarnUnsaidFlags( UnsignedInt warn, UnsignedInt *said )
 {
 	if (said == nullptr)
@@ -1207,7 +980,7 @@ protected:
 	UnsignedInt					m_localIP;
 	Transport*					m_transport;
 public:
-	/// GeneralsX @feature Server list. The relay's game browser lives in Transport, because that
+	/// GeneralsX: Server list. The relay's game browser lives in Transport, because that
 	/// is what owns the socket the relay talks on. Exposed rather than mirrored through LANAPI so
 	/// there is one copy of the listing state.
 	Transport* getTransport() { return m_transport; }
@@ -1246,45 +1019,9 @@ public:
 	// half is the host's own leg, which arrives with the game listing.
 	UnsignedInt getRelayRttMs();
 
-	// GeneralsX: Lobby passwords and private games.
-	//
-	// THE ENTRY POINT IS A CHAT COMMAND. It is the one keyboard input that already exists on all
-	// four platforms, on both the LAN lobby and the relay lobby, and the fork already has the
-	// /nickname precedent for it.
-	//
-	// GeneralsX: THE ORIGINAL REASON GIVEN HERE WAS WRONG, and it shaped
-	// design for weeks. This comment used to assert that the host and join screens are .wnd layouts
-	// inside WindowZH.big, that editing one moves dataID, that every peer then refuses every join
-	// with DATA_DIFFERS, and therefore that "there is no way to add a text box".
-	//
-	// Measured on 2026-08-16 with scripts/test/probe-dataid.sh, by extracting
-	// Window\Menus\PopupHostGame.wnd from WindowZH.big, appending parser-safe whitespace, repacking
-	// and mounting it as an overlay:
-	//
-	//     arm                     mounted   dataID      asset
-	//     baseline                0         AB9092CC    EA18FD0C
-	//     modified PopupHostGame  1         AB9092CC    EB592ED4
-	//
-	// The control is the ASSET fingerprint moving while dataID does not - the archive really was
-	// mounted and its bytes really did differ, and dataID ignored them. That agrees with the
-	// engine's own identity code, which names ".wnd layouts" among the deliberate exclusions
-	// because a skinned UI has no effect on the simulation (SimulationId.cpp:261-268).
-	//
-	// So layouts, art, fonts, .csf strings, sounds and shaders are all client-only and cost nothing
-	// in compatibility; a real password dialog was always possible and one now ships. What DOES
-	// move dataID is .ini, through m_iniCRC - that part of the old claim was right, and new
-	// INI-defined content remains a join barrier.
-	//
-	// Returns TRUE when the line WAS a command and has been consumed - the caller must not put it
-	// on the wire, which is the whole point for /password. `reply` is the line to echo locally.
-	//
-	//   /password <text>   set the password (hosting: takes effect immediately; joining: used on
-	//                      the next join attempt)
-	//   /password          clear it
-	//   /nopassword        clear it
-	//   /private           stop advertising this game (relay browser and LAN announce both)
-	//   /public            advertise it again
-	//   /lobbyhelp         list the above
+	// Lobby passwords and private games, driven by a chat command: the one keyboard input on all four platforms.
+	// Returns TRUE when the line was a command and has been consumed; the caller must not put it on the wire.
+	//   /password <text> set, /password or /nopassword clear, /private stop advertising, /public advertise, /lobbyhelp list
 	Bool applyLobbyCommand( const AsciiString &line, UnicodeString &reply );
 
 	Bool isHostingWithPassword() const { return m_hostPwRequired; }
@@ -1369,18 +1106,10 @@ private:
 	// warning forever.
 	UnsignedInt					m_saidSimWarnFlags;
 
-	// GeneralsX: The host-camera lobby notice, deferred for EXACTLY the
-	// reason above and through the same window. Discovered in handleJoinAccept, where the LAN game
-	// options listbox does not exist yet; emitted by flushPendingHostCameraNotice from update().
-	//
-	// The four numbers are stashed rather than recomputed at flush time. By then the seam has
-	// adopted the host's pair, so asking it again would compare the host's limits with themselves
-	// and the notice would silently stop firing - a bug that only appears once the apply branch is
-	// merged, which is the worst possible time to find it.
-	//
-	// JOINER SIDE ONLY. The host needs no state at all: its own game-options listbox is already
-	// live when a join arrives, so its half of the notice goes out inline from handleRequestJoin -
-	// exactly as the tier2 SimID warnings do, and for the same reason.
+	// The host-camera lobby notice, deferred through the same window as above: found in handleJoinAccept, before the
+	// LAN options listbox exists, and emitted by flushPendingHostCameraNotice from update().
+	// The four numbers are stashed: by flush time the seam has adopted the host pair, so a recompute would compare the
+	// host limits with themselves. Joiner side only; the host emits inline from handleRequestJoin.
 	UnsignedInt					m_pendingHostCamFlags;		///< GXHOSTCAM_DIFF_* bits, 0 = nothing to say
 	Real								m_pendingHostCamHostMin;	///< the host's pair, AFTER validate() clamped it
 	Real								m_pendingHostCamHostMax;

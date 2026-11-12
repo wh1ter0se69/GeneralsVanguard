@@ -1034,7 +1034,7 @@ public:
 	virtual void onExit( StateExitType status ) override;
 	virtual StateReturnType update() override;
 	Object *chooseVictim();
-	Object *gxChooseVictimStock();	///< GeneralsX 28/10/2026 T2 r10: the stock choice chooseVictim() wraps
+	Object *gxChooseVictimStock();	///< the stock choice chooseVictim() wraps
 #ifdef STATE_MACHINE_DEBUG
 	virtual AsciiString getName() const override;
 #endif

@@ -129,6 +129,12 @@ public:
 	Int getDisguisedPlayerIndex() const { return m_disguiseAsPlayerIndex; }
 	const ThingTemplate *getDisguisedTemplate() { return m_disguiseAsTemplate; }
 	void markAsDetected( UnsignedInt numFrames = 0 );
+	/// GeneralsX perf32: markAsDetected WITHOUT the idle-enemy wake. Returns the player whose enemies the full call would
+	/// have woken (nullptr when it wakes none); the caller must then call wakeIdleEnemiesOfVictims for it. See markAsDetected.
+	const Player *markAsDetectedDeferWake( UnsignedInt numFrames = 0 );
+	/// GeneralsX perf32: markAsDetected's idle-enemy wake for several victims of one player at once (one walk of each enemy's
+	/// objects instead of one per victim). Same set of wakes as one markAsDetected per victim.
+	static void wakeIdleEnemiesOfVictims( const Player *thisPlayer, const Object *const *victims, Int count );
 	void disguiseAsObject( const Object *target ); //wrapper function for ease.
 	Real getFriendlyOpacity() const;
 	UnsignedInt getStealthDelay() const { return getStealthUpdateModuleData()->m_stealthDelay; }

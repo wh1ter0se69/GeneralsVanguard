@@ -10,20 +10,9 @@ target_include_directories(gi_libraries_source_wwvegas INTERFACE "Libraries/Sour
 target_include_directories(gi_main INTERFACE "Main")
 # GeneralsX: On Windows expose ONLY the d3dx8 headers from CompatLib.
 #
-# CompatLib/Include holds windows.h, dinput.h, comip.h, comutil.h and friends - a shim layer
-# written so the engine can build on Linux/macOS. Its windows.h says it is "only reached if no SDK
-# windows.h exists", which is simply not true: this is a -I directory, so the preprocessor searches
-# it BEFORE the system paths and the shim always wins. Its _WIN32 arm then routes into
-# windows_compat.h, which includes <pthread.h>, <unistd.h> and <sys/time.h> unguarded.
-#
-# The result on Windows was 5529 compile errors from one cause: the real Windows SDK never got
-# included, so GetLastError, FormatMessage, timeGetTime and every Win32 type were undeclared.
-#
-# Windows already supplies dinput.h, comip.h and comutil.h from the SDK. The only headers genuinely
-# missing on a modern Windows install are the d3dx8 ones (D3DX was dropped with the legacy DirectX
-# SDK), and those are already written to do the right thing - d3dx8core.h has an explicit
-# "#ifdef _WIN32 -> #include <windows.h>" arm expecting the real SDK. So on Windows we stage just
-# those four into the build tree and put THAT on the include path.
+# CompatLib/Include is a -I directory, so its windows.h shim wins over the SDK one and pulls in pthread.h, unistd.h
+# and sys/time.h unguarded, leaving the Win32 types undeclared. The SDK already supplies dinput.h, comip.h and
+# comutil.h; only the d3dx8 headers are missing, so stage just those into the build tree.
 if(WIN32)
     set(_compatlib_win_inc "${CMAKE_CURRENT_BINARY_DIR}/compatlib-d3dx8-only")
     file(MAKE_DIRECTORY "${_compatlib_win_inc}")

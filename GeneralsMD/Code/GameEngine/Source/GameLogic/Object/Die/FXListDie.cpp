@@ -132,17 +132,10 @@ void FXListDie::xfer( Xfer *xfer )
 {
 
 	//
-	// GeneralsX: UpgradeMux::m_upgradeExecuted was never written to the save,
-	// and nothing re-derives it on load (Object::updateUpgradeModules only runs when an upgrade
-	// completes). A module declared "StartsActive = No" plus "TriggeredBy" that had since been
-	// switched on therefore came back from a save with the flag clear, so the isUpgradeActive() test
-	// at the top of onDie() silently swallowed the death FX for the rest of the game even though the
-	// player still owned the triggering upgrade. Version 2 stores the flag.
-	//
-	// The bump is gated on RETAIL_COMPATIBLE_XFER_SAVE because Object::xfer reads a module's block
-	// size but never seeks past it, so appending bytes under version 1 would make the module over-run
-	// its block and corrupt every following module in a retail-format save. Reading stays conditional
-	// on the stored version so version 1 saves keep loading in either configuration.
+	// GeneralsX: UpgradeMux::m_upgradeExecuted was not saved or re-derived on load, so isUpgradeActive() in onDie()
+	// swallowed the death FX of a module switched on by TriggeredBy. Version 2 stores the flag.
+	// Gated on RETAIL_COMPATIBLE_XFER_SAVE: Object::xfer never seeks past a module block, so extra bytes
+	// under version 1 would corrupt every following module. Reading stays conditional on the stored version.
 	//
 #if RETAIL_COMPATIBLE_XFER_SAVE
 	// version

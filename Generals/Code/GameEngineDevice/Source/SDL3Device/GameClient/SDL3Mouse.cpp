@@ -440,18 +440,9 @@ void SDL3Mouse::initCursorResources(void)
 }
 
 /**
- * GeneralsX: Tooltips and cursor text never rendered on ANY SDL3 peer -
- * macOS, Linux and iPadOS. Not "sometimes"; never. See the long note on the Zero Hour twin of this
- * file; the cause and the fix are identical.
- *
- * Mouse::drawTooltip() and Mouse::drawCursorText() have exactly ONE call site in the whole tree,
- * W3DMouse::draw(), and W3DGameClient::createMouse() only builds a W3DMouse under the `#else` of
- * `#ifndef _WIN32`. SDL3Mouse had no draw() override, so it inherited the EMPTY Mouse::draw() and
- * the engine's once-per-frame TheMouse->DRAW() did nothing.
- *
- * Gated on m_IsVisible rather than the base m_visible so this reads the same on both games: the
- * Zero Hour twin pins Mouse::m_visible to TRUE unconditionally, so only m_IsVisible reliably
- * answers "should the cursor be showing" across the two.
+ * Without a draw() override SDL3Mouse inherited the empty Mouse::draw(), so tooltips and cursor text never drew.
+ * drawTooltip()/drawCursorText() are called only from W3DMouse::draw(), which is built only under `#ifndef _WIN32`.
+ * Gated on m_IsVisible, not m_visible: the Zero Hour twin pins m_visible to TRUE.
  */
 void SDL3Mouse::draw(void)
 {
@@ -535,7 +526,7 @@ void SDL3Mouse::loseFocus()
 {
 	m_LostFocus = true;           // GeneralsX @bugfix felipebraz 18/02/2026 Set focus flag
 	releaseCapture();
-	setThumbButton( 1, false );	// GeneralsX @feature tilt-thumb-buttons: no UP arrives while unfocused
+	setThumbButton( 1, false );	// tilt-thumb-buttons: no UP arrives while unfocused
 	setThumbButton( 2, false );
 	// A thumb DOWN still buffered here would be translated by Mouse::update after this clear and re-set the flag
 	// (its UP may never arrive): turn every pending X1/X2 press into a release.
@@ -767,7 +758,7 @@ void SDL3Mouse::translateButtonEvent(const SDL_MouseButtonEvent& event, MouseIO 
 			result->middleFrame = currentFrame;  // GeneralsX @bugfix felipebraz 18/02/2026 Track frame for replay
 			break;
 
-		// GeneralsX @feature tilt-thumb-buttons 06/10/2026 SDL's X1 = back (button 4), X2 = forward (button 5).
+		// SDL's X1 = back (button 4), X2 = forward (button 5).
 		// Held state only: they stay out of MouseIO so no click/double-click is ever generated for them.
 		case SDL_BUTTON_X1:
 			setThumbButton( 1, gxThumbPressHeld( event.down, m_LostFocus ) );
@@ -796,7 +787,7 @@ void SDL3Mouse::translateWheelEvent(const SDL_MouseWheelEvent& event, MouseIO *r
 
 	// SDL3 wheel: positive = up/away, negative = down/toward user
 	// Multiply by MOUSE_WHEEL_DELTA (120) to match Windows behavior
-	// GeneralsX: Carry the part the Int drops into the next event. A trackpad or Magic Mouse
+	// Carry the part the Int drops into the next event. A trackpad or Magic Mouse
 	// sends fractional deltas (0.1 is common, momentum tails go lower), and truncating each one lost up to a whole
 	// 1/120: 0.1 arrived as 11, not 12 (measured), and anything under 1/120 as nothing. Summed, nothing is lost.
 	const Real wheel = event.y * MOUSE_WHEEL_DELTA + m_wheelRemainder;

@@ -1,22 +1,25 @@
-// GeneralsX: S7 GPU sun shadow map: the light fit (pure math, no engine include).
-//
-// A14 + A28 (N8); PLAN Task 5. Host-tested by scripts/test/sm-fit-test.sh.
-//
-// One orthographic light per cascade, looking along the map's sun direction t (object light 0 of the current time of day, from the
-// sun INTO the scene: W3DShadow.cpp:232-251 stores -t as the light position). The receivers are what the camera can see of the terrain
-// slab (the map's lowest to highest terrain height): the XY outline of the view pyramid (capped at the far clip) cut by that slab,
-// clipped as a polygon to the terrain's world rectangle, and - for the near cascade - to the near part of that BOUNDED outline; then
-// stood up as a prism at both terrain heights (clamping vertices one by one shrank the outline and kept far rays'
-// altitudes). The cascade's square extent S:
-//   * covers the footprint's light-space box plus a guard band of `guard` texels per side (the filter's reach),
-//   * is quantized UP to a multiple of `quantum` world units, and changes only by GROWING at once when the need is not
-//     contained, or SHRINKING to ceil(need x 1.125 / quantum) x quantum when that is smaller (hysteresis on shrinking only:
-//     A28) - so a need hovering at a quantum boundary never flips the extent frame to frame,
-//   * is centred on the box with the centre snapped to the texel grid, so a still camera gives bit-identical matrices and a pan
-//     moves the map by whole texels (no shimmer).
-// Depth: linear along t, from the nearer of the receivers and the casters' own runtime bounds (the walk passes them: airborne
-// units, tall structures - never a load-time guess, A28) to the farthest receiver, plus a margin.
-// Output matrices are D3D row-vector (_11 _12 ...; v' = v * M) mapping world to Vulkan clip space (z 0..1).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GPU sun shadow map: the light fit (pure math, no engine include). Host-tested by scripts/test/sm-fit-test.sh.
+// One orthographic light per cascade along the sun direction; receivers are the view pyramid cut by the terrain slab.
+// The extent grows at once and shrinks (x1.125 hysteresis) to a multiple of `quantum`; the centre snaps to the
+// texel grid, so a pan moves whole texels (no shimmer). Output: D3D row-vector matrices, Vulkan clip z 0..1.
 #pragma once
 
 #include <cmath>
@@ -49,9 +52,9 @@ inline Basis basis(Vec3 sun)
 struct Footprint { Vec3 p[64]; int n = 0; };
 
 // The view pyramid: out[0] = the eye, out[1 + i] = eye + dir[i] x far. dir[i] are the corner rays scaled so their CAMERA-SPACE depth is 1
-// (W3D: (x, y, -1) on the view plane, rotated into the world - not normalized), so `far` is the camera's own far clip depth (OBSERVED
-// 17/10 on the Mini: with a far of 20000 wu along unit rays, an observer camera's top rays never reached the ground and cascade 0 came
-// out 10,752 wu wide). dir[0..1] = the BOTTOM corners (the near edge), dir[2..3] = the TOP corners.
+// (W3D: (x, y, -1) on the view plane, rotated into the world - not normalized), so `far` is the camera's own far clip depth (with a far
+// of 20000 wu along unit rays, an observer camera's top rays never reached the ground and cascade 0 came out 10,752 wu wide).
+// dir[0..1] = the BOTTOM corners (the near edge), dir[2..3] = the TOP corners.
 inline void frustumCorners(Vec3 eye, const Vec3 dir[4], float farDist, Vec3 out[5])
 {
 	out[0] = eye;
@@ -239,7 +242,7 @@ inline Vec3 toClip(const float m[16], Vec3 p)
 }
 
 
-// ---- PREREG A39: the PERSPECTIVE map from 2003's point light ---------------------------------------------------------------------
+// ---- the PERSPECTIVE map from 2003's point light ---------------------------------------------------------------------
 // 2003 extrudes every volume from ONE point, L = getLightPosWorld(0) (normalize(-lightPos) x 10000 from the world origin), per vertex
 // (W3DVolumetricShadow.cpp constructVolume: ev - L in object space). A depth map seen from L therefore answers 2003's own question for
 // every unclamped caster - "is caster geometry between L and this receiver" - on every receiver. The image plane is fixed per (map, L):
@@ -362,19 +365,19 @@ inline PointResult fitPoint(const PointBasis& pb, const Footprint& fp, float cas
 // the axis distance a perspective NDC depth stands for (the receivers' contact hardening linearises the same way)
 inline float ndcToDist(float z, float n, float f) { return n * f / (f - z * (f - n)); }
 
-// ---- A39/A41: a clamped instance's own light (a VERTICAL SCALE about its ground plane) ------------------------------------------
+// ---- a clamped instance's own light (a VERTICAL SCALE about its ground plane) ------------------------------------------
 // 2003 raises the light of an instance whose elevation clamp binds STRAIGHT UP: L_c = (L.x, L.y, |L.xy| x lengthScale)
 // (W3DVolumetricShadow.cpp updateMeshVolume, the m_shadowLengthScale block). The affine map z' = z0 + mu (z - z0), mu = (L.z - z0) /
 // (L_c.z - z0), keeps x/y, fixes the plane z = z0 and sends L_c to L - so it sends every line through L_c to a line through L. Applied to
 // the instance's caster copy AND to its own receivers' lookups, the map seen from L shows exactly what 2003's volumes from L_c show for that
-// instance: its ground shadow on z0 and its self-shadowing (PREREG A41 P1; and sm-fit-test A39-6/7 measured the
+// instance: its ground shadow on z0 and its self-shadowing (sm-fit-test A39-6/7 measured the
 // linearised shear it replaces). mu depends on z0 and the clamp only.
 // packed: low 32 bits = mu's float bits, high 32 = z0's; 0 = none. The same 64 bits reach the caster capture (World x S) and the
 // receiver's pad words (OwnScale, OwnZ0).
 struct OwnLight { float mu = 1.f, z0 = 0.f; uint64_t packed = 0; };
 
 // bound = false when the clamp does not bind (2003 keeps L: the map's own ray is 2003's), or when the configuration is not a valid
-// light above the plane (the caller's validity guard then decides: A41 P2-7)
+// light above the plane (the caller's validity guard then decides)
 inline OwnLight ownLight(Vec3 L, float lengthScale, float z0, bool* bound)
 {
 	OwnLight o;
@@ -455,7 +458,7 @@ inline void scaleMatrix(const OwnLight& o, float S[16])
 }
 inline Vec3 applyOwn(const OwnLight& o, Vec3 p) { return v3(p.x, p.y, o.z0 + o.mu * (p.z - o.z0)); }
 
-// ---- PREREG A44: the OFF-SCREEN casters' selection --------------------------------------------
+// ---- the OFF-SCREEN casters' selection --------------------------------------------
 // A caster can shadow a visible receiver only if it lies between L and that receiver - inside the light's clip volume through the
 // receivers' window. sphereOutsideClip tests a bounding sphere against THE matrix the device renders the cascade with (row-vector,
 // clip_j = sum_i p_i m[i*4+j] + m[12+j]; inside = |x| <= w, |y| <= w, z <= w), so one test serves the perspective fit and the TEST-ONLY

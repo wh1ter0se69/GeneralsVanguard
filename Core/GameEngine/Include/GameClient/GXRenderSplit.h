@@ -1,31 +1,25 @@
-// GeneralsX: render-split step 1: the tick window
-// and the deferred render-command queue.
-//
-// The simulation calls 272 render-side entry points (scripts/test/audit/render-split-inventory.py). In a two-thread build
-// the simulation thread must not run them: they write state the draw reads. This header makes an entry point THREAD-AWARE
-// AT THE CALLEE, in render code the SimID digest does not watch: called from inside the tick window, the entry point
-// records the call - its inputs copied at call time, plus the logic frame it would have read - and returns; the queue is
-// replayed in call order when the window closes.
-//   * One thread (today): the window is the logic tick, GameClient::setFrame to GameClient::step. Time frozen skips step,
-//     so the next GameClient::update closes it instead, before anything there reads what was queued.
-//   * Two threads (later): the window is "on the simulation thread"; the replay runs in the sync phase, simulation parked.
-// Replaying is invisible today because nothing reads a converted entry point's state between the call and the end of the
-// window except the simulation itself, and an entry point is converted only after checking the simulation never reads
-// that state back (2.3 rule 1). A replayed body reads the logic frame through logicFrame(), which returns the
-// frame captured at the call, so timestamps and time-outs come out identical.
-//
-// RENDER-ONLY: no simulation code includes it. No engine includes, so scripts/test/audit/bench/render_split.cpp tests this
-// exact code.
-//
-// GX_RSPLIT=0        the kill switch: every call runs directly, as before (the same-binary control arm of an A/B).
-// GX_RSPLIT_PROBE=1  one "[GXRSPLIT]" line per second: ticks, deferred calls per category, the deepest queue. Since step 6
-//                    also one "[GXRSPART]" line per tick: what the particle and FX entry points APPLIED in that tick's
-//                    window (see traceOp), printed by both arms from the same point, so they can be compared line by line.
-// GX_RSPLIT_TEST_ARM=lifo    test only, an ordering fail arm: the queue is replayed last in, first out. Its [GXRSPART]
-//                    lines must differ from the default arm's, or the trace cannot see a broken order.
-// GX_RSPLIT_TEST_ARM=bypass  test only, a deferral fail arm: ParticleSystem::setPosition applies at once even on a
-//                    published system called from the tick. Its [GXRSPART] byp= must be > 0 (notePhase), or the probe
-//                    cannot see a missing deferral.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Tick window and deferred render-command queue: in the window, render-side entry points record the call and return;
+// the queue replays in call order at close. One thread: window = GameClient::setFrame to step.
+// RENDER-ONLY: no simulation code includes it; no engine includes (scripts/test/audit/bench/render_split.cpp tests it).
+// GX_RSPLIT=0 kills it; GX_RSPLIT_PROBE=1 prints [GXRSPLIT]/[GXRSPART]; GX_RSPLIT_TEST_ARM=lifo|bypass is test only.
 #pragma once
 
 #include <algorithm>
@@ -47,9 +41,9 @@ public:
 	// Only state the DRAW reads needs a category here. State that only the sync phase reads (ControlBar's dirty flag, EVA's
 	// play requests: ControlBar::update and Eva::update run there, with the simulation parked) stays a direct write - the
 	// barrier already orders it.
-	// Step 3 (07/10/2026): superweapon timer entries, script named timers and the replay/spectator feed banners.
-	// Step 6 (08/10/2026): Particle = publishing a particle system created in the window and operations on published ones
-	// (ParticleSys.cpp); Fx = camera shakes, terrain scorch marks and light pulses (W3DView, BaseHeightMap, W3DDisplay).
+	// Also: superweapon timer entries, script named timers and the replay/spectator feed banners.
+	// Particle = publishing a particle system created in the window and operations on published ones (ParticleSys.cpp);
+	// Fx = camera shakes, terrain scorch marks and light pulses (W3DView, BaseHeightMap, W3DDisplay).
 	enum Category { FloatingText, Message, Superweapon, NamedTimer, Banner, Particle, Fx, CategoryCount };
 
 	// The game's instance, switched by GX_RSPLIT / GX_RSPLIT_PROBE.

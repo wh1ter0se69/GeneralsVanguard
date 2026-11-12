@@ -117,100 +117,18 @@ constexpr const UnsignedInt MAX_CELL_COUNT = 500;
 constexpr const UnsignedInt MAX_ADJUSTMENT_CELL_COUNT = 400;
 constexpr const UnsignedInt MAX_SAFE_PATH_CELL_COUNT = 2000;
 
-// GeneralsX: findClosestPath was the ONLY A* in this file with no bound on
-// how much it may search. checkPathCost stops at MAX_CELL_COUNT (500), patchPath at CELL_LIMIT
-// (2000), findSafePath at MAX_SAFE_PATH_CELL_COUNT (2000), findAttackPath at ATTACK_CELL_LIMIT
-// (2500). findClosestPath ran `while (!m_openList.empty())` to exhaustion, and its contract is
-// "closest reachable" rather than "reachable", so an unreachable goal does not stop it early - it
-// expands every reachable cell on the map. A 5760x5760 map at PATHFIND_CELL_SIZE 10 is 331,776
-// cells against a 30,000-entry PathfindCellInfo pool, so one such call empties the pool by
-// construction and every OTHER allocation in that frame fails. Measured 2026-08-21, see
-// free fell 24,102 -> 0 -> 24,155 inside one
-// 60-frame window with standing occupancy unmoved, and all 1,696 allocation failures of the run
-// came from this one function and no other site.
-//
-// TWO bounds, because the expansion count does not measure what is consumed. Every expansion first
-// walks a straight line to the goal (examineNeighboringCells -> iterateCellsAlongLine ->
-// examineCellsCallback) and allocates an info per cell on that line, and none of that appears in
-// the value examineNeighboringCells returns. findClosestPath also calls setAllPassable() when the
-// hierarchical path fails, which deletes the `!m_zoneManager.isPassable` abort that would otherwise
-// stop that line walk early - so the prepass runs all the way to the goal on EVERY expansion. A cap
-// on expansions alone would leave most of the allocation unbounded, so the pool take is bounded
-// directly, at the one choke point every take passes through (PathfindCellInfo::getACellInfo).
-//
-// THE NUMBERS. 2500 expansions is ATTACK_CELL_LIMIT, the most permissive sibling cap in this file,
-// and sits just above this function's own long-standing "we are far past the closest cell" test at
-// count>2000 below - so the cap can only bite on searches the function already considers extreme.
-// 5000 infos is one search's own ceiling, a sixth of the original 30,000-entry CELL_INFOS_TO_ALLOCATE. The cross-check is
-// PATHFIND_CELLS_PER_FRAME, which is 5000 at BaseFps and 2500 at the 60 Hz the shipping presets
-// build (GX_LOGIC_60HZ, both are 150,000 cells/second): one search may take at most one 30 Hz
-// frame's worth of the servicing the whole queue pass gets, whatever the pool size happens to be.
-//
-// A CEILING ON WHAT ONE SEARCH TAKES IS NOT A FLOOR UNDER WHAT IT LEAVES, and only the floor
-// actually states the property being defended. Two ways the ceiling alone fails, both real:
-// standing occupancy is not fixed (12-player runs measured 17,700-19,400 of 30,000 held, so ~10,600
-// free - 5000 fits, but a denser map or an obstacle info per cell closes that margin), and once
-// s_firstFree is null a FAILED getACellInfo takes nothing, so a ceiling counting only successes
-// stops advancing exactly when the pool is empty - it stops binding at the moment it is needed.
-// Hence PATHFIND_SEARCH_FREE_RESERVE, an absolute floor read from the live free count, and hence
-// the take counter below counts ATTEMPTS rather than successes so that it, too, keeps advancing
-// when the pool is dry.
-//
-// 5000 reserved is the same sixth of the pool, and it is what the OTHER allocation sites live on:
-// setTypeAsObstacle, setGoalUnit, setPosUnit and setGoalAircraft are the calls that were failing
-// collaterally when one search drained the pool, and they are what the reserve keeps working. It is
-// also more than 4x the worst case for a single expansion - iterateCellsAlongLine walks at most
-// max(|dx|,|dy|) <= 575 cells on a 576x576 map plus 8 neighbours - so no allocation INSIDE this
-// search can fail: the guard trips at least one whole expansion before the pool could empty. That
-// is what makes the failure-blind ceiling above harmless as a second bound rather than load-bearing.
-//
-// If free is ALREADY below the reserve when the search starts, the guard is false on the first
-// iteration and the search never grows: the loop drains the open list it was seeded with and leaves
-// by the same closest-found or failure exit as always. It cannot spin - every iteration pops one
-// cell and puts it on the closed list - and it cannot deadlock, because nothing here waits.
-//
-// Neither number is fitted to a measured distribution of per-search allocation, because none exists
-// - GX_PATHTRACE reports maxcells per frame and is the instrument that would refine them.
-//
-// SIM-VISIBLE. A bounded search can return a different "closest" cell than an unbounded one, so
-// two peers running different values here diverge. Both constants live in this file, which is
-// inside the SimID source digest (resources/gitinfo/simsourcedigest_watcher.cmake digests
-// Core/GameEngine/Source/GameLogic), so sourceID moves with them and a mismatched peer is refused
-// at join rather than desynced.
+// findClosestPath was the only unbounded A*: an unreachable goal expanded the whole map and emptied the info pool.
+// Bounds: 2500 expansions (ATTACK_CELL_LIMIT), 5000 pool takes counted per attempt (the line prepass allocates);
+// PATHFIND_SEARCH_FREE_RESERVE additionally stops growth once the free pool is at or below it.
+// SIM-VISIBLE: a bounded search can return a different closest cell; both constants are inside the SimID digest.
 constexpr const UnsignedInt MAX_CLOSEST_PATH_CELL_COUNT = 2500;
 constexpr const UnsignedInt MAX_CLOSEST_PATH_INFO_COUNT = 5000;
 
-// GeneralsX: internalFindPath is the SECOND A* in this file with no bound
-// on how much of the pool it may hold, and once e22363ac8 bounded findClosestPath it became the
-// ONLY site that still fails. Measured on GXCauldron12ZHv1, seed 12345, 20,000 frames, 12 players
-// with the findClosestPath bound in, bucket 5
-// GXPATH_CLOSEST went 840 -> 0 and bucket 1 GXPATH_INTERNAL_FIND went 1,593 -> 2,081 - every one of
-// the 2,081 remaining failures - and `low`, the free-list watermark, still reached 0 in both arms.
-// A ceiling on what one search TAKES is not a floor under what the pool HAS: the reserve
-// findClosestPath leaves is simply what the next unbounded search walks into and drains.
-//
-// SAME MECHANISM, SAME SHAPE. internalFindPath drives `while (!m_openList.empty())` and calls
-// examineNeighboringCells with a non-null goalCell, so every expansion first walks a straight line
-// to the goal (iterateCellsAlongLine -> examineCellsCallback) and allocates an info per cell on
-// that line - none of which appears in the cellCount that function returns. Pathfinder::findPath
-// calls setAllPassable() when the hierarchical path fails, exactly as findClosestPath does, which
-// removes the isPassable abort that would end that walk early, so the prepass runs all the way to
-// the goal on EVERY expansion. So internalFindPath grows only while the pool is above
-// PATHFIND_SEARCH_FREE_RESERVE (pathfindPoolAboveFloor), the floor every other allocation site
-// lives on.
-//
-// GeneralsX: THE FLOOR ONLY: internalFindPath has no per-search share.
-// cac8ebc65 also stopped it at 5000 infos taken per search (MAX_INTERNAL_PATH_INFO_COUNT). That
-// share turned reachable goals into failures - this search knows only "the goal", so it returns
-// nullptr, and the bounded findClosestPath fallback answers with the best cell it has seen, which
-// for a goal across a cliff is the cliff edge. The WHAT TRUNCATION
-// COSTS argument the share was written with ("the fallback that already exists answers instead")
-// holds for an unreachable goal and fails for a reachable one. Measured on W5's w5g1 game with the
-// hierarchical scan fixed (processHierarchicalCell): 730 findPath failures cut by the share and 563
-// fallback paths ending where the unit stood with it, 11 and 28 with the floor alone; and four of
-// the five scripted ridge crossings still failed with it. The floor alone keeps what the share was
-// for: no search can take the pool below the reserve, so setTypeAsObstacle, setGoalUnit, setPosUnit
-// and setGoalAircraft keep working. Retail has no bound here at all.
+// internalFindPath expands only while the pool is above PATHFIND_SEARCH_FREE_RESERVE and its own take is under
+// MAX_INTERNAL_PATH_INFO_COUNT (pathfindSearchMayGrow); its line prepass allocates per cell on every expansion. A small
+// per-search share turns reachable goals into failures, because the findClosestPath fallback returns only the best cell
+// seen (a cliff edge), so the share is sized to the pool. Retail has no bound here.
+// The floor keeps setTypeAsObstacle, setGoalUnit, setPosUnit and setGoalAircraft allocating.
 
 // GeneralsX: RENAMED from MAX_CLOSEST_PATH_FREE_RESERVE; the value and
 // every word of the reasoning above are unchanged. The floor is a property of the POOL, not of one
@@ -227,59 +145,26 @@ constexpr const UnsignedInt PATHFIND_SEARCH_FREE_RESERVE = 5000;
 // This is a deliberate choice, not a mechanical unit change. Leaving it at 5000 would double
 // pathfinding throughput AND double its CPU cost per second; paths would resolve in half the
 // wall-clock time, which is a gameplay change, and the extra cost would land hardest on the peer
-// least able to absorb it. In lockstep the slowest peer sets the rate for everyone, and the Linux
-// host was measured at 86% of one core at 30 Hz - it has no headroom to give.
+// least able to absorb it, since in lockstep the slowest peer sets the rate for everyone.
 constexpr const UnsignedInt PATHFIND_CELLS_PER_FRAME = (5000 * (UnsignedInt)BaseFps) / (UnsignedInt)LOGICFRAMES_PER_SECOND; // Number of cells we will search pathfinding per frame.
-// GeneralsX: The retail open-list insertion walk's STEP CAP. It used to read
-// PATHFIND_CELLS_PER_FRAME, which is also the per-frame queue BUDGET - and d11d68de5 correctly halved
-// the budget at 60 Hz, which silently halved this cap too. The cap is a count of list cells, not
-// time: at 2500 an open list longer than 2500 inserts at the wrong place and expands in a different
-// order from retail. Split so only the budget scales. At 30 Hz the name is a macro for the original
-// constant, so the 30 Hz build preprocesses to the retail expression token for token.
+// Step cap of the retail open-list insertion walk. Separate from PATHFIND_CELLS_PER_FRAME (the queue budget, halved at 60 Hz):
+// it counts list cells, not time, and a smaller cap inserts at the wrong place and expands in a different order from retail.
+// At 30 Hz it is the original constant.
 #if GX_LOGIC_60HZ
 constexpr const UnsignedInt PATHFIND_OPEN_WALK_CAP = 5000;
 #else
 #define PATHFIND_OPEN_WALK_CAP PATHFIND_CELLS_PER_FRAME
 #endif
-// GeneralsX: THE POOL WAS SIZED FOR RETAIL'S 8 PLAYERS; 12 FILL IT AND EVERY GROUND
-// SEARCH THEN FAILS. wh1ter0se's own Crater Ring replay (12 players, 38,810 frames) measured with the [GXCENSUS]
-// probe: obstacle footprints alone hold 9,215 infos at frame 1,800 and 22,000 from frame 21,000, unit goal
-// and position stamps another 8,000-9,500, so STANDING occupancy is 24,967 at frame 16,200 and 27,000 from
-// frame 28,000 of a 30,000 pool - free 5,000 at frame 16,000 and ~3,000 after. Nothing leaks (0 orphaned
-// open/closed infos, 0 stamps naming a dead object, at every sample), it is all live state. That is BELOW
-// PATHFIND_SEARCH_FREE_RESERVE (5,000), whose guard lets internalFindPath / findClosestPath grow only while
-// free > reserve, so from frame ~16k no search can expand at all: units accept an order and never move,
-// which is exactly "then all my units froze". Objects flatline near 72 from that frame in his game.
-// 100,000 keeps the reserve meaningful (~70,000 free at 12 players, ~55,000 at 16) for ~6 MB.
-// SIM-VISIBLE (a search that failed now succeeds); the constant is inside the SimID digest.
-// GeneralsX: ONE internalFindPath MAY HOLD AT MOST 20,000 INFOS. With the pool at 100,000 the
-// floor alone lets a single synchronous search take ~70,000 (measured: 70,788 cells, 77 ms, one logic frame; the
-// pool-30,000 build peaked at 13,264 cells / 7 ms). 20,000 is what a search could take from the old pool at match
-// start (25,000 free - the 5,000 floor), i.e. retail's effective ceiling, and 4x the 5,000 share removed on 27/09.
+// Pool sized for retail 8-player games: at 12 players standing occupancy reaches ~27,000 of 30,000, under the
+// search reserve, so no search expands and units freeze. 100,000 keeps the reserve meaningful. SIM-VISIBLE.
+// Per-search cap 20,000 infos: with the large pool the floor alone let one search take ~70,000 in a frame.
+// 20,000 is what a search could take from the old pool at match start (25,000 free minus the 5,000 floor).
 constexpr const UnsignedInt MAX_INTERNAL_PATH_INFO_COUNT = 20000;
 constexpr const UnsignedInt CELL_INFOS_TO_ALLOCATE = 100000;
 
-// ============================================================================================
-// GeneralsX: A* search probe.
-//
-// WHY IT EXISTS. PERF_LOCAL_FRAMETIME_2026-08-13 located the stutter with a differential
-// profile: Pathfinder::examineNeighboringCells goes from 2.10% of the main thread outside the
-// hitch cluster to 21.51% inside it. That is a correlation between a SAMPLE WINDOW and a
-// symbol. It cannot distinguish "one enormous search overran one frame" from "many ordinary
-// searches happened to land in the same frames" - and those two have completely different
-// fixes. This measures the difference directly: per logic frame, how many A* searches ran,
-// how many cells they expanded, and how large and how long the single worst one was.
-//
-// OBSERVATION ONLY, and it has to stay that way: this file is inside sourceID and its
-// behaviour is hashed into the per-frame CRC. The probe
-//   * READS m_cumulativeCellsAllocated and never writes it - that member is xfer'd (see
-//     Pathfinder::xfer) and is therefore save/CRC state,
-//   * keeps its totals in file statics that no simulation code ever reads,
-//   * takes no branch the simulation can observe, and
-//   * is OFF unless GX_PATHTRACE is set, costing one bool test per search otherwise.
-// The claim that it cannot move the CRC is NOT asserted on those grounds - it is proved by
-// running the same replay with and without GX_PATHTRACE and diffing the [GXCRC] streams.
-// ============================================================================================
+// A* search probe, observation only, on when GX_PATHTRACE is set: per logic frame it counts searches, cells expanded
+// and the size and time of the worst search. It only reads m_cumulativeCellsAllocated (xfer state, so CRC state)
+// and keeps totals in file statics the simulation never reads, so it cannot move the CRC.
 
 // GeneralsX: A function-local static is guarded: every call is a
 // thread-safe-initialisation check, and this is now asked hundreds of millions of times in a
@@ -304,10 +189,8 @@ static inline Bool gxPathTraceEnabled()
 	{
 		const char *env = getenv("GX_PATHTRACE");
 		s_gxPathTraceOn = (env != nullptr && env[0] != '0') ? 1 : 0;
-		// GeneralsX PF27 06/10/2026: GX_PATHTRACE=time reports [GXPATH] but does not re-verify memo hits. The verify
-		// recomputes every checkForMovementInSearch / clearCellForDiameter hit, which inflated measured search costs
-		// (a 3,071-cell search made 379,075 checks, 98.5% of them hits) - and a kernel that skips repeats would look
-		// faster than it is against a legacy arm paying for them. Timing A/Bs use =time.
+		// GX_PATHTRACE=time reports [GXPATH] but does not re-verify memo hits: the verify recomputes every
+		// checkForMovementInSearch / clearCellForDiameter hit, which inflates measured search cost. Timing A/Bs use =time.
 		if (env != nullptr && strcmp(env, "time") == 0)
 			s_gxPathTraceOn = 2;
 	}
@@ -315,10 +198,9 @@ static inline Bool gxPathTraceEnabled()
 }
 
 #if defined(GX_TEST_INSTRUMENTS)
-// GeneralsX: GX_PATHIDXCHECK: every indexed open-list insertion is also walked
-// and the two landing points compared (idxbad= in [GXPATH], which needs GX_PATHTRACE to print). Observation
-// only, like GX_PATHTRACE, and kept apart from it so a timing run does not pay for the walk.
-// Test builds only (-DGX_TEST_INSTRUMENTS=ON; 29/10/2026): a shipping build's idxbad= is always 0.
+// GX_PATHIDXCHECK: every indexed open-list insertion is also walked and the two landing points compared (idxbad= in
+// [GXPATH], which needs GX_PATHTRACE to print). Observation only, kept apart from GX_PATHTRACE so a timing run does not
+// pay for the walk. Test builds only (-DGX_TEST_INSTRUMENTS=ON): idxbad= is always 0 in a shipping build.
 static Int s_gxPathIdxCheckOn = -1;
 
 static inline Bool gxPathIdxCheckEnabled()
@@ -359,35 +241,9 @@ static double      s_gxPathMaxUs    = 0.0; // wall microseconds of the single lo
 static Int         s_gxPathMaxSite  = -1;  // call site that produced the longest
 static Int         s_gxPathDepth    = 0;   // nesting guard, see below
 
-// ============================================================================================
-// GeneralsX: Hot-path counters for the two leaves that own the
-// pathfinder, and the evidence needed to decide what may safely replace them.
-//
-// Measured on this tree at 4aef0d257, 12000-frame 8-player twilight-flame replay, 25 s of
-// sample(1) on the main thread: checkForMovement 2893 leaf samples,
-// forwardInsertionSortRetailCompatible 2517, examineCellsCallback 1460, iterateCellsAlongLine
-// 690. Between them that is essentially the whole simulation. A profile says WHERE the time is;
-// it does not say what would remove it, and these counters are what does:
-//
-//   ins/walk/wmax/cap  - how far the retail open-list walk really goes, and whether its
-//                        PATHFIND_OPEN_WALK_CAP step cap ever truncates it. The cap is the
-//                        only thing that makes the retail insertion point differ from
-//                        "after the last cell whose cost <= mine", which is what the cheaper
-//                        tail-side walk finds, so "cap never fires" is the whole safety
-//                        argument for using the cheaper one.
-//   rev                - what the same insertions would have cost from the tail end.
-//   cfm/cfmrep         - checkForMovement calls from the two A* sites, and how many of them
-//                        repeat a (cell, layer) already answered inside the SAME search.
-//                        Every expansion re-walks a Bresenham line to the goal, and those
-//                        lines converge, so the same cells are asked over and over.
-//   cfmbad             - the failure arm. While GX_PATHTRACE is set the memo is filled in and
-//                        CHECKED against the freshly computed answer on every repeat, and the
-//                        fresh answer is the one returned. A single non-zero here kills the
-//                        idea; zero over a whole match is the evidence that the answer really
-//                        is constant within a search.
-//
-// All of it is off unless GX_PATHTRACE is set.
-// ============================================================================================
+// Hot-path counters, active only with GX_PATHTRACE. ins/walk/wmax/cap: retail open-list walk length, cap truncation;
+// rev: the same insertions from the tail. cfm/cfmrep: checkForMovement calls and repeats of a (cell, layer) per search;
+// cfmbad: memo vs fresh answer mismatches, any non-zero invalidates the memo.
 
 static UnsignedInt s_gxInsN        = 0;    // retail open-list insertions
 static UnsignedInt s_gxInsSteps    = 0;    // forward walk steps across them
@@ -439,30 +295,9 @@ static Bool             s_gxMoveCenter    = false;
 static Bool             s_gxMoveTransient = false;
 static UnsignedInt      s_gxMoveSurfaces  = 0;
 
-// ============================================================================================
-// GeneralsX: clearCellForDiameter memo, one findGroundPath at a time.
-//
-// WHY. The skirmish AI's attack waves (SKIRMISH_MOVE_TO_APPROACH_PATH in its team scripts) send
-// each wave through AIGroup::friend_computeGroundPath -> findGroundPath: a cross-map A* with a
-// 6-cell footprint, 12-19k cells expanded, 10-50 ms in ONE logic tick, two to four waves at once
-// every 30 s in a late game: the periodic slow tick measured 26/09/2026 (sample(1): ~85% of
-// that time is clearCellForDiameter). Every expanded cell asks it of all 8 neighbours,
-// the line walk toward the goal asks it again, and the path optimiser asks it along every line,
-// so the same cell is asked many times per search, and each ask scans up to 32 cells and
-// recurses to 4, 2 and 0 when the footprint is not clear.
-//
-// WHY IT CANNOT CHANGE AN ANSWER. clearCellForDiameter is reached only from inside findGroundPath
-// (its own calls, groundCellsCallback, and buildGroundPath -> optimizeGroundPath ->
-// isGroundPathPassable -> groundPathPassableCallback). Its answer reads a cell's type, fence
-// flag, unit flags and the fixed unit's crushable level; a search writes none of them (it writes
-// only the open/closed/cost/parent fields of the cell info, and allocateInfo keeps an occupied
-// cell's info). So inside one findGroundPath a (cell, layer, diameter, crusher) key has one
-// answer. The memo serves only while a findGroundPath is running, and every findGroundPath
-// starts a new generation, so no answer outlives the call that computed it.
-//
-// GX_PATHTRACE is the failure arm, as for the checkForMovement memo above: every hit is
-// recomputed and compared (clrbad= in [GXPATH]), and the fresh answer is the one returned.
-// ============================================================================================
+// clearCellForDiameter memo for one findGroundPath: a search writes none of the cell type, fence flag, unit flags
+// or crushable level the answer reads, so a (cell, layer, diameter, crusher) key has one answer. Each findGroundPath
+// starts a new generation. GX_PATHTRACE recomputes every hit and compares (clrbad= in [GXPATH]).
 struct GXClearMemoEntry
 {
 	UnsignedInt m_gen;
@@ -479,6 +314,72 @@ static Bool              s_gxClearActive      = false; // a findGroundPath is ru
 static UnsignedInt       s_gxClrCalls = 0, s_gxClrHits = 0, s_gxClrBad = 0;	// GX_PATHTRACE only
 static UnsignedInt       s_gxFastBad = 0;	// GeneralsX PF27: checkForMovementInRect fast scan vs the loop (GX_PATHTRACE verify), never reset
 
+#if RTS_ZEROHOUR
+// Zero Hour only: the base game has no replay corpus or per-frame CRC here to prove it, so RTS_GENERALS keeps retail.
+// Steering line-walk memo: a remembered walk met no fixed unit, so only fixed-unit cells and terrain can change it.
+// Writes stamp their 8x8 block (s_gxLineEpoch) or bump s_gxLineGlobal; reuse needs a key match and no newer stamp.
+// GX_PATHTRACE re-runs each reuse and compares (s_gxLineMemoBad, printed in [GXLINEMEMO]).
+static unsigned long long *s_gxLineStamp = nullptr;
+static Int                 s_gxLineStampW = 0, s_gxLineStampH = 0;
+static unsigned long long  s_gxLineEpoch  = 1;
+static unsigned long long  s_gxLineGlobal = 1;
+static Bool                s_gxLineSawFixed = false;	// set by checkForMovementInRect, read by isLinePassableMemo
+static UnsignedInt         s_gxLineCalls = 0, s_gxLineHits = 0, s_gxLineStores = 0, s_gxLineMemoBad = 0;	// GX_PATHTRACE only
+static UnsignedInt         s_gxFlightRepeats = 0, s_gxFlightBad = 0;	// GX_PATHTRACE only: computeFlightDistToGoal repeats, disagreements
+enum { GX_LINE_BLOCK_SHIFT = 3 };
+
+void gxLineNoteGlobal()
+{
+	++s_gxLineGlobal;
+}
+
+static inline void gxLineNoteCell( Int x, Int y )
+{
+	++s_gxLineEpoch;
+	const Int bx = x >> GX_LINE_BLOCK_SHIFT, by = y >> GX_LINE_BLOCK_SHIFT;
+	if (s_gxLineStamp != nullptr && x >= 0 && y >= 0 && bx < s_gxLineStampW && by < s_gxLineStampH)
+		s_gxLineStamp[by * s_gxLineStampW + bx] = s_gxLineEpoch;
+	else
+		++s_gxLineGlobal;	// no stamp to carry it: everything is stale
+}
+
+static void gxLineStampsAllocate( Int cellsX, Int cellsY )
+{
+	delete [] s_gxLineStamp;
+	s_gxLineStamp = nullptr;
+	s_gxLineStampW = s_gxLineStampH = 0;
+	++s_gxLineGlobal;
+	if (cellsX <= 0 || cellsY <= 0)
+		return;
+	s_gxLineStampW = ((cellsX - 1) >> GX_LINE_BLOCK_SHIFT) + 1;
+	s_gxLineStampH = ((cellsY - 1) >> GX_LINE_BLOCK_SHIFT) + 1;
+	s_gxLineStamp = new unsigned long long[(size_t)s_gxLineStampW * (size_t)s_gxLineStampH];
+	for (Int i = 0; i < s_gxLineStampW * s_gxLineStampH; ++i)
+		s_gxLineStamp[i] = 0;
+}
+
+// Stamps the cell when the write moved its UNIT_PRESENT_FIXED state or its fixed unit (the only unit state a remembered
+// walk depends on). Constructed before setPosUnit / setGoalUnit change anything, checked on every way out.
+struct GXLineCellGuard
+{
+	PathfindCell *m_cell;
+	const ICoord2D &m_pos;
+	Bool m_wasFixed;
+	ObjectID m_wasUnit;
+	GXLineCellGuard( PathfindCell *cell, const ICoord2D &pos ) : m_cell(cell), m_pos(pos)
+	{
+		m_wasFixed = cell->getFlags() == PathfindCell::UNIT_PRESENT_FIXED;
+		m_wasUnit = cell->getPosUnit();
+	}
+	~GXLineCellGuard()
+	{
+		const Bool isFixed = m_cell->getFlags() == PathfindCell::UNIT_PRESENT_FIXED;
+		if ((m_wasFixed || isFixed) && (m_wasFixed != isFixed || m_wasUnit != m_cell->getPosUnit()))
+			gxLineNoteCell(m_pos.x, m_pos.y);
+	}
+};
+
+#endif
 // Call-site tags, so the report names which entry point produced the worst search.
 enum GXPathSite
 {
@@ -658,6 +559,18 @@ m_cpopValid(FALSE)
 	m_cpopOut.distAlongPath=0;
 	m_cpopOut.layer = LAYER_GROUND;
 	m_cpopOut.posOnPath.zero();
+#if RTS_ZEROHOUR
+	for (Int k = 0; k < 3; ++k)
+		m_gxLineMemo[k].valid = false;	// GeneralsX: line memo
+	m_gxPathVersion = 0;	// GeneralsX: flight-distance repeat
+	m_gxFlightValid = false;
+	m_gxFlightFrame = 0;
+	m_gxFlightVersion = 0;
+	m_gxFlightStart = nullptr;
+	m_gxFlightPos.zero();
+	m_gxFlightGoal.zero();
+	m_gxFlightDist = 0.0f;
+#endif
 }
 
 Path::~Path()
@@ -796,6 +709,10 @@ void Path::xfer( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 void Path::loadPostProcess()
 {
+#if RTS_ZEROHOUR
+	++m_gxPathVersion;	// GeneralsX
+	m_gxFlightValid = false;
+#endif
 }
 
 /**
@@ -803,6 +720,9 @@ void Path::loadPostProcess()
  */
 void Path::prependNode( const Coord3D *pos, PathfindLayerEnum layer )
 {
+#if RTS_ZEROHOUR
+	++m_gxPathVersion;	// GeneralsX
+#endif
 	PathNode *node = newInstance(PathNode);
 
 	node->setPosition( pos );
@@ -821,6 +741,9 @@ void Path::prependNode( const Coord3D *pos, PathfindLayerEnum layer )
  */
 void Path::appendNode( const Coord3D *pos, PathfindLayerEnum layer )
 {
+#if RTS_ZEROHOUR
+	++m_gxPathVersion;	// GeneralsX
+#endif
 	if (m_isOptimized && m_pathTail)
 	{
 		/* Check for duplicates. */
@@ -856,6 +779,9 @@ void Path::appendNode( const Coord3D *pos, PathfindLayerEnum layer )
  */
 void Path::updateLastNode( const Coord3D *pos )
 {
+#if RTS_ZEROHOUR
+	++m_gxPathVersion;	// GeneralsX
+#endif
 	PathfindLayerEnum layer = TheTerrainLogic->getLayerForDestination(pos);
 	if (m_pathTail) {
 		m_pathTail->setPosition(pos);
@@ -878,6 +804,9 @@ void Path::updateLastNode( const Coord3D *pos )
  */
 void Path::optimize( const Object *obj, LocomotorSurfaceTypeMask acceptableSurfaces, Bool blocked )
 {
+#if RTS_ZEROHOUR
+	++m_gxPathVersion;	// GeneralsX
+#endif
 	PathNode *node, *anchor;
 
 	// start with first node in the path
@@ -1006,6 +935,9 @@ void Path::optimize( const Object *obj, LocomotorSurfaceTypeMask acceptableSurfa
  */
 void Path::optimizeGroundPath( Bool crusher, Int pathDiameter )
 {
+#if RTS_ZEROHOUR
+	++m_gxPathVersion;	// GeneralsX
+#endif
 	PathNode *node, *anchor;
 
 	// start with first node in the path
@@ -1338,8 +1270,13 @@ void Path::computePointOnPath(
 
 		Bool gotPos = false;
 		CRCDEBUG_LOG(("Path::computePointOnPath() calling isLinePassable() 1"));
+#if RTS_ZEROHOUR
+		if (TheAI->pathfinder()->isLinePassableMemo( obj, locomotorSet.getValidSurfaces(), out.layer, pos, *nextNodePos,
+			m_gxLineMemo[0] ))	// GeneralsX: == isLinePassable(..., false, true)
+#else
 		if (TheAI->pathfinder()->isLinePassable( obj, locomotorSet.getValidSurfaces(), out.layer, pos, *nextNodePos,
 			false, true ))
+#endif
 		{
 			out.posOnPath = *nextNodePos;
 			gotPos = true;
@@ -1372,7 +1309,11 @@ void Path::computePointOnPath(
 					tryPos.y = (nextNodePos->y + next->getPosition()->y) * 0.5;
 					tryPos.z = nextNodePos->z;
 					CRCDEBUG_LOG(("Path::computePointOnPath() calling isLinePassable() 2"));
+#if RTS_ZEROHOUR
+					if (veryClose || TheAI->pathfinder()->isLinePassableMemo( obj, locomotorSet.getValidSurfaces(), closeNext->getLayer(), pos, tryPos, m_gxLineMemo[1] ))
+#else
 					if (veryClose || TheAI->pathfinder()->isLinePassable( obj, locomotorSet.getValidSurfaces(), closeNext->getLayer(), pos, tryPos, false, true ))
+#endif
 					{
 						gotPos = true;
 						out.posOnPath = tryPos;
@@ -1390,7 +1331,11 @@ void Path::computePointOnPath(
 			out.posOnPath.z = closeNodePos->z;
 
 			CRCDEBUG_LOG(("Path::computePointOnPath() calling isLinePassable() 3"));
+#if RTS_ZEROHOUR
+			if (TheAI->pathfinder()->isLinePassableMemo( obj, locomotorSet.getValidSurfaces(), out.layer, pos, out.posOnPath, m_gxLineMemo[2] ))
+#else
 			if (TheAI->pathfinder()->isLinePassable( obj, locomotorSet.getValidSurfaces(), out.layer, pos, out.posOnPath, false, true ))
+#endif
 			{
 				k = 0.5f;
 				gotPos = true;
@@ -1459,6 +1404,25 @@ Real Path::computeFlightDistToGoal( const Coord3D *pos, Coord3D& goalPos )
 		goalPos.z = 0.0f;
 		return 0.0f;
 	}
+#if RTS_ZEROHOUR
+	// GeneralsX: SAME-FRAME REPEAT. An airborne unit asks twice per tick at one
+	// position (getLocomotorDistanceToGoal from its move state, then doLocomotor). A repeat is the same answer: the first
+	// call only moves m_cpopRecentStart past leading segments it skipped (dotProduct < 0 while useNext), and those added
+	// nothing to distance and only overwrote goalPos before the first kept segment set it; so a call starting at the moved
+	// node sums the same terms in the same order, ends with the same goalPos, and leaves m_cpopRecentStart where it was.
+	// Reused only for the same frame, the same position bits, the same m_cpopRecentStart and the same path version.
+	// Under GX_PATHTRACE (verify) a repeat is computed fresh as well and compared (s_gxFlightBad, never reset).
+	const UnsignedInt gxFrame = TheGameLogic ? TheGameLogic->getFrame() : 0;
+	const Bool gxRepeat = m_gxFlightValid && m_gxFlightFrame == gxFrame && m_gxFlightVersion == m_gxPathVersion &&
+		m_gxFlightStart == m_cpopRecentStart && memcmp(&m_gxFlightPos, pos, sizeof(Coord3D)) == 0;
+	const Bool gxVerify = gxPathTraceVerify();
+	if (gxRepeat && !gxVerify)
+	{
+		goalPos = m_gxFlightGoal;
+		return m_gxFlightDist;
+	}
+	if (gxRepeat) ++s_gxFlightRepeats;
+#endif
 	const PathNode *curNode = getFirstNode();
 	if (m_cpopRecentStart) {
 		curNode = m_cpopRecentStart;
@@ -1502,6 +1466,18 @@ Real Path::computeFlightDistToGoal( const Coord3D *pos, Coord3D& goalPos )
 		curNode = nextNode;
 		nextNode = curNode->getNextOptimized();
 	}
+#if RTS_ZEROHOUR
+	if (gxRepeat && (memcmp(&distance, &m_gxFlightDist, sizeof(Real)) != 0 || memcmp(&goalPos, &m_gxFlightGoal, sizeof(Coord3D)) != 0 ||
+		m_cpopRecentStart != m_gxFlightStart))
+		++s_gxFlightBad;
+	m_gxFlightValid = true;	// GeneralsX: same-frame repeat (above)
+	m_gxFlightFrame = gxFrame;
+	m_gxFlightVersion = m_gxPathVersion;
+	m_gxFlightStart = m_cpopRecentStart;
+	m_gxFlightPos = *pos;
+	m_gxFlightGoal = goalPos;
+	m_gxFlightDist = distance;
+#endif
 	return distance;
 
 }
@@ -1556,45 +1532,22 @@ void Pathfinder::forceCleanCells()
 }
 #endif
 
-// GeneralsX: The two gauges the findClosestPath bound is built on. Both
-// are maintained here because getACellInfo/releaseACellInfo are the only places the free list is
-// popped or pushed - allocateInfo is not, since setTypeAsObstacle reaches getACellInfo directly -
-// so they see the line-prepass allocations that no cellCount can.
-//
-// s_pathfindCellInfoTakes counts ATTEMPTS, not successes, and is read only as a DELTA over one
-// search (MAX_CLOSEST_PATH_INFO_COUNT). Counting successes would have stopped counting the moment
-// the pool ran dry, which is the one moment the bound has to keep advancing. Unsigned, so the
-// subtraction stays correct across the 2^32 wrap; never read as an absolute value.
-//
-// s_pathfindCellInfoFree is the live free-list count, read as an absolute value against
-// PATHFIND_SEARCH_FREE_RESERVE. It is a function of the whole pool's history rather than of one
-// search, so it has to be identical on every peer - it is, for the same reason
-// m_cumulativeCellsAllocated can already be xfer'd and CRC'd (see Pathfinder::xfer): every caller
-// of these two functions is GameLogic, and if pool traffic diverged the existing per-frame CRC
-// would already be diverging. forceCleanPathFindCellInfos cannot drift it - that function relinks
-// open/closed pointers and never touches m_isFree or s_firstFree.
+// Pool gauges, kept in getACellInfo/releaseACellInfo, the only places the free list is popped or pushed.
+// s_pathfindCellInfoTakes counts attempts, so it advances on a dry pool; read only as an unsigned delta per search.
+// s_pathfindCellInfoFree: live free count, compared absolutely with PATHFIND_SEARCH_FREE_RESERVE; same on every peer.
 static UnsignedInt s_pathfindCellInfoTakes = 0;
 static UnsignedInt s_pathfindCellInfoFree  = 0;
 
-// GeneralsX: The growth predicate, in one place, because it states one
-// property of one pool: a search may keep expanding only while it is still inside its own share
-// AND the free list is still above the floor every other allocation site lives on. findClosestPath
-// asks it before it GROWS; internalFindPath asks only the floor half, pathfindPoolAboveFloor (see
-// PATHFIND_SEARCH_FREE_RESERVE). Neither may carry a private copy of the floor, because two copies
-// drift and the pool has only one floor.
-//
-// takesAtSearchStart is read as a DELTA (see s_pathfindCellInfoTakes above) so the subtraction is
-// correct across the 2^32 wrap and cannot be shifted by allocations made outside this search.
-// The free count is read as an ABSOLUTE against the reserve, because a ceiling on what a search
-// takes says nothing about what the pool has left.
+// A search may keep expanding only while under its own take limit and while the free list is above the shared floor.
+// Both bounded searches call it (internalFindPathBody, findClosestPath); keep one copy so the two cannot drift.
+// takesAtSearchStart is read as an unsigned delta (wrap-safe); the free count is compared absolutely with the reserve.
 static inline Bool pathfindSearchMayGrow(UnsignedInt takesAtSearchStart, UnsignedInt maxInfos)
 {
 	return (UnsignedInt)(s_pathfindCellInfoTakes - takesAtSearchStart) < maxInfos &&
 			s_pathfindCellInfoFree > PATHFIND_SEARCH_FREE_RESERVE;
 }
 
-// GeneralsX: The floor half alone, for internalFindPath - see the paragraph
-// above PATHFIND_SEARCH_FREE_RESERVE for why that search has no per-search share.
+// GeneralsX: The floor half alone (pathfindSearchMayGrow without the take limit); no search calls it at present.
 static inline Bool pathfindPoolAboveFloor()
 {
 	return s_pathfindCellInfoFree > PATHFIND_SEARCH_FREE_RESERVE;
@@ -1685,43 +1638,10 @@ void PathfindCellInfo::releaseACellInfo(PathfindCellInfo *theInfo)
 	++s_pathfindCellInfoFree;	// GeneralsX, see PATHFIND_SEARCH_FREE_RESERVE
 }
 
-// ============================================================================================
-// GeneralsX: The open list's cost index.
-//
-// WHAT IT REPLACES. forwardInsertionSortRetailCompatible walks from the head until it finds a
-// cell whose cost exceeds the new one. Measured over one 12000-frame 8-player match: 34,750,199
-// insertions, 2,018,873,617 steps, and after the checkForMovement memo landed it was the single
-// largest leaf in the engine at 1677 of 4419 in-process samples. Two cheaper WALKS were measured
-// and both are worse (see the previous commit); what is left is not walking.
-//
-// WHY THE ANSWER IS THE SAME. The retail walk stops at the first cell whose cost is greater than
-// the new cell's, so it inserts after every cell whose cost is <= its own - last among equals.
-// On a list sorted ascending that position is exactly "immediately after the last cell of the
-// greatest present cost that is <= mine", which is what this looks up directly. Two conditions
-// have to hold for that sentence to be true, and both are enforced rather than assumed:
-//
-//   the list is sorted        - it is, by induction, as long as every insertion goes to that
-//                               same position; the induction is broken only by the step cap
-//                               below, and the index refuses to be used once that happens.
-//   the cap did not truncate  - the retail walk gives up after PATHFIND_OPEN_WALK_CAP steps
-//                               and inserts there instead, which can put a cell BEFORE cheaper
-//                               ones. That cannot happen while the list is no longer than the
-//                               cap, since the walk cannot take more steps than there are cells.
-//                               Measured: the cap truncated 0 of 34,750,199 insertions, and the
-//                               longest open list ever seen was 654 against a cap of 2500 (5000 since 23/09/2026). The
-//                               guard is on the length, not on that measurement.
-//
-// WHAT IT GIVES UP. The retail walk tests hasInfo() on every cell it passes, and fails over to
-// the fixed pathfinder if it finds one that lost its PathfindCellInfo. Not walking means not
-// testing, so that particular detection no longer fires here. The other three still do
-// (releaseOpenList, releaseClosedList, putOnClosedList), the condition was never observed - 0
-// occurrences in the same 34,750,199 insertions - and the index falls back to the full retail
-// walk, detection included, whenever anything about the list is not provably in hand.
-//
-// THE CHECK. Under GX_PATHTRACE every indexed insertion ALSO runs the retail walk and compares
-// the two landing points; s_gxIdxBad counts disagreements and is never reset, so one anywhere in
-// a match stays visible. The second, independent check is the recorded replay's [GXCRC] stream.
-// ============================================================================================
+// Open-list cost index: finds the last cell of the greatest cost <= the new cell, the position the retail walk reaches
+// when the list is sorted and no cap truncation happened (the list is no longer than PATHFIND_OPEN_WALK_CAP).
+// Otherwise it uses the retail walk. The walk hasInfo() check is skipped here.
+// GX_PATHIDXCHECK (test-instrument builds) compares every landing point with the walk (s_gxIdxBad, printed by GX_PATHTRACE).
 
 enum
 {
@@ -1924,6 +1844,9 @@ PathfindCell::~PathfindCell()
  */
 void PathfindCell::reset()
 {
+#if RTS_ZEROHOUR
+	gxLineNoteGlobal();	// GeneralsX: line memo
+#endif
 	m_type = PathfindCell::CELL_CLEAR;
 	m_flags = PathfindCell::NO_UNITS;
 	m_zone = 0;
@@ -2101,6 +2024,9 @@ void PathfindCell::releaseInfo()
  */
 void PathfindCell::setGoalUnit(ObjectID unitID, const ICoord2D &pos )
 {
+#if RTS_ZEROHOUR
+	GXLineCellGuard gxLineGuard(this, pos);	// GeneralsX: line memo
+#endif
 	if (unitID==INVALID_ID) {
 		// removing goal.
 		if (m_info) {
@@ -2173,6 +2099,9 @@ void PathfindCell::setGoalAircraft(ObjectID unitID, const ICoord2D &pos )
  */
 void PathfindCell::setPosUnit(ObjectID unitID, const ICoord2D &pos )
 {
+#if RTS_ZEROHOUR
+	GXLineCellGuard gxLineGuard(this, pos);	// GeneralsX: line memo
+#endif
 	if (unitID==INVALID_ID) {
 		// removing position.
 		if (m_info) {
@@ -2237,6 +2166,9 @@ inline ObjectID PathfindCell::getObstacleID() const
  */
 Bool PathfindCell::setTypeAsObstacle( Object *obstacle, Bool isFence, const ICoord2D &pos )
 {
+#if RTS_ZEROHOUR
+	gxLineNoteCell(pos.x, pos.y);	// GeneralsX: line memo
+#endif
 	if (m_type!=PathfindCell::CELL_CLEAR && m_type != PathfindCell::CELL_IMPASSABLE) {
 		return false;
 	}
@@ -2295,6 +2227,9 @@ Bool PathfindCell::setTypeAsObstacle( Object *obstacle, Bool isFence, const ICoo
  */
 void PathfindCell::setType( CellType type )
 {
+#if RTS_ZEROHOUR
+	gxLineNoteGlobal();	// GeneralsX: line memo
+#endif
 #if RETAIL_COMPATIBLE_PATHFINDING_ALLOCATION
 	if (s_useFixedPathfinding) {
 		if (m_obstacleID != INVALID_ID) {
@@ -2325,6 +2260,9 @@ void PathfindCell::setType( CellType type )
  */
 Bool PathfindCell::removeObstacle( Object *obstacle )
 {
+#if RTS_ZEROHOUR
+	gxLineNoteGlobal();	// GeneralsX: line memo
+#endif
 	if (m_type == PathfindCell::CELL_RUBBLE) {
 		m_type = PathfindCell::CELL_CLEAR;
 	}
@@ -2774,8 +2712,7 @@ void PathfindCell::putOnSortedOpenList( PathfindCellList &list )
 		return;
 	}
 #else
-	// GeneralsX: THE COST INDEX WAS RETAIL-ONLY, SO IT WENT DARK WITH RETAIL ON 01/10.
-	// 9dd4ad8f5 turned RETAIL_COMPATIBLE_PATHFINDING off, and with it every insertion went back to walking the
+	// GeneralsX: THE COST INDEX SERVES NON-RETAIL PATHFINDING TOO. Without it every insertion walks the
 	// list (from the nearer end, below). Both walks put the cell after the last cell whose cost is <= its own -
 	// last among equals on an ascending list - which is the place the index looks up directly, so the open list
 	// comes out in the same order and every search expands the same cells: paths are identical. GX_PATHIDXCHECK (test builds)
@@ -3260,16 +3197,9 @@ static void __fastcall resolveBlockZones(Int srcZone, Int targetZone, zoneStorag
 	}
 }
 
-// GeneralsX: resolveZones used to rescan the whole equivalence array
-// (up to m_maxZone entries) on every merge, and flattenZones calls it again per mismatching entry, so
-// one calculateZones was ~Z^2 in the zone count (20-65 ms per recalc on stress-sized synthetic maps).
-// ZoneRelabel performs the SAME operation - "every entry whose value is a or b becomes f" - in
-// near-constant time. Invariant: indices holding one value form exactly one union-find class, and
-// m_groupOfValue[v] names that class (or -1 when no index holds v). A relabel unions the classes of
-// a, b and f and gives the root value f, so every index that held a, b or f now holds f and nothing
-// else changes - exactly the old loop. The old loop stopped at sizeOfZE; every caller passes
-// m_maxZone, all values it handles are < m_maxZone, and indices >= m_maxZone still hold their own
-// (identity) value, so no index past the bound could ever match a or b. Results are bit-identical.
+// ZoneRelabel does resolveZones' operation (every entry whose value is a or b becomes f) in near-constant time, not by
+// rescanning the equivalence array per merge. Invariant: indices holding one value form one union-find class and
+// m_groupOfValue[v] names it (-1 if none). Bit-identical to the old loop, which stopped at m_maxZone.
 class ZoneRelabel
 {
 public:
@@ -3842,7 +3772,7 @@ void PathfindZoneManager::calculateZones( PathfindCell **map, PathfindLayer laye
 
 	// Collapse the zones into a 1,2,3... sequence, removing collapsed zones.
 	m_maxZone = 1;
-	std::vector<Int> collapsedZones((size_t)maxZones);	// GeneralsX 06/11/2026 heap: 65,000 Ints is 254 KB, too much for a stack
+	std::vector<Int> collapsedZones((size_t)maxZones);	// heap: 65,000 Ints is 254 KB, too much for a stack
 	collapsedZones[0] = 0;
 	for (i=1; i<totalZones; i++) {
 		Int zone = zoneEquivalency.get(i);
@@ -5128,6 +5058,9 @@ void Pathfinder::reset()
 
 	delete [] m_map;
 	m_map = nullptr;
+#if RTS_ZEROHOUR
+	gxLineStampsAllocate(0, 0);	// GeneralsX: line memo: no map, no stamps, every memo stale
+#endif
 
 	// GeneralsX PF27: the kernel's records mirror the grid too; the trace's last batch is flushed with an end marker.
 	if (m_pf27 != nullptr)
@@ -5180,7 +5113,17 @@ void Pathfinder::reset()
 
 	for (m_queuePRHead=0; m_queuePRHead<PATHFIND_QUEUE_LEN; m_queuePRHead++) {
 		m_queuedPathfindRequests[m_queuePRHead] = INVALID_ID;
+#if RTS_ZEROHOUR
+// The human-order path lane is Zero Hour only: the base game has no replay corpus or per-frame CRC here to prove it
+// against, so RTS_GENERALS keeps the retail path queue exactly.
+		m_gxHumanRequests[m_queuePRHead] = INVALID_ID;	// GeneralsX: human-order lane
+#endif
 	}
+#if RTS_ZEROHOUR
+	m_gxHumanHead = 0;
+	m_gxHumanTail = 0;
+	m_gxAiStarved = false;
+#endif
 	m_queuePRHead = 0;
 	m_queuePRTail = 0;
 
@@ -5850,6 +5793,9 @@ void Pathfinder::newMap()
 		for (i=0; i<=bounds.hi.x; i++) {
 			m_map[i] = &m_blockOfMapCells[i*(bounds.hi.y+1)];
 		}
+#if RTS_ZEROHOUR
+		gxLineStampsAllocate(bounds.hi.x+1, bounds.hi.y+1);	// GeneralsX: line memo: one stamp per 8x8 cells
+#endif
 		for (i=0; i<LAYER_LAST; i++) {
 			if (!m_layers[i].isUnused()) {
 				m_layers[i].allocateCells(&m_extent);
@@ -6362,6 +6308,9 @@ Bool Pathfinder::checkForMovementInRect(const Object *obj, TCheckMovementInfo &i
 			if (flags == PathfindCell::UNIT_PRESENT_FIXED) {
 				check = true;
 				unit = TheGameLogic->findObjectByID(posUnit);
+#if RTS_ZEROHOUR
+				s_gxLineSawFixed = true;	// GeneralsX: line memo: a walk that meets one is never remembered
+#endif
 			}
 			if (check && unit!=nullptr) {
 				// GeneralsX: ignoreId is the same value this used to
@@ -6420,40 +6369,10 @@ Bool Pathfinder::checkForMovementInRect(const Object *obj, TCheckMovementInfo &i
 	return true;
 }
 
-// ============================================================================================
-// GeneralsX: checkForMovement, remembered for one A* search.
-//
-// WHY THIS IS SOUND, stated as the thing that would have to be false for it to be wrong.
-//
-// checkForMovement reads: the cell flags of the (2r+1)^2 block around info.cell, the pos-unit
-// recorded in those cells, and - only for cells that report a unit - that unit's relationship
-// to obj and whether obj can crush it. It writes nothing. Its answer is therefore a function of
-// (obj, radius, centerInCell, considerTransient, acceptableSurfaces, layer, cell) and of world
-// state. The first five are fixed for the whole of one search; layer and cell are the key.
-//
-// World state does not move inside a search. The A* loop allocates PathfindCellInfos, links
-// cells onto the open and closed lists, sets m_blockedByAlly and clears m_isTunneling. None of
-// those are read here. Cell FLAGS and the pos/goal unit IDs are written by
-// classifyObjectFootprint and by Pathfinder::updatePos/updateGoal, which run in the game logic
-// update, never inside a search. The one case that looks like an exception is a cell gaining a
-// PathfindCellInfo mid-search: getPosUnit() reads through m_info, so it changes from INVALID_ID
-// to m_info->m_posUnitID - and getACellInfo initialises m_posUnitID to INVALID_ID, so the answer
-// does not move. A cell that really has a unit on it always had an info already.
-//
-// The generation is bumped by cleanOpenAndClosedLists(), which every search calls on every exit
-// path, so an entry can only ever be read by the search that wrote it. A nested search bumps it
-// too, which throws the outer search's memo away - a loss of speed, never of correctness.
-//
-// NONE OF THAT IS THE EVIDENCE. The evidence is s_gxCfmBad: while GX_PATHTRACE is set this
-// function computes the answer fresh EVERY time and only compares it with what it remembered,
-// so a single mismatch anywhere in a match falsifies the paragraphs above. Measured over one
-// 12000-frame 8-player match: 766,836,987 calls, 753,177,059 of them repeats, 0 mismatches.
-// The second, independent check is the one that actually gates shipping - the same replay run
-// against the unpatched binary, [GXCRC] streams compared row for row.
-//
-// GX_PATHTRACE therefore makes this function SLOWER, not faster, and that is deliberate: the
-// verifying arm and the serving arm must not be the same code path, or the check checks itself.
-// ============================================================================================
+// checkForMovement remembered for one A* search: the answer depends on fixed search parameters, layer, cell and world
+// state, and world state is written only in the game logic update, never inside a search.
+// cleanOpenAndClosedLists() bumps the generation on every exit, so an entry is read only by the search that wrote it.
+// Under GX_PATHTRACE the answer is always recomputed and compared (s_gxCfmBad).
 
 Bool Pathfinder::checkForMovementInSearch(const Object *obj, TCheckMovementInfo &info)
 {
@@ -6795,10 +6714,9 @@ Bool Pathfinder::adjustToLandingDestination(Object *obj, Coord3D *dest)
  * Returns false if there are no spots available within a reasonable radius.
  */
 #if defined(GX_TEST_INSTRUMENTS)
-// GeneralsX: (H03) GX_H03_CHECK=1: run the fallback adjustDestination skips anyway and report whether it
-// would have found a destination or moved *dest. A test switch: with the claim above true it changes nothing; a mismatch
-// line means the skip changed the game. Counts every 1,000 skips and every mismatch at once.
-// Test builds only (-DGX_TEST_INSTRUMENTS=ON; 29/10/2026).
+// (H03) GX_H03_CHECK=1: run the fallback adjustDestination skips anyway and report whether it would have found a destination
+// or moved *dest. A mismatch line means the skip changed the game. Counts every 1,000 skips and every mismatch at once.
+// Test builds only (-DGX_TEST_INSTRUMENTS=ON).
 static void gxH03CheckSkippedFallback(Pathfinder *pf, Object *obj, const LocomotorSet &locomotorSet, const Coord3D *dest)
 {
 	static const Bool s_on = getenv("GX_H03_CHECK") != nullptr && getenv("GX_H03_CHECK")[0] == '1';
@@ -7136,7 +7054,11 @@ Bool Pathfinder::adjustToPossibleDestination(Object *obj, const LocomotorSet& lo
  * Queues an object to do a pathfind.
  * It will call the object's ai update->doPathfind() during processPathfindQueue().
  */
+#if RTS_ZEROHOUR
+Bool Pathfinder::queueForPath(ObjectID id, Bool allowPromotion)
+#else
 Bool Pathfinder::queueForPath(ObjectID id)
+#endif
 {
 #ifdef DEBUG_LOGGING
 	{
@@ -7151,16 +7073,60 @@ Bool Pathfinder::queueForPath(ObjectID id)
 	}
 #endif
 
+#if RTS_ZEROHOUR
+	// Human-order lane: a request from a unit whose last command came from a player (getLastCommandSource() == CMD_FROM_PLAYER,
+	// simulation state every peer holds identically) goes to a second ring that processPathfindQueue serves first, so player
+	// orders do not wait behind the AI request backlog. It changes when paths are served (deterministically), not how.
+	Bool human = false;
+	{
+		Object *requester = TheGameLogic->findObjectByID(id);
+		AIUpdateInterface *requesterAI = requester ? requester->getAIUpdateInterface() : nullptr;
+		human = requesterAI != nullptr && requesterAI->getLastCommandSource() == CMD_FROM_PLAYER;
+	}
+	for (Int hs = m_gxHumanHead; hs != m_gxHumanTail; hs = (hs + 1) % PATHFIND_QUEUE_LEN) {
+		if (m_gxHumanRequests[hs] == id) {
+			return true;	// already in the human lane
+		}
+	}
+
+	const Bool humanRoom = ((m_gxHumanTail + 1) % PATHFIND_QUEUE_LEN) != m_gxHumanHead;
+
+#endif
 	/* Check & see if we are already queued. */
 	Int slot = m_queuePRHead;
 	while (slot != m_queuePRTail) {
 		if (m_queuedPathfindRequests[slot] == id) {
+#if RTS_ZEROHOUR
+			// stay put unless the promotion can complete (human lane has room), and never
+			// promote from load repair (AIUpdateInterface::loadPostProcess re-queues every waiting unit; a request a full human
+			// lane had pushed to the AI lane must keep its saved place, or a loaded game is served in another order).
+			if (!human || !allowPromotion || !humanRoom) {
+				return true;
+			}
+			// A player's new order for a unit still waiting in the AI lane: it moves to the human lane. The hole is
+			// skipped when it reaches the head (processPathfindQueue serves an INVALID_ID slot as "no object").
+			m_queuedPathfindRequests[slot] = INVALID_ID;
+			break;
+#else
 			return true;
+#endif
 		}
 		slot++;
 		if (slot >= PATHFIND_QUEUE_LEN) {
 			slot = 0;
 		}
+#if RTS_ZEROHOUR
+	}
+
+	if (human) {
+		Int nextHuman = (m_gxHumanTail + 1) % PATHFIND_QUEUE_LEN;
+		if (nextHuman != m_gxHumanHead) {
+			m_gxHumanRequests[m_gxHumanTail] = id;
+			m_gxHumanTail = nextHuman;
+			return true;
+		}
+		// the human lane is full: the AI lane takes it, with its own full-queue retry below
+#endif
 	}
 
 	// Tail is the first available slot.
@@ -7169,17 +7135,9 @@ Bool Pathfinder::queueForPath(ObjectID id)
 		nextSlot = 0;
 	}
 	if (nextSlot==m_queuePRHead) {
-		// GeneralsX: A FULL QUEUE WAS A PERMANENT, SILENT STALL.
-		// Every caller (AIUpdateInterface::requestPath and its three siblings, and the delayed
-		// re-queue in AIUpdateInterface::update) ignores this return, and each has already set
-		// m_waitingForPath. A refused unit therefore reached POSITION_ON_PATH with no path and
-		// returned UPDATE_SLEEP_FOREVER ("Can't move till we get our path"): it slept until the player
-		// gave it a NEW order. Order more than PATHFIND_QUEUE_LEN - 1 units at once - a select-all of a
-		// few hundred infantry, an army told to force-fire at one aircraft - and the rest never moved.
-		// The refused unit now asks again shortly through the engine's own delayed re-queue
-		// (setQueueForPathTime, the path the too-quick-repath case already uses), which also wakes a
-		// sleeping unit. Every peer runs the same queue, so the retry is deterministic; a game that
-		// never fills the queue never reaches this line and simulates exactly as before.
+		// A full queue must not strand the requester: callers ignore this return and have set m_waitingForPath, so a
+		// refused unit slept forever (UPDATE_SLEEP_FOREVER). It re-asks through the delayed re-queue (setQueueForPathTime),
+		// which also wakes a sleeping unit. Every peer runs the same queue, so the retry is deterministic.
 		Object *requester = TheGameLogic->findObjectByID(id);
 		AIUpdateInterface *requesterAI = requester ? requester->getAIUpdateInterface() : nullptr;
 		if (requesterAI) {
@@ -7403,7 +7361,16 @@ void Pathfinder::processPathfindQueue()
 			s_gxInsN, s_gxInsSteps, s_gxInsMax, s_gxInsCap, s_gxInsRevSteps, s_gxInsLenMax, s_gxInsCorrupt,
 			s_gxIdxUsed, s_gxIdxWalk, s_gxIdxBad,
 			s_gxCfmCalls, s_gxCfmRepeats, s_gxCfmBad, s_gxClrCalls, s_gxClrHits, s_gxClrBad, s_gxFastBad GX_PATHCOST_ARGS);
+#if RTS_ZEROHOUR
+		fprintf(stderr, "[GXLINEMEMO] f=%u calls=%u hits=%u stores=%u bad=%u flight_repeats=%u flight_bad=%u\n",
+			TheGameLogic ? (unsigned)TheGameLogic->getFrame() : 0u, s_gxLineCalls, s_gxLineHits, s_gxLineStores, s_gxLineMemoBad,
+			s_gxFlightRepeats, s_gxFlightBad);
+		s_gxFlightRepeats = 0;	// s_gxFlightBad is never reset
+#endif
 		fflush(stderr);
+#if RTS_ZEROHOUR
+		s_gxLineCalls = s_gxLineHits = s_gxLineStores = 0;	// s_gxLineMemoBad is never reset
+#endif
 		s_gxPathSearches = 0;
 		s_gxPathCells    = 0;
 		s_gxPathUs       = 0.0;
@@ -7475,8 +7442,30 @@ void Pathfinder::processPathfindQueue()
 	PF27Kernel::runProbe(this);	// GeneralsX PF27 probe, GX_PF27_PROBE only (test env; moves the sim the same way in every mode)
 #endif
 	Int pathsFound = 0;
+#if RTS_ZEROHOUR
+	// GeneralsX: HUMAN-ORDER LANE (see queueForPath): the human lane first, up to two thirds of the frame's cell budget,
+	// then the AI lane to the full budget, then the human lane again if the AI lane ran dry. The AI lane always keeps at least
+	// a third of a busy frame, so a large order delays the 31 AIs' paths but cannot stop them. Each loop serves whole requests
+	// exactly as before (one search may overshoot the budget, as retail).
+	// one search can overrun the whole budget, so "the AI keeps a third" needs a carry: when
+	// the AI lane was served nothing last pass while it had requests, it goes FIRST this pass (one request), then the usual
+	// order. Under back-to-back overruns the lanes alternate; the per-pass cost bound is the same as before.
+	Int aiServed = 0;
+	if (m_gxAiStarved) {
+		while (aiServed == 0 && m_queuePRTail != m_queuePRHead) {
+			if (gxServeOne(m_queuedPathfindRequests, m_queuePRHead, m_queuePRTail, pathsFound)) ++aiServed;
+		}
+	}
+	const Int humanShare = (Int)((PATHFIND_CELLS_PER_FRAME * 2) / 3);
+	while (m_cumulativeCellsAllocated < humanShare && m_gxHumanTail != m_gxHumanHead) {
+		gxServeOne(m_gxHumanRequests, m_gxHumanHead, m_gxHumanTail, pathsFound);
+	}
+#endif
 	while (m_cumulativeCellsAllocated < PATHFIND_CELLS_PER_FRAME &&
 		m_queuePRTail!=m_queuePRHead) {
+#if RTS_ZEROHOUR
+		if (gxServeOne(m_queuedPathfindRequests, m_queuePRHead, m_queuePRTail, pathsFound)) ++aiServed;
+#else
 		Object *obj = TheGameLogic->findObjectByID(m_queuedPathfindRequests[m_queuePRHead]);
 		m_queuedPathfindRequests[m_queuePRHead] = INVALID_ID;
 		if (obj) {
@@ -7490,7 +7479,14 @@ void Pathfinder::processPathfindQueue()
 		if (m_queuePRHead >= PATHFIND_QUEUE_LEN) {
 			m_queuePRHead = 0;
 		}
+#endif
 	}
+#if RTS_ZEROHOUR
+	while (m_cumulativeCellsAllocated < PATHFIND_CELLS_PER_FRAME && m_gxHumanTail != m_gxHumanHead) {
+		gxServeOne(m_gxHumanRequests, m_gxHumanHead, m_gxHumanTail, pathsFound);
+	}
+	m_gxAiStarved = (aiServed == 0 && m_queuePRTail != m_queuePRHead);
+#endif
 	if (pathsFound > 0) {
 		PROFILER_PLOT("PathfindCells", (double)m_cumulativeCellsAllocated);
 		PROFILER_PLOT("PathfindPaths", (double)pathsFound);
@@ -7514,6 +7510,30 @@ void Pathfinder::processPathfindQueue()
 
 }
 
+#if RTS_ZEROHOUR
+
+// GeneralsX: one request off a ring - the body processPathfindQueue's loop always had.
+Bool Pathfinder::gxServeOne( ObjectID *ring, Int &head, Int tail, Int &pathsFound )
+{
+	(void)tail;
+	Object *obj = TheGameLogic->findObjectByID(ring[head]);
+	ring[head] = INVALID_ID;
+	Bool served = false;
+	if (obj) {
+		AIUpdateInterface *ai = obj->getAIUpdateInterface();
+		if (ai) {
+			ai->doPathfind(this);
+			pathsFound++;
+			served = true;
+		}
+	}
+	head = head+1;
+	if (head >= PATHFIND_QUEUE_LEN) {
+		head = 0;
+	}
+	return served;
+}
+#endif
 
 void Pathfinder::checkChangeLayers(PathfindCell *parentCell)
 {
@@ -7642,10 +7662,10 @@ struct ExamineCellsStruct
 					return 0; // keep going.
 			}
 
-			// GeneralsX: costToGoal used to be computed above this
-			// early-out, and it is used only below it. On a line walked to the goal most cells are
-			// already on a list with a cheaper cost, so most of the time this was computed and
-			// thrown away. It is a pure function of the two cells' coordinates - moving it past a
+			// GeneralsX: costToGoal is computed below this early-out because it is used only there.
+			// On a line walked to the goal most cells are already on a list with a cheaper cost, so
+			// computing it above the early-out would throw it away most of the time.
+			// It is a pure function of the two cells' coordinates - placing it past a
 			// branch that touches neither cannot change its value.
 			Int costRemaining = to->costToGoal( d->goalCell );
 
@@ -8189,17 +8209,9 @@ Path *Pathfinder::internalFindPathBody( Object *obj, const LocomotorSet& locomot
 		// put parent cell onto closed list - its evaluation is finished
 		parentCell->putOnClosedList( m_closedList );
 
-		// GeneralsX: The allocation bound - see PATHFIND_SEARCH_FREE_RESERVE,
-		// the pool floor only since 27/09/2026. Same shape as the one findClosestPath, patchPath and
-		// findAttackPath already use: it stops the search GROWING, it does not break the loop. The
-		// open list still drains one cell per iteration onto the closed list, so the function still
-		// leaves by one of its two existing exits - the goal popped off the open list, or the open
-		// list emptied - and each of those already calls cleanOpenAndClosedLists and releases its
-		// cells. No exit path is added, so no exit path can have different cleanup, and the loop
-		// cannot spin: once the guard is false nothing can re-open a closed cell.
-		//
-		// checkChangeLayers is inside the guard because it allocates an info and pushes onto the
-		// open list too - it is part of growing, not part of draining.
+		// Allocation bound, see PATHFIND_SEARCH_FREE_RESERVE: it stops the search growing but does not break the loop. The open
+		// list still drains, so the function leaves by its two existing exits, which already clean up and release cells.
+		// checkChangeLayers is inside the guard because it allocates an info and pushes onto the open list, so it is growth.
 		if (pathfindSearchMayGrow(infosAtSearchStart, MAX_INTERNAL_PATH_INFO_COUNT)) {
 			// Check to see if we can change layers in this cell.
 			checkChangeLayers(parentCell);
@@ -9042,25 +9054,9 @@ void Pathfinder::processHierarchicalCell( const ICoord2D &scanCell, const ICoord
 	if (parentZone == m_zoneManager.getBlockZone(LOCOMOTORSURFACE_GROUND,
 		crusher, scanCell.x, scanCell.y, m_map)) {
 		PathfindCell *newCell = getCell(LAYER_GROUND, scanCell.x, scanCell.y);
-		// GeneralsX: THE ZERO HOUR HIERARCHICAL SEARCH NEVER LEFT ITS START BLOCK.
-		// Zero Hour's copy of this scan returned when the boundary cell had no PathfindCellInfo yet
-		// ("if (!newCell->hasInfo()) return;"), but nothing gives a boundary cell an info before this
-		// function does - allocateInfo(scanCell) is below. So a block was only ever left through a cell that
-		// happened to carry an info already (a unit standing on it, an obstacle), and findHierarchicalPath
-		// failed for almost every route longer than one zone block. Measured on W5's w5g1 game (Twilight
-		// Flame, 7 Hard AI, to frame 50400): 28 hierarchical successes in 11,961 searches of 20-40 cells, 0
-		// in 7,864 longer ones. Every caller then called setAllPassable() and searched the WHOLE map at cell
-		// level, and a goal just across a long ridge (409-442 cells round for 17-88 cells straight) needs
-		// more of the 30,000-info pool than exists: findPath failed, the findClosestPath fallback answered
-		// with the ridge edge, and AI armies parked along both ridges re-pathing every 2 s.
-		// That failure is independent of GeneralsX's search bounds: the
-		// same ridge test fails on the port's own August builds with no bound at all.
-		// Generals' copy of this line - examine the cell, allocate it below, skip it only if it was already
-		// looked at - is what Zero Hour gets now. The allocation below already tolerates an empty pool
-		// (hasInfo() guards the close, and the adjacent cell is queued only if it got an info). The search then
-		// reaches the goal's block and marks the blocks on its route passable, so the cell-level A* explores
-		// that corridor instead of the map.
-		// SIM-VISIBLE: long routes are now found (and differently) where they used to fail; inside the digest.
+		// Zero Hour copy returned when the boundary cell had no PathfindCellInfo, but nothing gives it one before allocateInfo
+		// below, so findHierarchicalPath failed for most routes longer than one zone block. Examine, allocate below, and skip
+		// only if already looked at, as Generals does. SIM-VISIBLE: long routes are now found where they used to fail.
 		if (newCell->hasInfo() && (newCell->getOpen() || newCell->getClosed())) return; // already looked at this one.
 
 		ICoord2D adjacentCell = scanCell;
@@ -9099,23 +9095,9 @@ void Pathfinder::processHierarchicalCell( const ICoord2D &scanCell, const ICoord
 #if RETAIL_COMPATIBLE_PATHFINDING
 		if (!s_useFixedPathfinding)
 		{
-			// GeneralsX: hasInfo() ADDED - this arm dereferenced a null
-			// info. allocateInfo's result is discarded just above, and getClosed()/getOpen() are
-			// unguarded `m_info->` reads (AIPathfind.h:405-406). The sibling `else` arm below has
-			// always carried this exact guard; only the default arm was missing it.
-			//
-			// ZERO HOUR CANNOT REACH IT, which is why it has survived: the #else at the top of this
-			// function returns early when a cell has no info, so by here newCell always has one and
-			// allocateInfo is a no-op returning true. The RTS_GENERALS arm has no such precondition
-			// - a cell with no info falls straight through - and RTS_GENERALS=1 is set for the
-			// shipped g_generals target (Generals/Code/CMakeLists.txt:42) with
-			// RETAIL_COMPATIBLE_PATHFINDING defaulting to 1 (GameDefines.h:110-111).
-			//
-			// Reachable today whenever the pool is genuinely empty, so this is a live crash in
-			// Generals, not a hypothetical: the hierarchical scan walks ordinary map cells, the
-			// overwhelming majority of which hold no info.
-			//
-			// A no-op wherever the cell already has an info, i.e. everywhere Zero Hour goes.
+			// hasInfo() guard: allocateInfo result is discarded above and getClosed()/getOpen() dereference m_info unchecked; the
+			// sibling else arm has this guard. Zero Hour never reaches it (an earlier return guarantees an info), but the
+			// RTS_GENERALS arm does whenever the pool is empty.
 			if (newCell->hasInfo() && !newCell->getClosed() && !newCell->getOpen()) {
 				newCell->putOnClosedList(m_closedList);
 			}
@@ -9479,20 +9461,9 @@ Path *Pathfinder::internal_findHierarchicalPath( Bool isHuman, const LocomotorSu
 
 		if (reachedGoal)
 		{
-			// GeneralsX: THE SEARCH'S START NEVER TAKES A PARENT - a parent cycle froze every peer.
-			// startPathfind() makes the start cell the root of the parent tree: every chain ends there, and this line is the
-			// only one that gives the goal a parent. When the goal IS the start - a unit standing on a bridge (any layer but
-			// the ground) asking for a path to its own cell - the start was never popped as the goal: the bridge branch above
-			// closed it and seeded the ground cells at the bridge's two ends with it as their parent, and the goal test then
-			// fired on one of those. The old line made the start that ground cell's child: start -> ground end -> start. When
-			// the unit stands on the bridge's END cell, that ground cell has the start's own x,y, so prependCells() took every
-			// step as a "layer transition" (which neither prepends, clears a parent nor moves prevCell) and never returned:
-			// the logic frame never ended and every peer of the match froze for good. Measured (E . pathfind-freeze-1): cert64
-			// Dry River, stock GLAStealth vs stock ChinaInfantry, seed 204088747, frame 18182 on 0.9.62 and 0.9.64 alike; the
-			// same code is in EA's released source, TheSuperHackers main and Generals Online. Off the bridge's end the cycle ended only
-			// because prependCells cleared it on the way, leaving a detour through a bridge end. The goal already is the
-			// start, so the path is the start alone - what a ground start returns when it pops itself as the goal.
-			// SIM-VISIBLE only for a start that is also the goal on a bridge (the freeze, or that detour); inside the digest.
+			// The start never takes a parent: startPathfind() makes it the root of the parent tree. When the goal is the start (a
+			// unit on a bridge asking for its own cell) a parent cycle made prependCells() loop forever and froze every peer.
+			// The path is then the start alone. SIM-VISIBLE only for a start that is also the goal on a bridge.
 			if (parentCell != goalCell && goalCell != searchStart) {
 				goalCell->setParentCellHierarchical(parentCell);
 			}
@@ -10210,27 +10181,9 @@ Int Pathfinder::checkPathCost(Object *obj, const LocomotorSet& locomotorSet, con
 
 			if (!newCell->allocateInfo(newCellCoord)) {
 				// Out of cells for pathing...
-				// GeneralsX: THE CLEANUP WAS GATED; IT IS THE ONLY EXIT
-				// THAT GATED IT.
-				//
-				// This block used to sit under `if (s_useFixedPathfinding)`, which is false by
-				// default, so the refusal returned with m_openList and m_closedList still populated.
-				// By this point parentCell has already been pushed onto the closed list (the retail
-				// arm does it immediately after popping it off the open list), and
-				// PathfindCellList::reset() only reassigns head/tail/count - it does not clear
-				// m_open/m_closed and does not release infos. PathfindCell::releaseInfo() then
-				// refuses to release a cell still marked open or closed ("better leak than crash"),
-				// so those cells are stranded holding pool entries for the rest of the match, and
-				// the pool ratchets down instead of recovering.
-				//
-				// EVERY OTHER EXIT OF THIS FUNCTION ALREADY CLEANS UP UNCONDITIONALLY - the success
-				// exit calls cleanOpenAndClosedLists() outside the gate and only conditions the
-				// releaseInfo, and the final no-path exit cleans up in BOTH arms. This one was the
-				// outlier, which is what marks it an oversight rather than a deliberate retail
-				// divergence.
-				//
-				// Shaped to match that final no-path exit exactly, because after the return-value
-				// fix below the two exits are now the same answer reached two ways.
+				// Clean up unconditionally on this refusal: parentCell is already on the closed list, PathfindCellList::reset()
+				// does not clear open/closed or release infos, and releaseInfo() refuses a cell still marked open or closed, so the
+				// cells would stay stranded holding pool entries. Matches the final no-path exit, which cleans up in both arms.
 #if RETAIL_COMPATIBLE_PATHFINDING
 				if (!s_useFixedPathfinding) {
 					if (goalCell->hasInfo() && !goalCell->getClosed() && !goalCell->getOpen()) {
@@ -10245,20 +10198,9 @@ Int Pathfinder::checkPathCost(Object *obj, const LocomotorSet& locomotorSet, con
 					parentCell->releaseInfo();
 					goalCell->releaseInfo();
 				}
-				// GeneralsX: WAS `return cellCount`, which is 0 here.
-				//
-				// Every other exit from checkPathCost returns either a real A* total cost or
-				// MAX_COST; this one returned the number of cells expanded so far, and cellCount is
-				// incremented on the line BELOW, so the first refused allocation returns exactly 0.
-				//
-				// The sole consumer is checkForAdjust: `if (1.4f*(dx+dy) < cost) return false;`.
-				// dx and dy are IABS values, so with cost 0 that test is false for every input and
-				// the guard - which exists to REJECT an adjusted destination that is a long detour -
-				// silently accepts every one of them. Units then take visible detours around
-				// obstacles, under load, in exactly the big matches where the pool is tight.
-				//
-				// MAX_COST is the honest answer: "this could not be evaluated" belongs on the
-				// reject side of a cost test, not the accept side.
+				// Return MAX_COST, not cellCount (0 on the first refused allocation). The sole consumer, checkForAdjust, rejects
+				// with 1.4f*(dx+dy) < cost; with cost 0 that never rejects, so every adjusted destination would be accepted.
+				// Could not be evaluated belongs on the reject side.
  				return MAX_COST;
 			}
 			cellCount++;
@@ -10605,18 +10547,9 @@ Path *Pathfinder::findClosestPath( Object *obj, const LocomotorSet& locomotorSet
 		}
 		// If we haven't already found the goal cell, continue examining. [8/25/2003]
 		if (!foundGoal) {
-			// GeneralsX: The expansion bound - see MAX_CLOSEST_PATH_CELL_COUNT,
-			// MAX_CLOSEST_PATH_INFO_COUNT and PATHFIND_SEARCH_FREE_RESERVE. The reserve is the one
-			// that states the property: the pool does not reach zero. The other two bound this search
-			// in its own terms, and hold whatever the pool size is.
-			// Same shape as patchPath's `if (cellCount < CELL_LIMIT)` and findAttackPath's
-			// ATTACK_CELL_LIMIT: it stops the search GROWING, it does not break the loop. The open
-			// list still drains through the closest-cell bookkeeping above, so the answer is the best
-			// of everything already opened - and because the line prepass seeds cells along the way to
-			// the goal, that best is usually close to it. The function then leaves by one of its three
-			// existing exits (goal found, closest found, failure), each of which already releases the
-			// goal and start cells and calls cleanOpenAndClosedLists. This adds no exit path, so there
-			// is no exit path with different cleanup.
+			// Expansion bound, see MAX_CLOSEST_PATH_CELL_COUNT, MAX_CLOSEST_PATH_INFO_COUNT and PATHFIND_SEARCH_FREE_RESERVE.
+			// Like patchPath and findAttackPath it stops the search growing but does not break the loop: the open list still
+			// drains, and the function leaves by one of its existing exits, each of which already cleans up.
 			if ((UnsignedInt)count < MAX_CLOSEST_PATH_CELL_COUNT &&
 					pathfindSearchMayGrow(infosAtSearchStart, MAX_CLOSEST_PATH_INFO_COUNT)) {
 				// Check to see if we can change layers in this cell.
@@ -11320,18 +11253,9 @@ struct LinePassableStruct
 	info.considerTransient = d->blocked;
 	info.acceptableSurfaces = d->acceptableSurfaces;
 
-	// GeneralsX: Scan only the cells the step ADDED to the footprint.
-	//
-	// This callback reads just three things from checkForMovement: its result, allyFixedCount != 0
-	// and enemyFixed, and it bails if any of them says no. Each of those is an OR over the cells of
-	// the footprint block of a per-cell condition (off the map; an ally that is checked; an enemy
-	// that cannot be crushed) that depends on the cell, obj and the fixed walk parameters - never on
-	// which cell is the block's centre. So "the block passes" == "no cell of the block is bad", and
-	// checkForMovement writes nothing. The previous accepted cell's block passed, and the world does
-	// not change during one walk. iterateCellsAlongLine steps one cell along ONE axis between
-	// callbacks, so the new block differs from the previous one by a single row or column: that
-	// strip alone decides. Any other step, a layer change or the first cell scans the full block.
-	// allyMoving/allyGoal are not read here, and the ally dedupe only affects the count, not != 0.
+	// Scan only the cells the step added to the footprint. The callback reads only an OR over footprint cells of a per-cell
+	// condition independent of the block centre, and the previous block passed. iterateCellsAlongLine steps one axis at a
+	// time, so the new row or column alone decides. Any other step, a layer change or the first cell scans the full block.
 	Int numCellsAbove = info.radius;
 	if (info.centerInCell) numCellsAbove++;
 	Int x0 = to_x - info.radius, x1 = to_x + numCellsAbove;
@@ -11429,6 +11353,93 @@ Bool Pathfinder::isLinePassable( const Object *obj, LocomotorSurfaceTypeMask acc
 }
 
 //-----------------------------------------------------------------------------
+#if RTS_ZEROHOUR
+// GeneralsX: isLinePassable(obj, surfaces, layer, start, end, FALSE, TRUE) through a memo -
+// see the STEERING LINE-WALK MEMO block at the top of this file for what the answer depends on and why reuse is exact.
+Bool Pathfinder::isLinePassableMemo( const Object *obj, LocomotorSurfaceTypeMask acceptableSurfaces,
+																		 PathfindLayerEnum layer, const Coord3D& startWorld,
+																		 const Coord3D& endWorld, GXLineMemo &memo )
+{
+	// GeneralsX: ground layer only. A ground walk reads only m_map cells (getCell(LAYER_GROUND)
+	// never consults a bridge layer), so no bridge-layer state needs a stamp. Units on bridges simply walk, as before.
+	if (layer != LAYER_GROUND)
+	{
+		memo.valid = false;
+		return isLinePassable(obj, acceptableSurfaces, layer, startWorld, endWorld, false, true);
+	}
+#if RETAIL_COMPATIBLE_PATHFINDING_ALLOCATION
+	// In retail-allocation mode the obstacle and fence bits live in the
+	// cell's PathfindCellInfo (isObstacleFence / isObstaclePresent read m_info), so an info allocated or released by a
+	// moving unit - or a flip of s_useFixedPathfinding - changes a walk's answer with no stamp. No memo in that mode.
+	memo.valid = false;
+	return isLinePassable(obj, acceptableSurfaces, layer, startWorld, endWorld, false, true);
+#endif
+	ICoord2D sc, ec;
+	worldToCell( &startWorld, &sc );
+	worldToCell( &endWorld, &ec );
+	Int radius;
+	Bool center;
+	getRadiusAndCenter(obj, radius, center);
+	const Bool crusher = obj ? obj->getCrusherLevel() > 0 : false;
+	const AIUpdateInterface *ai = obj ? obj->getAIUpdateInterface() : nullptr;
+	const ObjectID aiIgnore = ai ? ai->getIgnoredObstacleID() : INVALID_ID;
+	const ObjectID objId = obj ? obj->getID() : INVALID_ID;
+	const Bool verify = gxPathTraceVerify();
+	if (verify) ++s_gxLineCalls;
+
+	if (memo.valid && memo.global == s_gxLineGlobal && memo.layer == (Short)layer &&
+		memo.sx == sc.x && memo.sy == sc.y && memo.ex == ec.x && memo.ey == ec.y &&
+		memo.obj == objId && memo.aiIgnore == aiIgnore && memo.pfIgnore == m_ignoreObstacleID &&
+		memo.surfaces == acceptableSurfaces && memo.radius == radius && memo.center == center && memo.crusher == crusher)
+	{
+		Bool clean = true;
+		for (Int by = memo.by0; by <= memo.by1 && clean; ++by)
+		{
+			const unsigned long long *row = s_gxLineStamp + by * s_gxLineStampW;
+			for (Int bx = memo.bx0; bx <= memo.bx1; ++bx)
+			{
+				if (row[bx] > memo.epoch) { clean = false; break; }
+			}
+		}
+		if (clean)
+		{
+			if (verify)
+			{
+				++s_gxLineHits;
+				if (isLinePassable(obj, acceptableSurfaces, layer, startWorld, endWorld, false, true) != memo.result)
+					++s_gxLineMemoBad;
+			}
+			return memo.result;
+		}
+	}
+
+	s_gxLineSawFixed = false;
+	const Bool result = isLinePassable(obj, acceptableSurfaces, layer, startWorld, endWorld, false, true);
+	memo.valid = false;
+	if (!s_gxLineSawFixed && s_gxLineStamp != nullptr)
+	{
+		// The footprint sweep: every cell any step's strip can touch (x - radius .. x + radius [+1 centred]), widened by one.
+		const Int x0 = MIN(sc.x, ec.x) - radius - 1, x1 = MAX(sc.x, ec.x) + radius + 1;
+		const Int y0 = MIN(sc.y, ec.y) - radius - 1, y1 = MAX(sc.y, ec.y) + radius + 1;
+		memo.bx0 = MAX(x0, 0) >> GX_LINE_BLOCK_SHIFT;
+		memo.by0 = MAX(y0, 0) >> GX_LINE_BLOCK_SHIFT;
+		memo.bx1 = MIN(MAX(x1, 0) >> GX_LINE_BLOCK_SHIFT, s_gxLineStampW - 1);
+		memo.by1 = MIN(MAX(y1, 0) >> GX_LINE_BLOCK_SHIFT, s_gxLineStampH - 1);
+		memo.valid = true;
+		memo.result = result;
+		memo.layer = (Short)layer;
+		memo.sx = sc.x; memo.sy = sc.y; memo.ex = ec.x; memo.ey = ec.y;
+		memo.obj = objId; memo.aiIgnore = aiIgnore; memo.pfIgnore = m_ignoreObstacleID;
+		memo.surfaces = acceptableSurfaces; memo.radius = radius; memo.center = center; memo.crusher = crusher;
+		memo.epoch = s_gxLineEpoch;
+		memo.global = s_gxLineGlobal;
+		if (verify) ++s_gxLineStores;
+	}
+	return result;
+}
+
+//-----------------------------------------------------------------------------
+#endif
 
 /**
  * Given two world-space points, check the line of sight between them for any impassible cells.
@@ -11455,6 +11466,9 @@ void Pathfinder::changeBridgeState( PathfindLayerEnum layer, Bool repaired)
 {
 	if (m_layers[layer].isUnused()) return;
 	if (m_layers[layer].setDestroyed(!repaired)) {
+#if RTS_ZEROHOUR
+		gxLineNoteGlobal();	// GeneralsX: line memo
+#endif
 		m_zoneManager.markZonesDirty();
 	}
 }
@@ -13029,6 +13043,14 @@ void Pathfinder::crc( Xfer *xfer )
 	CRCDEBUG_LOG(("m_queuePRHead: %8.8X", ((XferCRC *)xfer)->getCRC()));
 	xfer->xferInt(&m_queuePRTail);
 	CRCDEBUG_LOG(("m_queuePRTail: %8.8X", ((XferCRC *)xfer)->getCRC()));
+#if RTS_ZEROHOUR
+	if (xfer->getXferMode() == XFER_CRC) {	// GeneralsX: human-order lane: in the sync CRC (Pathfinder::xfer saves nothing)
+		xfer->xferUser(m_gxHumanRequests, sizeof(ObjectID)*PATHFIND_QUEUE_LEN);
+		xfer->xferInt(&m_gxHumanHead);
+		xfer->xferInt(&m_gxHumanTail);
+		xfer->xferBool(&m_gxAiStarved);
+	}
+#endif
 
 	xfer->xferInt(&m_numWallPieces);
 	CRCDEBUG_LOG(("m_numWallPieces: %8.8X", ((XferCRC *)xfer)->getCRC()));
@@ -13069,7 +13091,11 @@ void Pathfinder::xfer( Xfer *xfer )
 //-----------------------------------------------------------------------------
 void Pathfinder::loadPostProcess()
 {
+#if RTS_ZEROHOUR
+	gxLineNoteGlobal();	// GeneralsX: line memo: a loaded game starts with every memo stale
+#else
 
+#endif
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -13108,18 +13134,61 @@ void Pathfinder::gxXferQueue( Xfer *xfer )
 	fprintf( stderr, "[GXPQ] %s n=%d\n", xfer->getXferMode() == XFER_SAVE ? "save" : "load", count );
 }
 
+#if RTS_ZEROHOUR
+// GeneralsX: the human-order lane, after the AI lane in the same block (GXPathfindQueueState version 2).
+void Pathfinder::gxXferHumanQueue( Xfer *xfer )
+{
+	Int count = 0;
+	if (xfer->getXferMode() == XFER_SAVE) {
+		for (Int slot = m_gxHumanHead; slot != m_gxHumanTail; slot = (slot + 1) % PATHFIND_QUEUE_LEN)
+			++count;
+	}
+	xfer->xferInt( &count );
+	if (count < 0 || count >= PATHFIND_QUEUE_LEN) {
+		DEBUG_CRASH(( "GXPathfindQueue: invalid human count %d", count ));
+		throw SC_INVALID_DATA;
+	}
+	if (xfer->getXferMode() == XFER_SAVE) {
+		for (Int slot = m_gxHumanHead; slot != m_gxHumanTail; slot = (slot + 1) % PATHFIND_QUEUE_LEN)
+			xfer->xferObjectID( &m_gxHumanRequests[slot] );
+	} else {
+		for (Int i = 0; i < PATHFIND_QUEUE_LEN; ++i)
+			m_gxHumanRequests[i] = INVALID_ID;
+		for (Int i = 0; i < count; ++i)
+			xfer->xferObjectID( &m_gxHumanRequests[i] );
+		m_gxHumanHead = 0;
+		m_gxHumanTail = count;
+	}
+	xfer->xferBool( &m_gxAiStarved );	// the lane carry (processPathfindQueue)
+}
+
+#endif
 class GXPathfindQueueState : public Snapshot
 {
 protected:
 	virtual void crc( Xfer * ) override {}	// the queue is in Pathfinder::crc already
+#if RTS_ZEROHOUR
+	/** Version Info:
+		* 1: Initial version - Int count, then count ObjectIDs, the queue head first
+		* 2: GeneralsX: - then the human-order lane the same way */
+#else
 	/** Version Info:
 		* 1: Initial version - Int count, then count ObjectIDs, the queue head first */
+#endif
 	virtual void xfer( Xfer *xfer ) override
 	{
+#if RTS_ZEROHOUR
+		XferVersion currentVersion = 2;
+#else
 		XferVersion currentVersion = 1;
+#endif
 		XferVersion version = currentVersion;
 		xfer->xferVersion( &version, currentVersion );
 		TheAI->pathfinder()->gxXferQueue( xfer );
+#if RTS_ZEROHOUR
+		if (version >= 2)
+			TheAI->pathfinder()->gxXferHumanQueue( xfer );
+#endif
 	}
 	virtual void loadPostProcess() override {}
 };

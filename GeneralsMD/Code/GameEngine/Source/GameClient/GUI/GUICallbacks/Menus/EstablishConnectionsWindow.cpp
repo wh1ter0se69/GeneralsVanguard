@@ -29,6 +29,7 @@
 #include "GameClient/GameWindowManager.h"
 #include "Common/NameKeyGenerator.h"
 #include "GameClient/EstablishConnectionsMenu.h"
+#include "GameClient/CodeGui.h"
 #include "GameNetwork/GUIUtil.h"
 #include "GameNetwork/GameSpy/StagingRoomGameInfo.h"
 
@@ -118,7 +119,8 @@ static const char *qmperPlayerGadgetsToHide[] =
 static void showGameSpyGameOptionsUnderlyingGUIElements( Bool show )
 {
 	ShowUnderlyingGUIElements( show, layoutFilename, parentName, gadgetsToHide, perPlayerGadgetsToHide );
-
+	// GeneralsX @bugfix The seat rows' scroll bar is not one of the named gadgets: it hides and shows with them.
+	CodeGuiRowsScrollShow( show, layoutFilename, parentName );
 }
 static void showGameSpyQMUnderlyingGUIElements( Bool show )
 {

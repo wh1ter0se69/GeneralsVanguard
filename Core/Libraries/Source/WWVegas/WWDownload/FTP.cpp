@@ -58,7 +58,7 @@
 #define _splitpath(a,b,c,d,e) (void)0
 #endif
 #include <errno.h>
-// GeneralsX @build: upstream's <WWLib/WWCommon.h> (for ARRAY_SIZE) is pulled in by
+// GeneralsX: upstream's <WWLib/WWCommon.h> (for ARRAY_SIZE) is pulled in by
 // "WWDownload/ftp.h" above, which the port made the first include so the class declaration
 // precedes the implementation. Including it again here would land after windows_compat.h on
 // the POSIX arm and reorder the compat-header chain, so it stays where ftp.h puts it.

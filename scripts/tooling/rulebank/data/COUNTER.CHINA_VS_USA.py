@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule COUNTER.CHINA_VS_USA: China does not feed Battlemasters to USA
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule COUNTER.CHINA_VS_USA: China does not feed Battlemasters to USA
 # (RULE_BRIEFS 7, Dominator: "do not build Battlemasters, Humvees shred them"; rows 126, 168, 170, 200). Stock Hard vanilla and Tank China
 # send Battlemaster waves at everyone. This, per general:
 #   MATCHUP 'USA' (rb-data-13): the SHARED latch (rb.matchup, group "GX Matchup") sets gxrb_mu_usa once AI_PLAYER_GX_SENSE says my enemy

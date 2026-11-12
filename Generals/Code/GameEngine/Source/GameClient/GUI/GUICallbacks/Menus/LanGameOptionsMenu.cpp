@@ -276,10 +276,8 @@ void StartPressed()
 		return;
 	}
 
-	// GeneralsX: THE START RULE is GameInfo::getStartVerdict, one function for every
-	// setup screen and inside the SimID digest. An all-AI lobby (humans only as observers) may start: retail
-	// refused it here with GUI:NeedHumanPlayers. It starts as a sandbox, counted in nobody's stats (owner,
-	// 27/09/2026), and is announced below.
+	// GeneralsX: the start rule is GameInfo::getStartVerdict, shared by every setup screen.
+	// An all-AI lobby (humans only as observers) may start as a sandbox, counted in nobody's stats; announced below.
 	const GameInfo::StartVerdict startVerdict = myGame->getStartVerdict();
 
 	// Check for too few players
@@ -385,7 +383,7 @@ void StartPressed()
 		}
 		else
 		{
-			// GeneralsX: (cross-model review) With no countdown,
+			// GeneralsX: With no countdown,
 			// RequestGameStart runs OnGameStart SYNCHRONOUSLY - and a transfer-only first start
 			// has already restored the lobby by the time it returns, so disabling the button
 			// here would lock the host out of the required second start. Only disable when the
@@ -645,7 +643,7 @@ void lanUpdateSlotList()
 // GeneralsX: See the GeneralsMD twin for the full account. Generals
 // has no start-phase machine; restoring the button flag and state and redrawing is the whole
 // job. The explicit LANEnableStartButton(TRUE) matters for the countdown path, which disabled
-// the button when the countdown armed (cross-model review finding).
+// the button when the countdown armed.
 void lanNotifyTransferOnlyStart( void )
 {
 	LANbuttonPushed = FALSE;
@@ -1006,16 +1004,8 @@ void LanGameOptionsMenuShutdown( WindowLayout *layout, void *userData )
 	EnableSlotListUpdates(FALSE);
 	LANisShuttingDown = true;
 
-	// GeneralsX: Backport of the Zero Hour twin (GeneralsMD's
-	// LanGameOptionsMenuShutdown carries the full account). mapSelectLayout (:146) is a top-level
-	// layout the shell does not own, so Shell::doPop's destroyWindows() on this screen never reaches
-	// it, and only the Back/OK button handlers destroyed it. The pop-driven exits - OnHostLeave and
-	// OnPlayerLeave in Core's LANAPICallbacks.cpp, and the popImmediate in LanGameOptionsMenuInit
-	// (:807) - would leave its whole window tree drawn and hit-tested for the rest of the process.
-	// Above the popImmediate early return so it runs on both branches: the two pop() exits take the
-	// animated one (Shell::pop passes immediatePop FALSE), only the post-match popImmediate returns
-	// early. Defensive - no repro, and no known path reaches these exits with the selector open.
-	// Same four lines as WOLGameSetupMenuShutdown.
+	// GeneralsX: mapSelectLayout is a top-level layout the shell does not own, so Shell::doPop never destroys it.
+	// Destroy it above the popImmediate early return so pop-driven exits (OnHostLeave, OnPlayerLeave) free it too.
 	if( mapSelectLayout )
 	{
 		mapSelectLayout->destroyWindows();
@@ -1105,20 +1095,10 @@ WindowMsgHandledType LanGameOptionsMenuInput( GameWindow *window, UnsignedInt ms
 /** Lan Game Options menu window system callback */
 //-------------------------------------------------------------------------------------------------
 
-// GeneralsX: The Generals twin's seam into the shared lobby command
-// table. The Zero Hour file has carried a gxHandleLobbySlashCommand since 07/08/2026; this side
-// never had one, so /help, /clear and the retired-verb answers were unreachable here.
-//
-// /nick is deliberately absent: GXApplyNickname is defined in GeneralsMD/.../WOLLobbyMenu.cpp and
-// declared in the ZERO HOUR GUICallbacks.h, so there is nothing here to call. The shared table
-// gates that row on RTS_ZEROHOUR for the same reason, which is what keeps /help honest on this
-// side rather than advertising a command that would fall through and be broadcast.
-//
-// Two passes, and the order matters. GXLobbyChatCommand runs FIRST because the verbs it retires
-// (/pass, /nopassword, /lobbyhelp) are still recognised DOWNSTREAM by LANAPI::applyLobbyCommand,
-// which this branch deliberately does not edit - LANAPI.cpp is inside the SimID source digest.
-// GXLobbyGuardUnknownCommand runs LAST and lets /password, /private and /public through to
-// RequestChat while refusing anything else that begins with '/'.
+// GeneralsX: seam into the shared lobby command table (/help, /clear, retired-verb answers).
+// /nick is absent: GXApplyNickname is Zero Hour only, and the shared table gates that row on RTS_ZEROHOUR.
+// GXLobbyChatCommand runs first; LANAPI::applyLobbyCommand (SimID-digested) still accepts the verbs it retires.
+// GXLobbyGuardUnknownCommand runs last; it passes /password, /private, /public and refuses other '/' lines.
 static void lanGameSay( const UnicodeString &line, Color color )
 {
 	// A headless run has no listbox, and silently dropping the line is what made the lobby

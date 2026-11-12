@@ -1,23 +1,24 @@
-// gx_ff_test - the WS-D week-2 gates for the FF ubershader (§D).
-//
-//   gx_ff_test --layout [--layout-mutant]
-//       Every member offset (and array stride) of the VS / PS uniform blocks and the push block, read from the compiled
-//       SPIR-V, against GxFFState.h's C++ layout. Fail arm --layout-mutant: one expected offset shifted -> that member fails.
-//   gx_ff_test --identity <ffstream>... [--synthetic] [--mutant] [--validation] [--device <sel>]
-//       Generic vs specialised PIXEL identity: for every distinct {draw part, FF state} of the census FF streams (census.py
-//       --emit-ffstream), rebuilt as a D3D8 snapshot and packed by GxPackFF, with seeded run-time values (matrices, lights,
-//       material, fog, tfactor, vertices, 8 noise textures): draw once with the generic pipeline, once with the specialised
-//       one, compare every byte. --synthetic adds coverage the census never met (fog modes, alpha funcs, specular, an op
-//       sweep). Fail arm --mutant: the specialised pipelines use gx_ff_mutant.frag (MODULATE x 1.0078125) -> must differ.
-//       --a2c-family (A108; the integrator's ruling (6)): the specialised pipelines use the ALPHA-TO-COVERAGE family
-//       (gx_ff.a2c / gx_ff_flat.a2c) with spec bit 3 clear, as every packed key has it -> must be identical to today's family, every
-//       census state and the synthetic alpha funcs included (what a session that loaded the family draws for a non-A2C draw).
-//       Fail arm --a2c-family --a2c-bit: bit 3 set on every alpha-tested entry (the ramp in force) -> must differ.
-//   gx_ff_test --cold <ffstream> [--set builtin|<stream>] [--cache-dir <dir>] [--sync-spec] [--gap <frames>]
-//       Cold-cache replay: prebuild the generic set, then replay the stream's FF pipelines in first-use order as frames,
-//       every known pipeline drawn every frame through getFF(). Reports the draw thread's time per frame, generic misses,
-//       specialised compiles and fallback draws. Fail arm --sync-spec: specialised variants compiled on the draw thread.
-// Exit 0 = the arm's own verdict PASS, 1 = FAIL, 2 = could not run.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// gx_ff_test - gates for the FF ubershader: --layout (SPIR-V member offsets vs GxFFState.h), --identity <ffstream>...
+// (generic and specialised pipelines draw identical pixels), --cold <ffstream> (cold-cache replay timing and misses).
+// Each has a fail arm (--layout-mutant, --mutant, --a2c-bit, --sync-spec). Exit 0 = PASS, 1 = FAIL, 2 = could not run.
 #include "../GxPipelineCache.h"
 #include "../GxFFState.h"
 #include "VkCtx.h"
@@ -748,7 +749,7 @@ struct Gpu {
 		const VkDevice dev = ctx.device();
 		if (!dev)
 			return;
-		ctx.waitIdle();   // R19: drains the submit thread first
+		ctx.waitIdle();   // drains the submit thread first
 		if (pool) vkDestroyCommandPool(dev, pool, nullptr);
 		if (occlusion) vkDestroyQueryPool(dev, occlusion, nullptr);
 		for (auto [b, m] : { std::pair{ vb, vbMem }, std::pair{ nullVb, nullMem }, std::pair{ rb, rbMem } })
@@ -936,7 +937,7 @@ int runIdentity(Gpu& g, const std::vector<std::string>& streams, bool synthetic,
 		} else {
 			identical++;
 		}
-		// Coverage: an entry that draws nothing compares equal and proves nothing (rw2-D adversarial review P2-1). The signal
+		// Coverage: an entry that draws nothing compares equal and proves nothing. The signal
 		// is the occlusion query - samples that survived rasterisation, discard and the depth test - not "pixels unlike the
 		// clear colour", which a colour-write-mask-0 part (5 census depth-only draws) or a zero-alpha blend never changes.
 		// Every entry must pass samples, except one whose alpha test can reject everything (any func but ALWAYS).
@@ -1068,7 +1069,7 @@ int runCold(Gpu& g, const std::string& stream, const std::string& setArg, const 
 			std::vector<Gpu::Draw> draws;
 			double tGet = 0, tCpu = 0;
 			// --lookups N: a real frame looks a pipeline up per DRAW (thousands), not per distinct pipeline: getFF is called N
-			// times cycling over the live set; each live pipeline is still drawn once (rw2-D adversarial review P3-8).
+			// times cycling over the live set; each live pipeline is still drawn once.
 			const size_t calls = std::max(size_t(lookups > 0 ? lookups : 0), live.size());   // every live entry at least once
 			for (size_t c = 0; c < calls && !live.empty(); c++) {
 				const Prepared& p = live[c % live.size()];
@@ -1130,7 +1131,7 @@ int runCold(Gpu& g, const std::string& stream, const std::string& setArg, const 
 	const bool noHitch = worstGet <= 1.0 && st.prebuildWait == 0;
 	// The run must have done the work it claims: every stream entry prepared, every lookup a pipeline,
 	// every frame submitted, and something drawn - an empty or broken stream is a FAIL, never a timing PASS.
-	// ...and the specialised path must really have run (rw2-D adversarial review P3-4): something compiled, nothing failed.
+	// ...and the specialised path must really have run: something compiled, nothing failed.
 	const bool ran = arrivals > 0 && drawn > 0 && prepFailed == 0 && nullPipes == 0 && renderFailed == 0 &&
 	                 st.specCompiled > 0 && st.specFailed == 0;
 	// --expect-miss N (the unseen-map arm): N generic misses are the expected outcome - each one a compile on the caller,

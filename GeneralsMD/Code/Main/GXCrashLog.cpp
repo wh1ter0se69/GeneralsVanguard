@@ -17,7 +17,7 @@
 */
 
 // FILE: GXCrashLog.cpp ///////////////////////////////////////////////////////
-// GeneralsX: See GXCrashLog.h. No engine headers on purpose: the
+// See GXCrashLog.h. No engine headers on purpose: the
 // writer runs inside a signal handler, and scripts/test/crash-log-test.sh compiles this file alone.
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -172,7 +172,7 @@ static bool crashLogPath(Buf &p, unsigned long long stamp)
 	return true;
 }
 
-// GeneralsX: A process can write more than one: a stopped save load writes one
+// A process can write more than one: a stopped save load writes one
 // and plays on (SaveLoadFeedback.cpp), and a real crash in the same second would then find its name
 // taken. A taken name moves the stamp on a second, a few times, rather than lose the log; the header's
 // time: line stays the true one.

@@ -43,7 +43,7 @@ extern "C" {
 #endif
 
 // Initialize a critical section (maps to pthread_mutex_init)
-// GeneralsX: A NORMAL mutex, with the recursion Windows gives CRITICAL_SECTION
+// A NORMAL mutex, with the recursion Windows gives CRITICAL_SECTION
 // counted below instead. Darwin's libpthread only takes its inline fast path for a NORMAL mutex; a
 // RECURSIVE one goes through _pthread_mutex_lock_init_slow -> firstfit_lock_slow on every call.
 // MemoryPool enters TheMemoryPoolCriticalSection on every block alloc and free, and on the ring stress

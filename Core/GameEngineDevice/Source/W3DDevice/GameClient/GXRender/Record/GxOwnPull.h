@@ -1,15 +1,25 @@
-// GeneralsX: S7 PREREG A79 / A79a-c: the OWN-LIGHT PULL, the one definition both sides use.
-//
-// A clamped instance's caster copy is A41's vertical scale S (z' = z0 + mu (z - z0)). For the 89-deg class (aircraft, helicopters) mu is
-// ~0.005-0.025, so the copy is a sheet ~0.2-0.5 wu above the ground, while the caster pass's slope bias pushes it ~2-3 wu back along the
-// ray: it falls behind the ground it should shadow (the airborne checker, PREREG A75-A77). The pull moves such a copy AND that instance's
-// own receivers along their rays from 2003's light L toward L by the same affine map
-//     P(p) = L + (1 - eps) (p - L)
-// A perspective map from L is invariant under P in uv (a point and its image lie on one ray from L) and P keeps every line a line, so the
-// instance's own configuration is unchanged; only foreign receivers see the sheet ~eps |p - L| nearer. The class is "thin copies":
-// 0 < mu <= muMax (A79b: 0.03; the game sends it in the frame - GXShadowMapFit.h kOwnPullMuMax is the one product source). Caster:
-// GxShadowCasters::record (world x P x lightVP); receiver: gx_ff.frag.glsl's own-light branch (w = mix(w, L, eps) after the scale).
-// Pure float math, no Vulkan: the host test (scripts/test/sm-fit) includes it too.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Own-light pull: a thin clamped caster copy (0 < mu <= kOwnPullMuMax) falls behind the ground under the
+// caster pass's slope bias. The copy and its own receivers move toward the light L: P(p) = L + (1 - eps)(p - L).
+// Caster: GxShadowCasters::record; receiver: gx_ff.frag.glsl's own-light branch.
+// Pure float math, no Vulkan: the host test includes it too.
 #pragma once
 
 namespace GXRender { namespace Rec {

@@ -16,34 +16,13 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: ai-gym: the action-line grammar a training bot writes (GXGym.cpp reads it).
-// Pure text parsing with no engine types, so scripts/ai/gym/gym-protocol-test.sh tests it on its own. One action per line:
-//
-//   step                              end of this step's actions (GX_ACT_SYNC: the match resumes)
-//   move   <x> <y> <id>...            MSG_DO_MOVETO        for those units
-//   amove  <x> <y> <id>...            MSG_DO_ATTACKMOVETO
-//   attack <target> <id>...           MSG_DO_ATTACK_OBJECT
-//   stop   <id>...                    MSG_DO_STOP
-//   build  <Template> <x> <y> <dozer> [@<deg>]  MSG_DOZER_CONSTRUCT  (near x,y: GXGym.cpp picks the first legal spot;
-//                                     @deg = the facing, world frame, -360..360; without it the template's PlacementViewAngle,
-//                                     as a player who clicks without dragging gets)
-//   train  <Template> <factory>       MSG_QUEUE_UNIT_CREATE
-//   enter  <container> <id>...        MSG_ENTER
-//   rally  <x> <y> <building>         MSG_SET_RALLY_POINT
-//   guard  <x> <y> <id>...            MSG_DO_GUARD_POSITION
-//   power   <Power> <source>          MSG_DO_SPECIAL_POWER             (source 0: GXGym.cpp picks one of the player's objects)
-//   powerat <Power> <x> <y> <source>  MSG_DO_SPECIAL_POWER_AT_LOCATION (source 0: likewise)
-//   poweron <Power> <target> <source> MSG_DO_SPECIAL_POWER_AT_OBJECT   (source 0: likewise)
-//   upgrade <Upgrade> <producer>      MSG_QUEUE_UPGRADE                (producer 0: likewise)
-//   evacuate <id>...                  MSG_EVACUATE
-//   exit   <unit> <container>         MSG_EXIT (the unit leaving is the target, the container the selection)
-//   science <Science>                 MSG_PURCHASE_SCIENCE
-//   sell   <id>...                    MSG_SELL
-//
-// Token order is always: verb, name, x y, target, ids - each only where the verb takes it.
-//
-// This only decides that a line is well formed. Whether the order is LEGAL - the units are the player's, the target is
-// visible, the spot is buildable - is GXGym.cpp's job, against the live game.
+// ai-gym: the action-line grammar a training bot writes (GXGym.cpp reads it); pure text, no engine types.
+// One action per line; `step` ends a step. Token order: verb, name, x y, target, ids, where the verb takes them.
+// move|amove <x> <y> <id>... ; attack <target> <id>... ; stop|evacuate|sell <id>... ; guard <x> <y> <id>...
+// build <Template> <x> <y> <dozer> [@<deg>]: @deg = facing, world frame, -360..360, else PlacementViewAngle
+// train <Template> <factory> ; enter <container> <id>... ; exit <unit> <container> ; rally <x> <y> <building>
+// science <Science> ; power <Power> <source> ; powerat <Power> <x> <y> <source> ; poweron <Power> <target> <source>
+// upgrade <Upgrade> <producer> ; source/producer 0 = GXGym.cpp picks one. Only well-formedness is checked here.
 
 #pragma once
 
@@ -149,7 +128,7 @@ inline const GXGymShape *gxGymShape(const char *verbName)
 		{ "exit", GXG_EXIT, false, false, true, 1, false },
 		{ "science", GXG_SCIENCE, true, false, false, 0, false },
 		{ "sell", GXG_SELL, false, false, false, 2, false },
-		// GeneralsX: Track B scenario drills: "spawn <Template> <x> <y> <player> <count> [vet 1-4]"
+		// Track B scenario drills: "spawn <Template> <x> <y> <player> <count> [vet 1-4]"
 		// and "clear <Template> <player>". The trailing numbers are NOT unit ids (perform() routes these two first).
 		{ "spawn", GXG_SPAWN, true, true, false, 2, false },
 		{ "clear", GXG_CLEAR, true, false, false, 1, false } };
@@ -251,7 +230,7 @@ inline int gxGymParseAction(const char *line, GXGymAction *out, const char **why
 	return 1;
 }
 
-// GeneralsX: ai-train-3 (option b): which build-spot search a match may use. The guarded
+// Which build-spot search a match may use. The guarded
 // search (GXOrderDriver anyObjectNear: no object within ~2 x the footprint) exists because BuildAssistant's legality check reads
 // Object::getShroudedStatus, a lazy cache that must never be computed on one peer alone. A match with exactly one peer cannot
 // diverge from another, so it may use the engine's own legality check - which lets a supply center stand ~130 from its dock as

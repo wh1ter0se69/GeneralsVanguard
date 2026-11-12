@@ -1,4 +1,22 @@
-// GeneralsX: THE WORLD/HUD SEAM.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// THE WORLD/HUD SEAM.
 //
 // W3DView::draw brackets its world pass with push/pop. While GXUpscaler is off (the default) both are one branch and the frame
 // issues exactly today's device calls. Otherwise push redirects the world into a private target at GXRenderScale of the current
@@ -27,7 +45,7 @@ namespace W3DWorldSeam
 	/// The native device's IGxWorldPass while a world pass is redirected; null otherwise (classic, seam off, outside the pass).
 	/// Not AddRef'd: valid until pop().
 	IGxWorldPass *worldPass();
-	/// GeneralsX: F-depth+ (GxSceneTap.h): RTS3DScene::Flush calls this once the opaque world
+	/// F-depth+ (GxSceneTap.h): RTS3DScene::Flush calls this once the opaque world
 	/// is drawn (terrain, objects, trees, shadows) and before water and every transparent. Inside the tactical view's push/pop only,
 	/// once per frame, never on a view-filter frame; a no-op unless the native device has a reader on (classic: always a no-op).
 	void opaqueDone();

@@ -49,7 +49,7 @@ struct W3DVolumetricShadowRenderTask : public W3DBufferManager::W3DRenderTask
 	// VB/IB, so the second (DECR) pass can draw it again without re-uploading. Valid only while m_uploadEpoch
 	// equals the manager's upload epoch (0 = not uploaded).
 	UnsignedInt		m_uploadEpoch;
-	Int			m_uploadVertex;		///<GeneralsX 02/10: the upload's first vertex in the dynamic VB (the DECR pass re-sends indices)
+	Int			m_uploadVertex;		///<GeneralsX: the upload's first vertex in the dynamic VB (the DECR pass re-sends indices)
 };
 
 // ShadowManager -------------------------------------------------------------
@@ -81,7 +81,7 @@ public:
 	// GeneralsX: S7 (A4/A7/A8/A28, A39/A41): the shadow map's caster walk -
 	// every caster today's volumes would draw (enabled, not invisible), as its ROOT render object (sorted, for the mesh tag's lookup),
 	// with its OWN LIGHT when its elevation clamp binds (GXShadowMapFit.h ownLight: the instance's live m_shadowLengthScale - template
-	// or raised at runtime by updateOptimalExtrusionPadding, which the walk runs exactly where Update() would: A41 P2-2), and the
+	// or raised at runtime by updateOptimalExtrusionPadding, which the walk runs exactly where Update() would), and the
 	// nearest axis distance of their bounds from 2003's point light L along the map's axis. Render-only.
 	struct GxShadowMapWalkOut
 	{
@@ -91,7 +91,7 @@ public:
 		std::vector<uint8_t> posed;					///< parallel to roots: A48 - classic's pose trigger found a visible geometry mesh (1)
 		Real nearDist = 0.0f;						///< the nearest caster bound's axis distance from L
 		Real topZ = 0.0f;							///< the highest world Z any caster reaches (the fit raises its slab to it)
-		Real minZ0 = 0.0f;							///< the lowest own-light plane (the fit lowers its slab to it: A41 P2-4)
+		Real minZ0 = 0.0f;							///< the lowest own-light plane (the fit lowers its slab to it)
 		Bool any = FALSE, anyOwn = FALSE;
 		UnsignedInt clampedTemplate = 0, clampedRuntime = 0;	///< roots with a binding clamp: the template's / raised at runtime (M5)
 		UnsignedInt paddingNow = 0, conflicts = 0;	///< runtime clamps computed this walk; roots whose shadows disagree on the own light
@@ -101,10 +101,10 @@ public:
 	// pulled root's sphere enters nearDist pulled (pulledNear), and the census counts the pull class
 	void gxShadowMapWalk(GxShadowMapWalkOut &out, const Vector3 &L, const Vector3 &axis, const AABoxClass &visibleBox, Real pullEps = 0.0f,
 		Real pullMuMax = 0.0f);
-	// GeneralsX: S7 PREREG A60/A60a (TEST-ONLY, the D60 diagnostic): TRUE when the spec names this
+	// GeneralsX: TEST-ONLY: TRUE when the spec names this
 	// mesh - <CONTAINERPREFIX>.<MESH>, case-insensitive (its name after the last '.' is MESH, the part before starts with CONTAINERPREFIX).
-	// map = FALSE: GX_SHADOW_DROP_MESH, 2003's volume geometry skips it (key OFF arms only). map = TRUE: GX_SHADOWMAP_DROP_CAST, S7's
-	// meshBegin strips CAST from its draws (nothing else changes). Unset: FALSE. A73: a comma list of up to 8
+	// map = FALSE: GX_SHADOW_DROP_MESH, 2003's volume geometry skips it (key OFF arms only). map = TRUE: GX_SHADOWMAP_DROP_CAST, the shadow map's
+	// meshBegin strips CAST from its draws (nothing else changes). Unset: FALSE. A comma list of up to 8
 	// entries, and an entry ending in '.' names every mesh of that container prefix (GXShadowDropSpec.h).
 	static Bool gxShadowDropMesh(const char *meshName, Bool map);
 	void ReleaseResources();
@@ -134,8 +134,8 @@ class W3DVolumetricShadow	: public Shadow
 	enum
 	{
 		SHADOW_DYNAMIC	=	0x1,		//flag indicating a dynamic shadow caster (animated mesh).
-		SHADOW_GPU		=	0x2,		///<GeneralsX 08/10/2026: a dynamic volume extruded by the GPU from its mesh's edge mesh (GX_SHADOW_GPU)
-		SHADOW_GPU_STALE =	0x4			///<GeneralsX 09/10/2026: a SHADOW_GPU volume nothing could draw (RenderGpuMeshVolume): rebuilt on the next update
+		SHADOW_GPU		=	0x2,		///<a dynamic volume extruded by the GPU from its mesh's edge mesh (GX_SHADOW_GPU)
+		SHADOW_GPU_STALE =	0x4			///<a SHADOW_GPU volume nothing could draw (RenderGpuMeshVolume): rebuilt on the next update
 	};
 
 	public:
@@ -173,7 +173,7 @@ class W3DVolumetricShadow	: public Shadow
 		void RenderMeshVolume(Int meshIndex, Int lightIndex, const Matrix3D *meshXform);
 		///render single mesh which could belong to a larger hierarchy (optimized for animated meshes).
 		void RenderDynamicMeshVolume(Int meshIndex, Int lightIndex, const Matrix3D *meshXform);
-		void RenderGpuMeshVolume(Int meshIndex, Int lightIndex, const Matrix3D *meshXform);	///<GeneralsX 08/10/2026: queues a SHADOW_GPU volume for both stencil passes
+		void RenderGpuMeshVolume(Int meshIndex, Int lightIndex, const Matrix3D *meshXform);	///<queues a SHADOW_GPU volume for both stencil passes
 		void RenderMeshVolumeBounds(Int meshIndex, Int lightIndex, const Matrix3D *meshXform);	///<render bounding volume around shadow volume - for debug use.
 
 		void setLightPosHistory(Int lightIndex, Int meshIndex, Vector3 &pos) {m_lightPosHistory[lightIndex][meshIndex]=pos;}	///<updates the last position of light

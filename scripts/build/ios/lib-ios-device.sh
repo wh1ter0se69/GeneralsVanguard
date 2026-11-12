@@ -1,3 +1,5 @@
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # lib-ios-device.sh - deterministic selection of the iOS install target.
 #
 # GeneralsX:
@@ -32,17 +34,8 @@
 # BOTH from a single listing and hands back a matched pair. As INPUT either one is accepted,
 # because an operator pasting from their own notes has no reason to know which they wrote down.
 
-# Emit one TSV row per paired device:
-#     identifier <TAB> udid <TAB> deviceType <TAB> platform <TAB> tunnelState <TAB> name
-#
-# Parsed from --json-output rather than the text table on purpose. The table is fixed-width,
-# its name column contains spaces and a U+2019 apostrophe, and its "State" column is a rendering
-# that has already changed once - older Xcode printed "connected" where current Xcode prints
-# "available (paired)", which is why the old filter had to match both and then subtract
-# "unavailable" (a substring of neither, but a substring of the *word* it had to exclude).
-# The JSON keys have not moved. devicectl has had --json-output since it shipped in Xcode 15,
-# so reading it adds no version floor over calling devicectl at all.
-#
+# Emit one TSV row per paired device: identifier, udid, deviceType, platform, tunnelState, name.
+# Parsed from --json-output, not the text table, whose State text varies by Xcode version and whose names hold spaces.
 # Returns non-zero if the listing cannot be read. Never prints diagnostics itself.
 gx_ios_device_table() {
 	local json rc
@@ -89,23 +82,10 @@ gx_ios_print_rows() {
 	done <<< "$1"
 }
 
-# Resolve the install target.
-#
-#   $1 - requested device: a CoreDevice UUID, a hardware UDID, or "" to auto-select.
-#
-# On success sets GX_DEVICE_UUID, GX_DEVICE_UDID, GX_DEVICE_TYPE, GX_DEVICE_NAME and returns 0.
-# All four are cleared first, so a caller that ignores the return code still gets empty strings
-# rather than values left over from a previous call.
-#
-# Return codes are split because the caller reacts differently to each:
-#   0  a device was selected
-#   1  fatal - abort whatever the caller was doing. Either the listing is unreadable, or an
-#      EXPLICIT request could not be honoured. An explicit request must never degrade into a
-#      generic build: the operator named a device precisely to stop the script deciding.
-#   2  no target chosen, and that is not automatically an error - nothing suitable is paired, or
-#      several things are and none was named. Reasons are already printed. A caller that only
-#      builds can fall back to a generic destination; a caller that installs must treat it as
-#      fatal, because there is nothing to install to.
+# Resolve the install target. $1: a CoreDevice UUID, a hardware UDID, or "" to auto-select.
+# Sets GX_DEVICE_UUID, GX_DEVICE_UDID, GX_DEVICE_TYPE and GX_DEVICE_NAME (cleared first).
+# Returns 0 selected; 1 fatal (unreadable listing, or an explicit request that cannot be honoured); 2 no target chosen:
+# a build-only caller may fall back to a generic destination, an installer must not.
 gx_ios_select_device() {
 	local want="${1:-}"
 	local table matched id udid dtype platform tunnel name

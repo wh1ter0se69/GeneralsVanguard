@@ -33,7 +33,7 @@
 #include "WWLib/always.h"
 #include "Threads.h"
 #include "Utils.h"
-// GeneralsX @build 27/07/2026 process.h is MSVC-only; _beginthread is stubbed in MilesStub.h
+// GeneralsX: process.h is MSVC-only; _beginthread is stubbed in MilesStub.h
 // (pulled in by Utils.h) on SAGE_USE_OPENAL builds.
 #if defined(_WIN32)
 #include <process.h>

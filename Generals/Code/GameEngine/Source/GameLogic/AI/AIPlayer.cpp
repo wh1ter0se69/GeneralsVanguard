@@ -979,7 +979,7 @@ Bool AIPlayer::isSupplySourceAttacked()
 {
 	// TheSuperHackers @bugfix WebbontheWeb 27/09/2026 No longer scans for supply source attacks for just the last 10 frames.
 	// A prior EA comment indicated that the intent was to look for 10 seconds into the attack history.
-	// GeneralsX: the re-scan period stays 10 RETAIL frames (GX_FRAMES30, our 23/09 60 Hz reading); the window is 10 s at any
+	// GeneralsX: the re-scan period stays 10 RETAIL frames (GX_FRAMES30); the window is 10 s at any
 	// tick rate. Its only callers are the TEAM_GUARD_SUPPLY_CENTER action and the SUPPLY_SOURCE_ATTACKED condition, which no
 	// shipped skirmish or multiplayer script uses.
 	const Int RefreshRate = GX_FRAMES30(10);
@@ -1054,7 +1054,7 @@ Bool AIPlayer::isSupplySourceAttacked()
 //-------------------------------------------------------------------------------------------------
 Bool AIPlayer::isSupplySourceSafe( Int minSupplies )
 {
-	// GeneralsX @fix: a nearest source that is contested no longer hides the safe ones behind it. Only when every candidate is unsafe
+	// GeneralsX: a nearest source that is contested no longer hides the safe ones behind it. Only when every candidate is unsafe
 	// do we report unsafe (the nearest one), so the expansion scripts keep waiting exactly as before.
 	if (findSupplyCenter(minSupplies, true) != nullptr) return true;
 	Object *warehouse = findSupplyCenter(minSupplies);
@@ -1064,11 +1064,10 @@ Bool AIPlayer::isSupplySourceSafe( Int minSupplies )
 
 // GeneralsX: A scan marker is not an enemy presence. The USA spy-satellite ping
 // (SpySatellitePing: NO_COLLIDE IMMOBILE UNATTACKABLE INERT, gone after 13 s), the radar-van ping, vision objects and spy drones are
-// all INERT. Counting them meant an enemy scan of an AI base marked its home dock - and every build spot near its command center -
-// unsafe while the ping lived, and the supply expansion (which skips unsafe docks) built its stash at a far dock for good: wh1ter0se's
-// 16/10 game, two of its four GLA Hard AIs never harvested their full home dock (ai/stash-ignore-1016). Two INERT kinds still count:
-// poison and radiation fields (CLEANUP_HAZARD), and the special-power view object (GameData SpecialPowerViewObject = SuperweaponPing),
-// which an enemy's nuke, Scud Storm, artillery barrage, carpet bomb, cluster mines... leaves at its target before the strike lands.
+// all INERT. Counting them marked an AI base home dock, and every build spot near its command center, unsafe while the
+// ping lived, and the supply expansion (which skips unsafe docks) then built its stash at a far dock for good.
+// Two INERT kinds still count: poison and radiation fields (CLEANUP_HAZARD), and the special-power view object
+// (GameData SpecialPowerViewObject = SuperweaponPing), which a nuke, Scud Storm, artillery barrage, carpet bomb or cluster mines leaves at its target before the strike lands.
 class PartitionFilterRejectHarmlessMarkers : public PartitionFilter
 {
 public:
@@ -1420,7 +1419,7 @@ Bool AIPlayer::startTraining( WorkOrder *order, Bool busyOK, AsciiString teamNam
 // Above AI_HOARD_CASH:
 // a team's units are built in parallel (buildSpecificAITeam), teams and structures are picked faster and attack teams may field extra copies (AISkirmishPlayer.cpp, ported from Zero
 // Hour Reforged's cash hoard). Only in a match that STARTED richer than the default cash: Hard's scripted gifts alone lift
-// a bank to ~$50k in a $10,000 start (measured 08/10), so no bank threshold separates the
+// a bank to ~$50k in a $10,000 start, so no bank threshold separates the
 // two - the starting cash, a lobby option every peer shares, does. A default-cash match takes none of these branches.
 // Trade-off: one fixed threshold for Hard only; a per-difficulty AIData field when Normal/Easy want it.
 static const Int AI_HOARD_CASH = 20000;
@@ -1911,7 +1910,7 @@ void AIPlayer::buildBySupplies(Int minimumCash, const AsciiString& thingName)
 		return;
 	}
 
-	// GeneralsX @fix: a supply centre goes to the nearest SAFE source (same rule as isSupplySourceSafe, which gates the expansion scripts).
+	// GeneralsX: a supply centre goes to the nearest SAFE source (same rule as isSupplySourceSafe, which gates the expansion scripts).
 	Object *bestSupplyWarehouse = findSupplyCenter(minimumCash, tTemplate->isKindOf(KINDOF_CASH_GENERATOR));
 
 	if (!tTemplate->isKindOf(KINDOF_CASH_GENERATOR)) {
@@ -2093,7 +2092,7 @@ Object *AIPlayer::findSupplyCenter(Int minimumCash, Bool skipUnsafe)
 					}
 				}
 
-				// GeneralsX @fix: after every other filter, so the preference order (distance) is unchanged; an unsafe source is passed over, not waited on.
+				// GeneralsX: after every other filter, so the preference order (distance) is unchanged; an unsafe source is passed over, not waited on.
 				if (skipUnsafe && (bestSupplyWarehouse==nullptr || bestDistSqr>distSqr) && !isLocationSafe(obj->getPosition(), obj->getTemplate())) continue;
 
 				if (bestSupplyWarehouse==nullptr) {

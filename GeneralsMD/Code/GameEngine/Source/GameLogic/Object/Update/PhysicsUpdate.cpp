@@ -49,42 +49,11 @@
 
 const Real DEFAULT_MASS = 1.0f;
 
-// GeneralsX: Per-frame physics constants, halved under GX_LOGIC_60HZ.
-//
-// HALVED, NOT sqrt'd - but NOT because friction is "linear". Correction 23/09/2026: the chain
-// :479 `accel.x += -(ff * forwardVel_x)` -> applyForce -> `m_vel.x += m_accel.x` IS a multiplicative
-// decay, v = v * (1 - f) per frame, and the free-decay exponent would be 1 - sqrt(1 - f). Halving
-// is kept because friction here always acts AGAINST A FORCE (gravity on bombs and chutes, motive
-// force, the lateral velocity a turn injects every frame), and for a forced system v' = v + a - f*v
-// the steady state is v = a/f: with a per-frame^2 (x1/4) and f halved, v is exactly half per
-// frame, i.e. the SAME wall-clock terminal speed. The exponent would instead keep only the
-// free-decay half-life and lower every terminal speed (AerodynamicFriction 7/s: -6%). For small f
-// the two agree to first order.
-//
-// The SHOCK_* values are radians PER FRAME, not factors: they seed m_yawRate/m_pitchRate/m_rollRate
-// (:386-392) which are consumed once per logic frame by Rotate_Z/Y/X (:750-752). Same seed at twice
-// the tick rate is twice the angular velocity in wall clock, so they halve too.
-//
-// MIN_NON_AERO_FRICTION and MAX_FRICTION are a floor and ceiling on that same per-frame fraction
-// (:288-289, :297-298, :306-307). Left alone they would silently double in per-SECOND terms:
-// MAX_FRICTION 0.99/frame is 29.7/sec at 30 Hz but 59.4/sec at 60 Hz. 0.495 keeps the identical
-// per-second ceiling and stays well below the 1.0 that would flip the velocity sign.
-//
-// STUN_RELIEF_EPSILON is compared against per-frame velocity components (:691-693), which are half
-// the magnitude at twice the tick rate for the same real-world speed.
-//
-// NOT changed: DEFAULT_AERO_FRICTION and MIN_AERO_FRICTION are exactly 0.0 and half of zero is
-// zero. INI-authored friction is already correct - parseFrictionPerSec (:152-157) converts a
-// per-SECOND field with SECONDS_PER_LOGICFRAME_REAL and therefore already scales with the rate.
-//
-// Written as #if literals rather than arithmetic on LOGICFRAMES_PER_SECOND so the constant folding
-// is bit-identical on all four platforms; this is digested simulation code.
-//
-// FIXED 23/09/2026 by parseShockRatePerFrame30 (below). Original note: ShockMaxYaw/Pitch/Roll parse RAW through
-// INI::parsePositiveNonZeroReal (:169-171) with no per-second conversion, unlike the friction
-// fields beside them. So an object that AUTHORS those fields keeps a per-frame value and will spin
-// twice as fast at 60 Hz; only objects using the defaults are corrected by this change. Fixing that
-// means changing what shipped INI values mean, which is a data decision, not a code one.
+// GeneralsX: per-frame constants, halved under GX_LOGIC_60HZ. Friction acts against a force, so halving it with
+// accel x1/4 keeps the same wall-clock terminal speed. SHOCK_* are radians per frame and STUN_RELIEF_EPSILON
+// a per-frame velocity, so they halve too; 0.495 keeps MAX_FRICTION (0.99/frame) at the same per-second ceiling.
+// INI-authored friction and shock fields are converted when parsed (parseFrictionPerSec, parseShockRatePerFrame30).
+// #if literals keep constant folding bit-identical on all platforms.
 #if GX_LOGIC_60HZ
 const Real DEFAULT_SHOCK_YAW = 0.025f;
 const Real DEFAULT_SHOCK_PITCH = 0.0125f;
@@ -345,19 +314,11 @@ Bool PhysicsBehavior::isIgnoringCollisionsWith(ObjectID id) const
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: Aircraft grip the air like Generals Online at 60 Hz (owner,
-// 04/10: "yes use go's ... for jets"). GO keeps the per-30-Hz-frame friction defaults and clamps
-// above at 60 Hz, i.e. twice retail's friction per second, so an aircraft's velocity swings onto its
-// nose twice as fast and it slides half as far in a turn (measured, King Raptor: 11.6 vs 24.1 deg).
-// Aircraft therefore get twice the per-frame template friction and twice the clamps. x2 is exact in
-// float, so these are GO's literals bit for bit (0.15, 0.01, 0.99), and x1 leaves every other
-// object bit-identical. The yaw/pitch/roll damping that reuses DEFAULT_LATERAL_FRICTION scales the
-// same way (GO: 1 - 0.15). m_extraFriction is NOT doubled: it is GO's already (Locomotor's EXTRA_FRIC
-// for aircraft, SlowDeath's and the OCL's per-second values scale as they do in GO). No shipped
-// aircraft authors a friction field (0 of the 81 KINDOF_AIRCRAFT templates in INIZH.big, 0 of the 27
-// the community patch overrides), so doubling the template value is GO for all of them.
-// Trade-off: a mod aircraft that authors ForwardFriction/LateralFriction gets it doubled too, where GO
-// keeps it; add a "friction authored" flag to the module data if a mod ever needs GO-exact there.
+// GeneralsX: aircraft grip the air like Generals Online at 60 Hz: twice the per-frame forward/lateral/Z template
+// friction and twice the clamps (0.15, 0.01, 0.99 bit for bit); aerodynamic friction scales only its clamp. Other
+// objects stay bit-identical. m_extraFriction is not doubled.
+// Trade-off: a mod aircraft authoring ForwardFriction/LateralFriction gets it doubled too; add a friction-authored
+// flag to the module data if a mod needs exact GO there.
 static Real gxGripScale(const Object *obj)
 {
 #if GX_LOGIC_60HZ

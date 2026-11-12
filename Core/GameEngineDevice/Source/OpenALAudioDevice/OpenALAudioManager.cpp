@@ -74,21 +74,10 @@
 
 static void logAudioDevice(ALCdevice* device, int askedRate);
 
-// GeneralsX: Follow the system default output device.
-//
-// alcOpenDevice(NULL) binds whatever is the default AT LAUNCH, and the backends we ship pin it there
-// (WASAPI by endpoint id, CoreAudio by AudioDeviceID): a headset asleep at launch left a whole session
-// on the monitor's HDMI audio, silent in the headset once it woke.
-// ALC_SOFT_system_events reports the change and alcReopenDeviceSOFT moves the open device - context,
-// sources and buffers included - onto the new default.
-//
-// The callback runs on a backend thread with openal-soft's event lock held, so it only raises a flag;
-// update() reopens on the audio thread. Both entry points are looked up at run time, never linked:
-// Linux loads the distro's libopenal, which may predate system_events (openal-soft 1.24.0) or
-// reopen_device (1.22.0). Without either, or on a backend that cannot report the change (ALSA, the
-// null backend), nothing registers and behaviour is exactly as before. iOS registers but never hears
-// an event (its CoreAudio backend installs no listener without device enumeration); RemoteIO follows
-// the route itself there.
+// Follow the system default output device. alcOpenDevice(NULL) binds the default AT LAUNCH and the backends pin it.
+// ALC_SOFT_system_events reports the change and alcReopenDeviceSOFT moves the open device. The callback runs on a
+// backend thread under openal-soft's event lock, so it only raises a flag; update() reopens on the audio thread.
+// Both entry points are looked up at run time.
 #if defined(ALC_SOFT_system_events) && defined(ALC_SOFT_reopen_device)
 static std::atomic<bool> s_defaultDeviceChanged{false};
 static LPALCREOPENDEVICESOFT s_alcReopenDeviceSOFT = nullptr;
@@ -106,32 +95,15 @@ static void ALC_APIENTRY onAlcSystemEvent(ALCenum eventType, ALCenum deviceType,
 }
 #endif
 
-// GeneralsX @bugfix 14/06/2026 Self-heal for stuck "disallow speech" flag.
-// Uninterruptible streamed speech (e.g. Generals Challenge enemy taunts) sets
-// disallowSpeech=TRUE so a speaker doesn't talk over himself; it's cleared when
-// the stream is detected stopped. But a finished finite-speech stream can linger
-// "not stopped" for a long time (its drained source keeps getting restarted in
-// OpenALAudioStream::update()), so the flag stays stuck and every subsequent
-// taunt is rejected with AHSV_NoSound — the player hears only the first taunt.
-// We record the frame the flag was set and force-clear it after longer than any
-// real voice line can last, so a genuinely-playing taunt is never cut off but a
-// stale flag can't silence the rest of the match.
+// Self-heal for a stuck "disallow speech" flag: a finished speech stream can linger "not stopped" and leave it set,
+// rejecting every later line (AHSV_NoSound). The frame it was set is recorded and the flag is force-cleared after
+// longer than any real voice line can last.
 static Int s_disallowSpeechSetFrame = 0;
-// GeneralsX: Was a hard-coded 30 * 15, and the comment beside it said
-// why that was wrong the moment the tick rate moved: "30 logic frames/sec". This is a DURATION
-// expressed as a frame count, so it must scale with LOGICFRAMES_PER_SECOND or it silently becomes
-// 7.5 seconds at 60 Hz - short enough to fire while a long EVA line is genuinely still playing,
-// which is the one thing the comment promised it would never do.
-//
-// GX_FRAMES30 is the project's helper for exactly this class (GameCommon.h): frame COUNTS scale
-// up with the tick rate. It is exact at 30 (x * 30 / 30 == x), so the 30 Hz behaviour is unchanged.
-//
-// NOTE FOR WHOEVER CHASES THE MISSING ANNOUNCER: this is NOT that bug. This backstop only ever
-// CLEARS m_disallowSpeech, so shortening it lets MORE speech through, never less. It is fixed here
-// because it is wrong, not because it explains silence.
+// A duration expressed as a frame count, so it scales with LOGICFRAMES_PER_SECOND via GX_FRAMES30 (exact at 30 Hz).
+// This backstop only CLEARS m_disallowSpeech: shortening it lets more speech through, never less.
 static const Int DISALLOW_SPEECH_MAX_FRAMES = GX_FRAMES30(30 * 15);
 
-// GeneralsX: The libavcodec/libavutil includes that used to sit here
+// The libavcodec/libavutil includes that used to sit here
 // were the reason this file could not compile on Windows x64, where FFmpeg is neither present nor
 // needed. Decoding now goes through AudioDecoder (pulled in via OpenALAudioCache.h), which keeps
 // FFmpeg behind a pimpl on the platforms that still use it.
@@ -551,7 +523,7 @@ ALenum OpenALAudioManager::getALFormat(uint8_t channels, uint8_t bitsPerSample)
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: GX_AUDIOLEN_CHECK=1: getFileLengthMS is simulation state (the SPEECH/AUDIO
+// GX_AUDIOLEN_CHECK=1: getFileLengthMS is simulation state (the SPEECH/AUDIO
 // completed script conditions latch on it), so it must not depend on the play cache or on an output device. This reads
 // every audio file's length cold, then through the play cache (the warm value), then again, and prints one line. Run it
 // once with a device (ALSOFT_DRIVERS=null) and once without (ALSOFT_DRIVERS=gxnone): lengths_fnv must be equal, and
@@ -644,13 +616,13 @@ void OpenALAudioManager::reset()
 #endif
 
 	AudioManager::reset();   // clears m_disallowSpeech
-	s_disallowSpeechSetFrame = 0;  // GeneralsX @bugfix 14/06/2026 clear stale backstop frame across new game/map
+	s_disallowSpeechSetFrame = 0;  // clear stale backstop frame across new game/map
 	stopAllAudioImmediately();
 	removeAllAudioRequests();
 	// This must come after stopAllAudioImmediately() and removeAllAudioRequests(), to ensure that
 	// sounds pointing to the temporary AudioEventInfo handles are deleted before their info is deleted
 	removeLevelSpecificAudioEventInfos();
-	undoOverrideLoads();	// GeneralsX @bugfix: a map.ini's audio edits end with the map - after every sound stopped
+	undoOverrideLoads();	// a map.ini's audio edits end with the map - after every sound stopped
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -658,7 +630,7 @@ void OpenALAudioManager::update()
 {
 	AudioManager::update();
 #if defined(ALC_SOFT_system_events) && defined(ALC_SOFT_reopen_device)
-	// GeneralsX: The default output changed (see onAlcSystemEvent): move onto it.
+	// The default output changed (see onAlcSystemEvent): move onto it.
 	// A headset that has only just woken can refuse the first attempt, and openal-soft can return TRUE
 	// with the device left disconnected, so success means ALC_CONNECTED and anything else is retried:
 	// 0.25 s doubling to 8 s, 8 tries, about 24 s in all. A new event restarts the schedule.
@@ -756,7 +728,7 @@ void OpenALAudioManager::pauseAudio(AudioAffect which)
 	std::list<PlayingAudio*>::iterator it;
 
 	PlayingAudio* playing = NULL;
-	// GeneralsX: alSourcePause, NOT alSourceStop. Miles' AIL_stop_sample
+	// alSourcePause, NOT alSourceStop. Miles' AIL_stop_sample
 	// is a positional pause that AIL_resume_sample continues from; the faithful OpenAL translation
 	// is pause. alSourceStop puts the source in AL_STOPPED, which processPlayingList reads as
 	// "finished" the very next update - it then either advances a multi-portion event to its next
@@ -879,7 +851,7 @@ void OpenALAudioManager::pauseAmbient(Bool shouldPause)
 //-------------------------------------------------------------------------------------------------
 void OpenALAudioManager::playAudioEvent(AudioEventRTS* event)
 {
-	// GeneralsX: This function OWNS `event` on every path - see
+	// This function OWNS `event` on every path - see
 	// discardUnprocessedRequest. The early returns below used to drop it: this one, and the stream
 	// branch's missing-file and undecodable-file returns, which ran before `event` was attached to
 	// `audio`. Attaching it at allocation makes every releasePlayingAudio(audio) free it too.
@@ -936,7 +908,7 @@ void OpenALAudioManager::playAudioEvent(AudioEventRTS* event)
 		if (!decoder->open(file))
 		{
 			DEBUG_LOG(("Failed to open audio file: %s\n", fileToPlay.str()));
-			// GeneralsX: The decoder was leaked on this path - it is not
+			// The decoder was leaked on this path - it is not
 			// attached to `audio` until below, so releasePlayingAudio could never reach it.
 			delete decoder;
 			releasePlayingAudio(audio);
@@ -949,7 +921,7 @@ void OpenALAudioManager::playAudioEvent(AudioEventRTS* event)
 			// When we need more data ask the decoder for more data.
 			stream->setRequireDataCallback([decoder]() -> bool {
 				decoder->decodeChunk();
-				// GeneralsX @bugfix 14/06/2026 Report TRUE end-of-file so a finished one-shot
+				// Report TRUE end-of-file so a finished one-shot
 				// speech (taunt) stops being restarted and can reach a stable AL_STOPPED. Keys
 				// on real EOF, not a bare decode-error, so long briefings/music and transient
 				// underruns are unaffected.
@@ -982,7 +954,7 @@ void OpenALAudioManager::playAudioEvent(AudioEventRTS* event)
 				setDisallowSpeech(TRUE);
 				s_disallowSpeechSetFrame = TheGameLogic ? TheGameLogic->getFrame() : 0;
 			}
-			// GeneralsX @bugfix Apply the real volume BEFORE the stream starts.
+			// Apply the real volume BEFORE the stream starts.
 			//
 			// OpenALAudioStream's constructor sets AL_GAIN to 1.0, and
 			// adjustPlayingVolume() was only ever reached from the update loop — so
@@ -1161,7 +1133,7 @@ void OpenALAudioManager::stopAudioEvent(AudioHandle handle)
 
 		if (audio->m_audioEventRTS->getPlayingHandle() == handle) {
 			// found it
-			// GeneralsX: No completion callback here: processPlayingList now releases a stream
+			// No completion callback here: processPlayingList now releases a stream
 			// with this flag (sweep c151-01), as Miles' stopPlayingAudio did. The call looked the stream up by
 			// m_source, which is 0 for every stream, so it acted on the FIRST stream - restarting the music or
 			// clearing another line's disallow-speech gate.
@@ -1203,7 +1175,7 @@ void OpenALAudioManager::killAudioEventImmediately(AudioHandle audioEvent)
 	for (ait = m_audioRequests.begin(); ait != m_audioRequests.end(); ait++)
 	{
 		AudioRequest* req = (*ait);
-		// GeneralsX: An AR_Play request carries its handle in the event, not
+		// An AR_Play request carries its handle in the event, not
 		// in m_handleToInteractOn: that is the other half of a union with m_pendingEvent, so it read
 		// 32 bits of a heap pointer and a queued play request could never be cancelled. Same test as
 		// isCurrentlyPlaying() below and MilesAudioManager::killAudioEventImmediately.
@@ -1344,7 +1316,7 @@ void OpenALAudioManager::stopAllAudioImmediately(void)
 	for (it = m_playingSounds.begin(); it != m_playingSounds.end(); ) {
 		playing = *it;
 		if (!playing) {
-			// GeneralsX: Erase it: this loop steps by erasing, so a bare continue spun forever.
+			// Erase it: this loop steps by erasing, so a bare continue spun forever.
 			it = m_playingSounds.erase(it);
 			continue;
 		}
@@ -1356,7 +1328,7 @@ void OpenALAudioManager::stopAllAudioImmediately(void)
 	for (it = m_playing3DSounds.begin(); it != m_playing3DSounds.end(); ) {
 		playing = *it;
 		if (!playing) {
-			// GeneralsX: Erase it: this loop steps by erasing, so a bare continue spun forever.
+			// Erase it: this loop steps by erasing, so a bare continue spun forever.
 			it = m_playing3DSounds.erase(it);
 			continue;
 		}
@@ -1368,7 +1340,7 @@ void OpenALAudioManager::stopAllAudioImmediately(void)
 	for (it = m_playingStreams.begin(); it != m_playingStreams.end(); ) {
 		playing = (*it);
 		if (!playing) {
-			// GeneralsX: Erase it: this loop steps by erasing, so a bare continue spun forever.
+			// Erase it: this loop steps by erasing, so a bare continue spun forever.
 			it = m_playingStreams.erase(it);
 			continue;
 		}
@@ -1380,7 +1352,7 @@ void OpenALAudioManager::stopAllAudioImmediately(void)
 	for (it = m_fadingAudio.begin(); it != m_fadingAudio.end(); ) {
 		playing = (*it);
 		if (!playing) {
-			// GeneralsX: Erase it: this loop steps by erasing, so a bare continue spun forever.
+			// Erase it: this loop steps by erasing, so a bare continue spun forever.
 			it = m_fadingAudio.erase(it);
 			continue;
 		}
@@ -1417,17 +1389,12 @@ void OpenALAudioManager::adjustPlayingVolume(PlayingAudio* audio)
 	// GeneralsX: guard against null m_audioEventRTS
 	if (!audio->m_audioEventRTS)
 		return;
-	// GeneralsX: ONE RULE FOR GAIN, NOT TWO.
+	// ONE RULE FOR GAIN: ask getEffectiveVolume instead of recomputing volume x shift x category, so
+	// the two cannot answer the same question by two rules.
 	//
-	// This recomputed volume x shift x category itself instead of asking getEffectiveVolume, so
-	// the two answered the same question by two rules - exactly the drift 3578bb3e5 called out
-	// when it fixed adjustVolumeOfPlayingAudio. It went unnoticed because the answers agreed.
-	//
-	// They stopped agreeing the moment getEffectiveVolume gained the 3D range fade: this function
-	// is what EVERY general path writes gain through (the per-frame refresh at ~2452/2488/2551 and
-	// the start-of-play call), while getEffectiveVolume was left feeding only culling and the
-	// by-name volume change. The fade was therefore computed and thrown away for ordinary
-	// positional samples. Caught by a cross-model review before this shipped, not after.
+	// This function is what EVERY general path writes gain through (the per-frame refresh and
+	// the start-of-play call). getEffectiveVolume carries the 3D range fade, which a private
+	// recomputation would drop for ordinary positional samples.
 	const Real effective = getEffectiveVolume(audio->m_audioEventRTS);
 
 	if (audio->m_type == PAT_Sample) {
@@ -1564,12 +1531,12 @@ Bool OpenALAudioManager::hasMusicTrackCompleted(const AsciiString& trackName, In
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: One line saying what the device actually gave us. A Bluetooth
+// One line saying what the device actually gave us. A Bluetooth
 // headset whose mic is in use (Discord) drops to its hands-free profile, and WASAPI then grants a
 // 16 kHz mono mix for the 44.1 kHz asked: UI clicks alias into an "eerie, high-pitched" sound with
 // nothing in any log. The Windows payload ships alsoft.ini (resampler = bsinc24, the verified fix);
 // the resampler named here is how a log proves OpenAL Soft read it.
-// GeneralsX: Printed again after every default-device reopen, so a log shows
+// Printed again after every default-device reopen, so a log shows
 // which output the rest of the session played on.
 static void logAudioDevice(ALCdevice* device, int askedRate)
 {
@@ -2327,7 +2294,7 @@ void OpenALAudioManager::adjustVolumeOfPlayingAudio(AsciiString eventName, Real 
 		if (playing && playing->m_audioEventRTS && playing->m_audioEventRTS->getEventName() == eventName) {
 			// Adjust it
 			playing->m_audioEventRTS->setVolume(newVolume);
-			// GeneralsX: Port of TheSuperHackers 20adf33d4 (#2019) to the
+			// Port of TheSuperHackers 20adf33d4 (#2019) to the
 			// OpenAL backend: the gain must include the category/system volume, or an adjusted
 			// event plays at full mixer volume regardless of the user's settings until the next
 			// m_volumeHasChanged sweep happens to rewrite it.
@@ -2464,7 +2431,7 @@ void OpenALAudioManager::processRequestList(void)
 	for (it = m_audioRequests.begin(); it != m_audioRequests.end(); /* empty */) {
 		AudioRequest* req = (*it);
 		if (req == NULL) {
-			// GeneralsX: Erase it: this loop steps by hand, so a bare continue spun forever.
+			// Erase it: this loop steps by hand, so a bare continue spun forever.
 			it = m_audioRequests.erase(it);
 			continue;
 		}
@@ -2503,7 +2470,7 @@ void OpenALAudioManager::processPlayingList(void)
 			continue;
 		}
 
-		// GeneralsX: A stop request (stopAudioEvent, a dead object's sound) stops the source
+		// A stop request (stopAudioEvent, a dead object's sound) stops the source
 		// now, as Miles' stopPlayingAudio released it at once. Only the flag used to be set, so the sound played its
 		// current clip out (a destroyed unit's loop, a turret's rotation loop) (sweep c151-01).
 		if (playing->m_requestStop)
@@ -2548,7 +2515,7 @@ void OpenALAudioManager::processPlayingList(void)
 			continue;
 		}
 
-		// GeneralsX: Same as for 2D samples: a stop request stops the source now (sweep c151-01).
+		// Same as for 2D samples: a stop request stops the source now (sweep c151-01).
 		if (playing->m_requestStop)
 			alSourceStop(playing->m_source);
 
@@ -2587,7 +2554,7 @@ void OpenALAudioManager::processPlayingList(void)
 				}
 				else
 				{
-					// GeneralsX: Ask for the volume WITHOUT the shell map
+					// Ask for the volume WITHOUT the shell map
 					// scale. This feeds the m_minVolume test below, which releases the sound and
 					// erases it rather than merely lowering it. Halving the input would flip every
 					// shell map world SFX whose unscaled value sits between m_minVolume and
@@ -2647,7 +2614,7 @@ void OpenALAudioManager::processPlayingList(void)
 		{
 			adjustPlayingVolume(playing);
 		}
-		// GeneralsX: A stop request releases the stream now. The flag used to be ignored here,
+		// A stop request releases the stream now. The flag used to be ignored here,
 		// so a stopped speech or music stream played to its end; and update() must not run first, since it refills a
 		// stopped stream and starts it again (sweep c151-01).
 		if (!playing->m_requestStop)
@@ -2658,7 +2625,7 @@ void OpenALAudioManager::processPlayingList(void)
 		{
 			// If this was an uninterruptible speech stream, clear the disallow flag.
 			const AudioEventInfo* streamInfo = (playing->m_audioEventRTS ? playing->m_audioEventRTS->getAudioEventInfo() : nullptr);
-			// GeneralsX: A stopped stream clears the gate only if it is uninterruptible, i.e. a
+			// A stopped stream clears the gate only if it is uninterruptible, i.e. a
 			// line that set it: stopping an overlapping ordinary line must not let the next uninterruptible one cut
 			// off the line still playing (sweep c151-01). A stream that ends by itself keeps the old rule.
 			if (streamInfo && streamInfo->m_soundType == AT_Streaming && getDisallowSpeech()
@@ -2676,7 +2643,7 @@ void OpenALAudioManager::processPlayingList(void)
 		}
 	}
 
-	// GeneralsX @bugfix 14/06/2026 Backstop (belt-and-braces): the proper fix is the EOF
+	// Backstop (belt-and-braces): the proper fix is the EOF
 	// propagation in OpenALAudioStream (a finished one-shot now reaches AL_STOPPED so the
 	// per-stream clear above fires the frame the audio ends). This timeout remains only as a
 	// safety net in case AL_STOPPED detection ever fails on this iOS/OpenAL stack. A negative
@@ -2754,7 +2721,7 @@ void OpenALAudioManager::processFadingList(void)
 	for (it = m_fadingAudio.begin(); it != m_fadingAudio.end(); /* emtpy */) {
 		playing = *it;
 		if (!playing) {
-			// GeneralsX: Erase it: this loop steps by hand, so a bare continue spun forever.
+			// Erase it: this loop steps by hand, so a bare continue spun forever.
 			it = m_fadingAudio.erase(it);
 			continue;
 		}
@@ -2916,38 +2883,10 @@ Real OpenALAudioManager::getFileLengthMS(AsciiString strToLoad) const
 	}
 	float length = 0.0f;
 
-// GeneralsX: This return value is SIMULATION STATE, not presentation.
-// ScriptEngine::isSpeechComplete/isAudioComplete latch `frame + audioLength/MSEC_PER_LOGICFRAME`
-// (ScriptEngine.cpp:7326, :7361), so a 0 here makes SPEECH_HAS_COMPLETED / AUDIO_HAS_COMPLETED
-// true on the very frame they are first evaluated, while a peer returning a real duration stays
-// false for N frames. Same script, different branch, different logic state - a cross-peer
-// divergence that has nothing to do with whether anyone hears anything.
-//
-// The guard used to be SAGE_USE_FFMPEG alone, which is defined only under RTS_BUILD_OPTION_FFMPEG -
-// and only by GeneralsMD's CMakeLists at that, so it was never set for the Generals target either.
-// A Windows build with working OpenAL sound would still have returned 0 from every call. The
-// condition below is now satisfied on every build that compiles this file, which is the point:
-// there is no configuration in which a peer silently reports zero-length audio.
-//
-// FOLLOW-UP, and the durable version of this fix: the length should not be decoder-derived at all.
-// Decoding a file to measure it couples simulation state to the decoder, which is why all four
-// platforms now have to run the same one. Parsing the duration from the container header instead -
-// MPEG frame count x 1152 / sample rate, and the fmt/data chunk arithmetic for RIFF - is identical
-// everywhere by construction and survives a decoder swap or a dr_mp3 bump. It is also far cheaper:
-// this currently decodes an entire file just to read its length.
-//
-// GeneralsX: Decoded here, NOT through m_audioCache. The cache answered 0 whenever it would
-// not hold the file, and that depended on this peer alone: a filename-only request carries the lowest priority, so
-// under pressure it may evict only idle entries (freeEnoughSpaceForSample), and what is resident is what THIS peer
-// played - positional sounds are culled by the local shroud and camera. With no ALC context (no output device: the
-// headless Linux host has no sound card; or AudioOn off) alGenBuffers left the buffer 0 and every load was refused, so
-// every length was 0 there. Same decoder, same chunks, same sum and formula as OpenALAudioFileCache::decodeAudio, so a
-// warm-cache answer is unchanged bit for bit (GX_AUDIOLEN_CHECK proves it per file); no device, context or cache
-// state is read. A file that is missing or does not decode is 0 on every peer alike.
-//
-// Remembered per file name: a pure function of the file, so a script that latches on the same file again pays a map
-// lookup - as it did when the cache still held the file - instead of a decode (a music track took seconds).
-// Trade-off: never evicted; bounded by the distinct files ever asked about (8531 audio files in the shipped data).
+// SIMULATION STATE: ScriptEngine::isSpeechComplete/isAudioComplete latch `frame + audioLength/MSEC_PER_LOGICFRAME`,
+// so a 0 here diverges peers. Decoded here, NOT through m_audioCache, whose answer depends on this peer's residency.
+// Same decoder and formula as decodeAudio; cached per file name.
+// TODO: parse the length from the container header instead of decoding the file.
 	static std::unordered_map<std::string, Real> s_lengths;
 	const auto known = s_lengths.find(strToLoad.str());
 	if (known != s_lengths.end()) {
@@ -2988,7 +2927,7 @@ void OpenALAudioManager::closeAnySamplesUsingFile(const void* fileToClose)
 	for (it = m_playingSounds.begin(); it != m_playingSounds.end(); ) {
 		playing = *it;
 		if (!playing) {
-			// GeneralsX: Step past it (this loop only removes this file's samples): a bare continue spun forever.
+			// Step past it (this loop only removes this file's samples): a bare continue spun forever.
 			++it;
 			continue;
 		}
@@ -3005,7 +2944,7 @@ void OpenALAudioManager::closeAnySamplesUsingFile(const void* fileToClose)
 	for (it = m_playing3DSounds.begin(); it != m_playing3DSounds.end(); ) {
 		playing = *it;
 		if (!playing) {
-			// GeneralsX: Step past it (this loop only removes this file's samples): a bare continue spun forever.
+			// Step past it (this loop only removes this file's samples): a bare continue spun forever.
 			++it;
 			continue;
 		}
@@ -3055,12 +2994,10 @@ Real OpenALAudioManager::getEffectiveVolume(AudioEventRTS* event, Bool applyShel
 		return 0.0f;
 	Real volume = 1.0f;
 	volume *= (event->getVolume() * event->getVolumeShift());
-	// GeneralsX: Shell map world SFX attenuation, folded in here because
-	// the 25/08/2026 "ONE RULE FOR GAIN, NOT TWO" change above made this function the single place
-	// every gain write is computed. Multiplying at the individual alSourcef() sites instead would
-	// recreate exactly the two-rules drift that change fixed. Returns 1.0 outside the shell game and
-	// for AT_Music / AT_Streaming / non-ST_WORLD / ST_UI events, so menu music, EVA speech and gadget
-	// clicks are unaffected. applyShellMapScale is FALSE only for the m_minVolume cull - see header.
+	// Shell map world SFX attenuation, folded in here because this function is the single place every gain write is
+	// computed. Returns 1.0 outside the shell game and for AT_Music / AT_Streaming / non-ST_WORLD / ST_UI events,
+	// so menu music, EVA speech and gadget clicks are unaffected.
+	// applyShellMapScale is FALSE only for the m_minVolume cull - see header.
 	if (applyShellMapScale)
 		volume *= getShellMapSoundVolumeScale( event );
 	const AudioEventInfo* evInfo = event->getAudioEventInfo();
@@ -3078,27 +3015,10 @@ Real OpenALAudioManager::getEffectiveVolume(AudioEventRTS* event, Bool applyShel
 		{
 			volume *= m_sound3DVolume;
 
-			// GeneralsX: 3D SOUNDS NOW FADE TO SILENCE AT MAX RANGE.
-			//
-			// Ports TheSuperHackers 58b1c1b0 (#2369) into the backend that actually ships. Upstream
-			// fixed this in MilesAudioManager, and AudioSettings.h + GameAudio.cpp carry the two
-			// settings it added - but records that ALL FOUR shipping
-			// platforms compile the Core OpenAL manager (Windows forces -DSAGE_USE_OPENAL=ON), so
-			// the fix landed in a backend nobody runs and the settings were parsed, documented and
-			// ignored.
-			//
-			// What that left: this function applied no distance term at all, delegating attenuation
-			// entirely to OpenAL's AL_INVERSE_DISTANCE_CLAMPED model with AL_ROLLOFF_FACTOR 0.5 -
-			// half-strength falloff that CLAMPS rather than reaching zero. A distant 3D effect
-			// therefore sits at an audible floor forever instead of fading out. Reported as "SFX
-			// very loud in the shell map", which is exactly where the 3D scene keeps sources at
-			// range behind the menu.
-			//
-			// The curve is upstream's, not invented here: linear ratio between min and max range,
-			// raised to m_3DSoundRangeVolumeFadeExponent (default 4, so it stays loud until it is
-			// genuinely far and then drops away), and hard zero at or beyond max range. Setting
-			// Use3DSoundRangeVolumeFade = No in AudioSettings.ini restores the previous behaviour,
-			// which is the escape hatch upstream shipped for the same reason.
+			// 3D sounds fade to silence at max range (TheSuperHackers 58b1c1b0, #2369). Without a distance term,
+			// AL_INVERSE_DISTANCE_CLAMPED with AL_ROLLOFF_FACTOR 0.5 clamps instead of reaching zero. Curve: linear ratio
+			// between min and max range raised to m_3DSoundRangeVolumeFadeExponent (default 4), zero at max range.
+			// Use3DSoundRangeVolumeFade = No in AudioSettings.ini restores the previous behaviour.
 			const AudioSettings *audioSettings = getAudioSettings();
 			const AudioEventInfo *info = event->getAudioEventInfo();
 			const Coord3D *soundPos = event->getCurrentPosition();
@@ -3195,18 +3115,10 @@ void OpenALAudioManager::playStream(AudioEventRTS* event, OpenALAudioStream* str
 		//alSourcei(stream->getSource(), AL_LOOPING, AL_TRUE);
 	}
 
-	// GeneralsX: Queue the first data BEFORE starting the source. This was a
-	// bare alSourcePlay on an empty queue, which OpenAL answers by stopping the source at once. The
-	// first stream update then queued the decoded audio onto that STOPPED source, where OpenAL counts
-	// every buffer as already processed - so the "never replay spent buffers" guards in
-	// OpenALAudioStream::update() refused to start it. A line short enough to decode whole in that
-	// first refill (every EVA line: superweapon warnings, unit lost, low power...) also latched EOF
-	// there, so nothing ever played it: processPlayingList released it unheard, the same frame
-	// (measured with the GX_EVATRACE probe, test/eva-trace-2026-09-25: STREAM started state=STOPPED
-	// queued=0, released STOPPED queued=12 processed=12, on CoreAudio and the null backend alike).
-	// Longer streams survived only by having their first refill reaped unplayed, so music and long
-	// speech also lost their opening ~1.5 s. update() refills and starts a long stream itself; a
-	// short one is started here, from AL_INITIAL, with everything it has queued.
+	// Queue the first data BEFORE starting the source: alSourcePlay on an empty queue stops it at once, and buffers
+	// queued onto a STOPPED source count as already processed, so the guards in OpenALAudioStream::update() refuse to
+	// start it. A short line (every EVA line) also latched EOF there and was released unheard.
+	// update() starts a long stream itself; a short one is started here.
 	stream->update();
 	if (!stream->isPlaying())
 		stream->play();
@@ -3223,7 +3135,7 @@ ALuint OpenALAudioManager::playSample(AudioEventRTS* event, PlayingAudio* audio)
 	if (bufferHandle) {
 		alSourcei(audio->m_source, AL_SOURCE_RELATIVE, AL_TRUE);
 		alSourcei(audio->m_source, AL_BUFFER, (ALuint)(uintptr_t)bufferHandle);
-		// GeneralsX @bugfix Set the gain before starting. Nothing here ever applied
+		// Set the gain before starting. Nothing here ever applied
 		// AL_GAIN, so a sample played at whatever gain its pooled source last had —
 		// full scale for a fresh source. The per-frame volume refresh normally
 		// papered over it, but that refresh is suppressed for the whole duration of
@@ -3256,7 +3168,7 @@ ALuint OpenALAudioManager::playSample3D(AudioEventRTS* event, PlayingAudio* samp
 			alSourcef(source, AL_PITCH, pitch);
 
 			if (channels > 1) {
-				// GeneralsX @bugfix Bender 09/05/2026 Fallback multichannel positional voice assets to direct playback instead of dropping them.
+				// Fallback multichannel positional voice assets to direct playback instead of dropping them.
 				alSourcei(source, AL_SOURCE_RELATIVE, AL_TRUE);
 				alSource3f(source, AL_POSITION, 0.0f, 0.0f, 0.0f);
 				alSource3f(source, AL_VELOCITY, 0.0f, 0.0f, 0.0f);
@@ -3289,7 +3201,7 @@ ALuint OpenALAudioManager::playSample3D(AudioEventRTS* event, PlayingAudio* samp
 			DEBUG_LOG(("Playing 3D sample '%s' at %f, %f, %f\n", event->getEventName().str(), x, y, z));
 
 			// Start playback
-			// GeneralsX @bugfix As in playSample: AL_GAIN was never set here either, so a
+			// As in playSample: AL_GAIN was never set here either, so a
 			// positional effect started at whatever gain its pooled source carried.
 			adjustPlayingVolume(sample3D);
 			alSourcePlay(source);
@@ -3385,21 +3297,9 @@ void OpenALAudioManager::processRequest(AudioRequest* req)
 	}
 }
 
-//-------------------------------------------------------------------------------------------------
-// GeneralsX: WHO OWNS A QUEUED REQUEST'S AudioEventRTS.
-//
-// An AR_Play request (m_usePendingEvent) owns m_pendingEvent from the moment it is queued -
-// SoundManager::addAudioEvent, MusicManager::playTrack, or startNextLoop taking it back from a
-// PlayingAudio with m_cleanupAudioEventRTS=false - until processRequest() passes it to
-// playAudioEvent(), which from then on owns it on every path (PlayingAudio::m_audioEventRTS, freed
-// by releasePlayingAudio). ~AudioRequest does NOT free it in this fork - upstream #2731 added that
-// together with a processRequest() that detaches the event first, and the fork carries neither -
-// so a request thrown away WITHOUT processRequest() must free the event itself, or it leaks. This
-// is that one path; every such drop in this file comes through here. Not moved into ~AudioRequest:
-// that file is digested, and alone it would free every event processRequest() just handed over.
-// removeAllAudioRequests() (reset, ~AudioManager) is the base-class copy of the same rule.
-// m_usePendingEvent is tested first: on a Pause/Stop request the union holds a handle, not a
-// pointer.
+// Who owns a queued request's AudioEventRTS: an AR_Play request owns m_pendingEvent until processRequest() passes it
+// to playAudioEvent(). ~AudioRequest does NOT free it here, so a request discarded WITHOUT processRequest() must free
+// it itself or it leaks. m_usePendingEvent is tested first: on a Pause/Stop request the union holds a handle.
 void OpenALAudioManager::discardUnprocessedRequest(AudioRequest* req)
 {
 	if (req->m_usePendingEvent) {

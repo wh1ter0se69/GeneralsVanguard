@@ -1,4 +1,22 @@
-// GeneralsX: A23-B: the EXEC digest hook - TEST-ONLY (v8.1 §7.1).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// A23-B: the EXEC digest hook - TEST-ONLY (v8.1 §7.1).
 //
 // Every EXEC half - on gx-native-cs, inline (GX_NATIVE_CS=0) or inside an S body - reports itself at its top, in the order it
 // RUNS: (op, canonical arguments, payload bytes). Both modes run the same halves, so a correct worker gives the same stream; a

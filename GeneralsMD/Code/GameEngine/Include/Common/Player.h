@@ -480,7 +480,21 @@ public:
 
 	/// GeneralsX: an object joined or left one of our teams, or changed its UNDER_CONSTRUCTION
 	/// status: countObjectsByThingTemplate's member histogram must be rebuilt (see there).
-	void noteMembersChanged() { m_memberTemplateCountsValid = false; }
+	/// GeneralsX: ...and the packed wake records (gxGetWakeRecords) must be too.
+	void noteMembersChanged() { m_memberTemplateCountsValid = false; ++m_memberVersion; m_gxWakeRecordsValid = false; }
+
+	/// GeneralsX: moves exactly when the member histogram above is invalidated: script conditions
+	/// that read only the histogram key their cached answer on it (ScriptConditions.cpp, gxConditionCacheCurrent).
+	UnsignedInt getMemberVersion() const { return m_memberVersion; }
+
+	/// One member as StealthUpdate's idle-enemy wake needs it, packed so that walk stops chasing every object through the team lists.
+	/// The floats are bit-identical to the object's own getPosition() and getVisionRange(): the Object writes them through as they change.
+	struct GXWakeRecord { Real x, y, z, vision; Object *obj; };
+	/// Our members, exactly the set iterateObjects visits (it builds the array), in no useful order. Valid until a member
+	/// joins or leaves, so do not keep the pointer across anything that can change that.
+	const GXWakeRecord *gxGetWakeRecords( Int &count ) const;
+	/// Object only: obj's position or vision changed. A no-op unless the record at index is still obj's.
+	void gxWriteWakeRecord( const Object *obj, Int index, const Coord3D *pos, Real vision ) const;
 
 	/**
 		simply returns the number of buildings owned by this player
@@ -543,7 +557,7 @@ public:
 
 	void setBuildList(BuildListInfo *pBuildList);			///< sets the build list.
 	BuildListInfo *getBuildList() { return m_pBuildList; }		///< returns the build list. (build list might be modified by the solo AI)
-	AIPlayer *getAIPlayer() const { return m_ai; }		///< GeneralsX 15/10/2026: the computer player's AI (nullptr for humans); GLA dozer steal actions
+	AIPlayer *getAIPlayer() const { return m_ai; }		///< the computer player's AI (nullptr for humans); used by the GLA dozer steal actions
 	void addToBuildList(Object *obj);			///< Adds this to the build list.	 Used for factories placed instead of in build list.
 	BuildListInfo *addToPriorityBuildList(AsciiString templateName, Coord3D *pos, Real angle);			///< Adds this to the build list and returns it.	 Used for factories placed instead of in build list.
 
@@ -805,7 +819,12 @@ private:
 	mutable std::vector<MemberTemplateCount>	m_memberTemplateCounts;
 	mutable std::vector<Int>									m_memberTemplateSlot;	///< by ThingTemplate::getTemplateID(): the first entry with that id, or -1
 	mutable Bool															m_memberTemplateCountsValid;
+	UnsignedInt																m_memberVersion = 1;	///< NOT saved; only compared for equality, and a Condition's 0 means "none"
 	void rebuildMemberTemplateCounts() const;
+	// GeneralsX: gxGetWakeRecords' array (NOT saved: rebuilt on first use after a load).
+	mutable std::vector<GXWakeRecord>					m_gxWakeRecords;
+	mutable Bool															m_gxWakeRecordsValid;
+	static void gxAppendWakeRecord( Object *obj, void *userData );
 	PlayerRelationMap			*m_playerRelations;						///< allies & enemies
 	TeamRelationMap				*m_teamRelations;							///< allies & enemies
 
@@ -828,7 +847,7 @@ private:
 		PlayerIndex byWhom;
 	};
 	typedef std::vector<VisionSpy> VisionSpyList;
-	VisionSpyList					m_visionSpies;	///< GeneralsX @bugfix Spy visions on against this player, one entry per switch-on (saved, Player xfer v9)
+	VisionSpyList					m_visionSpies;	///< GeneralsX: Spy visions on against this player, one entry per switch-on (saved, Player xfer v9)
 
 	Real									m_cashBountyPercent;
 

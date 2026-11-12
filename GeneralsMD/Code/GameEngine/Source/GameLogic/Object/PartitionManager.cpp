@@ -962,22 +962,10 @@ class PartitionContactList
 {
 private:
 
-	// GeneralsX: fix/fps-contact-flat. Measured by on
-	// probe/pf-contact (Windows, pinned): 2,000 infantry under one order = 208k pair attempts and 87k unique pairs per
-	// frame, 13.9 ms mean logic tick; a macOS sample put most of addToContactList in the chain walk's cache misses and
-	// ~14% of it in the node pool's mutex. So the pairs now live in ONE flat array reused across frames, and "is this
-	// pair already listed?" is an open-addressed table holding the pair itself: an attempt reads one table line instead
-	// of two object ids, a socket and a chain of pooled nodes, and a new pair costs no pool allocation.
-	//
-	// RESULT-IDENTICAL BY CONSTRUCTION - processContactList() gets the same pairs in the same order:
-	//  * a pair is listed on its first attempt only, in either order, exactly as the pooled chain decided;
-	//  * the old list was LIFO (each new node pushed on its front), so processContactList() walks the array from
-	//    its END; the table and its hash decide nothing but "seen?", so no hash, size or probe order is visible;
-	//  * removeSpecificPartitionData() and processContactList() null a pair in place, as before, AND turn its table
-	//    slot into a tombstone that matches nothing - nulling the old node did the same, since its fields were the
-	//    chain's key - so a later attempt at the same pair is listed again, as before.
-	// Only one PartitionContactList is alive at a time (PartitionManager::update, not re-entrant; TheContactList
-	// assumes it too), so the storage is static and keeps its capacity; resetContactList() leaves the table empty.
+	// GeneralsX: flat pair array reused across frames plus an open-addressed seen-table; no pool allocation per pair.
+	// Same result as the old LIFO list: a pair is listed on first attempt only; processContactList() walks from the END.
+	// Nulling a pair in place tombstones its slot, so a later attempt lists it again.
+	// Static storage: one PartitionContactList is alive at a time (PartitionManager::update is not re-entrant).
 	struct Contact
 	{
 		PartitionData*	m_obj;		///< one object that is possibly colliding
@@ -1188,6 +1176,8 @@ void CellAndObjectIntersection::addCoverage(PartitionCell *cell, PartitionData *
 	{
 		cell->friend_addToCellList(this);
 		ThePartitionManager->friend_addCellOwner(cell, module->friend_getOwnerTag());
+		if (module->friend_isMissile())
+			ThePartitionManager->friend_addCellMissile(cell);
 	}
 
 	m_cell = cell;
@@ -1205,6 +1195,8 @@ void CellAndObjectIntersection::removeAllCoverage()
 
 	m_cell->friend_removeFromCellList(this);
 	ThePartitionManager->friend_removeCellOwner(m_cell, m_module->friend_getOwnerTag());
+	if (m_module->friend_isMissile())
+		ThePartitionManager->friend_removeCellMissile(m_cell);
 	m_cell = nullptr;
 	m_module = nullptr;
 }
@@ -1547,6 +1539,7 @@ PartitionData::PartitionData()
 	m_coiInUseCount = 0;
 	m_doneFlag = 0;
 	m_ownerTag = PARTITION_OWNER_NONE;
+	m_gxMissile = false;
 	m_fillPos.zero();
 	m_dirtyStatus = NOT_DIRTY;
 	m_lastCell = nullptr;
@@ -1606,6 +1599,29 @@ void PartitionManager::friend_removeCellOwner(const PartitionCell *cell, Int tag
 	DEBUG_ASSERTCRASH(i >= 0 && i < m_totalCellCount && tag >= 0 && tag < PARTITION_OWNER_TAGS, ("bad cell owner"));
 	if (--m_cellOwnerCount[i * PARTITION_OWNER_TAGS + tag] == 0)
 		m_cellOwnerMask[i] &= ~gxOwnerTagBit(tag);
+}
+
+//-----------------------------------------------------------------------------
+// GeneralsX: see m_cellMissileCount
+enum { GX_MISSILE_BLOCK_SHIFT = 3 };	// m_blockMissileCount: blocks of 8 x 8 cells
+
+void PartitionManager::friend_addCellMissile(const PartitionCell *cell)
+{
+	const Int i = (Int)(cell - m_cells);
+	DEBUG_ASSERTCRASH(i >= 0 && i < m_totalCellCount, ("bad missile cell"));
+	++m_cellMissileCount[i];
+	++m_missileCoiCount;
+	++m_blockMissileCount[(cell->getCellY() >> GX_MISSILE_BLOCK_SHIFT) * m_missileBlockCountX + (cell->getCellX() >> GX_MISSILE_BLOCK_SHIFT)];
+}
+
+//-----------------------------------------------------------------------------
+void PartitionManager::friend_removeCellMissile(const PartitionCell *cell)
+{
+	const Int i = (Int)(cell - m_cells);
+	DEBUG_ASSERTCRASH(i >= 0 && i < m_totalCellCount && m_cellMissileCount[i] > 0 && m_missileCoiCount > 0, ("bad missile cell"));
+	--m_cellMissileCount[i];
+	--m_missileCoiCount;
+	--m_blockMissileCount[(cell->getCellY() >> GX_MISSILE_BLOCK_SHIFT) * m_missileBlockCountX + (cell->getCellX() >> GX_MISSILE_BLOCK_SHIFT)];
 }
 
 //-----------------------------------------------------------------------------
@@ -1782,16 +1798,10 @@ ObjectShroudStatus PartitionData::getShroudedStatus(Int playerIndex)
 		{	//Record that this object was seen by the player.  This info will be used to show fogged enemy faction buildings.
 			m_everSeenByPlayer[playerIndex] = true;
 			m_shroudedness[playerIndex] = OBJECTSHROUD_CLEAR;
-			// GeneralsX: A visible object has no fog memory: free its snapshot whatever the previous
-			// status was (both visible branches; freeSnapShot is a no-op without one), not only after FOGGED. A snapshot taken
-			// while FOGGED survives a later recompute that the "enemy building never seen" refinement above turns into SHROUDED
-			// (e.g. a derrick fogged while neutral, then captured by an enemy unseen): previous became SHROUDED, so retail's
-			// "== FOGGED" never freed it, and the stale clone stayed in the scene for good - a destroyed building drawn standing
-			// over its rubble. A save written
-			// by a leaking build can hold such a snapshot with previous CLEAR. freeSnapShot touches only
-			// the client's scene and snapshot list; m_shroudedness, m_everSeenByPlayer and m_shroudednessPrevious are written
-			// exactly as before. Freeing at the refinement instead would make a fogged building vanish from the fog when an
-			// enemy captures it unseen - telling the player about the capture.
+			// GeneralsX: a visible object has no fog memory: free its snapshot whatever the previous status was (freeSnapShot is a
+			// no-op without one), not only after FOGGED. A snapshot taken while FOGGED can outlive a recompute that turns it into
+			// SHROUDED (enemy building never seen), so retail never freed it and a stale clone stayed in the scene.
+			// Only the client scene and snapshot list are touched.
 			if (m_ghostObject)
 			{	//object was previously fogged but now is visible so we no longer
 				//need a ghost object.
@@ -2070,16 +2080,10 @@ void PartitionData::doSmallFill(
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX: Can this object be left out of a contact pair it is too far from?
-// Only an object that nothing in processContactList() can slide sideways while it stays in the partition:
-//  * not PARACHUTING and not a container: PhysicsBehavior's parachute bounce moves exactly a parachuting
-//    object or the container holding one (PhysicsUpdate.cpp, objToBounce->setPosition);
-//  * not contained: a rider that stays in the partition (an Overlord's gattling or propaganda tower) is
-//    moved to the exit bone or scattered when its container dies (TransportContain::onRemoving);
-//  * not infantry: infantry walking into a NON-enclosing garrison (the America Fire Base, the only
-//    GarrisonContain with IsEnclosingContainer = No in INIZH.big and the community patch) enter it in
-//    OpenContain::onCollide and are put on a fire point while staying in the partition
-//    (GarrisonContain.cpp). A mod that lets vehicles do that would reopen this path.
+// GeneralsX: can this object be left out of a far contact pair? Only if processContactList() cannot slide it:
+//  * not PARACHUTING and not a container (the parachute bounce moves them);
+//  * not contained (a rider kept in the partition moves when its container dies);
+//  * not infantry (they enter a non-enclosing garrison such as the America Fire Base and stay in the partition).
 UnsignedInt g_gxContactSkipped = 0;	// pairs skipped, read only by the GX_TICKMS diagnostic (GameEngine.cpp)
 
 static inline Bool contactSkipCandidate(const Object *o)
@@ -2137,33 +2141,10 @@ void PartitionData::addPossibleCollisions(PartitionContactList *ctList)
 
 	//DEBUG_LOG(("adding possible collision for %s",getObject()->getTemplate()->getName().str()));
 
-	// GeneralsX: Pairs with a projectile in them that cannot touch never enter the
-	// contact list. In a Toxin Tractor fight every stream projectile shares partition cells with the
-	// tractors and the other projectiles around it, and each such pair cost a hash walk and a pooled node
-	// here, only for processContactList() to drop it on collidesWith() (measured on the 180-tractor
-	// fixture: ~87% of projectile x vehicle attempts never touch). Option 3 of
-	//
-	//
-	// Why the outcome is identical, not just similar: processContactList() does nothing at all with a
-	// pair whose collidesWith() is false (it `continue`s before onCollide and before makeDirty), so
-	// dropping such a pair here changes nothing PROVIDED collidesWith() would still be false when that
-	// loop reaches it. Between here and there the code that runs is friend_updateCellsTouched() for
-	// other dirty modules (moves nothing) and earlier pairs' onCollide() with everything it reaches
-	// (detonation, radius damage, deaths). What that can do to an EXISTING object in the partition:
-	// the parachute bounce, a dying container moving a rider that stays in the partition, and infantry
-	// entering a non-enclosing garrison (all three excluded by contactSkipCandidate), a SlowDeath fling
-	// (Z and angle only, covered by contactClearlyApart), ActiveBody::setGeometryInfoZ on a damaged
-	// structure (Z only), a hijack's goal snap (within the slack, contactClearlyApart), or destroying it
-	// (destroyObject is deferred to processDestroyList, after this pass, so the object keeps its place in
-	// the partition and its position until then). A train shoves a live victim up to ~10 units sideways
-	// in RailroadBehavior::onCollide, so the skip is off while any RailroadBehavior exists (review finding
-	// F1): a live count, so a later game without trains gets the skip back. Every other
-	// position or geometry write reachable from there lands on a NEW object or on one that enters an
-	// enclosing container, which unregisters it and nulls its nodes. (Adversarial reviews,
-	// 24/09/2026, found the fling, the rider, the Fire Base, the train and the hijack snap.)
-	// The test is symmetric, so a pair is skipped from both sides or neither, and a pair that is kept is
-	// added at the same first attempt as before: the order of every pair that reaches onCollide is
-	// unchanged.
+	// GeneralsX: pairs with a projectile that cannot touch never enter the contact list; processContactList() would drop
+	// them on collidesWith() anyway. Identical outcome while collidesWith() stays false until that loop reaches the pair.
+	// Movers are excluded by contactSkipCandidate; a train shoves victims sideways, so the skip is off while a
+	// RailroadBehavior exists. The test is symmetric, and kept pairs are added at the same first attempt.
 	const Object *thisObj = getObject();
 	const Bool thisIsProjectile = thisObj->isKindOf(KINDOF_PROJECTILE);
 	// GX_CONTACT_SKIP_AB=1 (measurement only) applies the skip on even logic frames alone, so one run
@@ -2517,6 +2498,8 @@ void PartitionData::attachToObject(Object* object)
 	// remember who contains us
 	m_object = object;
 	m_ownerTag = calcOwnerTag(object);	// GeneralsX: no COI is in use yet (asserted below)
+	// GeneralsX: m_cellMissileCount, counted from its first COI on
+	m_gxMissile = object != nullptr && (object->isKindOf(KINDOF_BALLISTIC_MISSILE) || object->isKindOf(KINDOF_SMALL_MISSILE));
 
 	// we only snapshot things that are immobile and have something to draw.  Don't need ghostobjects for others.
 	if (object->isKindOf(KINDOF_IMMOBILE))
@@ -2837,6 +2820,10 @@ PartitionManager::PartitionManager()
 	m_cells = nullptr;
 	m_cellOwnerMask = nullptr;
 	m_cellOwnerCount = nullptr;
+	m_cellMissileCount = nullptr;
+	m_missileCoiCount = 0;
+	m_blockMissileCount = nullptr;
+	m_missileBlockCountX = 0;
 	m_maxObjectRadius = 0.0f;
 	m_maxDrift = 0.0f;
 	m_worldExtents.lo.zero();
@@ -2911,14 +2898,14 @@ void PartitionManager::init()
 			m_worldExtents.hi.y = m_worldExtents.lo.y + 1.0f;
 		m_cellCountX = REAL_TO_INT_CEIL(m_worldExtents.width() * m_cellSizeInv);
 		m_cellCountY = REAL_TO_INT_CEIL(m_worldExtents.height() * m_cellSizeInv);
-		// GeneralsX: The product used to be taken in Int, so a large enough extent wrapped it
-		// (2^20 x 2^12 cells -> 0), allocated that, and the loop below then initialised cellCountX x cellCountY cells
+		// GeneralsX: The product is taken in Int64, because in Int a large enough extent wraps it
+		// (2^20 x 2^12 cells -> 0) and the loop below would initialise cellCountX x cellCountY cells
 		// far past the allocation. The map's boundaries are bounded where they are read (WorldHeightMap.cpp
 		// boundariesFitHeightMap), so this only fires on a grid no map produces; refusing it beats corrupting the heap,
 		// and a start refuses an ERROR_CORRUPT_FILE_FORMAT as a damaged map (GameLogic::startNewGame).
 		// GeneralsX: PartitionCellSize comes from GameData, which a map.ini may override: 1 on an
-		// 8,000-unit map asked for 64 million PartitionCells (gigabytes, then each initialised) before play.
-		// The grid is refused past 2^20 cells. Shipped data uses 40 everywhere and no map.ini sets it (817 scanned); the
+		// 8,000-unit map would ask for 64 million PartitionCells (gigabytes, then each initialised) before play.
+		// The grid is refused past 2^20 cells. Shipped data uses 40 everywhere and no map.ini sets it; the
 		// largest real map (802 x 860 height cells) makes 43,000 cells at 40.
 		const Int64 MAX_PARTITION_CELLS = 1 << 20;
 		const Int64 totalCellCount = (Int64)m_cellCountX * (Int64)m_cellCountY;
@@ -2931,6 +2918,13 @@ void PartitionManager::init()
 		memset(m_cellOwnerMask, 0, sizeof(PartitionOwnerMask) * (size_t)m_totalCellCount);
 		m_cellOwnerCount = MSGNEW("PartitionManager_CellOwnerCount") UnsignedInt[(size_t)m_totalCellCount * PARTITION_OWNER_TAGS];
 		memset(m_cellOwnerCount, 0, sizeof(UnsignedInt) * (size_t)m_totalCellCount * PARTITION_OWNER_TAGS);
+		m_cellMissileCount = MSGNEW("PartitionManager_CellMissileCount") UnsignedInt[m_totalCellCount];
+		memset(m_cellMissileCount, 0, sizeof(UnsignedInt) * (size_t)m_totalCellCount);
+		m_missileCoiCount = 0;
+		m_missileBlockCountX = (m_cellCountX + (1 << GX_MISSILE_BLOCK_SHIFT) - 1) >> GX_MISSILE_BLOCK_SHIFT;
+		const Int missileBlockCountY = (m_cellCountY + (1 << GX_MISSILE_BLOCK_SHIFT) - 1) >> GX_MISSILE_BLOCK_SHIFT;
+		m_blockMissileCount = MSGNEW("PartitionManager_BlockMissileCount") UnsignedInt[(size_t)m_missileBlockCountX * missileBlockCountY];
+		memset(m_blockMissileCount, 0, sizeof(UnsignedInt) * (size_t)m_missileBlockCountX * missileBlockCountY);
 		for (Int x = 0; x < m_cellCountX; x++)
 		{
 			for (Int y = 0; y < m_cellCountY; y++)
@@ -2980,7 +2974,11 @@ void PartitionManager::getPMStats(double& gcoTimeThisFrameTotal, double& gcoTime
 // orders object for object - for the caller's filters, and again with no filters at all, so the order of every object in range
 // is checked (a pure filter's result is a subsequence of it). The ring walk sets only its own done flags and the filters are
 // pure, so the simulation reads nothing it changes. [GXGCOCHK] prints the totals every 64 calls, at each mismatch and at reset().
+#ifdef GX_TEST_INSTRUMENTS
 static const Bool s_gcoPureCheck = getenv("GX_GCO_PURE_CHECK") != nullptr;
+#else
+static const Bool s_gcoPureCheck = FALSE;	// read before main's GX_* allow-list scrub, so test builds only
+#endif
 static UnsignedInt s_gcoChkCalls = 0, s_gcoChkObjs = 0, s_gcoChkMulti = 0, s_gcoChkSameDist = 0, s_gcoChkBad = 0;
 static UnsignedInt s_gcoChkAllObjs = 0, s_gcoChkAllBad = 0, s_gcoChkSameCell = 0;
 
@@ -3033,6 +3031,7 @@ void PartitionManager::shutdown()
 #ifdef FASTER_GCO
 	m_radiusVec.clear();
 	m_walkRank.clear();
+	m_ringReach.clear();
 #endif
 
 	resetPendingUndoShroudRevealQueue();
@@ -3043,6 +3042,12 @@ void PartitionManager::shutdown()
 	m_cellOwnerMask = nullptr;
 	delete [] m_cellOwnerCount;
 	m_cellOwnerCount = nullptr;
+	delete [] m_cellMissileCount;
+	m_cellMissileCount = nullptr;
+	m_missileCoiCount = 0;
+	delete [] m_blockMissileCount;
+	m_blockMissileCount = nullptr;
+	m_missileBlockCountX = 0;
 	m_maxObjectRadius = 0.0f;	// GeneralsX: every object left the partition above
 	m_maxDrift = 0.0f;
 
@@ -3549,6 +3554,21 @@ void PartitionManager::calcRadiusVec()
 		const OffsetVec& offsets = m_radiusVec[r];
 		for (OffsetVec::const_iterator it = offsets.begin(); it != offsets.end(); ++it)
 			m_walkRank[(it->y + cy - 1) * rankW + (it->x + cx - 1)] = rank++;
+	}
+
+	// GeneralsX: m_ringReach, computed from the rings themselves
+	m_ringReach.assign((size_t)m_maxGcoRadius + 1, 0);
+	Int reach = 0;
+	for (Int r = 0; r <= m_maxGcoRadius; ++r)
+	{
+		const OffsetVec& offsets = m_radiusVec[r];
+		for (OffsetVec::const_iterator it = offsets.begin(); it != offsets.end(); ++it)
+		{
+			const Int ax = it->x < 0 ? -it->x : it->x;
+			const Int ay = it->y < 0 ? -it->y : it->y;
+			reach = max(reach, max(ax, ay));
+		}
+		m_ringReach[r] = reach;
 	}
 }
 #endif
@@ -4169,17 +4189,10 @@ SimpleObjectIterator *PartitionManager::iterateObjectsInRangePure(
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX: the objects iterateObjectsInRange(obj, ...) would collect, handed to the visitor
-// in its insertion order, with an early stop. This is getClosestObjects' FASTER_GCO ring walk (same rings, cells, COI
-// order, done flags, distance test and filters) as its own copy, so getClosestObjects - every other search - stays the
-// retail loop (01/10/2026: with the visitor branches inside it, small searches ran 2-4% slower, ai-smartcheap-3 g5).
-// Early stop: every object not visited yet has all of its cells in rings > curRadius, whose cells are more than
-// curRadius * cellSize from any point of this cell (calcMinRadius); its centre is within its bounding radius
-// (<= m_maxObjectRadius) of its cells even when the map edge clips them, plus however far it crept without being
-// re-filled (<= m_maxDrift), so it is farther than curRadius * cellSize - m_maxObjectRadius - m_maxDrift away.
-// That holds for objects whose cells are current. One that moved (or turned) since the last update() still sits in its
-// old cells (PartitionData::makeDirty): if its CURRENT distance says it may still matter, walk on until its old cells
-// have been visited - it is then visited exactly where the full walk would have visited it.
+// GeneralsX: the objects iterateObjectsInRange(obj, ...) would collect, visited in insertion order with an early stop.
+// Its own copy of the getClosestObjects FASTER_GCO ring walk, so getClosestObjects stays the retail loop.
+// Stop rule: unvisited objects are beyond curRadius * cellSize - m_maxObjectRadius - m_maxDrift; an object moved since
+// the last update() is walked on until its old cells are visited.
 #ifndef FASTER_GCO
 #error visitObjectsNearToFar copies the FASTER_GCO walk
 #endif
@@ -4289,6 +4302,155 @@ void PartitionManager::visitObjectsNearToFar(
 }
 
 //-----------------------------------------------------------------------------
+// GeneralsX: the FASTER_GCO closest-object walk as its own copy, ending once no object left can be inside the area.
+// PolygonTrigger::getRadius adds the bounds y where it should subtract; it stays, as it decides who is found.
+// Objects outside the polygon fail the area filter whichever ring reaches them, so skipping them changes nothing.
+// Stop rule as in visitObjectsNearToFar.
+#ifdef GX_TEST_INSTRUMENTS
+GXRw1Stats TheGXRw1Stats;
+#endif
+
+Object *PartitionManager::getClosestObjectInArea(
+	const Coord3D *pos,
+	Real maxDist,
+	DistanceCalculationType dc,
+	PartitionFilter **filters,
+	const PolygonTrigger *area
+)
+{
+	DistCalcProc distProc = theDistCalcProcs[dc];
+	Int cellCenterX, cellCenterY;
+	worldToCell(pos->x, pos->y, &cellCenterX, &cellCenterY);
+
+	Object *closestObj = nullptr;
+	Real closestDistSqr = maxDist * maxDist;
+
+	Int maxRadius = m_maxGcoRadius;
+	if (maxDist < HUGE_DIST)
+	{
+		maxRadius = min(m_maxGcoRadius, worldToCellDist(maxDist));
+	}
+#if defined(INTENSE_DEBUG)	// as getClosestObjects: the debug walk reaches three rings further
+	Int maxRadiusLimit = maxRadius + 3;
+	if (maxRadiusLimit > m_maxGcoRadius) maxRadiusLimit = m_maxGcoRadius;
+#else
+	Int maxRadiusLimit = maxRadius;
+#endif
+
+	Bool foundAny = false;
+	Int64 &theIterFlag = gcoIterFlag;	// shared with getClosestObjects
+	++theIterFlag;
+	const PartitionOwnerMask ownerMask = (filters && *filters) ? (*filters)->getCellOwnerMask() : PARTITION_OWNERS_ALL;
+
+	// pointInTrigger truncates the position to integers, so an object it passes is less than one unit outside the polygon's bounds
+	const IRegion2D &bounds = area->gxGetBounds();
+	const Real areaLoX = (Real)bounds.lo.x - 1.0f;
+	const Real areaLoY = (Real)bounds.lo.y - 1.0f;
+	const Real areaHiX = (Real)bounds.hi.x + 1.0f;
+	const Real areaHiY = (Real)bounds.hi.y + 1.0f;
+	const Real areaFarX = max(areaHiX - pos->x, pos->x - areaLoX);
+	const Real areaFarY = max(areaHiY - pos->y, pos->y - areaLoY);
+	Real areaFar = sqrtf(sqr(areaFarX) + sqr(areaFarY));
+#ifdef GX_TEST_INSTRUMENTS
+	static const Int gxBreak = getenv("GX_RW1_BREAK") ? atoi(getenv("GX_RW1_BREAK")) : 0;	// the checker's fail switches: 1 stops far too early, 2 ignores stale cells
+	if (gxBreak == 1)
+		areaFar = 0.0f;
+	++TheGXRw1Stats.calls;
+#endif
+
+	Int stopRing = -1;	// the ring after which the walk may stop, once decided
+	for (Int curRadius = 0; curRadius <= maxRadiusLimit; ++curRadius)
+	{
+		const OffsetVec& offsets = m_radiusVec[curRadius];
+		if (offsets.empty())
+			continue;
+		for (OffsetVec::const_iterator it = offsets.begin(); it != offsets.end(); ++it)
+		{
+			const Int cellX = cellCenterX + it->x;
+			const Int cellY = cellCenterY + it->y;
+			if (ownerMask != PARTITION_OWNERS_ALL && (cellX < 0 || cellY < 0 || cellX >= m_cellCountX || cellY >= m_cellCountY
+					|| (m_cellOwnerMask[cellY * m_cellCountX + cellX] & ownerMask) == 0))
+				continue;
+			PartitionCell* thisCell = getCellAt(cellX, cellY);
+			if (thisCell == nullptr)
+				continue;
+
+			for (CellAndObjectIntersection *thisCoi = thisCell->getFirstCoiInCell(); thisCoi; thisCoi = thisCoi->getNextCoi())
+			{
+				PartitionData *thisMod = thisCoi->getModule();
+				Object *thisObj = thisMod->getObject();
+				if (thisObj == nullptr)
+					continue;
+				if (thisMod->friend_getDoneFlag() == theIterFlag)
+					continue;
+				thisMod->friend_setDoneFlag(theIterFlag);
+
+				Real thisDistSqr;
+				Coord3D distVec;
+				if (!(*distProc)(pos, nullptr, thisObj->getPosition(), thisObj, thisDistSqr, distVec, closestDistSqr))
+					continue;
+				if (!filtersAllow(filters, thisObj))
+					continue;
+
+				closestObj = thisObj;
+				closestDistSqr = thisDistSqr;
+				if (!foundAny)
+				{
+					maxRadiusLimit = curRadius;
+				}
+				foundAny = true;
+			}
+		}
+
+		if (stopRing < 0 && curRadius < maxRadiusLimit
+			&& curRadius * m_cellSize - m_maxObjectRadius - m_maxDrift > areaFar)
+		{
+			stopRing = curRadius;
+			for (PartitionData *d = m_dirtyModules; d; d = d->friend_getNextDirty())
+			{
+#ifdef GX_TEST_INSTRUMENTS
+				if (gxBreak == 2)
+					break;
+#endif
+				Object *o = d->getObject();
+				const Int coiCount = d->friend_getCoiInUseCount();
+				if (o == nullptr || coiCount == 0 || !d->isInNeedOfUpdatingCells() || d->friend_getDoneFlag() == theIterFlag)
+					continue;
+				// the first filter rejects it wherever it is (visitObjectsNearToFar)
+				if (ownerMask != PARTITION_OWNERS_ALL && (ownerMask & gxOwnerTagBit(d->friend_getOwnerTag())) == 0)
+					continue;
+#ifdef GX_TEST_INSTRUMENTS
+				++TheGXRw1Stats.dirtyWalked;
+#endif
+				const Coord3D *p = o->getPosition();
+				if (p->x < areaLoX || p->x > areaHiX || p->y < areaLoY || p->y > areaHiY)
+					continue;
+				for (Int i = 0; i < coiCount; ++i)
+				{
+					const PartitionCell *c = d->friend_getCoi(i)->getCell();
+					ICoord2D off;
+					off.x = c->getCellX() - cellCenterX;
+					off.y = c->getCellY() - cellCenterY;
+					stopRing = max(stopRing, calcMinRadius(off));
+				}
+			}
+			if (stopRing < maxRadiusLimit)
+			{
+				maxRadiusLimit = stopRing;
+#ifdef GX_TEST_INSTRUMENTS
+				++TheGXRw1Stats.stopped;
+#endif
+			}
+		}
+#ifdef GX_TEST_INSTRUMENTS
+		++TheGXRw1Stats.rings;
+#endif
+	}
+
+	return closestObj;
+}
+
+//-----------------------------------------------------------------------------
 SimpleObjectIterator *PartitionManager::iterateObjectsInRange(
 	const Coord3D *pos,
 	Real maxDist,
@@ -4306,6 +4468,97 @@ SimpleObjectIterator *PartitionManager::iterateObjectsInRange(
 	iter->sort(order);
 	iterHolder.release();
 	return iter;
+}
+
+//-----------------------------------------------------------------------------
+// GeneralsX: getClosestObjects'
+// FASTER_GCO ring walk for (nullptr, pos, maxDist, dc, no filters, an iterator): same rings, cells, COI order, done flags and
+// distance test, so the missiles it inserts come in its order. A cell holding no missile COI is skipped, and so is every
+// object that is not a missile before its done flag is set: a missile is never first met in a skipped cell, and the flags it
+// leaves untouched are compared only with a later walk's own gcoIterFlag (64-bit, never reused).
+SimpleObjectIterator *PartitionManager::iterateMissilesInRange(const Coord3D *pos, Real maxDist, DistanceCalculationType dc)
+{
+#ifdef FASTER_GCO
+	MemoryPoolObjectHolder iterHolder;
+	SimpleObjectIterator *iter = newInstance(SimpleObjectIterator);
+	iterHolder.hold(iter);
+
+	if (m_missileCoiCount != 0)
+	{
+		DistCalcProc distProc = theDistCalcProcs[dc];
+		Int cellCenterX, cellCenterY;
+		worldToCell(pos->x, pos->y, &cellCenterX, &cellCenterY);
+		const Real maxDistSqr = maxDist * maxDist;	// getClosestObjects' closestDistSqr, never lowered while collecting
+		Int maxRadius = m_maxGcoRadius;
+		if (maxDist < HUGE_DIST)
+			maxRadius = min(m_maxGcoRadius, worldToCellDist(maxDist));
+#if defined(INTENSE_DEBUG)
+		Int maxRadiusLimit = maxRadius + 3;	// as getClosestObjects
+		if (maxRadiusLimit > m_maxGcoRadius) maxRadiusLimit = m_maxGcoRadius;
+#else
+		Int maxRadiusLimit = maxRadius;
+#endif
+
+		// Every cell of those rings lies in the square of half-width m_ringReach around the centre cell: when no block it
+		// touches holds a missile COI, no cell of the walk does, and the walk would insert nothing.
+		const Int reach = m_ringReach[maxRadiusLimit];
+		const Int x0 = max(cellCenterX - reach, 0), x1 = min(cellCenterX + reach, m_cellCountX - 1);
+		const Int y0 = max(cellCenterY - reach, 0), y1 = min(cellCenterY + reach, m_cellCountY - 1);
+		Bool anyMissileNear = false;
+		for (Int by = y0 >> GX_MISSILE_BLOCK_SHIFT; by <= (y1 >> GX_MISSILE_BLOCK_SHIFT) && y0 <= y1 && !anyMissileNear; ++by)
+			for (Int bx = x0 >> GX_MISSILE_BLOCK_SHIFT; bx <= (x1 >> GX_MISSILE_BLOCK_SHIFT) && x0 <= x1; ++bx)
+				if (m_blockMissileCount[by * m_missileBlockCountX + bx] != 0)
+				{
+					anyMissileNear = true;
+					break;
+				}
+
+		Int64 &theIterFlag = gcoIterFlag;	// shared with getClosestObjects
+		if (anyMissileNear)
+			++theIterFlag;
+
+		for (Int curRadius = 0; curRadius <= maxRadiusLimit && anyMissileNear; ++curRadius)
+		{
+			const OffsetVec& offsets = m_radiusVec[curRadius];
+			for (OffsetVec::const_iterator it = offsets.begin(); it != offsets.end(); ++it)
+			{
+				const Int cellX = cellCenterX + it->x;
+				const Int cellY = cellCenterY + it->y;
+				if (cellX < 0 || cellY < 0 || cellX >= m_cellCountX || cellY >= m_cellCountY)
+					continue;
+				const Int cellIndex = cellY * m_cellCountX + cellX;
+				if (m_cellMissileCount[cellIndex] == 0)
+					continue;
+
+				for (CellAndObjectIntersection *thisCoi = m_cells[cellIndex].getFirstCoiInCell(); thisCoi; thisCoi = thisCoi->getNextCoi())
+				{
+					PartitionData *thisMod = thisCoi->getModule();
+					if (!thisMod->friend_isMissile())
+						continue;
+					Object *thisObj = thisMod->getObject();
+					if (thisObj == nullptr)
+						continue;
+
+					if (thisMod->friend_getDoneFlag() == theIterFlag)
+						continue;
+					thisMod->friend_setDoneFlag(theIterFlag);
+
+					Real thisDistSqr;
+					Coord3D distVec;
+					if (!(*distProc)(pos, nullptr, thisObj->getPosition(), thisObj, thisDistSqr, distVec, maxDistSqr))
+						continue;
+
+					iter->insert(thisObj, thisDistSqr);
+				}
+			}
+		}
+	}
+
+	iterHolder.release();
+	return iter;
+#else
+	return iterateObjectsInRange(pos, maxDist, dc);
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -4651,14 +4904,9 @@ Bool PartitionManager::findPositionAround( const Coord3D *center,
 // is in Object where Allies make sense.  AddLooker literally just adds a looker for the player you specify.
 // This way, Full map reveals and Observer mode active look will not carry over to all
 // allies.  They'll use the RevealWholeDamnMap series, which call addLooker directly.
-// GeneralsX: A map script's reveal or shroud radius (MAP_REVEAL_AT_WAYPOINT, MAP_SHROUD_AT_WAYPOINT,
-// MAP_REVEAL_PERMANENTLY_AT_WAYPOINT and the named reveals) reaches these four as the file gave it: 1e10 overflowed the cell
-// conversion and DiscreteCircle reserved radius << 1 edges - a negative or multi-gigabyte request. Capped at a
-// million world units (100,000 cells): a circle that large around any point of a map already covers all of it, so the cells
-// it touches are the same. Real maps use 1..20,000 (2,641 maps scanned); sight ranges are far below. A NaN radius is 0 (one
-// cell, the minimum below): Zero Hour's fast_float_ceil turned NaN into INT_MAX cells, the same crash.
-// GeneralsX: The threat and value maps size the same circles from an object's VisionRange, which a
-// map.ini may override, so they take the same cap (real vision ranges reach 99,999; batch-0958).
+// GeneralsX: a script reveal or shroud radius is capped at a million world units (100,000 cells): 1e10 overflowed the
+// cell conversion and DiscreteCircle reserved radius << 1 edges. A circle that large covers any map; NaN is 0.
+// Threat and value maps size circles from VisionRange (map.ini may override it), so they take the same cap.
 static const Real MAX_SHROUD_RADIUS = 1000000.0f;
 static Real shroudRadius(Real radius)
 {
@@ -4667,16 +4915,9 @@ static Real shroudRadius(Real radius)
 	return radius > MAX_SHROUD_RADIUS ? MAX_SHROUD_RADIUS : radius;
 }
 
-// GeneralsX: The cap above is in world units, so with PartitionCellSize = 1 (a map.ini may set it)
-// a reveal still built a million-cell DiscreteCircle and walked each scanline's whole two-million-cell span.
-// A circle that reaches every cell of the grid touches the same cells, each once, as any larger one, so the
-// radius a circle is built with stops there: the Manhattan distance from the centre cell to the farthest grid cell, plus 2
-// (the discrete circle of that radius contains the whole diamond, and so the grid - scripts/test/discrete-circle-test.sh
-// compares every cell against the uncapped circle, centres outside the grid included). Only the circle's size changes:
-// the threat and value falloff keeps its own radius, so every cell gets exactly the value it got before.
-// A circle whose bounding square (every row and span lies within centre +- radius) misses the grid touches no cell: 0, and
-// the caller draws nothing - nor builds a circle around a centre far enough out to overflow its Int rows.
-// Left: a centre outside the grid whose circle reaches part of it costs one linear walk of its radius (at most a million).
+// GeneralsX: the cap above is in world units, so with PartitionCellSize = 1 a reveal still built a million-cell circle.
+// A circle reaching every grid cell touches the same cells as any larger one, so the radius stops at the Manhattan
+// distance from the centre cell to the farthest grid cell, plus 2. A circle whose bounding square misses the grid is 0.
 static Int gridCircleRadius(Int cellCenterX, Int cellCenterY, Int cellRadius, Int cellCountX, Int cellCountY)
 {
 	if ((Int64)cellCenterX + cellRadius < 0 || (Int64)cellCenterX - cellRadius > (Int64)cellCountX - 1
@@ -6216,6 +6457,10 @@ PartitionFilterPossibleToAttack::PartitionFilterPossibleToAttack(AbleToAttackTyp
 }
 
 //-----------------------------------------------------------------------------
+// GeneralsX: defined in WeaponSet.cpp: the (source, victim) whose range check may be skipped
+extern const Object *g_gxRangeIrrelevantSource;
+extern const Object *g_gxRangeIrrelevantVictim;
+
 Bool PartitionFilterPossibleToAttack::allow(Object *objOther)
 {
 	// objOther is guaranteed to be non-null, so we don't need to check (srj)
@@ -6223,7 +6468,18 @@ Bool PartitionFilterPossibleToAttack::allow(Object *objOther)
 	// we should have already filtered out isAbleToAttack!
 	DEBUG_ASSERTCRASH(m_obj->isAbleToAttack(), ("if the object is unable to attack at all, you should filter that out ahead of time!"));
 
+	// GeneralsX: both answers below that pass are the same answer here, so WeaponSet may skip
+	// the range check that only picks between them. Not for an aircraft target: the tunnel air watch (Object::getAbleToAttackSpecificObject)
+	// asks its own questions first. The mark is taken and cleared by WeaponSet::getAbleToUseWeaponAgainstTarget, and cleared here again in
+	// case the call returned before reaching it.
+	if (!objOther->isKindOf( KINDOF_AIRCRAFT ))
+	{
+		g_gxRangeIrrelevantSource = m_obj;
+		g_gxRangeIrrelevantVictim = objOther;
+	}
 	CanAttackResult result = m_obj->getAbleToAttackSpecificObject( m_attackType, objOther, m_commandSource );
+	g_gxRangeIrrelevantSource = nullptr;
+	g_gxRangeIrrelevantVictim = nullptr;
 	if( result == ATTACKRESULT_POSSIBLE || result == ATTACKRESULT_POSSIBLE_AFTER_MOVING )
 	{
 		return TRUE;

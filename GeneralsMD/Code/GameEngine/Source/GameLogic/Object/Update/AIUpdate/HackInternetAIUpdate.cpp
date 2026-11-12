@@ -140,38 +140,10 @@ void HackInternetAIUpdate::aiDoCommand(const AICommandParms* parms)
 
 	// TheSuperHackers @bugfix andrew-2e128 / Mauller 14/07/2025 prevent hacking hackers packing and unpacking when commanded to hack the internet
 	//
-	// GeneralsX: UNGATED from #if !RETAIL_COMPATIBLE_CRC, deliberately, at
-	// the owner's instruction. Upstream keeps this behind that macro because it changes simulation
-	// behaviour and therefore the frame CRC, which would desync a retail 1.04 client. GeneralsX has
-	// no retail peers to stay in step with - engineID/sourceID already refuse any peer whose engine
-	// differs - and the whole fleet rebuilds atomically, so the compatibility that macro protects
-	// buys us nothing while the bug costs real money every game.
-	//
-	// WHAT IT COSTS WITHOUT THIS: MSG_INTERNET_HACK carries no operands (the ObjectID argument is
-	// commented out at GameLogicDispatch.cpp:2325), so the order fans out to every selected unit
-	// with no filter. An already-hacking hacker fell into the PACKING branch below, packed, went
-	// idle, replayed the stored command, unpacked, and re-entered HACK_INTERNET - where onEnter
-	// resets m_framesRemaining to a full getCashUpdateDelay(). Every spurious re-order therefore
-	// forfeited all accrued progress toward the next payout, not merely the animation time. The
-	// ControlBar restriction cannot prevent it: multi-select enables a button if ANY selected
-	// object can run it (ControlBarMultiSelect.cpp:400-419), so one idle hacker in the group
-	// re-orders all of them.
-	//
-	// UNPACKING is in the test on purpose and the branch below omits it: a hacker mid-unpack would
-	// otherwise fall through to privateHackInternet and restart its unpack animation from zero.
-	//
-	// THIS IS THE ONLY SITE LIFTED. The macro itself still reads 1 and every other block behind it
-	// stays gated - flipping the regime wholesale is a separate decision needing its own audit.
-	//
-	// WHAT THIS COSTS, named rather than discovered later (cross-model review, 2026-08-11). This
-	// changes the frame CRC, so a replay recorded BEFORE this build that contains a hack order
-	// aimed at an already-hacking hacker will diverge at that frame on playback. That is in
-	// tension with golden rule 6 ("original replays and mods must work") and was
-	// accepted deliberately. The exposure is narrow: playback refuses a replay of another SimID
-	// (RecorderClass::replayMatchesGameVersion, every entry path since 01/10/2026), so cross-build
-	// playback is only reachable at all under the GX_REPLAY_XPLAT waiver - a diagnostic mode, off by
-	// default. So the realistic loss is cross-build determinism replays that involve hackers; none
-	// of the eight replays in the corpus does. Re-capture if one ever should.
+	// GeneralsX: ungated from #if !RETAIL_COMPATIBLE_CRC, which upstream keeps because it changes the frame CRC.
+	// MSG_INTERNET_HACK has no operands, so it fans out to every selected unit; an already-hacking hacker would repack
+	// and reset m_framesRemaining, forfeiting progress. UNPACKING is tested on purpose.
+	// Older replays with such an order diverge there.
 	if (parms->m_cmd == AICMD_HACK_INTERNET && isUnpackingOrHacking)
 	{
 		return;

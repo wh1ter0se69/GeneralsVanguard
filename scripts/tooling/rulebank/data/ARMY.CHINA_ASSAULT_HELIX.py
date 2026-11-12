@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule ARMY.CHINA_ASSAULT_HELIX: China Infantry adds an assault Helix
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule ARMY.CHINA_ASSAULT_HELIX: China Infantry adds an assault Helix
 # group to its waves. Stock Infantry Hard's only Helix is a 3rd-wave base guard (0-1). A Helix needs an Air Field (INIZH), which no stock
 # ground wave team can assume standing (a stock team with one would never form: AIPlayer::isPossibleToBuildTeam), so this adds its own
 # team "GX Assault Helix" (assault_helix_n Helix, one at a time, re-formed when lost) once an own Air Field is complete and from

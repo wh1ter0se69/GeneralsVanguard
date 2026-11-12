@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Stage the fonts the iOS app bundles. The game asks for Windows font names
 # (arial.ttf etc.); we use the metric-compatible Liberation fonts (SIL OFL)
 # renamed accordingly. Pinned release for reproducibility.

@@ -16,47 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: The content check a received map preview has to pass.
-//
-// WHY THIS IS A SEPARATE, ENGINE-FREE HEADER
-//
-// It decides whether remotely-supplied bytes are written to disk under a .tga name, and it decides
-// whether a map transfer succeeds at all - the preview is the FIRST leg of DoAnyMapTransfers, so
-// refusing it means the .map itself is never put on the wire. Both directions are expensive, and
-// neither is convenient to reach through a live lobby. Written against plain integers and a byte
-// pointer so scripts/test/tga-validate-test.cpp can drive it - including over the real preview
-// files in scripts/test/maps - compiling THIS header and nothing else.
-//
-// WHAT WAS WRONG WITH THE PREVIOUS CHECK
-//
-// It required the TGA 2.0 footer, "TRUEVISION-XFILE" in the last 18 bytes. That footer is OPTIONAL
-// in the format: a TGA v1 is an 18-byte header followed by pixels, full stop. EA's own previews
-// inside MapsZH.big are TGA 2.0 (65580 bytes = 18 + 128*128*4 + 26), which is exactly why the
-// mistake shipped looking right - every map anyone had tested with was EA's.
-//
-// MEASURED, 2026-08-13, on the deployed 89a21e6ac binary over the live relay, one variable between
-// the arms (scripts/test/relay-maptransfer-n.sh):
-//
-//   GXCircle12ZHv1.tga as authored - 49170 bytes = 18 + 128*128*3, TGA v1, no footer: the joiner
-//   reassembles all 111 chunks, refuses the write, reports GX_FILE_PROGRESS_FAILED and bails at
-//   371 ms. The host never learns and burns its full 60 s ("doFileTransfer TIMEOUT after 60001 ms
-//   ... minProgress=98"), then bails too. The .map leg is never reached. The symptom is exactly
-//   "nobody receives the map and everyone is dropped back to the lobby", with the 3 MB map never
-//   once put on the wire.
-//
-//   The same file with the 26-byte footer appended and nothing else changed: preview leg 525 ms,
-//   .map leg 2718 ms, md5 identical. With TWO joiners, 640 ms and 3816 ms, both receivers intact.
-//
-// So the gate is what fails the transfer - not the map's size, and not the peer count - and it
-// fails it for every map whose preview was not written by EA's tools.
-//
-// WHY THE REPLACEMENT IS STRICTLY STRONGER, NOT WEAKER
-//
-// The old test looked at the last 18 bytes and said nothing whatsoever about the rest of the file,
-// so any payload at all passed by carrying the right tail. This validates the header a decoder
-// will actually read - image type, pixel depth, non-zero dimensions, colour-map consistency - and,
-// for the uncompressed types, that the declared image is really present rather than truncated. A
-// TGA 2.0 file passes unchanged; its footer simply stops being load-bearing.
+// The content check a received map preview has to pass. Engine-free so a test can drive it.
+// It decides whether remote bytes are written to disk under a .tga name, and the preview is the first leg of the map
+// transfer, so refusing it means the map is never sent. It validates the header a decoder reads and that uncompressed
+// images are not truncated. The TGA 2.0 footer is optional and not required.
 
 #pragma once
 

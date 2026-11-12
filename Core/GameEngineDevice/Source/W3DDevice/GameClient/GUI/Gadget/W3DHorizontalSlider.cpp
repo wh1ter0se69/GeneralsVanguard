@@ -59,24 +59,9 @@
 
 // PRIVATE DATA ///////////////////////////////////////////////////////////////
 
-// GeneralsX: SLIDER STEPS SCALE FROM 1280x720, NOT 800x600.
-//
-// A step box is sized `imageWidth * (displayWidth / base)` while the gap between boxes stays a flat
-// 2 pixels. The box therefore grows with the screen at the same rate the track does, and the number
-// of steps - which IS the precision a player can see and aim at - never improves with resolution.
-// With base 800 a 0-100 volume slider renders about twenty boxes at any size, so one box is five
-// units: 1% and 5% light the same single box and the difference between quiet and silent is
-// invisible. Reported from a side-by-side against Generals Online, whose sliders are visibly finer.
-//
-// This is their fix, adopted rather than reinvented. GENERALS_ONLINE_WIDESCREEN_X_SCALE / _Y_SCALE
-// are 1280 and 720 in NextGenMP_defines.h, and they apply them in exactly five files - of which
-// W3DHorizontalSlider.cpp is one. So it is a slider-scoped change on their side too, not fallout
-// from a whole-UI rescale, and taking it here does not leave our sliders inconsistent with the rest
-// of our menus. At 2560 wide it makes each box 1.6x narrower and yields 1.6x more of them.
-//
-// DEFAULT_DISPLAY_WIDTH stays what it is: 800 really is the resolution this game was authored at,
-// and everything else that scales from it is right to. This is the one place where scaling the STEP
-// with the screen destroys the thing the step exists to express.
+// Slider steps scale from 1280x720, not 800x600. A step box is `imageWidth * (displayWidth / base)` with a flat
+// 2 px gap, so at base 800 a 0-100 slider shows about twenty boxes at any size. Base 1280x720 follows Generals Online.
+// DEFAULT_DISPLAY_WIDTH stays 800, the authored resolution.
 static const Real SLIDER_STEP_BASE_X = 1280.0f;
 static const Real SLIDER_STEP_BASE_Y = 720.0f;
 
@@ -177,7 +162,7 @@ void W3DGadgetHorizontalSliderImageDraw( GameWindow *window,
 	Int numBoxes = 0;
 	Int numSelectedBoxes = 0;
 	Int numHighlightBoxes = 0;
-	// GeneralsX @bugfix fillSquare comes straight from the gadget's image slot with
+	// GeneralsX: fillSquare comes straight from the gadget's image slot with
 	// no null test — an unset disabled-state image dereferences null here, and a
 	// zero width would divide the box loop by nothing.
 	if( fillSquare == nullptr || fillSquare->getImageWidth() <= 0 )

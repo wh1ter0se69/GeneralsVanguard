@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# GeneralsX: Data/INI/AIData.ini: the skirmish AI's base layouts, drawn so production doors face the base front. A RECIPE:
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Data/INI/AIData.ini: the skirmish AI's base layouts, drawn so production doors face the base front. A RECIPE:
 # which entries, in which order, with which flags are read from the Community Patch's own Data\INI\Default\AIData.ini in the player's or packager's
 # archive; only the coordinates and angles below are ours.
 #
@@ -86,9 +88,8 @@ LAYOUTS = {
 for _g in ("GLADemolitionGeneral", "GLAStealthGeneral", "GLAToxinGeneral"):
     LAYOUTS[_g] = LAYOUTS["GLA"]   # the same list with its own prefix
 
-# GeneralsX 06/11/2026: the lists the shipped file leaves to the Community Patch. Their $10k
-# screen cells cost (Air Force $10k FAIL / FAIL; Demolition $10k FAIL / UNKNOWN, a deficit already on the ADDENDUM_7 head), so they ship with
-# stock placement until a mechanism probe explains it. A side absent from the file keeps the Community Patch's list, and a list without the keys
+# The lists the shipped file leaves to the Community Patch. Their $10k screen cells fail (Air Force FAIL / FAIL; Demolition FAIL / UNKNOWN), so they ship with
+# stock placement. A side absent from the file keeps the Community Patch's list, and a list without the keys
 # runs the retail path bit for bit, so these two are inert by construction. --only still writes them (test arms).
 SHIP_OFF = ("AmericaAirForceGeneral", "GLADemolitionGeneral")
 

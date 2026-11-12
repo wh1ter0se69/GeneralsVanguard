@@ -1,4 +1,22 @@
-// GeneralsX: WS-B VkCtx v0: the one include every GXRender/Vk file starts with.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// VkCtx: the one include every GXRender/Vk file starts with.
 //
 // Entry points come from volk (VK_NO_PROTOTYPES): nothing links a Vulkan loader, VkCtx resolves vkGetInstanceProcAddr
 // from the library the process already uses. VK_ENABLE_BETA_EXTENSIONS is set by the build for
@@ -33,15 +51,15 @@ struct TestMutants
 	VkDeviceSize uploadForceAtom = 0;    // not a defect: VkUploadRing treats its memory as non-coherent with this atom
 	bool uploadIgnoreAtom = false;       // VkUploadRing packs ranges ignoring the non-coherent atom (the earlier code)
 	bool waitDeviceLost = false;         // Timeline::wait sees VK_ERROR_DEVICE_LOST from vkWaitSemaphores
-	bool gpuTimerNoSettle = false;       // VkGpuTimer's validation probes read their stamps once, without the settle window (R26)
+	bool gpuTimerNoSettle = false;       // VkGpuTimer's validation probes read their stamps once, without the settle window
 	double gpuTimerLateMs = 0;           // not a defect: a probe's stamps read as unavailable until this long after its first read
-	                                     // attempt - MoltenVK's late availability on demand (R26)
+	                                     // attempt - MoltenVK's late availability on demand
 	bool gpuTimerNoStamps = false;       // not a defect: the validation probes reset their queries but never write the stamps (a
 	                                     // genuinely unwritten query: a conformant driver's WAIT read would block on it forever;
 	                                     // MoltenVK 1.4.2 does not - OBSERVED - so the WAIT guard is the static_assert in
-	                                     // VkGpuTimer::readPair - R26, r26-r4)
+	                                     // VkGpuTimer::readPair)
 
-	// The submit thread (R19, rw3-V). The fields the THREAD reads (submitFail*, presentResult*,
+	// The submit thread. The fields the THREAD reads (submitFail*, presentResult*,
 	// threadNoLatch, threadLatchLost, threadPresentFirst, skippedPresentOk) are written only through VkCtx::testSet (under the op
 	// lock) and snapshotted per op when the thread takes it; so are latchNoDrain, threadInitLast and idleResult (for the drain); the
 // rest are read by the producer that sets them.
@@ -64,8 +82,8 @@ struct TestMutants
 	bool ringShutdownNoIdle = false;     // VkFrameRing / VkUploadRing shutdown destroy after per-slot waits, not after waitIdle
 	bool waitFastPathOffByOne = false;   // the wait fast path accepts completed() >= value - 1
 	bool skippedPresentOk = false;       // a present skipped behind a refusal records VK_SUCCESS
-	bool presentHookOnInjected = false;  // FG P0 H2: the present hook runs around the TEST-injected present (it reaches no driver)
-	uint64_t presentResultAfterDriverAt = 0;  // FG P0 H2 (not a defect): the Nth present that REACHED the driver (1-based, both paths)
+	bool presentHookOnInjected = false;  // the present hook runs around the TEST-injected present (it reaches no driver)
+	uint64_t presentResultAfterDriverAt = 0;  // not a defect: the Nth present that REACHED the driver (1-based, both paths)
 	VkResult presentResultAfterDriver = VK_SUBOPTIMAL_KHR;  // ... reports this instead of the driver's answer (hook end included)
 };
 extern TestMutants g_testMutants;

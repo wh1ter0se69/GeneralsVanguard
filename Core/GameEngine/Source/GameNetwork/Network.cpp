@@ -44,9 +44,9 @@
 #include "GameClient/Shell.h"
 #include "Common/CRCDebug.h"
 #include "GameLogic/GameLogic.h"
-#include "Common/FramePacer.h"	// GeneralsX @feature fast forward: timeForNewFrame yields to the main loop
-#include "Common/CatchUpPolicy.h"	// GeneralsX @feature tick catch-up: the pacer step and its debt
-#include "Common/GXAdminOrderMsg.h"	// GeneralsX @security signing an admin's cheat orders (gxSealAdminOrder)
+#include "Common/FramePacer.h"	// GeneralsX: fast forward: timeForNewFrame yields to the main loop
+#include "Common/CatchUpPolicy.h"	// GeneralsX: tick catch-up: the pacer step and its debt
+#include "Common/GXAdminOrderMsg.h"	// GeneralsX: signing an admin's cheat orders (gxSealAdminOrder)
 #include "GameClient/GXAdminKey.h"
 
 #include "Common/RandomValue.h"
@@ -192,20 +192,10 @@ public:
 		if (m_conMgr == NULL)
 			return -1.0f;
 
-		// Measured ack round trips, not getMaximumLatency(). That one is only assigned for the
-		// local slot inside updateRunAhead, which only the packet router runs - so on a non-host
-		// peer it stays zero and the HUD reported a perfect 0 ms connection in green. Observed live
-		// on 2026-08-04 before this was corrected.
-		//
-		// GeneralsX: Reduced with the MINIMUM, not the mean - the mean adds
-		// half the local frame time to every reading. The run-ahead path keeps the mean; only the
-		// human-facing number changes.
-		//
-		// GeneralsX: That minimum is now taken WITHIN one peer's samples,
-		// and the WORST peer is what gets reported, with its slot. Reducing over the shared ring
-		// returned the FASTEST peer in a mixed lobby - the one peer that by construction cannot be
-		// hurting a lockstep match. See FrameMetrics::getWorstPeerLatency for the arithmetic, and
-		// for exactly what a router and a non-router may each claim from this number.
+		// Measured ack round trips, not getMaximumLatency(): that is only set for the local slot in updateRunAhead, which
+		// only the packet router runs, so a non-router peer would show 0 ms. Reduced with the minimum (the mean adds half
+		// a local frame), taken within one peer, and the worst peer is reported with its slot. A mixed lobby reduced over
+		// the shared ring would report the fastest peer. See FrameMetrics::getWorstPeerLatency.
 		Int worstSlot = -1;
 		const Real seconds = m_conMgr->getWorstPeerLatency(worstSlot);
 
@@ -618,10 +608,10 @@ void Network::GetCommandsFromCommandList() {
 		} else {
 			// GeneralsX: The frame tick is eaten here, once processCommand has seen it.
 			// Past the translators the network is its only reader (GameClientMessageDispatcher keeps it for us; the
-			// logic and the recorder ignore it), yet it stayed on the list until the logic tick's reset. Every main-
-			// loop pass appends one, so a -headless peer spinning between network frames piled up ~2,200 per tick and
-			// re-walked them all on every pass: O(n^2) between ticks, and ~45 us inside each tick for the logic's walk
-			// and the reset (m1 tick ledger, 01/10). processCommand acts on the logic frame and the network status
+			// logic and the recorder ignore it), yet it would stay on the list until the logic tick's reset. Every main-
+			// loop pass appends one, so a -headless peer spinning between network frames piles up ~2,200 per tick and
+			// re-walks them all on every pass: O(n^2) between ticks, and ~45 us inside each tick for the logic's walk
+			// and the reset. processCommand acts on the logic frame and the network status
 			// alone, so a stale tick only ever repeated a call that does nothing. The one action whose place in the
 			// list matters - PREGAME -> INGAME, which decides whether the network messages ahead of it are sent - needs
 			// frame 1, and the logic reaches frame 1 only in a tick that has just reset the list.
@@ -741,7 +731,7 @@ void Network::RelayCommandsToCommandList(UnsignedInt frame) {
 		NetCommandType cmdType = msg->getCommand()->getNetCommandType();
 		if (cmdType == NETCOMMANDTYPE_GAMECOMMAND) {
 			NetGameCommandMsg* gmsg = static_cast<NetGameCommandMsg*>(msg->getCommand());
-			// GeneralsX @security The upstream check is gated on RETAIL_COMPATIBLE_CRC, which defaults
+			// GeneralsX: The upstream check is gated on RETAIL_COMPATIBLE_CRC, which defaults
 			// to 1 (GameDefines.h:91) and is overridden by no preset, so upstream ships it compiled out.
 			// We run it unconditionally, and it cannot cost us a legitimate message: the SENDING side
 			// filters on this exact predicate in GetCommandsFromCommandList, so no conforming peer ever
@@ -811,51 +801,16 @@ void Network::processRunAheadCommand(NetRunAheadCommandMsg *msg) {
 	// constant 1, not MIN_RUNAHEAD, so every peer maps a bad value identically.
 	m_runAhead = clamp<Int>(1, (Int)msg->getRunAhead(), MAX_FRAMES_AHEAD / 2);
 
-	// GeneralsX: Hold the pacing invariant where the value is USED, not
-	// only where it is produced.
-	//
-	// m_frameRate is the divisor in timeForNewFrame() (m_perfCountFreq / m_frameRate) and is
-	// therefore THE simulation rate of a network match. Two reasons this clamp belongs here as well
-	// as in ConnectionManager::updateRunAhead:
-	//
-	//   * The producer-side ceiling only runs on the packet router. Every other peer takes whatever
-	//     number arrives on the wire, so the invariant "the sim never runs above its own tick rate"
-	//     was asserted nowhere that a non-router peer executes.
-	//   * The arithmetic three lines down divides by this field, and so does timeForNewFrame(). A
-	//     frameRate of 0 - a truncated or hostile packet, or a router that computed one - was an
-	//     integer divide by zero. MIN_LOGIC_FRAMES is the same floor updateRunAhead uses.
-	//
-	// This CANNOT strand commands, which is the trap that got the previous attempt at this bug
-	// reverted. Network::update() checks timeForNewFrame() BEFORE calling
-	// RelayCommandsToCommandList, so a frame this rate suppresses is one whose commands were never
-	// appended to TheCommandList. Throttling in GameEngine::canUpdateNetworkGameLogic() instead is
-	// AFTER the relay and strands them - see the comment there.
-	//
-	// And it cannot desync. m_frameRate is not simulation-visible: its only readers are
-	// timeForNewFrame(), the frame-grouping send timer below, and FramePacer's client-side
-	// animation slice. LOGICFRAMES_PER_SECOND is compile-time and already part of engineID, so
-	// peers that disagree about it refuse to join each other in the first place.
+	// Clamp where the value is used, not only in ConnectionManager::updateRunAhead (which only the packet router runs).
+	// m_frameRate divides here and in timeForNewFrame(); 0 from a truncated or hostile packet would divide by zero.
+	// Not simulation-visible, so no desync. Update() checks timeForNewFrame() before relaying, so a suppressed frame
+	// never had commands appended; throttling in canUpdateNetworkGameLogic() instead would strand them.
 	m_frameRate = min(max((Int)MIN_LOGIC_FRAMES, (Int)msg->getFrameRate()), (Int)LOGICFRAMES_PER_SECOND);
 
 	time_t frameGrouping = (1000 * m_runAhead) / m_frameRate; // number of miliseconds between packet sends
-	// GeneralsX: GX_GROUPING_DIV - an EXPERIMENTAL divisor override.
-	//
-	// Frame grouping is a hard send-DEFERRAL, not batching: Connection::doSend returns without
-	// sending anything at all until m_frameGrouping ms have elapsed (Connection.cpp:264), with no
-	// urgency bypass. At the measured operating point (runAhead ~8, frameRate 60) that is a 66 ms
-	// send interval against a 16.7 ms tick, so a peer receives input in bursts of ~4 frames and the
-	// measured cushion is ~4 frames - the cushion is exactly ONE burst period, and any jitter is a
-	// stall. [GXSTALL] shows this directly: every stall event reports want=4294967295, the
-	// UnsignedInt -1 sentinel, meaning the FRAMEINFO for that frame had not been SENT yet, and the
-	// short events cluster at 60-145 ms, i.e. one to two grouping intervals.
-	//
-	// This override exists to TEST that account rather than assume it, and to sweep the divisor in
-	// one deploy. It changes only WHEN a packet is sent, never what is simulated, so it cannot
-	// affect determinism - and it is deliberately NOT part of any negotiated value, so peers with
-	// different settings still agree frame for frame. Default 2 is the retail behaviour.
-	//
-	// Not a shipping knob. Whatever the sweep says should become the new fixed policy, or an
-	// urgency bypass in doSend should replace the deferral outright.
+	// GX_GROUPING_DIV: experimental divisor override, default 2. Frame grouping defers sends until m_frameGrouping ms
+	// have passed (Connection::doSend, no urgency bypass), so a peer receives input in bursts. Changes only when a
+	// packet is sent, never what is simulated, and is not negotiated. Not a shipping knob.
 	static const Int s_groupingDiv = (getenv("GX_GROUPING_DIV") != NULL)
 	                                 ? max(1, atoi(getenv("GX_GROUPING_DIV")))
 	                                 : 2;
@@ -865,23 +820,8 @@ void Network::processRunAheadCommand(NetRunAheadCommandMsg *msg) {
 		frameGrouping = 1; // Having a value less than 1 doesn't make sense.
 	}
 
-	// GeneralsX: CAP the deferral at two logic frames. This is the
-	// fix the experiment above was written to justify, and the measurement now exists.
-	//
-	// Measured in a live 4-platform match on 2026-08-07: 35 stalls, median 86 ms, and EVERY stall
-	// reported want=4294967295 - the "not sent yet" sentinel. That is this deferral, exactly as the
-	// note above predicted: the short events cluster at one to two grouping intervals because the
-	// cushion IS one burst period, so any jitter at all becomes a stall.
-	//
-	// Generals Online, which runs this engine online at scale, caps it at a flat 32 ms
-	// (FRAME_GROUPING_CAP, references/generals-online-client/.../NextGenMP_defines.h:81). Expressed
-	// in FRAMES here instead of milliseconds so it scales with the tick rate rather than silently
-	// meaning something different at 30 Hz than at 60 Hz.
-	//
-	// Determinism is not at risk: this changes only WHEN a packet leaves, never what is simulated,
-	// and it is not a negotiated value - peers with different settings still agree frame for frame.
-	// The cost is roughly double the command-packet rate, against a measured 5721 packets / 465 KB
-	// per five minutes for four peers, which is nothing.
+	// Cap the grouping deferral at two logic frames, in frames so it scales with the tick rate. Uncapped, every stall
+	// was an input datagram not yet sent. Changes only when a packet leaves, not what is simulated; not negotiated.
 	if (m_frameRate > 0) {
 		const time_t groupingCap = max((time_t)1, (time_t)((2 * 1000) / m_frameRate));
 		if (frameGrouping > groupingCap) {
@@ -903,48 +843,10 @@ void Network::processDestroyPlayerCommand(NetDestroyPlayerCommandMsg *msg)
 	if (playerIndex >= MAX_SLOTS)
 		return;
 
-	// GeneralsX: redesigned 19/09/2026. Only the disconnect path may issue
-	// this, so only the peer the disconnect path elects may send it. The victim is taken from the
-	// payload, so without a gate any peer could defeat any other: measured, a DESTROYPLAYER naming
-	// slot 2 sent from slot 1 defeated slot 2 on all three peers of a match at one frame
-	// (scripts/test/net-kill-gates.sh forge-destroy).
-	//
-	// THE DECISION READS NOTHING BUT THE EXECUTED ORDER STREAM. This runs inside lockstep, so every
-	// peer must answer identically or the match splits. The first version read this peer's packet
-	// router and whether the victim was still connected here. Both change only when a DIRECT
-	// DISCONNECTPLAYER arrives, which can land after this order on one peer and before it on another
-	// (19/09/2026: a legitimate kick whose DESTROYPLAYER outruns its DISCONNECTPLAYER).
-	// net-kill-gates.sh legit-selfdestroy makes that split repeatable: the router, still connected to
-	// the victim when its own order executes, refused it while the other peers accepted.
-	//
-	// So the sender must be ConnectionManager::lockstepRouter(victim): the first slot of the router
-	// succession parseUserList elected - identical on every peer before a packet moved - that no
-	// EXECUTED leave or kill has taken out, the victim itself skipped. That is the packet router when
-	// the victim is anyone else, and the router's successor when the victim IS the router: who
-	// updateDisconnectStatus elects for a single drop. The sender is the slot whose frame data carried
-	// the order, and the succession moves only here and in processPlayerLeave, at an order's execution
-	// frame - so every peer, the victim's own included, reads the same inputs on the same frame.
-	//
-	// What this does NOT stop, stated rather than hidden:
-	//   * The router can defeat anyone. It always could: updateDisconnectStatus trusts its own
-	//     timeout, and nothing a receiver can see tells a real timeout from a claimed one
-	//     (legit-selfdestroy is exactly that kick, with no vote and no timeout behind it).
-	//   * The router's SUCCESSOR can defeat the router, and is then the router. Nothing in the order
-	//     stream tells a router that crashed from one that is alive and idle - the successor's kill is
-	//     the same bytes either way - and a gate that looks outside the stream splits the match. In a
-	//     two-human match that means the second human can defeat the host. The upgrade path is
-	//     evidence carried IN the order, such as a relay-signed attestation of the drop.
-	//   * The router and its successor dropping together leave both standing: the next slot's kills
-	//     are refused on every peer alike, and the succession stays on the first of them, so later
-	//     kills are refused too. No split - the disconnect path still drops them from the mesh - but
-	//     no defeat.
-	//   * The sender is the slot the packet NAMES. For a synchronised order nothing binds that to the
-	//     transport (the router relays other slots' orders, and the frame-resend path lets any peer
-	//     send them), so a router can put this into another slot's frame data, and so may a peer that
-	//     also forges that slot's frame count (not measured).
-	//
-	// Refusing costs nothing: the order was already counted in its sender's frame data, so it is
-	// consumed and lockstep does not wait for anything.
+	// DESTROYPLAYER is accepted only from ConnectionManager::lockstepRouter(victim): the first slot of the elected router
+	// succession that no executed leave or kill has removed. The decision reads only the executed order stream, so every
+	// peer answers identically; connection state would split the match. A refused order is still consumed.
+	// Limit: the router, or its successor when the router is the victim, can still defeat anyone.
 	const UnsignedInt sender = msg->getPlayerID();
 	const UnsignedInt entitled = m_conMgr->lockstepRouter(playerIndex);
 	if (sender != entitled)
@@ -984,18 +886,9 @@ void Network::processDestroyPlayerCommand(NetDestroyPlayerCommandMsg *msg)
 		return;
 	}
 
-	// GeneralsX: Make the destruct idempotent.
-	//
-	// onSelfDestruct (GameLogicDispatch.cpp) has no already-dead check of its own - it goes
-	// straight to killPlayer(). A player can reach this more than once: they can be voted out
-	// on the disconnect screen having ALREADY quit through the menu, which posts its own
-	// MSG_SELF_DESTRUCT (Network::quitGame). killPlayer() walks every team and kills or
-	// re-teams every object, so running it twice is real simulation work on a digested path,
-	// and any peer that somehow skipped the second pass would diverge.
-	//
-	// Refusing an already-dead player makes a duplicate order a guaranteed no-op on EVERY peer
-	// identically, which is what makes it safe to emit the order from more than one route.
-	// This mirrors onGxCheatKillPlayer, which already refuses observers and dead players.
+	// Idempotent destruct: onSelfDestruct has no dead check and killPlayer walks every team and object, so a duplicate
+	// order (voted out after already quitting through the menu) must be a no-op, identically on every peer.
+	// Mirrors onGxCheatKillPlayer, which refuses observers and dead players.
 	if (pPlayer != nullptr && pPlayer->isPlayerDead())
 	{
 		DEBUG_LOG(("Network::processDestroyPlayerCommand - player %d already dead on frame %d, ignoring",
@@ -1026,49 +919,10 @@ void Network::processDestroyPlayerCommand(NetDestroyPlayerCommandMsg *msg)
 }
 
 #if defined(GX_TEST_INSTRUMENTS)
-// GeneralsX: GX_TEST_FORGE - a TEST INSTRUMENT: make THIS peer send one
-// kill-path order at a chosen logic frame, so scripts/test/net-kill-gates.sh can put the forged and
-// the legitimate form of each order through a real multi-peer match.
-//
-//   destroy:<slot>@<frame>   NETCOMMANDTYPE_DESTROYPLAYER naming <slot>, sent as this peer - built
-//                            exactly as DisconnectManager::sendPlayerDestruct builds it
-//   leave:<slot>@<frame>     NETCOMMANDTYPE_PLAYERLEAVE naming <slot>, sent as this peer - built
-//                            exactly as ConnectionManager::handleLocalPlayerLeaving builds it
-//   kill:<slot>@<frame>      MSG_GX_CHEAT_KILL_PLAYER on the player in <slot>, as the Debug menu
-//   quit@<frame>             a genuine leave through GameLogic::exitGame, the legitimate PLAYERLEAVE
-//   hardquit@<frame>         the disconnect screen's Quit, Network::quitGame: a direct DISCONNECTPLAYER
-//                            naming itself and nothing synchronised
-//   eject:<slot>@<frame>     NETCOMMANDTYPE_DISCONNECTPLAYER naming <slot>, sent as this peer - built
-//                            exactly as DisconnectManager::sendDisconnectCommand builds it
-//   ejectasrouter:<slot>@<frame>  the same, but CLAIMING to come from this peer's packet router
-//   vote:<slot>@<frame>      NETCOMMANDTYPE_DISCONNECTVOTE naming <slot>, sent as this peer - built
-//                            exactly as DisconnectManager::sendVoteCommand builds it, except that
-//                            <slot> is NOT clamped: the wire field is an unbounded UnsignedByte and
-//                            the point is to send what a modified client can send
-//   ejectdestroy:<slot>@<frame>  DisconnectManager::updateDisconnectStatus's own sequence for <slot>
-//                            - DISCONNECTPLAYER, then DESTROYPLAYER, then the issuer's teardown -
-//                            with the teardown after the DESTROYPLAYER has executed instead of in
-//                            the same update. So the order executes with the victim still connected
-//                            at the issuer and already dropped everywhere else, and the victim gets
-//                            its own copy - production deletes the victim's Connection while both
-//                            orders are still only QUEUED on it (net-kill-gates.sh legit-kick-alive).
-//                            Send it from the packet router; every receiver refuses a DESTROYPLAYER
-//                            from anyone else. SYNTHETIC DELIVERY, for the determinism check only.
-//   timeout:<ms>@<frame>     sends nothing: sets THIS peer's NetworkPlayerTimeoutTime to <ms>, so its
-//                            own disconnect path acts sooner than its peers' - a successor whose
-//                            clock ran ahead. Local timing only: nothing but DisconnectManager reads it.
-//   silence:<ms>@<frame>     sends nothing: sets THIS peer's silence bound (DisconnectManager s_silenceMs) to
-//                            <ms> - a peer that keeps the stock timeout, so it still holds an order (forge-erase-held).
-//
-// Any kind may end in +<ms>: fire only once the logic frame has also stood still that long, so an
-// order can be timed inside a network stall, where the frame number no longer moves. After that,
-// *<ms> sends it again every <ms> for as long as the frame still has not moved - so it is the LAST
-// such order a peer received, whenever the stall's other orders happen to land.
-//
-// It only SENDS, which any modified client can already do, and every receiver decides for itself -
-// but from the packet router, ejectdestroy is a real kick with no vote or timeout behind it, so it
-// is compiled in only with -DGX_TEST_INSTRUMENTS=ON (cmake/config-build.cmake), never in a shipping
-// build. Off unless the variable is set, and it fires once per process.
+// GX_TEST_FORGE: test instrument; makes this peer send one kill-path order at a chosen logic frame, as kind:slot@frame
+// (destroy, leave, kill, eject, ejectasrouter, vote, ejectdestroy, timeout, silence) or quit@frame, hardquit@frame.
+// A kind may end in +ms (fire after the frame stood still that long) or *ms (repeat while it has not moved).
+// Only with -DGX_TEST_INSTRUMENTS=ON, never in a shipping build; fires once per process.
 void Network::gxTestForge()
 {
 	static Int s_state = -1;	// -1 unparsed, 0 off or spent, 1 armed
@@ -1222,16 +1076,9 @@ void Network::gxTestForge()
 		m_conMgr->sendLocalCommand(netmsg);
 		netmsg->detach();
 
-		// The issuer's own teardown, deferred until AFTER the DESTROYPLAYER has executed here, instead
-		// of in the same update. That one delay is the only difference from updateDisconnectStatus,
-		// and it does two things. Both orders are still only QUEUED on the victim's Connection when the
-		// real path deletes it, so without it the victim's copy of its own defeat is thrown away unsent
-		// (measured: with the teardown in the same update, the victim logged no DISCONNECTPLAYER at
-		// all). And the issuer still has the victim connected when the order executes while the other
-		// peers do not - the split review found (a DESTROYPLAYER outrunning its DISCONNECTPLAYER), put
-		// on the issuer where it is repeatable. A gate that reads connection state answers differently
-		// here than on the other peers. The issuer keeps relaying meanwhile, so every peer still has
-		// the frame data for the execution frame, getExecutionFrame() + 1.
+		// Issuer teardown is deferred until the DESTROYPLAYER has executed here (the only difference from
+		// updateDisconnectStatus). Both orders are still queued on the victim's Connection when the real path deletes it,
+		// which drops its copy unsent. The issuer keeps relaying, so every peer has frame data for getExecutionFrame() + 1.
 		s_stage2Frame = (UnsignedInt)getExecutionFrame() + 5;
 		s_stage2 = 1;
 	}
@@ -1351,16 +1198,10 @@ void Network::update()
 	}
 }
 
-// GeneralsX: H02 (ROADMAP_2027 M2): the first and the transport half of update(), for the orders
-// GameClient::update translates BEFORE its draw and Present (GameClient.cpp, gxSendOrdersBeforeDraw). It stamps them with
-// getExecutionFrame() exactly as update() would a draw later: no logic tick can run in between (the logic runs only after
-// GameEngine::update's own update() call), so the logic frame, m_runAhead and therefore the execution frame are the ones
-// update() would have used. It also sends the command counts of the frames finished since the last call (processCommand on
-// MSG_FRAME_TICK). It NEVER relays a frame, never touches m_frameDataReady and never renegotiates the run-ahead: the
-// frame-ready decision stays in update(), after the draw, on the freshest packets. update() later finds only what was
-// appended after this call (the draw, the shell, the in-game UI), so nothing is sent twice. Only the send half of the
-// connection service runs here (ConnectionManager::flushSends: the socket is drained into the transport buffer first, but
-// nothing received is relayed or processed until update(), after the draw).
+// Transport half of update(), for orders GameClient::update translates before its draw (gxSendOrdersBeforeDraw).
+// Stamps them with getExecutionFrame() as update() would (no logic tick runs in between) and sends the command counts
+// of finished frames. Never relays a frame, touches m_frameDataReady or renegotiates run-ahead: that stays in update().
+// Only the send half of the connection service runs (ConnectionManager::flushSends).
 void Network::sendLocalCommands()
 {
 #if defined(RTS_DEBUG)
@@ -1493,7 +1334,7 @@ Bool Network::timeForNewFrame() {
 // screen's draws. 0 too while the frame after the next one has no commands (CatchUpPolicy::framesOwed): that debt is a
 // remote peer's. The probe is allCommandsReady's justTesting form, the one that leaves the disconnect manager alone; its
 // FRAMEDATA_RESEND branch fires only for a frame that really holds too many commands, which the normal path would reset and
-// re-request one tick later anyway (review r2).
+// re-request one tick later anyway.
 Int Network::getPacerFramesDue()
 {
 	if (m_localStatus != NETLOCALSTATUS_INGAME || m_frameRate == 0 || m_conMgr == nullptr || TheGameLogic == nullptr) {
@@ -1517,25 +1358,9 @@ Int Network::getPacerFramesDue()
 /**
  * Returns true if the game commands for the next frame have been put on the command list.
  */
-// GeneralsX: KNOWN, DELIBERATELY NOT FIXED HERE: the NETLOCALSTATUS_LEFT
-// term is a SECOND way the simulation can outrun its tick rate, and it is not the one the
-// 17/08/2026 rate fixes address.
-//
-// m_frameDataReady is written only under timeForNewFrame(), so it is paced. This `|| LEFT` is not
-// paced by anything: once the local player's own PLAYERLEAVE has executed
-// (processFrameSynchronizedNetCommand -> PLAYERLEAVECODE_LOCAL, :701) this returns TRUE on every
-// single main-loop iteration until endOfGameCheck()'s canILeave() lets the game exit. In a network
-// game FramePacer floors render fps at 8 * LOGICFRAMES_PER_SECOND, so that window free-runs at up
-// to 480 logic frames a second. It also advances frames whose commands were never relayed, since
-// RelayCommandsToCommandList did not run on those iterations.
-//
-// Left alone on purpose, and the reasoning is worth more than the patch: it only affects a peer
-// that has ALREADY left the match, so nobody is watching that game sprint; it is on the disconnect
-// unwind, which is the least testable path in this file; and the reported symptom is surviving
-// peers, which this cannot produce. The shape of a fix, when someone has a disconnect harness: move
-// the special case into Network::update() as an `else if (m_localStatus == NETLOCALSTATUS_LEFT)`
-// branch that still requires timeForNewFrame(), and drop this term. That preserves liveness exactly
-// - every iteration that returns TRUE today still eventually returns TRUE - and merely paces it.
+// KNOWN, not fixed: the NETLOCALSTATUS_LEFT term is not paced by timeForNewFrame(). After the local PLAYERLEAVE
+// executes this is TRUE on every main-loop iteration until the game exits, so logic free-runs on unrelayed frames.
+// Fix shape: handle LEFT in Network::update() behind timeForNewFrame() and drop this term.
 Bool Network::isFrameDataReady() {
 	return (m_frameDataReady || (m_localStatus == NETLOCALSTATUS_LEFT));
 }

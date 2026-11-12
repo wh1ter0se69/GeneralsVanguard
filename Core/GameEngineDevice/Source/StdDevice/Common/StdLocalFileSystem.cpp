@@ -65,25 +65,10 @@ static std::filesystem::path fixFilenameFromWindowsPath(const Char *filename, In
 	std::filesystem::path path(std::move(fixedFilename));
 
 #ifndef _WIN32
-	// GeneralsX: GeneralsX's own loose data lives in a directory GeneralsX
-	// owns, and a relative READ looks there FIRST.
-	//
-	// The macOS .app used to copy Data/INI/Multiplayer.ini and Data/English/Generals.csf INTO the
-	// player's game folder, over whatever was there, because this function was the only thing that
-	// could find them and it only looked in the cwd and the asset root. A folder shared with other
-	// Zero Hour clients then broke those clients. run.sh now leaves the pair inside the .app and
-	// names that directory in GENERALSX_DATA_OVERLAY.
-	//
-	// First, ahead of the cwd, so our copy wins over a stale or foreign loose copy in the game
-	// folder exactly as the overwrite used to make it win, and beats every archive exactly as a
-	// loose file does (FileSystem::openFile asks the local file system before the archives).
-	// dataID does not move: m_iniCRC hashes INI line content (INI.cpp, xferUser of each line), not
-	// the path a file was found at. Reads only - a WRITE never lands in the overlay.
-	//
-	// Trade-off: by-name opens only (openFile/doesFileExist/getFileInfo). getFileListInDirectory
-	// still enumerates the cwd alone, so a file the engine only ever finds by enumerating a
-	// directory cannot ride here. Exact case only: the lowercase CSF spelling in SDL3Main resolves
-	// on the default case-insensitive APFS, not on a case-sensitive volume.
+	// GeneralsX: GeneralsX's own loose data lives in the directory named by GENERALSX_DATA_OVERLAY; a relative READ
+	// looks there first, ahead of the cwd, so it beats a stale loose copy and every archive. dataID does not move
+	// (m_iniCRC hashes INI line content, not the path). Reads and by-name opens only; getFileListInDirectory still
+	// enumerates the cwd alone. Exact case only.
 	static const std::filesystem::path s_dataOverlayPath = [] {
 		const char* env = getenv("GENERALSX_DATA_OVERLAY");
 		return (env != nullptr && env[0] != '\0') ? std::filesystem::path(env) : std::filesystem::path();
@@ -208,27 +193,10 @@ static std::filesystem::path fixFilenameFromWindowsPath(const Char *filename, In
 					return std::filesystem::path();
 				}
 
-				// GeneralsX: Keep the accumulated path and take this component
-				// verbatim. This assigned `pathFixed = p` - which DISCARDED the whole accumulated prefix
-				// and left the bare component - and then fell into the `pathFixed /= pathFixedPart` below
-				// with pathFixedPart still EMPTY, which libc++ turns into a trailing separator. So an
-				// absolute write target whose parent directory does not exist yet came back as the
-				// relative string "<leaf>/" instead of the intended absolute path.
-				//
-				// That is every FIRST map transfer: <userdata>/Maps/<name>/<name>.map is created before
-				// its own <name> directory exists, so the loop runs (the WRITE carve-out above only skips
-				// it when the parent EXISTS) and mangles the path. openFile then called
-				// create_directories() on "<leaf>", creating a DIRECTORY named after the file in the
-				// process CWD - the install dir - and the subsequent fopen failed with EISDIR. The
-				// transfer still reported 100%, so the map read as delivered and was not on disk.
-				// Measured 2026-08-10: three empty directories named
-				// "conflict in the mediterranean [wbc2021].tga", "map.str" and
-				// "conflict in the mediterranean [wbc2021].map" in ~/GeneralsX/GeneralsZH, timestamped
-				// 08:57:28/29/30, in the exact order DoAnyMapTransfers sends them.
-				//
-				// Not a separator problem: the backslashes are already forward slashes by here (the
-				// std::replace at the top of this function), and a forward-slash input mangles
-				// identically. Windows is unaffected because Win32LocalFileSystem has no repair loop.
+				// GeneralsX: Keep the accumulated path and take this component verbatim. Assigning `pathFixed = p` dropped
+				// the accumulated prefix, and the `pathFixed /= pathFixedPart` below then appended a separator, so an absolute
+				// write target with a missing parent came back as relative "<leaf>/": a first map transfer made a directory
+				// named after the file in the process CWD and fopen failed with EISDIR.
 				pathFixedPart = p;
 			}
 

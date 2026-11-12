@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Package the iOS build of Zero Hour into a signed .app and install it on a device.
 #
 # Flow:
@@ -51,36 +53,18 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build/ios-vulkan"
 IOS_DIR="${PROJECT_ROOT}/ios"
 DERIVED="${IOS_DIR}/build"
-# GeneralsX: Overridable, because this is the single largest thing the
-# repo produces: the packaged .app carries ~2.9 GB of BUNDLED GAME DATA, it is rebuilt from
-# scratch on every run (see the rm -rf below), and it filled the boot volume completely on
-# 2026-08-11 - to the point where no command could run at all, because even a shell could not
-# create its output file.
+# Overridable, because this is the single largest thing the repo produces: the packaged .app carries ~2.9 GB of BUNDLED GAME DATA and is rebuilt from scratch on every run (see the rm -rf below), which can fill the boot volume.
 #
-# A symlink here does NOT work: line ~237 does `rm -rf "${OUT_DIR}"` and then mkdir, which
-# replaces the link with a real directory on the boot volume again. An env override survives that.
+# A symlink here does NOT work: line ~237 does `rm -rf "${OUT_DIR}"` and then mkdir, which replaces the link with a real directory on the boot volume again. An env override survives that.
 #
 # Point it at external storage:  GX_IOS_PACKAGE_DIR=/Volumes/1TB/GeneralsX/ios-package
 OUT_DIR="${GX_IOS_PACKAGE_DIR:-${PROJECT_ROOT}/build/ios-package}"
 APP_NAME="GeneralsXZH"
 IDENTITY="${GX_SIGN_IDENTITY:-Apple Development}"
 
-# Signing/bundle identity.
-#
-# The defaults below are UPSTREAM's, inherited from the fork, and are wrong for
-# everyone else. Getting them wrong fails in two ways, and the second is nasty:
-#   * wrong team    -> xcodebuild dies with `No Account for Team "..."`. Loud, fine.
-#   * wrong bundle  -> it BUILDS AND INSTALLS, but iOS treats a different bundle id
-#                      as a different app with its own container. The assets seeded
-#                      into Documents by a previous full install are then invisible,
-#                      and a --dev build comes up with no game data — indistinguishable
-#                      from "seeding never ran". Hours vanish here.
-#
-# So: put your values in ios/signing.local.env (gitignored, not shared) once:
-#     GX_TEAM_ID=ABCDE12345        <- your 10-char Team ID, developer.apple.com > Membership
-#     GX_BUNDLE_ID=com.you.generalszh
-# Environment variables still win over that file, and that file wins over the
-# upstream defaults.
+# Signing/bundle identity. The defaults are upstream's and wrong for everyone else: a wrong team fails loudly, but
+# a wrong bundle id builds and installs as a different app with its own container, hiding assets seeded into Documents.
+# Set GX_TEAM_ID and GX_BUNDLE_ID in ios/signing.local.env (gitignored); the environment wins over it.
 SIGNING_ENV="${IOS_DIR}/signing.local.env"
 if [[ -f "${SIGNING_ENV}" ]]; then
     # shellcheck disable=SC1090
@@ -105,36 +89,9 @@ if [[ ! -f "${GAME_BIN}" ]]; then
     exit 1
 fi
 
-# GeneralsX: Refuse to ship an engine with no Vulkan entry point.
-#
-# This script only COPIES; it never builds. A build that dropped libMoltenVK.a still links, still
-# exits 0, and still produces a plausible binary — it just black-screens on the device with
-# "Failed to load Vulkan Portability library", because SDL3's UIKit loader resolves Vulkan through
-# dlsym(RTLD_DEFAULT, "vkGetInstanceProcAddr") and its only dylib fallback is "libvulkan.dylib",
-# which this bundle does not contain (it ships MoltenVK.framework instead). That shipped once and
-# cost a session, and the device is the slowest place in this project to find anything out.
-#
-# One nm call, checked here rather than in CMake, because the packaged binary is the artifact that
-# actually reaches the iPad.
-# GeneralsX: THIS GUARD USED TO FIRE BECAUSE THE SYMBOL WAS PRESENT.
-#
-# It was `nm ... | grep -q ...` under the `set -euo pipefail` at the top of this file. `grep -q`
-# exits the moment it matches and closes the pipe; `nm` is then killed by SIGPIPE part-way through
-# writing 35,222 symbols, exits 141, and `pipefail` makes the whole pipeline non-zero - which the
-# leading `!` turns into "the symbol is missing". A correctly linked binary therefore failed the
-# check, and the bigger the symbol table the more reliably it failed.
-#
-# The failure is perfectly disguised: the error text says MoltenVK was not linked and prescribes a
-# rebuild, so the reading is "the build is broken", and rebuilding produces the same result forever.
-# Measured: exit 141 with pipefail, exit 0 without, on a binary where `nm | grep -c` finds it.
-#
-# Capture first, match second. No pipe, nothing to signal.
-#
-# GeneralsX: ...and the 09/08 fix still piped. It captured nm's output and
-# then matched with `printf '%s\n' "${GAME_SYMS}" | grep -q`, which only MOVED the writer from nm to
-# printf: grep -q still exits at the match, printf is SIGPIPEd writing the rest (141), and pipefail
-# still fails the pipeline. The real symbol sits 145 lines from the end of 35,423, so it raced -
-# passed once, then failed 5 of 5 and blocked the iPad install. A here-string has no writer process.
+# Refuse to ship an engine with no Vulkan entry point: SDL3's UIKit loader resolves vkGetInstanceProcAddr via
+# dlsym(RTLD_DEFAULT), and a build that dropped libMoltenVK.a links but black-screens on the device.
+# Capture nm's output first, no pipe: `nm | grep -q` under pipefail fails on SIGPIPE (141).
 # Regression test: scripts/test/pipefail-symcheck-test.sh.
 GAME_SYMS="$(nm -gU "${GAME_BIN}" 2>/dev/null || true)"
 if ! grep -q " _vkGetInstanceProcAddr$" <<< "${GAME_SYMS}"; then
@@ -146,21 +103,9 @@ if ! grep -q " _vkGetInstanceProcAddr$" <<< "${GAME_SYMS}"; then
     exit 1
 fi
 
-# Install target.
-#
-# Two different identifiers are in play and they are NOT interchangeable:
-#   * CoreDevice UUID (8-4-4-4-12), which is what `devicectl list devices` prints
-#     and what `devicectl device install` expects.
-#   * Hardware UDID (8-16), which is what `xcodebuild -destination id=` expects
-#     and what appears in a provisioning profile's ProvisionedDevices.
-# gx_ios_select_device resolves both from one listing; see lib-ios-device.sh for why this is
-# no longer "the first device devicectl prints" (short version: that was alphabetical order,
-# so renaming a device could redirect the install to a different one, silently).
-#
-# Precedence, highest first: --device, then GX_IOS_DEVICE from the environment, then
-# GX_IOS_DEVICE from scripts/test/local.env. The environment value is captured BEFORE the file
-# is sourced so it wins regardless of whether local.env writes `GX_IOS_DEVICE=x` or the
-# `GX_IOS_DEVICE="${GX_IOS_DEVICE:-x}"` form used by the rest of that file.
+# Install target: devicectl wants the CoreDevice UUID, xcodebuild the hardware UDID; gx_ios_select_device resolves both.
+# Precedence: --device, then GX_IOS_DEVICE from the environment, then from scripts/test/local.env. The environment value
+# is captured before the file is sourced so it wins however local.env writes it.
 # shellcheck source=scripts/build/ios/lib-ios-device.sh
 . "${SCRIPT_DIR}/lib-ios-device.sh"
 
@@ -320,21 +265,8 @@ fi
 GAME_DATA_SRC="${GX_GAME_DATA:-${HOME}/GeneralsX/GeneralsZH}"
 FONTS_SRC="${GX_FONTS:-${HOME}/GeneralsX/ios-staging/fonts}"
 CONFIG_SRC="${GX_CONFIG:-${IOS_DIR}/config}"
-# GeneralsX: The community-patch overlay, and why iOS is not the
-# awkward platform it looks like.
-#
-# There is no environment to set on a sideloaded app, so iOS must use the engine's own default:
-# <exe dir>/GeneralsXPatch. On iOS the executable IS the bundle root and the assets are
-# <bundle>/GameData, so that default lands on a sibling of the asset root - disjoint, mounted
-# exactly once, at the precedence its filename earns. That is the same shape Windows has and the
-# one the dataID equality was measured on. No code change is needed here at all.
-#
-# The archives never ride inside GameData: that would mount them twice. GameData is an allow-list of
-# retail files (see below), so none of the overlay archives can reach it, and both lists - mandatory
-# and optional, the optional ones under the name their default dictates - are staged explicitly
-# into GeneralsXPatch from PATCH_SRC. (17/08/2026: before that, the optional set reached the iPad
-# only because a GameData rsync swept it out of an un-migrated Mac folder, and an entry defaulting
-# to off would have shipped switched on.)
+# Community-patch overlay on iOS: the engine's default <exe dir>/GeneralsXPatch, a sibling of the asset root.
+# The archives never go inside GameData (that would mount them twice); they are staged from PATCH_SRC.
 # shellcheck source=scripts/build/lib-overlay.sh
 source "${PROJECT_ROOT}/scripts/build/lib-overlay.sh"
 PATCH_SRC="${GX_PATCH_SRC:-${HOME}/GeneralsX/GeneralsXPatch}"
@@ -351,25 +283,9 @@ while IFS= read -r _a; do
     GX_OPTIONAL_COUNT=$((GX_OPTIONAL_COUNT + 1))
 done <<< "${GX_OPTIONAL_NAMES}"
 
-# GeneralsX: GAMEDATA IS AN ALLOW-LIST, NOT A MIRROR OF THE MAC'S GAME FOLDER.
-#
-# This was `rsync -a` of the whole folder minus a hand-kept exclude list, so anything else the folder
-# held shipped to the iPad inside the signed app. The 672e2a199 package carried a hotkey mod on
-# neither overlay list (!HotkeysLeikezeZH.big), the owner's keybinds (Data/INI/CommandMap/
-# GXUserKeys.ini), an extra Data/INI/INIZH.big, Generals.exe, WorldBuilder.exe, Steam's
-# installScript.vdf, a dev-deploy Window/Menus/ExtrasMenu.wnd and absolute symlinks back into the
-# build machine's home. No other platform ships any of that: their payloads carry the archives the
-# overlay lists name, the files make-weapon-ini.py --list names and the colour pair, and read retail
-# data from the player's own install.
-#
-# iOS has no player install to read, so it bundles the retail data, and only that: the archives and
-# loose retail folders of a Steam Zero Hour install, named here, regular files only (a symlink is never
-# followed or copied). The overlay archives go to GeneralsXPatch and the recipe files are cut into
-# GameData further down, as before. The colour pair comes from the repository, as bundle-macos-zh.sh
-# takes it, not from whatever copy a deploy left in the Mac's folder.
-# scripts/test/ios-gamedata-listing-test.sh is the check that fails if a stray reaches GameData.
-# Trade-off: the English Steam layout only; a localised install (SpeechGermanZH.big, ...) stops here
-# with a named missing file - add its names when one is packaged.
+# GameData is an allow-list, not a mirror of the Mac's game folder: a bulk copy shipped stray files and symlinks.
+# iOS has no player install, so it bundles retail archives and loose folders (regular files only).
+# scripts/test/ios-gamedata-listing-test.sh fails if a stray reaches GameData. English Steam layout only.
 if [[ "${DEV_MODE}" != "1" ]]; then
     echo "==> Bundling game assets into the app"
     mkdir -p "${APP}/GameData"
@@ -454,7 +370,7 @@ if [[ "${DEV_MODE}" != "1" ]]; then
     done
     cp "${CONFIG_SRC}/dxvk.conf" "${APP}/GameData/dxvk.conf"
     cp "${CONFIG_SRC}/Options.ini" "${APP}/GameData/DefaultOptions.ini"
-    # GeneralsX: A2: the shipped pipeline record (SDL3Main gxSeedDxvkCache copies it into
+    # A2: the shipped pipeline record (SDL3Main gxSeedDxvkCache copies it into
     # Library/Caches when absent).
     # Fails rather than skips, as bundle-macos-zh.sh does.
     if [[ ! -s "${PROJECT_ROOT}/resources/dxvk/seed/GeneralsXZH.dxvk-cache" || ! -s "${PROJECT_ROOT}/resources/dxvk/seed/GeneralsXZH.dxvk-ffkeys" ]]; then
@@ -467,21 +383,9 @@ if [[ "${DEV_MODE}" != "1" ]]; then
 
 fi
 
-# The overlay goes in either way, and the DEV_MODE difference is only how loudly it complains.
-#
-# A --dev bundle ships no GameData and reads its assets from Documents, so it is not a peer
-# anybody ships - but it IS a peer somebody tries to join a match with, and 49 MB on top of a
-# code-only iteration is cheap enough that "the dev build cannot join" is not worth having. So
-# it gets the overlay when one is available and a warning when it is not. A full bundle treats
-# the same absence as fatal, like the Windows payload and for the same reason: an iPad without
-# these plays single-player perfectly and is refused by every peer with DATA_DIFFERS. The device
-# is the slowest place in this project to find anything out, and that failure looks like wifi.
-#
-# The generate step runs FIRST and against PATCH_SRC, not against the bundle. !GXUI.big has to
-# exist in the source directory before gx_overlay_stage_optional looks for it there, and building
-# it into PATCH_SRC rather than straight into the app means the Mac's own overlay picks up the
-# same archive - one copy, one sha, and `probe-dataid.sh --overlay '!GXUI.big'` measures the file
-# the iPad actually got. GAME_DATA_SRC is the install the retail archive is read out of.
+# The overlay is staged in both modes: a --dev bundle warns when it is missing, a full bundle fails (without it
+# every peer refuses the iPad with DATA_DIFFERS). The generate step runs first, against PATCH_SRC, so !GXUI.big
+# exists before the optional staging looks for it. GAME_DATA_SRC is where the retail archive is read from.
 if [[ -d "${PATCH_SRC}" ]] && ! gx_overlay_generate "${PATCH_SRC}" "${GAME_DATA_SRC}"; then
     echo "ERROR: could not build the generated overlay archives into ${PATCH_SRC}."
     exit 1
@@ -498,25 +402,14 @@ if gx_overlay_verify "${PATCH_SRC}"; then
     if ! gx_overlay_stage_optional "${PATCH_SRC}" "${APP}/GeneralsXPatch" > /dev/null; then
         exit 1
     fi
-    # GeneralsX: The shipped maps (scripts/build/overlay-maps.txt), as on macOS and Linux: loose
+    # The shipped maps (scripts/build/overlay-maps.txt), as on macOS and Linux: loose
     # files in GeneralsXPatch/ShippedMaps/<Name>/, inert to the overlay scan ("*.big"). There is no launcher here to copy
     # them into <userdata>/Maps, so the engine does it at start (SDL3GameEngine.cpp, GameClient/GXShippedMaps.h). Fatal
     # like the archives: a bundle that cannot carry the maps the list names is worse than one that says so.
     gx_overlay_stage_shipped_maps "${APP}/GeneralsXPatch" || exit 1
-    # GX_OPTIONAL_COUNT was counted where the list was already read, rather than re-derived here.
-    # One parse, one place the number can be wrong. (`$(... | grep -c .)` in this position was
-    # measured NOT to abort the packager on a zero count despite `set -euo pipefail` - a failing
-    # substitution inside an argument is not the command's own status - so this is about not
-    # reading the list twice, not about dodging errexit.)
-    # GeneralsX: Data/INI/Weapon.ini (the Toxin Tractor balance change),
-    # generated from the CoreINI archive just staged (scripts/tooling/make-weapon-ini.py). It moves
-    # dataID, so it is cut here from the staged archive, never taken from the Mac's game folder
-    # (GameData's allow-list above does not copy it): a folder that predates it would ship an iPad
-    # no other peer accepts.
-    #
-    # 25/09/2026: a --dev bundle too. It reads Data/ from the app's Documents
-    # (SDL3Main.cpp), which the bundle cannot carry and which a pre-Weapon.ini full install seeded
-    # without it, so the file is cut here and copied into Documents at --install below.
+    # Data/INI/Weapon.ini (Toxin Tractor balance change) is generated from the staged CoreINI archive by make-weapon-ini.py.
+    # It moves dataID, so it is never taken from the Mac's game folder (a stale one would ship an iPad no peer accepts).
+    # A --dev bundle reads Data/ from Documents, so the file is also copied into Documents/Data/INI at --install.
     WEAPON_INI_OUT="${APP}/GameData/Data/INI/Weapon.ini"
     [[ "${DEV_MODE}" != "1" ]] || WEAPON_INI_OUT="${OUT_DIR}/Documents/Data/INI/Weapon.ini"
     python3 "${PROJECT_ROOT}/scripts/tooling/make-weapon-ini.py" --search "${APP}/GeneralsXPatch" \
@@ -545,29 +438,9 @@ if [[ -f "${ICON_SRC}" ]]; then
     echo "    icon PNG fallbacks added"
 fi
 
-# POINT THE EXECUTABLE AT THE EMBEDDED FRAMEWORKS - AND DELETE THE ONES THAT POINT AT THIS MAC.
-#
-# This used to be a bare `install_name_tool -add_rpath "@executable_path/Frameworks" ... || true`,
-# which was wrong twice. It ADDED the right rpath but never removed the four the linker wrote in,
-# each an absolute path into the build machine's home directory:
-#
-#     /Users/<builder>/Developer/GeneralsX-work/build/ios-vulkan/_deps/sdl3_image-build
-#     /Users/<builder>/Developer/GeneralsX-work/build/ios-vulkan/_deps/sdl3-build
-#     /Users/<builder>/Developer/GeneralsX-work/build/ios-vulkan
-#     /Users/<builder>/Developer/GeneralsX-work/build/ios-vulkan/_deps/openal_soft-build
-#
-# Measured on build/ios-package/GeneralsXZH.app 23/09/2026: all four present, plus one on
-# Frameworks/libSDL3_image.0.dylib. iOS keeps WORKING because @executable_path/Frameworks is in
-# the list too and the dead entries simply miss - so this is the quiet instance. It ships a
-# username to a device with no shell wrapper to blame, in an artifact that is signed and handed
-# out, and nothing would ever have failed to say so.
-#
-# And `|| true` meant the add itself could not fail. gx_macho_relink returns non-zero and this
-# script stops, which is the point: a packaging step that cannot fail is not a packaging step.
-#
-# Ordering: this MUST stay above the re-signing block. install_name_tool invalidates a signature;
-# the ad-hoc signature gx_macho_relink leaves behind is then overwritten by the real identity
-# below, inside-out, exactly as before.
+# Point the executable at the embedded frameworks and delete the rpaths that point at this Mac: the linker wrote
+# absolute paths into the build machine's home directory, which would put a username in a signed artifact.
+# This MUST stay above the re-signing block: install_name_tool invalidates signatures.
 source "${PROJECT_ROOT}/scripts/build/macos/lib-macho.sh"
 echo "==> Relinking Mach-O load commands to be bundle-relative"
 gx_macho_relink "${APP}/Frameworks" "@executable_path/Frameworks" "${APP}/${APP_NAME}" || exit 1
@@ -606,9 +479,9 @@ if [[ "${DO_INSTALL}" == "1" ]]; then
     xcrun devicectl device install app --device "${DEVICE_UUID}" "${APP}"
     if [[ "${DEV_MODE}" == "1" ]]; then
         if [[ -f "${OUT_DIR}/Documents/Data/INI/Weapon.ini" ]]; then
-            # Weapon.ini and the Alpha Aurora fix files beside it (26/09/2026): the recipe names them all.
+            # Weapon.ini and the Alpha Aurora fix files beside it: the recipe names them all.
             # A Documents seeded before them has no Data/INI/Object/Shared/Weapon/; `copy to` creates missing
-            # parent folders (measured 26/09/2026 on an iPad, temporary domain: rc=0, all five levels created).
+            # parent folders.
             while IFS= read -r _gx_rf; do
                 echo "==> Copying ${_gx_rf} into the app's Documents (a --dev build reads Data/ there)"
                 if ! xcrun devicectl device copy to --device "${DEVICE_UUID}" --domain-type appDataContainer \

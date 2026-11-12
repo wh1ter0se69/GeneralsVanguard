@@ -1,6 +1,6 @@
 /*
 **	Command & Conquer Generals Zero Hour(tm)
-**	Copyright 2026 TheSuperHackers
+**	Copyright 2026 GeneralsX contributors
 **
 **	This program is free software: you can redistribute it and/or modify
 **	it under the terms of the GNU General Public License as published by
@@ -114,7 +114,7 @@ void Renderer::Set_Light_Environment(LightEnvironmentClass * light_env)
     DX8Wrapper::Set_Light_Environment(light_env);
 }
 
-// GeneralsX: see Renderer.h.
+// see Renderer.h.
 void Renderer::Set_Transform_Dirty()
 {
     DX8Wrapper::Set_Transform_Dirty();

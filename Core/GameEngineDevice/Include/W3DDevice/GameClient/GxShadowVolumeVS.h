@@ -1,17 +1,25 @@
-// GxShadowVolumeVS.h - the GX_SHADOW_GPU shadow-volume vertex shader (vs.1.1) and its declaration: ONE copy, read by the game
-// (W3DVolumetricShadow.cpp gxShadowGpuOn creates it) and by the native renderer's custom-shader catalogue (scripts/render/ws-E/
-// gen_catalog.py parses this file; GxNativeD3D8.cpp S7 resolves these bytes), so the two cannot drift apart.
-// GeneralsX: moved here from W3DVolumetricShadow.cpp, where it was assembled by macros (08/10/2026);
-// the dwords are that block's output, byte for byte, and each line's comment is its disassembly (scripts/render/ws-E/sm1_dis.py).
-// Plain uint32_t (no d3d8 headers): the game passes them to CreateVertexShader as const DWORD*.
-//
-// Inputs (GxShadowEdgeVertex, 40 B): v0 corner position, v1 its face's normal, v2 its face's poly[0] vertex, v3 the copy's first
-// constant register. Constants: c0 = (0, 1, 0, 0); c1..c4 = the view matrix's columns; c5..c8 = the projection's columns; for the copy
-// in slot j of the drawn window c[9+4j]..c[11+4j] = its volume's Matrix3D rows and c[12+4j] = (L, s), zero when no volume uses it.
-// a0.x = v3 is an exact small integer (the vs.1.1 floor and round agree); r1.w = r2.w = 1 sit between the a0 write and its first read
-// (a vs.1.1 hardware rule; DXVK does not need it). r0.x = dot(ref - L, n); r0.y = (r0.x < 0): the face sees the light; r0.z = 1 - r0.y:
-// this corner extrudes. r1.xyz = (v - L) * s * r0.z + v (constructVolume's extrude2, v itself when lit); r2 = mesh transform * r1;
-// r3 = view * r2; oPos = projection * r3. oD0 = 1: colour writes are off in both stencil passes, but the output is defined.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GxShadowVolumeVS.h - the GX_SHADOW_GPU shadow-volume vertex shader (vs.1.1) and its declaration: ONE copy,
+// read by the game (W3DVolumetricShadow.cpp) and the native catalogue (gen_catalog.py), so they cannot drift.
+// Plain uint32_t (no d3d8 headers); each line's comment is its disassembly.
+// r1.w = r2.w = 1 sit between the a0 write and its first read (a vs.1.1 hardware rule).
 #pragma once
 
 #include <stdint.h>

@@ -582,7 +582,7 @@ void NeutronMissileUpdate::xfer( Xfer *xfer )
 
 	// attach weapon slot
 	// GeneralsX: A slot from a save file indexes m_weapons / barrel arrays later; refuse one out of
-	// range (net-hardening weapon-slot-r1, with sweep c099-01). An honest one always is in range. Checked before it is
+	// range. An honest one always is in range. Checked before it is
 	// kept: a load that throws still runs the post-processing pass, which can read it.
 	WeaponSlotType xferAttachSlot = m_attach_wslot;
 	xfer->xferUser( &xferAttachSlot, sizeof( WeaponSlotType ) );

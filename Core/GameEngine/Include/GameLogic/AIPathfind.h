@@ -135,6 +135,29 @@ struct ClosestPointOnPathInfo
 	PathfindLayerEnum		layer;
 };
 
+#if RTS_ZEROHOUR
+// The line-walk memo and the flight-distance repeat are Zero Hour only: the base game has no replay corpus or per-frame CRC here to prove them against, so RTS_GENERALS keeps the retail code exactly.
+// Steering line-walk memo. One remembered answer of
+// Pathfinder::isLinePassableMemo - the steering walk computePointOnPath makes every tick for every unit on a path. The
+// answer is a function of the key below and of cell state inside bx0..by1 (8x8-cell blocks); it is reused only while no
+// cell write that can move it has happened there since (see gxLineNoteCell in AIPathfind.cpp). A cache, never state:
+// not saved, not CRC'd, invalid on construction, and every answer equals the walk it replaces.
+void gxLineNoteGlobal();	///< GeneralsX: a cell write with no coordinates (terrain, layers, pinch) - every memo is stale
+struct GXLineMemo
+{
+	Bool valid;
+	Bool result;
+	Short layer;
+	Int sx, sy, ex, ey;																					///< start / end cells
+	ObjectID obj, aiIgnore, pfIgnore;
+	LocomotorSurfaceTypeMask surfaces;
+	Int radius;
+	Bool center, crusher;
+	Int bx0, by0, bx1, by1;																			///< blocks the footprint sweep touches
+	unsigned long long epoch, global;
+};
+
+#endif
 /**
  * This class encapsulates a "path" returned by the Pathfinder.
  */
@@ -167,7 +190,11 @@ public:
 	Real computeFlightDistToGoal( const Coord3D *pos, Coord3D& goalPos );
 
 	/// Given a location, return closest location on path, and along-path dist to end as function result
+#if RTS_ZEROHOUR
+	void markOptimized() {m_isOptimized = true; ++m_gxPathVersion;}
+#else
 	void markOptimized() {m_isOptimized = true;}
+#endif
 
 protected:
 	// snapshot interface
@@ -190,6 +217,19 @@ protected:
 	Coord3D									m_cpopIn;
 	ClosestPointOnPathInfo	m_cpopOut;
 	const PathNode*					m_cpopRecentStart;
+#if RTS_ZEROHOUR
+	GXLineMemo							m_gxLineMemo[3];				///< GeneralsX: computePointOnPath's three line walks
+	// GeneralsX: computeFlightDistToGoal's last answer, reused for a repeat call in the same logic frame at the same
+	// position (see computeFlightDistToGoal). m_gxPathVersion moves on every Path mutator.
+	UnsignedInt							m_gxPathVersion;
+	Bool										m_gxFlightValid;
+	UnsignedInt							m_gxFlightFrame;
+	UnsignedInt							m_gxFlightVersion;
+	const PathNode*					m_gxFlightStart;
+	Coord3D									m_gxFlightPos;
+	Coord3D									m_gxFlightGoal;
+	Real										m_gxFlightDist;
+#endif
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -391,7 +431,11 @@ public:
 #if RETAIL_COMPATIBLE_PATHFINDING_ALLOCATION
 	// TheSuperHackers @info isObstructionInvalid() and clearObstruction() only used during retail compatible pathfinding failover cleanup
 	Bool isObstructionInvalid() const { return m_obstacleID != INVALID_ID && m_info == nullptr && (m_type == CELL_OBSTACLE || m_type == CELL_IMPASSABLE); }
+#if RTS_ZEROHOUR
+	void clearObstruction() { gxLineNoteGlobal(); m_type = CELL_CLEAR; m_obstacleID = INVALID_ID; m_obstacleIsFence = false; m_obstacleIsTransparent = false; }
+#else
 	void clearObstruction() { m_type = CELL_CLEAR; m_obstacleID = INVALID_ID; m_obstacleIsFence = false; m_obstacleIsTransparent = false; }
+#endif
 #endif
 
 	inline Bool isObstacleTransparent() const;
@@ -465,7 +509,11 @@ public:
 
 	Bool startPathfind( PathfindCell *goalCell );
 	Bool getPinched() const {return m_pinched;}
+#if RTS_ZEROHOUR
+	void setPinched(Bool pinch) { if (m_pinched != (pinch ? 1 : 0)) gxLineNoteGlobal(); m_pinched = pinch;	}
+#else
 	void setPinched(Bool pinch) {m_pinched = pinch;	}
+#endif
 
 	Bool allocateInfo(const ICoord2D &pos);
 	void releaseInfo();
@@ -481,10 +529,18 @@ public:
 
 	inline ObjectID getObstacleID() const;
 
+#if RTS_ZEROHOUR
+	void setLayer( PathfindLayerEnum layer ) { gxLineNoteGlobal(); m_layer = layer; }	///< set the cell layer
+#else
 	void setLayer( PathfindLayerEnum layer ) { m_layer = layer; }	///< set the cell layer
+#endif
 	PathfindLayerEnum getLayer() const { return (PathfindLayerEnum)m_layer; }				///< get the cell layer
 
+#if RTS_ZEROHOUR
+	void setConnectLayer( PathfindLayerEnum layer ) { gxLineNoteGlobal(); m_connectsToLayer = layer; }	///< set the cell layer	connect id
+#else
 	void setConnectLayer( PathfindLayerEnum layer ) { m_connectsToLayer = layer; }	///< set the cell layer	connect id
+#endif
 	PathfindLayerEnum getConnectLayer() const { return (PathfindLayerEnum)m_connectsToLayer; }				///< get the cell layer connect id
 
 private:
@@ -763,8 +819,17 @@ public:
 	Bool slowDoesPathExist( Object *obj, const Coord3D *from,
 		const Coord3D *to, ObjectID ignoreObject=INVALID_ID );  ///< Can we build any path at all between the locations	(terrain, buildings & units check - slower)
 
+#if RTS_ZEROHOUR
+// The human-order path lane is Zero Hour only: the base game has no replay corpus or per-frame CRC here to prove it against,
+// so RTS_GENERALS keeps the retail path queue exactly.
+	Bool queueForPath(ObjectID id, Bool allowPromotion = TRUE);	 ///< The object wants to request a pathfind, so put it on the list to process. allowPromotion FALSE: load repair, never moves a queued request between lanes
+#else
 	Bool queueForPath(ObjectID id);	 ///< The object wants to request a pathfind, so put it on the list to process.
+#endif
 	void gxXferQueue( Xfer *xfer );	///< GeneralsX: saves/loads the queue (CHUNK_GXPathfindQueue, AIPathfind.cpp)
+#if RTS_ZEROHOUR
+	void gxXferHumanQueue( Xfer *xfer );	///< GeneralsX: the human-order lane, version 2 of the same block
+#endif
 	void processPathfindQueue(); ///< Process some or all of the queued pathfinds.
 	void forceMapRecalculation();	///< Force pathfind map recomputation. If region is given, only that area is recomputed
 
@@ -822,6 +887,11 @@ public:
 	Bool isLinePassable( const Object *obj, LocomotorSurfaceTypeMask acceptableSurfaces,
 		PathfindLayerEnum layer, const Coord3D& startWorld, const Coord3D& endWorld,
 		Bool blocked, Bool allowPinched );	///< Return true if the straight line between the given points is passable
+#if RTS_ZEROHOUR
+	/// GeneralsX: isLinePassable(obj, surfaces, layer, start, end, FALSE, TRUE), reusing memo's answer when it is still exact
+	Bool isLinePassableMemo( const Object *obj, LocomotorSurfaceTypeMask acceptableSurfaces,
+		PathfindLayerEnum layer, const Coord3D& startWorld, const Coord3D& endWorld, GXLineMemo &memo );
+#endif
 
 	void moveAlliesAwayFromDestination( Object *obj,const Coord3D& destination);
 
@@ -1026,6 +1096,14 @@ private:
 	ObjectID			m_queuedPathfindRequests[PATHFIND_QUEUE_LEN];
 	Int						m_queuePRHead;
 	Int						m_queuePRTail;
+#if RTS_ZEROHOUR
+	// GeneralsX: HUMAN-ORDER LANE: requests of units whose last command came from a player (see queueForPath).
+	ObjectID			m_gxHumanRequests[PATHFIND_QUEUE_LEN];
+	Int						m_gxHumanHead;
+	Int						m_gxHumanTail;
+	Bool					m_gxAiStarved;	///< the AI lane got nothing last pass while it had requests: serve it first this pass
+	Bool gxServeOne( ObjectID *ring, Int &head, Int tail, Int &pathsFound );	///< pops one request off a ring and serves it
+#endif
 	Int						m_cumulativeCellsAllocated;
 
 	// GeneralsX: PF27, the new A* kernel (AI/PF27Kernel.inl). Path-identical by

@@ -827,24 +827,8 @@ static void saveOptions()
 	GadgetComboBoxGetSelectedPos( comboBoxResolution, &index );
 	Int xres, yres, bitDepth;
 
-	// GeneralsX: Save the resolution in POINTS, not render PIXELS.
-	//
-	// newDispSettings below is filled from getDisplayModeDescription, which is the offered mode list
-	// and is in POINTS. getWidth()/getHeight() are the RENDER resolution, which on a Retina Mac is
-	// density times larger (see SDL3_GetRenderPixelDensity in W3DDisplay.cpp). So old and new were
-	// in different units, and both of the places that consume oldDispSettings got a pixel value
-	// where a point value was meant:
-	//
-	//   * MainMenu.cpp DeclineResolution() feeds it straight back to setDisplayMode(), which takes
-	//     POINTS - so declining a resolution change on a 2x Mac asked for twice the resolution it
-	//     was meant to restore;
-	//   * the same function then writes it to TheWritableGlobalData->m_x/yResolution and to
-	//     Options.ini's "Resolution" key, both of which are POINTS - so every decline permanently
-	//     doubled the stored resolution, and the next launch doubled it again from there.
-	//
-	// TheGlobalData globals are the point-valued copy: W3DDisplay::init() deliberately leaves them
-	// alone when it scales the render resolution, and OptionsMenu/MainMenu only ever assign point
-	// values into them. Reading them here makes both DisplaySettings structs speak one unit.
+	// GeneralsX: store the resolution in POINTS like newDispSettings; getWidth()/getHeight() are render PIXELS.
+	// DeclineResolution feeds this back to setDisplayMode and Options.ini, which both take points.
 	oldDispSettings.xRes = TheGlobalData->m_xResolution;
 	oldDispSettings.yRes = TheGlobalData->m_yResolution;
 	oldDispSettings.bitDepth = TheDisplay->getBitDepth();
@@ -859,21 +843,8 @@ static void saveOptions()
 			{
 				dispChanged = TRUE;
 
-				// GeneralsX: Read the EFFECTIVE size back; do not assume
-				// the request survived.
-				//
-				// setDisplayMode can reduce a request that no attached display is able to present -
-				// see SDL3_RequestExceedsDisplayCapability in W3DDisplay.cpp - and it publishes what
-				// it actually set into these two globals. Assigning the REQUEST here instead, which
-				// is what this did, overwrote that correction a line after it was made, so every
-				// consumer below inherited a number that was not on screen: the preference written
-				// at the bottom of this block, newDispSettings, the confirm dialog's text, and the
-				// baseline AcceptResolution latches for the next revert.
-				//
-				// Identical to the old two assignments whenever nothing was reduced, which is every
-				// resolution picked out of the combo box on hardware that can draw it.
-				//
-				// Ported from the GeneralsMD twin (0450933cc).
+				// GeneralsX: read back the EFFECTIVE size: setDisplayMode may reduce a request the display cannot present
+				// and publishes the result in these globals. Assigning the request would overwrite that correction.
 				xres = TheGlobalData->m_xResolution;
 				yres = TheGlobalData->m_yResolution;
 

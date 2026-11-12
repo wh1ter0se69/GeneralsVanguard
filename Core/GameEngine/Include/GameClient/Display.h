@@ -198,19 +198,10 @@ public:
 
 	virtual void setCinematicText( AsciiString string ) { m_cinematicText = string; }
 	virtual void setCinematicFont( GameFont *font ) { m_cinematicFont = font; }
-	// GeneralsX: Class-C, converted to a WALL-CLOCK deadline rather than
-	// gated by a logic-frame stamp.
-	//
-	// The caption was decremented once per RENDERED frame while the script author specifies a frame
-	// count, so a 5-second caption showed for ~0.6 s at the 8x network floor. A stamp is the wrong
-	// fix HERE specifically: captions are used inside scripted cinematics, the logic frame does not
-	// advance while time is frozen, and W3DDisplay::draw spins its camera loop inside a single
-	// iteration - so a stamped caption would never expire and would pin on screen for the whole
-	// cinematic, which is worse than the bug.
-	//
-	// The setter keeps its frames-shaped signature so no caller changes - ScriptActions is digested
-	// and is deliberately not touched - and converts once, here. renderLetterBox() in the same draw
-	// block already paces itself off a millisecond duration, so this is house precedent.
+	// The caption is a WALL-CLOCK deadline (it was decremented per RENDERED frame; scripts specify a frame count).
+	// A logic-frame stamp is wrong HERE: in scripted cinematics the logic frame does not advance while time is
+	// frozen and W3DDisplay::draw spins its camera loop in one iteration, so the caption would never expire.
+	// The setter keeps its frames-shaped signature (ScriptActions is digested) and converts once, here.
 	virtual void setCinematicTextFrames( Int frames );
 
 	virtual Real getAverageFPS() = 0;	///< returns the average FPS.

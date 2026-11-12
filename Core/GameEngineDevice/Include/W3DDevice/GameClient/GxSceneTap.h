@@ -1,16 +1,25 @@
-// GeneralsX: F-depth+: the scene copies' private device interface
-//
-//
-// The game asks the device for it once per device with QueryInterface(IID_GxSceneTap); DXVK and the GXCAP proxy answer
-// E_NOINTERFACE, and then nothing is taken (classic has no reader). The native device answers it. A reader that draws with the
-// world's depth or its opaque colour (soft particles, native water) registers by name; at OpaqueDone the device takes them once per
-// frame: single-sample and sampleable, the state after the opaque world (terrain, objects, trees, shadows) and before water and every
-// transparent. With no reader on the game makes no OpaqueDone call and the device records nothing - today's frame, exactly.
-//
-// Independent of the world/HUD seam (GxWorldPass.h): with GXUpscaler off (the default) the world is the back buffer and its depth,
-// with it on the seam's targets; the device takes whatever pair is bound at OpaqueDone.
-// Front-end contract (rw3-X, A23-B): front-side state; OpaqueDone is an async device command, stream-ordered with the draws around
-// it. Render-only: nothing here is read by the simulation.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The scene copies' private device interface, taken with QueryInterface(IID_GxSceneTap); DXVK and
+// the GXCAP proxy answer E_NOINTERFACE. A reader of the world's depth or opaque colour (soft particles,
+// native water) registers by name; at OpaqueDone, an async stream-ordered command, the device takes them.
+// Render-only: nothing here is read by the simulation.
 #pragma once
 
 #include <d3d8.h>

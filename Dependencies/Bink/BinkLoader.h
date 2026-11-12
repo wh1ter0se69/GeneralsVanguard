@@ -1,6 +1,6 @@
 /*
 **	Command & Conquer Generals Zero Hour(tm)
-**	Copyright 2026 TheSuperHackers
+**	Copyright 2026 GeneralsX contributors
 **
 **	This program is free software: you can redistribute it and/or modify
 **	it under the terms of the GNU General Public License as published by
@@ -18,21 +18,10 @@
 
 #pragma once
 
-// This static class loads and unloads binkw32.dll at runtime.
-//
-// The Bink functions declared in bink.h are implemented in this class and forward to the
-// matching export of the loaded module. Loading the module explicitly, rather than importing
-// binkw32.dll into the executable, is what allows the library to be picked up from a working
-// directory that was chosen on the command line, because the process no longer needs to
-// resolve it before WinMain runs.
-//
-// When the module is not loaded, every Bink function returns the same neutral value the Bink
-// SDK stub library used to return, so a missing binkw32.dll disables video playback instead
-// of preventing the program from starting.
-//
-// Is not thread safe. Every call to load needs a paired call to unload, no matter if the load
-// was successful, and both are expected to be called from the main thread while no Bink
-// function is in flight.
+// Loads and unloads binkw32.dll at runtime; the Bink functions declared in bink.h forward to its exports.
+// Loading explicitly, rather than importing, lets the library come from a working directory set on the command line.
+// With no module loaded every Bink function returns a neutral value, so a missing dll only disables video.
+// Not thread safe: every load needs a paired unload, from the main thread, while no Bink function is in flight.
 
 class BinkLoader
 {

@@ -1,5 +1,7 @@
 #!/bin/bash
-# GeneralsX: Ship the openal-soft this build compiled, not the distro's.
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Ship the openal-soft this build compiled, not the distro's.
 #
 # Sourced by the Linux deploy and tarball scripts. cmake/openal.cmake FetchContents openal-soft
 # 1.24.2 on EVERY platform, patches it (openal-startsources-guard.cmake) and links the engine to

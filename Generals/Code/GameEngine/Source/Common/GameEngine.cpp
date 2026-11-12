@@ -337,8 +337,8 @@ Bool GameEngine::isTimeFrozen()
 		return false;
 
 	// GeneralsX: ...nor by the camera or a script in the replay of one, which plays back with no
-	// TheNetwork: a freeze the match ignored would put every script after it on another frame, and the replay's CRCs out
-	// (camera-sim-B). The debug pause still holds.
+	// TheNetwork: a freeze the match ignored would put every script after it on another frame, and the replay's CRCs out.
+	// The debug pause still holds.
 	const Bool networkReplay = TheRecorder != nullptr && TheRecorder->isPlaybackMode()
 		&& (TheRecorder->getGameMode() == GAME_LAN || TheRecorder->getGameMode() == GAME_INTERNET);
 
@@ -388,7 +388,7 @@ Bool GameEngine::isGameHalted()
 //-------------------------------------------------------------------------------------------------
 static const struct { const char *block; } sagePatchPreviousEngineBlocks[] =
 {
-	// 0af21a6f9 (10/09/2026) until 25/09/2026: MaxCameraHeight 350. gxio ENGINE_AUTOWRITE_BLOCK_V2.
+	// gxio ENGINE_AUTOWRITE_BLOCK_V2
 	{
 	  "; -----------------------------------------------------------------------------\n"
 	  "; SagePatch - Casual QoL overrides for GeneralsX\n"
@@ -1000,23 +1000,10 @@ void GameEngine::init()
 		TheWritableGlobalData->m_iniCRC = xferCRC.getCRC();
 		DEBUG_LOG(("INI CRC is 0x%8.8X", TheGlobalData->m_iniCRC));
 
-		// GeneralsX:
-		// Snapshot the join-time compatibility identity. The m_iniCRC assignment directly
-		// above is the only point at which m_iniCRC is final, and it is before any network
-		// subsystem exists (TheLAN is constructed later, from LanLobbyMenu), so the identity
-		// is always populated before a join can occur and never changes afterwards.
-		// Snapshotting rather than reading live also immunises it against the RTS_DEBUG
-		// backdoor in WOLLobbyMenu that overwrites m_exeCRC and m_iniCRC with a remote peer's
-		// advertised values. TheArchiveFileSystem->loadMods() has already run above, so the
-		// archive fingerprint includes mods. SagePatch.ini keeps its nullptr xfer and is
-		// deliberately not part of this - it is a per-device client-tuning file, and an iPad
-		// and a desktop legitimately want different camera limits.
-		// initialize() and computeMountedArchiveFingerprint() both fail closed and never
-		// throw, so neither can reach the catch (...) that wraps GameEngine::init.
-		//
-		// This must exist in the Generals build too, not just Zero Hour: SimulationId and the
-		// LANAPI files are Core sources compiled into both binaries, so a Generals build that
-		// skipped this would advertise valid == false and refuse every join and every host.
+		// GeneralsX: snapshot the join-time compatibility identity. m_iniCRC is final here and no network subsystem exists yet,
+		// so the identity is set before any join and never changes; it also ignores the RTS_DEBUG backdoor in WOLLobbyMenu.
+		// Mods are loaded, so the archive fingerprint covers them; SagePatch.ini is per-device tuning and is left out.
+		// Needed in the Generals build too: SimulationId and LANAPI are Core, compiled into both binaries.
 		SimulationId::Inputs simIn;
 		simIn.iniCRC               = TheGlobalData->m_iniCRC;
 		simIn.nameKeyBeforeScience = nameKeyBeforeScience;
@@ -1026,19 +1013,10 @@ void GameEngine::init()
 
 		TheSubsystemList->postProcessLoadAll();
 
-		// GeneralsX: THE max-FPS cap, resolved once - Common/FpsLimitPolicy.h.
-		// The launcher's value (-fps N, or -noFPSLimit for 0) wins; else the refresh rate of the display
-		// the game window is on, read HERE because TheGameClient above has created the display and applied
-		// the window mode, so the window sits on the monitor it will play on; else the tick rate. 0 means
-		// unlimited. The retail INI's FramesPerSecondLimit = 30 and UseFPSLimit no longer choose anything,
-		// and nothing after this line writes the cap - the skirmish slider is a game speed, map scripts
-		// and detail presets leave it alone.
-		//
-		// This used to be a `<= 0 -> tick rate` fix-up, with a warning that widening it broke match start
-		// ("simulated 0 frames"). The cause recorded for that was this global being ALSO the negotiated
-		// logic-rate ceiling in ConnectionManager::updateRunAhead; that ceiling has been the constant
-		// LOGICFRAMES_PER_SECOND since 17/08/2026, so the global is now read as the render cap only.
-		// Match start is re-proven at caps 0, 60 and 144 for this change (W7 handback, 27/09/2026).
+		// GeneralsX: the max-FPS cap, resolved once (Common/FpsLimitPolicy.h). Order: the launcher value (-fps N, or
+		// -noFPSLimit for 0); the refresh rate of the display the window is on; the tick rate. 0 = unlimited.
+		// The retail INI FramesPerSecondLimit and UseFPSLimit choose nothing, and nothing after this writes the cap.
+		// The global is read as the render cap only; the logic-rate ceiling is LOGICFRAMES_PER_SECOND.
 		{
 			const Bool fromArgv = CommandLine::hasFpsLimitArgument();
 			// A launch with no -fps (run-macos-zh.sh, run-linux-zh.sh) keeps the old launcher's "uncapped",
@@ -1228,22 +1206,10 @@ Bool GameEngine::canUpdateGameLogic(UnsignedInt logicTimeQueryFlags)
 }
 
 /// -----------------------------------------------------------------------------------------------
-// GeneralsX: DO NOT PUT A TIME ACCUMULATOR IN HERE. It has been tried on the
-// GeneralsMD twin, it was committed, and it was reverted the same night (684117700 reverting
-// 3ed15cee3). Two independent reasons, both from reading the code this code calls:
-//
-// 1. THIS GATE IS DOWNSTREAM OF COMMAND DELIVERY. Network::update() runs earlier in this same
-//    GameEngine::update(), and it appends the frame's commands to TheCommandList via
-//    RelayCommandsToCommandList BEFORE setting m_frameDataReady (Network.cpp:866-869). Returning
-//    false here does not defer them; it leaves them on the list to be re-broadcast at a later
-//    execution frame - a desync between peers whose sourceID and dataID match, which no join gate
-//    can catch.
-// 2. IT DOUBLE-THROTTLES. FramePacer::getActualLogicTimeScaleFps returns TheNetwork->getFrameRate()
-//    in a network game, the same rate Network::timeForNewFrame() has already enforced.
-//
-// The network path is not missing a pacer - Network::timeForNewFrame() is one, upstream of the
-// relay. If the simulation runs at the wrong rate, the rate it was handed is wrong. See the
-// 17/08/2026 fixes in ConnectionManager::updateRunAhead and Network::processRunAheadCommand.
+// GeneralsX: DO NOT PUT A TIME ACCUMULATOR IN HERE.
+// 1. Downstream of command delivery: Network::update() has already put this frame commands on TheCommandList, so
+//    returning false re-broadcasts them at a later frame, a desync no join gate catches.
+// 2. It double-throttles: Network::timeForNewFrame() already enforces the rate FramePacer returns in a network game.
 Bool GameEngine::canUpdateNetworkGameLogic()
 {
 	DEBUG_ASSERTCRASH(TheNetwork != nullptr, ("TheNetwork is null"));
@@ -1388,7 +1354,7 @@ void GameEngine::updateLogic()
 			TheGameClient->step();
 			// GeneralsX: A motion blur's TRUE ending in this update's scripted camera step
 			// (ScriptedCamera::logicFrame) can make a camera freeze in flight hold: from the next draw on, and only after the
-			// view took this frame's step too (re-read inside that step, it made this very update skip it: camera-sim-B).
+			// view took this frame's step too (re-read inside that step, it made this very update skip it).
 			TheFramePacer->setTimeFrozen(isTimeFrozen());
 		}
 		// GeneralsX: In a script freeze the scripts still run on this update and read

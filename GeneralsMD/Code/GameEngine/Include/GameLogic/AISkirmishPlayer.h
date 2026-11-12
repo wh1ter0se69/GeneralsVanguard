@@ -68,15 +68,15 @@ public:	// AIPlayer interface methods.
 	virtual void recruitSpecificAITeam(TeamPrototype *teamProto, Real recruitRadius) override; ///< Builds this team immediately.
 
 	virtual Bool isSkirmishAI() override {return true;}
-	virtual Bool gxFrontPoint(Coord3D *out) override;	///< GeneralsX 22/10/2026 (ai-wh1ter0se-econ R): the base front front defences use
-	void gxTunnelAirWatch();	///< GeneralsX 22/10/2026 (ai-wh1ter0se-econ T; ai-pro-rules-2 T2): incoming aircraft -> assigned tunnel guards
-	void gxAirRows(Int from, UnsignedInt now, Int me);	///< GeneralsX 28/10/2026 T2 r15: the watch's row loop, from row <from> on
-	void gxAirTestNoAir(UnsignedInt now);	///< GeneralsX 27/10/2026 (T2, test-instruments builds): GX_TAA_TEST_NOAIR
-	void gxAirLifetime(TeamPrototype *proto, UnsignedInt now);	///< GeneralsX 27/10/2026 (ai-pro-rules-2 T2): condition C + the team release
-	virtual Bool gxFrontPointFixed() override;	///< GeneralsX 28/10/2026: gxFrontPoint's answer cannot change (AIPlayer.cpp gxBuildAngles)
-	virtual Bool gxFrontDoors() override;	///< GeneralsX 04/11/2026 base-layout: this side's list carries GXFrontDoors
-	virtual const Coord3D &gxSupplyRef() const override { return m_gxStockCenterSet ? m_gxStockCenter : m_baseCenter; }	///< GeneralsX 06/11/2026 base-layout (ADDENDUM_9)
-	virtual GXRuleBank *gxRuleBank() override { return m_gxRules; }	///< GeneralsX 30/10/2026 rb-core: the AI rule bank
+	virtual Bool gxFrontPoint(Coord3D *out) override;	///< the base front used by front defences
+	void gxTunnelAirWatch();	///< incoming aircraft -> assigned tunnel guards
+	void gxAirRows(Int from, UnsignedInt now, Int me);	///< the row loop of the watch, from row <from> on
+	void gxAirTestNoAir(UnsignedInt now);	///< test-instruments builds: GX_TAA_TEST_NOAIR
+	void gxAirLifetime(TeamPrototype *proto, UnsignedInt now);	///< condition C + the team release
+	virtual Bool gxFrontPointFixed() override;	///< the answer of gxFrontPoint cannot change (AIPlayer.cpp gxBuildAngles)
+	virtual Bool gxFrontDoors() override;	///< the list for this side carries GXFrontDoors
+	virtual const Coord3D &gxSupplyRef() const override { return m_gxStockCenterSet ? m_gxStockCenter : m_baseCenter; }
+	virtual GXRuleBank *gxRuleBank() override { return m_gxRules; }	///< the AI rule bank
 
 	virtual Bool checkBridges(Object *unit, Waypoint *way) override;
 
@@ -108,11 +108,11 @@ protected:
 
 protected:
 	void adjustBuildList(BuildListInfo *list);
-	Waypoint *gxFrontWaypoint();	///< GeneralsX 28/10/2026: gxFrontPoint's Center-path waypoint (nullptr: none)
-	const class AISideBuildList *gxSideList() const;	///< GeneralsX 04/11/2026 base-layout: this side's list in the AI data (nullptr: none)
-	Bool gxBaseFrontFrom(const Coord3D &from, Coord3D *out);	///< GeneralsX 04/11/2026 base-layout: the keyed base front seen from a point; TRUE when it is a Center waypoint
-	Bool gxStartPoint(Coord3D *out);	///< GeneralsX 04/11/2026 base-layout: this player's start waypoint, which nothing moves (FALSE: none)
-	void gxComputeStockCenter();	///< GeneralsX 06/11/2026 base-layout (ADDENDUM_9): m_gxStockCenter from the placed stock spots (newMap)
+	Waypoint *gxFrontWaypoint();	///< Center-path waypoint of gxFrontPoint (nullptr: none)
+	const class AISideBuildList *gxSideList() const;	///< the list for this side in the AI data (nullptr: none)
+	Bool gxBaseFrontFrom(const Coord3D &from, Coord3D *out);	///< the keyed base front seen from a point; TRUE when it is a Center waypoint
+	Bool gxStartPoint(Coord3D *out);	///< this player's start waypoint, which nothing moves (FALSE: none)
+	void gxComputeStockCenter();	///< m_gxStockCenter from the placed stock spots (newMap)
 	Int getMyEnemyPlayerIndex();
 	void acquireEnemy();
 
@@ -130,10 +130,9 @@ protected:
 	std::map<const TeamPrototype*, Bool> m_hoardAttackTeams;	///< GeneralsX: aiTeamAttacks per team, filled on first use; pure, so not saved
 	UnsignedInt m_frameEnemyReviewed;	///< GeneralsX: when the enemy was last chosen or re-scored; like m_frameToCheckEnemy, not saved
 	Player			*m_currentEnemy;
-	GXRuleBank		*m_gxRules;	///< GeneralsX 30/10/2026 rb-core: the AI rule bank (GXRules/GXRuleBank.h); saved in xfer's own block
-	// GeneralsX 06/11/2026 base-layout: a keyed list's STOCK base centre, the centroid of the stock spots its
-	// entries fall back to, placed as retail places the stock list: exactly the m_baseCenter the stock list gives. Set only when every entry carries
-	// a layout fallback (GXTurnLayout lists from make-aidata-layouts.py); FALSE for every other list, which then ranks from m_baseCenter as before.
+	GXRuleBank		*m_gxRules;	///< the AI rule bank (GXRules/GXRuleBank.h); saved in its own xfer block
+	// The STOCK base centre of a keyed list: the centroid of the stock spots its entries fall back to, placed as retail places the stock list.
+	// Set only when every entry carries a layout fallback (GXTurnLayout lists); FALSE for every other list, which ranks from m_baseCenter.
 	Coord3D			m_gxStockCenter;
 	Bool				m_gxStockCenterSet;
 

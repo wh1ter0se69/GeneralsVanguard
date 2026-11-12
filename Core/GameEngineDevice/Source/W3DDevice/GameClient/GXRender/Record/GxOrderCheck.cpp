@@ -1,4 +1,22 @@
-// GeneralsX: WS-F1: GxOrderCheck (see GxOrderCheck.h).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// WS-F1: GxOrderCheck (see GxOrderCheck.h).
 #include "GxOrderCheck.h"
 
 #include <algorithm>
@@ -59,7 +77,7 @@ struct Log
 	std::vector<Att> atts;
 	std::vector<Ev> pendingEnd;
 	std::vector<VkCommandBuffer> execs;   // secondaries vkCmdExecuteCommands ran (replayed inline, in order)
-	bool begun = false;   // this recording's vkBeginCommandBuffer was seen: else commands before install() are missing (r10 #1)
+	bool begun = false;   // this recording's vkBeginCommandBuffer was seen: else commands before install() are missing
 };
 
 struct PipeInfo
@@ -70,7 +88,6 @@ struct PipeInfo
 
 // Where a write has been made visible: one (stages, accesses) pair per dependency that reached it. Pairs are never merged:
 // two barriers reaching (ALL_GRAPHICS, INDEX_READ) and (FRAGMENT_SHADER, MEMORY_READ) do not make a vertex read safe
-//
 struct Vis
 {
 	VkPipelineStageFlags2 s;
@@ -441,7 +458,7 @@ void replay(const Log& log, int depth = 0)
 				const VkAccessFlags2 wr = a.depth ? VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
 				// LOAD reads the earlier store (needs it visible to the read); CLEAR / DONT_CARE write it (a write-after-write: the
 				// earlier store made available and visible to the WRITE access - execution order alone is not enough,
-				// rw3-P-ordercheck-r1 #2, as Khronos' attachment-reuse example)
+				// as in Khronos' attachment-reuse example)
 				bool ordered = false;
 				for (const Vis& v : it->second.vis)
 					ordered |= (logical(v.s, false) & st) == st;   // execution order only: logically later stages count
@@ -466,7 +483,7 @@ void replay(const Log& log, int depth = 0)
 			for (uint32_t layer = log.atts[e.bar + i].layer0; layer - log.atts[e.bar + i].layer0 < log.atts[e.bar + i].layers; ++layer) {
 				const Att& a = log.atts[e.bar + i];
 				// every instance counts as a write: STORE and DONT_CARE write, and NONE skips only the store - a
-				// CLEAR load or a draw before it still wrote (r13 #3). A read-only NONE instance is an over-report, never a miss.
+				// CLEAR load or a draw before it still wrote. A read-only NONE instance is an over-report, never a miss.
 				g_images[Sub(a.img, a.gen, a.mip, layer, a.aspect)] = { a.depth ? VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT : VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 					a.depth ? VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, g_seq++, {} };
 			}

@@ -65,13 +65,6 @@ endif()
 # point the build at a retail installation. Dependencies/Bink/binkloader and
 # Dependencies/Miles/milesloader load them explicitly instead, which is why cmake/bink.cmake and
 # cmake/miles.cmake no longer exist.
-#
-# GeneralsX: retired 21/09/2026 This used to be a fetch gate carrying a
-# note about why it no longer demanded CMAKE_SIZEOF_VOID_P EQUAL 4: every consumer of the two stub
-# targets was gated on plain WIN32 with no word-size test, so at x64 the targets did not exist
-# while still being named and mss.h fell out of the include path. Nothing is fetched any more, so
-# the gate and its note are both dead. The word-size point survives in the loaders themselves,
-# which compile their LoadLibrary path only under 32-bit Windows and forward unconditionally.
 
 # Always include DX8 headers (needed for both Windows and Linux builds)
 # On Windows: min-dx8-sdk headers
@@ -165,19 +158,9 @@ if(UNIX AND NOT RTS_BUILD_ZEROHOUR)
     add_subdirectory(GeneralsMD/Code/CompatLib)
 endif()
 
-# SagePatch (casual QoL extras: screenshot, cursor lock, brightness, etc.)
-# Must be added before the game targets so sage_patch target exists when we
-# declare the dependency below.
-# GeneralsX: Also require SDL3, instead of letting SagePatch FATAL_ERROR.
-#
-# SagePatch's own first statement is `if(NOT SAGE_USE_SDL3) message(FATAL_ERROR ...)`, and it hooks
-# events through DYLD __interpose on macOS and LD_PRELOAD+dlsym on Linux - neither of which exists
-# on Windows, where the engine uses the native Win32 device layer rather than SDL3. Since
-# SAGE_USE_SDL3 defaults OFF (cmake/config-build.cmake:14) and no Windows preset turns it on, a
-# Windows configure hit that FATAL_ERROR and stopped before reaching any real target.
-#
-# Guarding here rather than relaxing SagePatch's own check: the check is correct, SagePatch really
-# does need SDL3. What was wrong is offering it on a configuration that cannot satisfy that.
+# SagePatch must be added before the game targets so the sage_patch target exists. It needs SDL3 (it hooks events via
+# DYLD __interpose on macOS and LD_PRELOAD on Linux, neither of which exists on Windows), and its own check FATAL_ERRORs
+# without SAGE_USE_SDL3, so only offer it when SAGE_USE_SDL3 is set.
 if(RTS_BUILD_OPTION_SAGE_PATCH AND SAGE_USE_SDL3)
     add_subdirectory(Patches/SagePatch)
 elseif(RTS_BUILD_OPTION_SAGE_PATCH)

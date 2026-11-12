@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: SHA-512, FIPS 180-4 section 6.4. See the header for why this
+// SHA-512, FIPS 180-4 section 6.4. See the header for why this
 // is written rather than called.
 //
 // This is the specification transcribed, with no cleverness anywhere on purpose: eight 64-bit

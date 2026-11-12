@@ -16,23 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: Cb-06a: client animations that ran at the render rate.
-// Each stepped "so much per drawn frame": the camera lock's follow easing, the radar-attack glow (150 frames),
-// the command-button flash, the shell's 30 Hz update gate. At 240 fps they ran 4x as fast as at 60; at 600 fps the radar
-// glow lasted a quarter of a second.
-//
-// THE REFERENCE IS TODAY'S 60 FPS LOOK, not the retail 30 fps they were authored at: at any fps
-// each site now measures what this game measured at 60 fps before the change. A REFERENCE FRAME is 1/RefFps s; refFrames
-// converts the engine's base-rate (30 fps, BaseFps) step ratios into reference frames.
-//
-// Four idioms, each exactly the old behaviour at one step of one reference frame (a 60 fps draw):
-//   easeStep        an ease that moved k of the remaining way per frame, for any number of frames: 1-(1-k)^n.
-//   takeBaseFrames  a per-frame counter stepped by whole frames, the remainder carried (upstream #2833's idiom,
-//                   AnimateWindowManager); the caller's step is floored at 5 fps, so a stall steps at most 12 reference frames.
-//   stepEvery       a step every so many frames (the command-button flash: every 10).
-//   gateDue         a fixed-rate gate that keeps its phase, so its mean rate is the period's at any render rate.
-//
-// Client-only, header-only and free of engine types so scripts/test/client-anim-policy-test.sh can drive it.
+// Client animations that ran at the render rate (camera lock easing, radar-attack glow, command-button flash, the
+// shell's 30 Hz gate) are measured against a 60 FPS REFERENCE FRAME (1/RefFps s); refFrames converts BaseFps =
+// 30 ratios. Idioms: easeStep 1-(1-k)^n; takeBaseFrames (remainder carried, step floored at 5 fps); stepEvery;
+// gateDue (keeps phase). Client-only, header-only (scripts/test/client-anim-policy-test.sh).
 
 #pragma once
 
@@ -40,7 +27,7 @@
 
 namespace GXClientAnimPolicy
 {
-	static const float RefFps = 60.0f;	///< the reference frame rate: (29/10/2026)
+	static const float RefFps = 60.0f;	///< the reference frame rate
 
 	// Reference frames in a step given in base frames of baseFps (BaseFps = 30: m_drawFpsRatio, gxRenderBaseOverUpdateFpsRatio).
 	inline float refFrames(float baseFrames, float baseFps)

@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Build GeneralsXZH (Zero Hour) for Linux using Docker
 # Usage: ./scripts/build/linux/docker-build-linux-zh.sh [preset]
 

@@ -1,5 +1,7 @@
 #!/bin/bash
-# GeneralsX: One-time migration: move the overlay archives out of a
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# One-time migration: move the overlay archives out of a
 # game folder and into the GeneralsX-owned sibling directory the run wrapper points at.
 #
 #   scripts/build/migrate-patch-overlay.sh [<runtime-dir>] [--dry-run]
@@ -41,8 +43,8 @@ RUNTIME="$(cd "${RUNTIME}" && pwd)"
 OVERLAY="$(gx_overlay_dir "${RUNTIME}")"
 
 # pgrep -x, never -f: a path-shaped -f pattern matches nothing and exits silently (identical to
-# success), and a bare -f name over-matches - on 2026-08-11 it matched a live rsync of the game
-# directory. macOS pgrep has no -c, hence the wc.
+# success), and a bare -f name over-matches (it matched a live rsync of the game
+# directory). macOS pgrep has no -c, hence the wc.
 RUNNING="$(pgrep -x GeneralsXZH 2>/dev/null | tr '\n' ' ')"
 if [[ -n "${RUNNING// /}" ]]; then
     echo "REFUSING: GeneralsXZH is running (pids: ${RUNNING})." >&2

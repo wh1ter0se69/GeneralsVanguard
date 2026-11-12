@@ -78,18 +78,9 @@ static GameWindow *editPlayerName = nullptr;
 static GameWindow *comboboxRemoteIP = nullptr;
 static GameWindow *staticLocalIP = nullptr;
 
-// GeneralsX @feature Matchmaking. Every host now advertises in a room of its own, and the relay
-// hands out addresses PER ROOM - so the first player in every room is 10.42.0.1 and the host
-// address no longer identifies a game. The room has to travel with the selection or joining is a
-// coin toss between every game in the browser.
-//
-// It travels two ways, because the combo box is editable and its contents outlive this screen:
-//
-//   * snapshotted here as the list is built, and read back by index when Join is pressed. Exact,
-//     and the only source that is right for a row the player picked out of the live list.
-//   * appended to the entry text as "#<room>", which is what survives into the saved RemoteIP
-//     history and back out of it on the next visit. JoinDirectConnectGame splits the entry on '('
-//     before parsing the address, so everything after that is free space.
+// Matchmaking: every host advertises in its own room, so the host address alone no longer identifies a game.
+// The room travels with the selection: snapshotted per list row (read back by index on Join) and appended to the
+// entry text as "#<room>", which survives into the saved history. JoinDirectConnectGame splits on '(' first.
 static char s_listedRoom[Transport::MAX_RELAY_LISTINGS][32];
 static UnsignedInt s_listedHostIP[Transport::MAX_RELAY_LISTINGS];
 static Int s_listedCount = 0;
@@ -135,7 +126,7 @@ void PopulateRemoteIPComboBox()
 	Int numRemoteIPs = userprefs.getNumRemoteIPs();
 	Color white = GameMakeColor(255,255,255,255);
 
-	// GeneralsX @feature Relay transport. Relay mode is decided by OUR identity, the same test
+	// GeneralsX: Relay transport. Relay mode is decided by OUR identity, the same test
 	// Transport::initRelay makes - a room can now hold up to eight peers, so there is no single
 	// "other machine" to key it on.
 	//
@@ -153,7 +144,7 @@ void PopulateRemoteIPComboBox()
 	const UnsignedInt peerVirtualIP = prefs.getPeerVirtualIP();
 	UnicodeString peerEntry;
 
-	// GeneralsX @feature Server list. Live games the relay knows about go first - this is the
+	// GeneralsX: Server list. Live games the relay knows about go first - this is the
 	// browser. The entry has to stay dialable, because JoinDirectConnectGame reads the combo box
 	// text back and parses an address out of it; it already splits on '(' before doing so, so an
 	// annotation in parentheses is carried for free and needs no change there.
@@ -185,17 +176,9 @@ void PopulateRemoteIPComboBox()
 			UnicodeString wideRoom;
 			wideRoom.translate(AsciiString(game->room));
 
-			// The room rides in the text as well as in the snapshot below - see the note by
-			// s_listedRoom. It is inside the parentheses so the row still reads as one unit, and
-			// after the address so JoinDirectConnectGame's split on '(' is unaffected.
-			// Field order is chosen for a box that is too narrow for the whole row. A combo box
-			// scrolled to the end shows the TAIL, so the tail has to be the part a human picks
-			// by - the map, the player count and who is hosting. The address and the room token
-			// are machine-readable and go first, where being clipped costs nothing: the address
-			// is recovered by parsing (the split is on '(') and the room by strrchr on '#'.
-			//
-			// Before this the row ended "...ht flame  #gxtest-f96603c4)", which is the least
-			// useful possible slice of it.
+			// The room rides in the text as well as the snapshot (see s_listedRoom), inside the parentheses after the
+			// address so JoinDirectConnectGame's split on '(' is unaffected. The tail carries what a human picks by
+			// (map, players, host), as a narrow combo box shows the end of the row.
 			UnicodeString listing;
 			listing.format(L"%d.%d.%d.%d (#%ls  %ls  %d/%d  %ls)",
 				PRINTF_IP_AS_4_INTS(game->hostVirtualIP),
@@ -397,26 +380,9 @@ void JoinDirectConnectGame()
 	UpdateRemoteIPList();
 	PopulateRemoteIPComboBox();
 
-	// GeneralsX @feature Matchmaking. Move into the picked game's room before dialling into it.
-	//
-	// The whole sequence is ordered and none of it is interchangeable:
-	//
-	//   1. take the room from the LISTING, never from Options.ini - the game we picked decides
-	//      where it lives, and our own configuration says nothing about it;
-	//   2. ask the relay for an identity IN THAT ROOM, because addresses are allocated per room and
-	//      the one we hold was allocated somewhere else. Carrying it over would not be a private
-	//      address in a new place, it would be somebody else's address;
-	//   3. throw TheLAN away and build a new one, so that no LANGameInfo is alive across the
-	//      change. LANGameInfo snapshots the local IP in its constructor and AmIHost and
-	//      getLocalSlotNum read that snapshot rather than TheLAN - an identity that lands after one
-	//      exists reaches nothing that decides anything. This is the same constraint the assert in
-	//      NetworkDirectConnectInit guards, and the same fix;
-	//   4. only then SetLocalIP, which rebinds the transport and re-runs initRelay against the new
-	//      room and identity;
-	//   5. and only then dial the host.
-	//
-	// Doing nothing at all is the right answer when the game is already in our room, and when the
-	// entry names no room - a hand-typed address on a plain LAN has no room and needs none.
+	// Matchmaking: move into the picked game's room before dialling. Order matters: take the room from the LISTING;
+	// get an identity IN THAT ROOM (addresses are per room); rebuild TheLAN (LANGameInfo snapshots the local IP);
+	// then SetLocalIP (rebinds, re-runs initRelay); then dial the host. Do nothing if already in that room.
 	Transport *transport = TheLAN->getTransport();
 	if (transport != nullptr && transport->isRelayEnabled() && !targetRoom.isEmpty()
 		&& strcmp(targetRoom.str(), transport->getRelayRoom()) != 0)
@@ -472,23 +438,14 @@ Bool SetUpOnlineLobbyLAN( void )
 	OptionPreferences prefs;
 	UnsignedInt IP = prefs.getDirectConnectIPAddress();	// GeneralsX: follows "Use my VPN for LAN"
 
-	// GeneralsX @feature Relay transport. With a relay configured our identity is the virtual
-	// LAN address, not a NIC address: the lobby is a two-machine LAN whose members are
-	// 10.42.0.1 and 10.42.0.2 wherever the machines physically are. The interface enumeration
-	// below must be skipped entirely, because the virtual address is on no interface and the
-	// "the IP we had no longer exists" fallback would replace it with a real one.
-	// GeneralsX @feature Matchmaking. Ask the relay to allocate our address rather than reading
-	// a hand-written one. This has to happen HERE, before SetLocalIP below, because
-	// LANGameInfo snapshots the local IP at construction and AmIHost and slot matching read
-	// that snapshot - an identity that lands later reaches nothing that matters.
-	//
-	// Falls back to the configured LocalVirtualIP so hand-set setups and LAN play are
-	// unchanged; relay mode simply stays off if neither produces an address.
+	// Relay transport: our identity is the virtual LAN address, which is on no interface, so skip the interface
+	// enumeration below or its fallback would replace it with a real one.
+	// Ask the relay for our address before SetLocalIP (LANGameInfo snapshots it); fall back to LocalVirtualIP.
 	const AsciiString relayHost = prefs.getRelayAddress();
 	UnsignedInt virtualIP = 0;
 	if (!relayHost.isEmpty())
 	{
-		// GeneralsX @feature Matchmaking. Our OWN room, not a shared one. Entering an online
+		// GeneralsX: Matchmaking. Our OWN room, not a shared one. Entering an online
 		// screen is entering the room we would host in, so that a game created from here is the
 		// only game in it; picking somebody else's game out of the browser moves us into theirs
 		// instead - see JoinDirectConnectGame.
@@ -541,14 +498,14 @@ Bool SetUpOnlineLobbyLAN( void )
 			// The IP that we had no longer exists, we need to pick a new one.
 			IP = IPlist->getIP();
 		}
-		// GeneralsX @bugfix IPlist can be null when the machine has no usable
+		// GeneralsX: IPlist can be null when the machine has no usable
 		// network interface (an iPad with Wi-Fi off). The empty `if (!IPlist)`
 		// guard above let execution reach here, and the while loop's own null
 		// test meant foundIP stayed FALSE — so this branch dereferenced the
 		// null every time. DEBUG_ASSERTCRASH compiles away in release.
 	}
 
-	// GeneralsX @feature The order here is load-bearing, and only accidentally correct: there
+	// GeneralsX: The order here is load-bearing, and only accidentally correct: there
 	// is a third copy of the local identity, because LANGameInfo's constructor snapshots
 	// TheLAN->GetLocalIP() and GameInfo::getLocalSlotNum and amIHost read that snapshot rather
 	// than TheLAN. SetLocalIP therefore has to run before any LANGameInfo exists - which the
@@ -595,19 +552,9 @@ void NetworkDirectConnectInit( WindowLayout *layout, void *userData )
 	comboboxRemoteIP = TheWindowManager->winGetWindowFromId( nullptr,	comboboxRemoteIPID);
 	staticLocalIP = TheWindowManager->winGetWindowFromId( nullptr, staticLocalIPID);
 
-	// GeneralsX @feature Matchmaking. Relabel the screen when it is a game browser.
-	//
-	// The Online button opens this layout, so a player who clicks Online is shown a screen that
-	// says "Remote IP" over a list of games and "Local IP" over an address that is not on any
-	// interface. Both are leftovers from when this screen existed for typing an address at a
-	// friend, and both read as something being broken.
-	//
-	// Done at runtime rather than by editing the layout because the .wnd lives inside a .big -
-	// retitling it properly means repacking an archive, which is a much bigger commitment than the
-	// wording is worth while the real lobby screen is still to come.
-	//
-	// Only when a relay is actually configured: on a plain LAN this screen still IS direct
-	// connect by IP, and the original wording is correct there.
+	// Matchmaking: relabel the screen when it is a game browser (the .wnd says "Remote IP" over a game list).
+	// Done at runtime rather than editing the .wnd inside a .big, and only when a relay is configured:
+	// on a plain LAN this is direct connect by IP and the original wording is right.
 	{
 		Transport *labelTransport = (TheLAN != nullptr) ? TheLAN->getTransport() : nullptr;
 		if (labelTransport != nullptr && labelTransport->isRelayEnabled())
@@ -655,11 +602,11 @@ void NetworkDirectConnectInit( WindowLayout *layout, void *userData )
 
 	UnicodeString ipstr;
 
-	// GeneralsX @feature Matchmaking. Was inline here; extracted so the WOL lobby screen runs the
+	// GeneralsX: Matchmaking. Was inline here; extracted so the WOL lobby screen runs the
 	// identical sequence rather than a second copy of it that can drift. See SetUpOnlineLobbyLAN.
 	SetUpOnlineLobbyLAN();
 
-	// GeneralsX @feature Server list. Ask the relay what games exist as soon as the transport is
+	// GeneralsX: Server list. Ask the relay what games exist as soon as the transport is
 	// up. The replies arrive asynchronously on the same socket, so nothing is waited on here -
 	// NetworkDirectConnectUpdate notices them and refills the list.
 	if (TheLAN->getTransport() != nullptr && TheLAN->getTransport()->isRelayEnabled())
@@ -723,7 +670,7 @@ void NetworkDirectConnectShutdown( WindowLayout *layout, void *userData )
 //-------------------------------------------------------------------------------------------------
 void NetworkDirectConnectUpdate( WindowLayout * layout, void *userData)
 {
-	// GeneralsX @feature Server list. The relay's replies arrive asynchronously, one datagram per
+	// GeneralsX: Server list. The relay's replies arrive asynchronously, one datagram per
 	// game, so the list fills in over a few frames rather than all at once. Refill the combo box
 	// when the count changes rather than every frame, so a player part-way through opening the
 	// dropdown does not have it rebuilt under them.

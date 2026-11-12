@@ -1,4 +1,22 @@
-// GeneralsX: A23-B: the native device's command stream (GxNativeCs.h).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// A23-B: the native device's command stream (GxNativeCs.h).
 #include "GxNativeCs.h"
 
 #include <cfenv>
@@ -328,8 +346,8 @@ void GxNativeCs::threadMain(const char* name)
 			}
 			rd += size;
 			m_rd.store(rd, std::memory_order_seq_cst);
-			// A55: a sleeping producer is woken by the record it waits for (m_wakeAt; 0 = a room wait: any record), not by every
-			// record - per record, main ran ~1.4 ms/frame of wake-ups inside Present's lead fence at wh1ter0se's camera (15/10)
+			// A sleeping producer is woken by the record it waits for (m_wakeAt; 0 = a room wait: any record), not by every
+			// record: per-record wakes cost main about 1.4 ms/frame inside Present's lead fence.
 			if (m_producerWaiting.load(std::memory_order_seq_cst)) {
 				const uint64_t at = m_wakeAt.load(std::memory_order_relaxed);
 				if (testWakeEveryRecord || (testWakeLate ? last > at : last >= at)) {

@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule RAID.GATTLING_FLANK_SUPPLY: China sends Gattling raiders round
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule RAID.GATTLING_FLANK_SUPPLY: China sends Gattling raiders round
 # the flank at dozers, trucks and Chinooks from the first minutes. Stock China Hard's first raiders are the "1ST Wave Supply Hunters"
 # (2 Gattlings), formed only when its own wave clock says wave 1. Per China general this adds team "GX Flank Raiders <g>" (raid_team
 # Gattling Tanks, one at a time, re-formed when lost) from _GX_CLOCK >= ceil(raid_start_t / 10); on creation it stops and runs the stock

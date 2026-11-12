@@ -169,7 +169,7 @@ Int UDP::Bind(UnsignedInt IP,UnsignedShort Port)
   if (fd==-1)
     return(UNKNOWN);
 
-  // GeneralsX @bugfix Put the socket in non-blocking mode BEFORE the bind rather than after.
+  // GeneralsX: Put the socket in non-blocking mode BEFORE the bind rather than after.
   // The old order returned on bind failure at the line below, skipping SetBlocking entirely,
   // so a socket that failed to bind stayed blocking - and because GetStatus() was pinned to OK
   // on POSIX (see mapPosixReadError above) the caller took it as a working socket and later
@@ -178,17 +178,9 @@ Int UDP::Bind(UnsignedInt IP,UnsignedShort Port)
     fprintf(stderr,"Couldn't set nonblocking mode!\n");
 
   #ifdef _WIN32
-  // GeneralsX: SIO_UDP_CONNRESET, long documented as this engine's
-  // missing mitigation and now MEASURED biting: on Windows a peer that closes its socket sends
-  // ICMP port-unreachable for every datagram still addressed to it, and each one makes the
-  // NEXT recvfrom on this socket fail WSAECONNRESET. UDP::Read maps that to -1, and
-  // Transport::doRecv's while(Read>0) drain aborts on it - so one departed peer degrades a
-  // LIVE peer's receive path to roughly one datagram per pump. Seen 2026-08-10: a joiner that
-  // finished a map transfer and closed its game socket left the Windows host draining the
-  // joiner's one-second progress burst at ~6 messages/second for minutes. The launcher has
-  // carried this exact ioctl since the relay 2x2 (gxlaunch.c, udp_ignore_conn_reset); the
-  // engine now matches it. The ioctl failing is not worth failing the bind over - it restores
-  // pre-fix behaviour at worst.
+  // GeneralsX: SIO_UDP_CONNRESET. On Windows a closed peer socket sends ICMP port-unreachable, which makes the NEXT
+  // recvfrom fail WSAECONNRESET; UDP::Read returns -1 and Transport::doRecv's drain loop aborts, so one departed
+  // peer throttles a live peer's receive path. A failed ioctl is not worth failing the bind over.
   {
     DWORD off = 0, ret = 0;
     WSAIoctl(fd, SIO_UDP_CONNRESET, &off, sizeof(off), NULL, 0, &ret, NULL, NULL);
@@ -204,7 +196,7 @@ Int UDP::Bind(UnsignedInt IP,UnsignedShort Port)
 		m_lastError = WSAGetLastError();
 	}
   #else
-  // GeneralsX @bugfix Record errno so GetStatus() can report the real failure. Without this
+  // GeneralsX: Record errno so GetStatus() can report the real failure. Without this
   // it returned OK and a failed bind looked like a successful one.
   if (retval==-1)
 		m_lastError = errno;
@@ -212,7 +204,7 @@ Int UDP::Bind(UnsignedInt IP,UnsignedShort Port)
   if (retval==-1)
   {
     status=GetStatus();
-    // GeneralsX @bugfix GetStatus() maps 0 to OK, so an errno this switch does not know
+    // GeneralsX: GetStatus() maps 0 to OK, so an errno this switch does not know
     // (EADDRNOTAVAIL is the common one - a stale Options.ini IPAddress naming an interface
     // that no longer exists) must still surface as a failure rather than as OK.
     if (status==OK)
@@ -301,9 +293,9 @@ Int UDP::Write(const unsigned char *msg,UnsignedInt len,UnsignedInt IP,UnsignedS
 		DEBUG_ASSERTLOG(errCount++ > 100, ("UDP::Write() - WSA error is %s", GetWSAErrorString(WSAGetLastError()).str()));
 	}
   #else
-  // GeneralsX @bugfix Record errno on POSIX so Transport::doSend can distinguish a transient
-  // EWOULDBLOCK (retry) from a hard EHOSTUNREACH/EACCES (drop). It previously saw OK for both
-  // and retained the failed message forever, leaking one of MAX_MESSAGES slots per failure.
+  // GeneralsX: Record errno on POSIX so Transport::doSend can distinguish a transient
+  // EWOULDBLOCK (retry) from a hard EHOSTUNREACH/EACCES (drop). Without it both read as OK
+  // and the failed message was retained forever, leaking one of MAX_MESSAGES slots per failure.
   if (retval==-1)
 		m_lastError = errno;
   #endif
@@ -312,21 +304,9 @@ Int UDP::Write(const unsigned char *msg,UnsignedInt len,UnsignedInt IP,UnsignedS
 }
 
 #ifndef _WIN32
-// GeneralsX @bugfix Every write to m_lastError in this file sat inside #ifdef _WIN32, so on
-// POSIX GetStatus() read a permanently-zero field and reported OK no matter what the socket
-// did. UDP::Bind then returned "success" after a failed bind - and returned before
-// SetBlocking(FALSE), handing Transport a BLOCKING socket it believed was fine, so
-// Transport::doRecv's read loop parked the main thread in recvfrom(). The symptom is the game
-// freezing when you open the LAN screen, which reads like a renderer stall, not a network
-// fault. Everything downstream was equally blind: Transport::init left its retry loop
-// immediately and returned true, LANAPI::SetLocalIP returned TRUE, LanLobbyMenuInit never set
-// LANSocketErrorDetected, and the GUI:SocketError dialog was unreachable.
-//
-// Ordering matters here: the Windows Read path already remaps WSAEWOULDBLOCK to a 0 return,
-// but POSIX recvfrom reports an idle non-blocking socket as -1/EAGAIN. Recording errno without
-// special-casing that would make Transport::doRecv return FALSE on every idle tick and trip
-// LANSocketErrorDetected every frame - harmless only while GetStatus() was pinned to OK. So
-// the drain case is filtered here, before any error is recorded.
+// GeneralsX: errno is recorded on POSIX too, so GetStatus() and Bind report real failures; an unreported failed Bind
+// left a BLOCKING socket that froze Transport::doRecv. POSIX recvfrom reports an idle socket as -1/EAGAIN, so that
+// drain case is filtered here before any error is recorded, or doRecv would fail on every idle tick.
 Int UDP::mapPosixReadError()
 {
 	const int err = errno;
@@ -465,7 +445,7 @@ UDP::sockStat UDP::GetStatus()
     #endif
     case EBADF:
       return BADF;
-    // GeneralsX @bugfix Map the errnos this port actually hits. EADDRNOTAVAIL is a stale
+    // GeneralsX: Map the errnos this port actually hits. EADDRNOTAVAIL is a stale
     // Options.ini IPAddress naming an interface that no longer exists; EADDRINUSE is a
     // second instance already holding 8086; EHOSTUNREACH is what Darwin returns for a
     // limited broadcast to 255.255.255.255, which is how LAN discovery fails here.
@@ -632,7 +612,7 @@ Int UDP::AllowBroadcasts(Bool status)
 	if (retval == 0)
 		return TRUE;
 
-	// GeneralsX @bugfix No caller has ever looked at this return value, and a socket missing
+	// GeneralsX: No caller has ever looked at this return value, and a socket missing
 	// SO_BROADCAST refuses every discovery send with EACCES - at the LAN screen that is
 	// indistinguishable from an empty network, which is the hardest kind of failure to chase.
 	DEBUG_LOG(("UDP::AllowBroadcasts - setsockopt(SO_BROADCAST, %d) failed with error %d",

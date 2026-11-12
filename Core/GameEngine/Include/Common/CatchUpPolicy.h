@@ -16,25 +16,12 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: TICK CATCH-UP: a network match whose frames are slow to DRAW keeps its tick rate.
-//
-// The engine runs at most one logic tick per main-loop iteration, and every iteration drew. So a zoomed-out 6v6 that
-// takes 20-37 ms to draw also ran its simulation at 27-50 ticks a second - the game itself slowed down, for everyone in
-// lockstep with that machine (perf-6v6 attribution, 02/10/2026: every slow second was the draw, not the tick).
-//
-// Catch-up keeps the one-tick-per-iteration rule and drops the DRAW instead: when the network pacer already has a second
-// frame due at draw time, the iteration skips its draw and becomes fast forward's logic-only pass - the whole client
-// update (the shroud refresh the logic reads back, drawable updates, terrain) and one tick, minus the render. The tick
-// sequence is therefore the 1x one by construction, the same argument fast forward rests on (FramePacer.cpp). A logic-
-// only pass is a few ms, so two of them after a slow draw repay what the draw overran.
-//
-// Bounds: at most MaxLogicOnlyPassesPerDraw passes in a row (so at most 3 ticks per drawn frame), a draw at least every
-// MaxUsWithoutDraw, and no skipping for a second after a logic-only pass itself took a whole frame period (the CPU, not
-// the draw, is the limit then, and skipping would only cost frames). The pacer may carry CatchUpDebtFrames of debt while
-// catch-up is on (retail forgave anything past 2, so a draw longer than two periods lost its ticks for good). It never
-// runs faster than the pacer allows: every tick still needs Network::timeForNewFrame and AllCommandsReady.
-//
-// HEADER ONLY AND ENGINE-FREE, so the decisions are testable without the engine: scripts/test/catchup-pacing-test.sh.
+// Tick catch-up: at most one logic tick runs per main-loop iteration, so a slow draw slowed the simulation.
+// When the network pacer already has a second frame due, the iteration skips its draw and runs a logic-only pass,
+// so the tick sequence is the 1x one. Every tick still needs Network::timeForNewFrame and AllCommandsReady.
+// Bounds: MaxLogicOnlyPassesPerDraw (2) in a row, a draw every MaxUsWithoutDraw (100 ms), no skipping for
+// CpuBoundBackoffUs (1 s) after a pass took a whole frame; pacer debt up to CatchUpDebtFrames (4) instead of retail 2.
+// Header only and engine-free: scripts/test/catchup-pacing-test.sh.
 
 #pragma once
 
@@ -82,20 +69,11 @@ namespace CatchUpPolicy
 		return followingFrameReady ? framesDue : 0;
 	}
 
-	// GeneralsX: The regular gate (GameEngine::canUpdateRegularGameLogic: single player, skirmish,
-	// replays). catchUp FALSE is the retail gate exactly: a pass credits at most one period, and the tick-every-iteration
-	// branch (the logic time scale is off because the render cap <= the tick rate, FpsLimitPolicy::needsLogicTimeScale; a
-	// script's fast-forward; the replay fast mode) leaves the carry alone.
-	// catchUp TRUE, period = 1 / min(logic rate, render cap) (the caller's job):
-	//  - accumulator mode: the whole pass is credited, so a slow draw leaves debt the next passes repay one tick each
-	//    (FramePacer::isCatchUpDrawSkip turns the owed draws into logic-only passes);
-	//  - tick-every-iteration mode: every pass still ticks, and the carry is the DEBT, wall time minus ticks x period,
-	//    floored at 0 (a fast logic-only pass repays it). No dead band: FrameRateLimit's deadline grid answers a late wake
-	//    with a shorter next frame, so the raw sum stays within the wake error.
-	// A pass longer than CatchUpDebtFrames + 1 periods (a load, a minimised window) is a hitch, credited at the retail rate
-	// and not repaid - the bound pacerStep keeps on the network path. Debt above CatchUpDebtFrames periods is forgiven. At
-	// most one tick per call: never faster than real time.
-	//
+	// Regular gate (single player, skirmish, replays). catchUp FALSE is the retail gate: accumulator mode credits
+	// min(elapsed, period) per pass; tick-every-iteration mode ticks on every call and leaves carry alone.
+	// catchUp TRUE, period = 1 / min(logic rate, render cap): accumulator mode credits the whole pass, so a slow
+	// draw leaves debt repaid one tick per pass; tick-every-iteration mode carries debt = wall time - ticks x period.
+	// A pass over CatchUpDebtFrames + 1 periods is a hitch, credited at the retail rate. At most one tick per call.
 	inline bool regularStep(float &carry, float elapsed, float period, bool tickEveryIteration, bool catchUp)
 	{
 		if (!catchUp)
@@ -140,7 +118,7 @@ namespace CatchUpPolicy
 		if (period <= 0.0f)
 			return 0;
 		// a hitch is credited at the retail rate (regularStep): count it the same way, so the draw never skips for a debt the
-		// gate is about to forgive (review r3 minor 1)
+		// gate is about to forgive
 		if (elapsed > (float)(CatchUpDebtFrames + 1) * period)
 			elapsed = (elapsed < period ? elapsed : period);
 		const float total = carry + elapsed;

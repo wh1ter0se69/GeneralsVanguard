@@ -894,17 +894,10 @@ static Bool heightMapSizeFits(Int width, Int height, Int dataSize, Int bytesLeft
 	return (Int64)width * (Int64)height == (Int64)dataSize;
 }
 
-/** GeneralsX: Every boundary is a playable extent (W3DTerrainLogic::getExtent and
-	getMaximumPathfindExtent take boundary * MAP_XY_FACTOR), which PartitionManager::init and Pathfinder::newMap turn
-	into cell grids by multiplying x by y in Int, with no bound of any kind: 2^20 x 2^12 wrapped the partition grid to
-	zero cells, which its init loop then filled for 2^32 cells. Only a POSITIVE coordinate can grow a grid: the
-	pathfinder takes the largest x and the largest y over every boundary starting from 0, setActiveBoundary never
-	activates a boundary with a zero side, and PartitionManager::init widens an extent under one unit to one - so
-	negative and zero values (the 2003 campaign maps carry them in unused slots, down to -108) are accepted as before.
-	A positive coordinate may reach twice the height map: a scan of 2,638 real maps (shipped, base Generals, overlay,
-	user and 2,457 community maps) found x up to 1.22 x the width and y up to 1.46 x the height, so every one still
-	loads, and every grid built from a boundary stays within four times the height map, which heightMapSizeFits()
-	bounds by the file. */
+/** GeneralsX: Every boundary is a playable extent, and PartitionManager::init and Pathfinder::newMap multiply x by y in
+	Int unbounded (2^20 x 2^12 wrapped to zero cells). Only a POSITIVE coordinate can grow a grid, so zero and negative
+	values (campaign maps have them) are accepted. A positive one may reach twice the height map (real maps: 1.22x, 1.46x),
+	keeping every grid within four times the height map, which heightMapSizeFits() bounds. */
 static Bool boundariesFitHeightMap(const std::vector<ICoord2D> &boundaries, Int width, Int height)
 {
 	for (size_t i = 0; i < boundaries.size(); ++i) {
@@ -1096,16 +1089,10 @@ Bool WorldHeightMap::ParseBlendTileDataChunk(DataChunkInput &file, DataChunkInfo
 	return pThis->ParseBlendTileData(file, info, userData);
 }
 
-/** GeneralsX @bugfix A texture class describes its tiles with two raw ints out of the .map file,
-	firstTile and width, and both were used verbatim: firstTile as the base of a write into the
-	fixed m_sourceTiles / m_edgeTiles arrays (NUM_SOURCE_TILES pointers each) and width as the
-	stride/extent. A hand-edited or corrupt map could therefore place up to width*width TileData
-	pointers - and the 16KB of pixel data written through each of them - at an arbitrary offset
-	from the array, and make updateTileTexturePositions() index just as far out afterwards.
-	WorldBuilder already guarantees firstTile + width*width <= NUM_SOURCE_TILES when it writes the
-	file (WHeightMapEdit.cpp allocateTiles/allocateEdgeTiles both bail out otherwise), so enforcing
-	it on load rejects nothing the editor has ever produced. width is range-checked before it is
-	squared so the multiply itself cannot overflow Int. */
+/** GeneralsX: A texture class's firstTile and width are raw .map values that index the fixed m_sourceTiles /
+	m_edgeTiles arrays (NUM_SOURCE_TILES), so a corrupt map could write TileData pointers far out of bounds.
+	WorldBuilder guarantees firstTile + width*width <= NUM_SOURCE_TILES, so enforcing it rejects nothing the editor made.
+	width is range-checked before it is squared so the multiply cannot overflow Int. */
 static Bool tileRangeFitsSourceTiles(Int firstTile, Int width)
 {
 	if (firstTile < 0 || width < 0 || width > NUM_SOURCE_TILES) {
@@ -1150,7 +1137,7 @@ void WorldHeightMap::readTexClass(TXTextureClass *texClass, TileData **tileData)
 					break;
 				}
 			}
-			// GeneralsX @bugfix readTiles() writes width*width TileData pointers starting at
+			// GeneralsX: readTiles() writes width*width TileData pointers starting at
 			// tileData + firstTile. width here is derived from the .tga, not from the (already
 			// validated) width field of the texture class, so the two need not agree - a map that
 			// declares width 1 but numTiles 100 against a 10x10 .tga lands 100 slots past
@@ -1253,7 +1240,7 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 	}
 	m_numBitmapTiles = file.readInt();
 	DEBUG_ASSERTCRASH(m_numBitmapTiles>0 && m_numBitmapTiles<2048, ("Unlikely numBitmapTiles."));
-	// GeneralsX @bugfix m_numBitmapTiles is the loop bound for the m_sourceTiles / m_edgeTiles
+	// GeneralsX: m_numBitmapTiles is the loop bound for the m_sourceTiles / m_edgeTiles
 	// walks in updateTileTexturePositions(), and those arrays hold NUM_SOURCE_TILES (1024)
 	// pointers. The assert above lets 2047 through and compiles out entirely in release, so a
 	// corrupt map made those loops load pointers from past the end of the object and then write
@@ -1264,7 +1251,7 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 	}
 	m_numBlendedTiles = file.readInt();
 	DEBUG_ASSERTCRASH(m_numBlendedTiles>0 && m_numBlendedTiles<NUM_BLEND_TILES+1, ("Unlikely numBlendedTiles."));
-	// GeneralsX @bugfix The blend loop below writes m_blendedTiles[1 .. m_numBlendedTiles-1] into a
+	// GeneralsX: The blend loop below writes m_blendedTiles[1 .. m_numBlendedTiles-1] into a
 	// NUM_BLEND_TILES array with only the (release-compiled-out) assert above as a bound. It is
 	// also the clamp limit applied to m_blendTileNdxes / m_extraBlendTileNdxes by the constructor,
 	// so an oversized value would additionally let those indices run past m_blendedTiles later.
@@ -1273,7 +1260,7 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 	}
 	if (info->version >= K_BLEND_TILE_VERSION_5) {
 		m_numCliffInfo = file.readInt();
-		// GeneralsX @bugfix Same problem with no assert at all: the cliff loop below writes a
+		// GeneralsX: Same problem with no assert at all: the cliff loop below writes a
 		// TCliffInfo per iteration into m_cliffInfo[NUM_CLIFF_INFO], and the count is also the
 		// clamp limit for m_cliffInfoNdxes in the constructor.
 		if (m_numCliffInfo < 0 || m_numCliffInfo > NUM_CLIFF_INFO) {
@@ -1285,7 +1272,7 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 // --> file loading here
 	m_numTextureClasses	= file.readInt();
 	DEBUG_ASSERTCRASH(m_numTextureClasses>0 && m_numTextureClasses<200, ("Unlikely m_numTextureClasses."));
-	// GeneralsX @bugfix m_textureClasses holds NUM_TEXTURE_CLASSES entries and the loop below fills
+	// GeneralsX: m_textureClasses holds NUM_TEXTURE_CLASSES entries and the loop below fills
 	// m_numTextureClasses of them; the assert is debug-only, so in release the file decided how far
 	// past the array to write (each entry contains an AsciiString, so this also ran assignment
 	// operators over whatever followed).
@@ -1297,7 +1284,7 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 		m_textureClasses[i].firstTile = file.readInt();
 		m_textureClasses[i].numTiles = file.readInt();
 		m_textureClasses[i].width = file.readInt();
-		// GeneralsX @bugfix firstTile is the base of the m_sourceTiles writes in readTexClass()
+		// GeneralsX: firstTile is the base of the m_sourceTiles writes in readTexClass()
 		// below and, together with width, of the m_sourceTiles indexing in
 		// updateTileTexturePositions(); neither was validated. A negative width would also send
 		// the layout search loop in updateTileTexturePositions() past availableGrid[].
@@ -1305,8 +1292,8 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 			throw ERROR_CORRUPT_FILE_FORMAT;
 		}
 
-		// legacy GDF data
-		// used to read "m_textureClasses[i].isGDF = file.readInt();"
+		//
+		//
 	/*	Int legacy = */ file.readInt();
 
 		m_textureClasses[i].name = file.readAsciiString();
@@ -1323,7 +1310,7 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 			throw ERROR_CORRUPT_FILE_FORMAT;
 		}
 		m_numEdgeTextureClasses	= file.readInt();
-		// GeneralsX @bugfix m_edgeTextureClasses is NUM_TEXTURE_CLASSES entries and this count had
+		// GeneralsX: m_edgeTextureClasses is NUM_TEXTURE_CLASSES entries and this count had
 		// no check of any kind - not even a debug assert - before it was used as the fill bound.
 		if (m_numEdgeTextureClasses < 0 || m_numEdgeTextureClasses > NUM_TEXTURE_CLASSES) {
 			throw ERROR_CORRUPT_FILE_FORMAT;
@@ -1333,7 +1320,7 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 			m_edgeTextureClasses[i].firstTile = file.readInt();
 			m_edgeTextureClasses[i].numTiles = file.readInt();
 			m_edgeTextureClasses[i].width = file.readInt();
-			// GeneralsX @bugfix As above, but for m_edgeTiles: firstTile/width base the writes in
+			// GeneralsX: As above, but for m_edgeTiles: firstTile/width base the writes in
 			// readTexClass() and the indexing in the edge pass of updateTileTexturePositions().
 			// m_edgeTiles is NUM_SOURCE_TILES entries too, so the same range check applies.
 			if (!tileRangeFitsSourceTiles(m_edgeTextureClasses[i].firstTile, m_edgeTextureClasses[i].width)) {
@@ -2607,8 +2594,8 @@ AsciiString WorldHeightMap::getTerrainNameAt(Real x, Real y)
 
 // GeneralsX: THE AI'S PLACEMENT SPIKES. BuildAssistant's terrain test calls this through
 // TheTerrainVisual->getTerrainTile for every footprint sample - about 300 per candidate for a large structure, and a
-// skirmish AI's placement search tries up to ~3700 candidates. Each call copied the class name and then walked
-// TheTerrainTypes' whole list comparing strings (findTerrain): measured (W8, 27/09), the terrain test
+// skirmish AI's placement search tries up to ~3700 candidates. Each uncached call copied the class name and then walked
+// TheTerrainTypes' whole list comparing strings (findTerrain): the terrain test
 // was ~90% of the search's time at ~97 us per candidate, in AI ticks of 30-130 ms. The result depends only on
 // the texture class, whose name is fixed when the map loads, so each class resolves once and is remembered; the
 // answer is the same TerrainType* the uncached lookup returns, for every point.

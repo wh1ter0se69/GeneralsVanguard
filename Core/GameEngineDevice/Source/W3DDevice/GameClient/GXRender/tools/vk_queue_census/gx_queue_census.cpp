@@ -1,25 +1,25 @@
-// GeneralsX: VK_LAYER_GX_queue_census: a TEST-ONLY Vulkan layer for the DLSS Frame Generation
-// queue contract (PREREG A39a). Never shipped; loaded only when a test names it
-// (VK_ADD_LAYER_PATH + VK_INSTANCE_LAYERS=VK_LAYER_GX_queue_census). Not in the game build, not digested.
-//
-// Why a layer: NVIDIA Streamline is the game's Vulkan loader root, and Streamline's own Vulkan calls go straight to the system
-// loader. The loader puts this layer BELOW both, so it sees the game's queue operations AND Streamline's. For every queue operation
-// (submit, present, wait-idle, bind-sparse), every acquire and every device wait-idle it records:
-//  * the calling thread;
-//  * the queue (family:index);
-//  * the CALLER MODULE: the first stack frame outside this layer, the Vulkan loader and other VkLayer_* modules
-//    (generalszh.exe, sl.dlss_g.dll, nvngx_dlssg.dll, ...).
-// It also counts OVERLAP: a second thread entering an operation on a VkQueue while another thread is inside one on that queue. That
-// is an external-synchronisation breach in itself. Images and swapchains made by modules other than the executable are listed with
-// their usage (DLSS-G's proxy images: rw3-W's §7a question).
-//
-// Env:
-//   GX_VK_CENSUS=<file>        the summary (rewritten every 2000 operations, at vkDestroyDevice and at process exit)
-//   GX_VK_CENSUS_PLANT=<n>     TEST plant: at the n-th operation on the executable's first queue, a helper thread makes ONE empty
-//                              vkQueueSubmit on that queue (caller module "census-plant") once the queue is idle - census_verdict.py
-//                              must then FAIL C1
-// Exports (selftest only): gxCensusTestHoldNext(ms) - the next queue operation on any thread waits ms INSIDE the layer, before the
-// driver call, so a second thread can be made to enter while it is held (no real driver race); gxCensusFlush() - write now.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// VK_LAYER_GX_queue_census: a TEST-ONLY Vulkan layer for the DLSS Frame Generation queue contract; never
+// shipped, not digested. Loaded via VK_ADD_LAYER_PATH + VK_INSTANCE_LAYERS. It sits below the game and
+// Streamline, records thread, queue and caller module per queue operation and counts OVERLAP.
+// Env: GX_VK_CENSUS=<file> (summary), GX_VK_CENSUS_PLANT=<n> (TEST plant).
 #if defined(_WIN32)
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN

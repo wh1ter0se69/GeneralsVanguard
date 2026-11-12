@@ -16,23 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: How many lobby slots a map can take, in ONE place.
-//
-// Owner decision (23/09/2026): an over-capacity lobby is REFUSED - by the host before the
-// start, and by every peer at the start as a second line. A map's civilian sides are NEVER dropped
-// to make room: map scripts reference them, and dropping them would change tournament maps.
-//
-// Two tables top out at MAX_PLAYER_COUNT, and a multiplayer or skirmish game fills them like this:
-//   Player objects (PlayerList): the neutral player (always m_players[0], even with no neutral
-//     side), one per NAMED kept map side, one per slot that takes a player, the ReplayObserver.
-//   SidesList entries: every kept map side (a nameless neutral side too), one per slot that takes a
-//     player, the ReplayObserver - which is added LAST, so it is the side an overflow drops.
-// "Kept" is what SidesList::prepareForMP_or_Skirmish leaves of the map's sides: every
-// FactionCivilian side; if the map has none, its last side survives instead ("can't remove the last
-// side"), and on an ordinary map that is the nameless neutral side, which costs no Player.
-//
-// Used by the lobby (reading the map file before it is loaded) and by GameLogic::tryStartNewGame
-// (reading TheSidesList after prepareForMP_or_Skirmish). Both feed the same two numbers in here.
+// Lobby slots a map can take. An over-capacity lobby is refused by the host and again by every peer.
+// MAX_PLAYER_COUNT caps two tables. Players: neutral m_players[0], named kept map sides, one per slot, ReplayObserver.
+// SidesList: every kept map side, one per slot, the ReplayObserver (added last, so an overflow drops it).
+// Kept = FactionCivilian sides, else the last side; civilian sides are never dropped to make room.
 
 #pragma once
 
@@ -86,7 +73,7 @@ inline Int playerSlotCapacity(const KeptMapSides &kept)
 /// slot does not: GameLogic::startNewGame adds no side for it and PlayerList::assignSlotIndices maps
 /// it onto the ReplayObserver, which RESERVED_NON_SLOT_PLAYERS already pays for. That is what seats
 /// 12 players + 3 observers inside MAX_PLAYER_COUNT (16) without raising it.
-// GeneralsX: Observer slots share the ReplayObserver (World Series 15 seats).
+// Observer slots share the ReplayObserver (World Series 15 seats).
 inline Bool slotTakesPlayer(Bool isOccupied, Bool isObserver)
 {
 	return isOccupied && !isObserver;

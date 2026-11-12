@@ -1,51 +1,24 @@
-// GeneralsX: WS-C GXRES v0 gates. Offscreen; every critical claim has an arm where it FAILS.
-//
-//   gx_res_test [--arm NAME[,NAME...]|all] [--no-validation] [--device SEL] [--loader PATH]
-//
-// Clean arms (expect PASS, and 0 validation errors / 0 sync hazards with core+sync validation on):
-//   formats                the D3D8 -> Vulkan table on this device (depth fallback, BC, 16-bit packed)
-//   d3d-values             GxD3D.h == the game's D3D8 headers (compile-time; SKIPPED when the headers were not found)
-//   buffer-static          partial lock of a static VB keeps the bytes it did not write, byte-exact on the GPU
-//   buffer-nested          nested locks: static ranges both land; a DISCARD under an open lock gets another slice
-//   buffer-destroy-pending a static VB destroyed after its upload is recorded, before the submit: freed only after it ran
-//   dynamic-stress         D3D8 shared dynamic VB protocol (DISCARD at 0, NOOVERWRITE appends, wrap) with the GPU
-//                          consumer held 3 frames behind: every append read back as written
-//   dynamic-plain-lock     a plain lock on an in-flight dynamic buffer renames AND keeps its bytes; the held reader is intact
-//   texture-roundtrip      every sampled-capable format, full mip chain, uploaded and read back byte-exact
-//   texture-partial        a rect lock changes only the rect
-//   texture-drop-restore   upload-then-drop, then a one-texel write (radar style): the rest of the level survives
-//   texture-rect-bounds    a rect whose x+width wraps 32 bits is refused; an edge-touching one is accepted
-//   buffer-reinit          a re-initialised static buffer starts with timeline tag 0
-//   texture-restore-other-pending a dropped, never-uploaded texture locks while another image has an upload queued
-//   texture-systemmem      SYSTEMMEM surface written through a pointer kept after UnlockRect (W3DShroud), CopyRects twice
-//   rt-clear-readback      256x256 A8R8G8B8 target cleared through dynamic rendering, read back
-//   rt-msaa-resolve        x8 requested -> the device's count, cleared, resolved into a texture, read back
-//   rt-depth               D24S8 1920x1080 at the colour's sample count, the format DXVK would pick
-//   format-bc-decode       DXT1/3/5 through the decode fallback (forced no-BC) vs the GPU's own BC decode, same bytes (rw2-C);
-//                          GxDecode == an independent IDEAL model exactly, and per block the GPU matches the IDEAL or the NVIDIA
-//                          model within kBcTol (R30: NVIDIA interpolates BC1 green as 80/256, not 1/3)
-//   format-hd              ASTC 4x4 void-extent + BC7 mode-6 constant blocks sample exactly; chooseHdFormat ASTC > BC7 >
-//                          refused, also under forced no-ASTC / no-ASTC+no-BC (rw2-C)
-//   force-caps             forced reduced capability: x8 MSAA under a x2 cap, a 2048 texture under a 1024 cap (rw2-C)
-//   --force nobc,noastc,samples=N,dim=N,sampled=N runs ANY arm on forced capabilities (the M3 iPad leg runs the whole suite so)
-//   instance-dynamic       the dynamic protocol as an INSTANCE ring: DISCARD/NOOVERWRITE appends read by instance-rate draws,
-//                          consumer held 3 frames behind; every record each draw fetched is read back from its output (rw2-C)
-// Fail arms (expect DETECTED):
-//   retire-assert          a submit that skips recordPending(): the next recordPending aborts (child process)
-//   missing-barrier        recordPending without its post-copy barrier: sync validation reports the read-after-write
-//   dynamic-reuse-early    DISCARD reuses a slice still in flight: the held consumer reads the wrong bytes
-//   texture-drop-no-restore a dropped texture locked without the read-back: texels outside the write are lost
-//   texture-rect-overflow / buffer-reinit-stale-tag / texture-restore-any-pending   the three r5 defects planted back
-//   buffer-destroy-early   the unlock does not mark the buffer used: core validation reports the in-use destroy
-//   format-decode-wrong    format-bc-decode with the decoder's two interpolants swapped: GxDecode vs the IDEAL model must see it
-//                          on every device, and the GPU vs the decoded texture too wherever the device has native BC
-//   format-bc-either-wrong format-bc-decode with one block's colour indices inverted in the NATIVE upload only: that block must
-//                          match neither model (the NVIDIA model is no blanket pass) (R30)
-//   rt-sampled             RenderTargetDesc::sampled: x4 sampled per the device; under a forced no-sampled-MSAA cap refused, the
-//                          default (not sampled) still accepted
-//   rt-sampled-unchecked   rt-sampled with the sample-count check planted away: the refusal must go missing
-//   instance-reuse-early   instance-dynamic with DISCARD reusing a slice still in flight: held draws read wrong records
-//                          (sync validation cannot see either: instance-rate reads are unchecked, host writes are no queue op)
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// gx_res_test - GXRES gates. Offscreen; every critical claim has an arm where it FAILS.
+//   gx_res_test [--arm NAME[,NAME...]|all] [--no-validation] [--device SEL] [--force nobc,noastc,samples=N]
+// Clean arms expect PASS with 0 validation errors and sync hazards; fail arms plant one defect and expect DETECTED.
 #include "GxBuffer.h"
 #include "GxD3D.h"
 #include "GxDecode.h"
@@ -742,8 +715,8 @@ bool armRtMsaaOne(GxResources& res, uint32_t requested, std::string* d)
 	return ok && ms.samples() == expect;
 }
 
-// x2, x4 and x8 each: the M4 Mini grants x4 for the game's x8 (render-integration, OBSERVED [GXIMAGE] MSAA asked 8, got 4),
-// so x4 must be exercised on every ICD, and each run records what it got.
+// x2, x4 and x8 each: some devices grant x4 for the game's x8 (MSAA asked 8, got 4), so x4 must be exercised on every ICD,
+// and each run records what it got.
 bool armRtMsaa(GxResources& res, std::string* d)
 {
 	bool ok = true;
@@ -927,12 +900,12 @@ bool armPendingBytesReset(GxResources& res, std::string* d, int* kept)
 	return after == 0;
 }
 
-// A26 amendment 1: stagingPressure() counts the staging only the next submission can free, dropped copies' included.
+// stagingPressure() counts the staging only the next submission can free, dropped copies' included.
 // Three drop-without-submit cycles of 4 KiB raise it by exactly 4 KiB each while pendingBytes() stays 0; a kept 8 KiB upload adds
 // its bytes to both; one submission brings both to 0; one more upload after it reads ONLY its own 4 KiB (the count restarts when
 // the tag moves). Every upload's staging is proven before its buffer goes (queued count/bytes and the stagingBytes
-// increment - a26-r2 #1). *blind (the X arm's ONLY detection): setup ok AND the pressure read 0 after the three drops (A26 v1's
-// trigger cannot see dropped staging); -1 = setup failed.
+// increment). *blind (the X arm's ONLY detection): setup ok AND the pressure read 0 after the three drops (a trigger
+// that cannot see dropped staging); -1 = setup failed.
 bool armStagingPressure(GxResources& res, std::string* d, int* blind)
 {
 	*blind = -1;
@@ -1006,15 +979,15 @@ int retireAssertChild(GxResources& res)
 	return 0;
 }
 
-// ------------------------------------------------------------------------------------------- vertex-input reads (rw2-C)
-// Synchronization validation does not check reads through an INSTANCE-rate vertex binding (farm val4, rw1-X: the same
+// ------------------------------------------------------------------------------------------- vertex-input reads
+// Synchronization validation does not check reads through an INSTANCE-rate vertex binding (the same
 // missing-barrier mutant fires per-vertex and stays silent per-instance), and a host write into a slice a pending draw still
 // reads is no queue hazard at all. So what instance data a draw read is checked from its OUTPUT: one point per instance
 // writes the uvec4 record it fetched to its own pixel of an R32G32B32A32_UINT target, which is read back and compared.
 struct RecordReader
 {
 	static const uint32_t kW = 1024, kH = 512;
-	Vk::VkCtx* ctx = nullptr;   // R19: its device-wide wait goes through the context (drains the submit thread)
+	Vk::VkCtx* ctx = nullptr;   // its device-wide wait goes through the context (drains the submit thread)
 	VkDevice dev = VK_NULL_HANDLE;
 	VmaAllocator a = nullptr;
 	VkImage image = VK_NULL_HANDLE;
@@ -1205,7 +1178,7 @@ struct RecordReader
 	{
 		if (!dev)
 			return;
-		ctx->waitIdle();   // R19: drains the submit thread first
+		ctx->waitIdle();   // drains the submit thread first
 		vkDestroyPipeline(dev, pipe, nullptr);
 		vkDestroyPipelineLayout(dev, layout, nullptr);
 		vkDestroyShaderModule(dev, vs, nullptr);
@@ -1293,15 +1266,15 @@ bool armInstanceDynamic(GxResources& res, std::string* d, uint32_t* badOut)
 	return bad == 0 && stray == 0 && wraps > 0;
 }
 
-// ------------------------------------------------------------------------------------------------ format matrix (rw2-C)
-// PLAN §1c: BC on M-series, ASTC for HD art, the decode fallback - with the unsupported-format and reduced-capability paths
+// ------------------------------------------------------------------------------------------------ format matrix
+// BC on M-series, ASTC for HD art, the decode fallback - with the unsupported-format and reduced-capability paths
 // FORCED (FormatCaps), so a GPU that has everything still runs the paths a weaker one takes.
 
 // What a draw would sample: a full-target triangle texelFetch-es level 0 of a GxTexture view into an R8G8B8A8_UNORM target of
 // the same size, read back as RGBA bytes. texelFetch = no filtering and no coordinate rounding, so a texel compares exactly.
 struct TexelReader
 {
-	Vk::VkCtx* ctx = nullptr;   // R19: the device-wide wait goes through the context
+	Vk::VkCtx* ctx = nullptr;   // the device-wide wait goes through the context
 	VkDevice dev = VK_NULL_HANDLE;
 	VkSampler sampler = VK_NULL_HANDLE;
 	VkDescriptorSetLayout dsl = VK_NULL_HANDLE;
@@ -1531,9 +1504,7 @@ int maxDiff(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b, size_t
 // native table and one of a FORCED no-BC table (decoded). Gates: (a) the decoded texture samples exactly what GxDecode computed
 // (the upload path); (b) GxDecode equals an independent CPU model of the format, exactly; (c) per 4x4 block the GPU's decode is
 // within kBcTol of the IDEAL model or of the NVIDIA model, and the constant blocks agree exactly.
-// R30: (c) used to compare the GPU with GxDecode directly, and NVIDIA
-// interpolates BC1 green as 80/256 of the step (not 1/3): RTX 5090 read max |d| 5 against kBcTol 3. A second reference against
-// GxDecode itself would blind the check on NVIDIA, so the decoder is checked by (b) on the CPU and the GPU only validates the models.
+// NVIDIA interpolates BC1 green as 80/256 of the step (not 1/3), so (c) cannot compare the GPU with GxDecode directly.
 const int kBcTol = 3; // chosen before the first run: interpolant rounding differs by 1-2 across vendors; a decoder error is >> 3
 
 // Two CPU models of BC1/BC2/BC3, written apart from GxDecode so (b) compares two implementations.
@@ -1543,11 +1514,10 @@ const int kBcTol = 3; // chosen before the first run: interpolant rounding diffe
 // red/blue interpolated on the 5-bit endpoints ((2a+b)*22/8, midpoint (a+b)*33/8), green on the expanded 8-bit endpoints as
 // (256a + d/4 + 128 + 80d)/256 (midpoint 128d), d = b-a, C++ truncating division. BC3 alpha: kNvAlphaW below (measured; rgbcx has no NVIDIA BC4 rule).
 enum class BcModel { Ideal, NVidia };
-// NVIDIA BC3 alpha (R30 follow-up): rgbcx has no NVIDIA BC4 rule, so this one is MEASURED. A diagnostic dump of
-// every DXT5 texel's (a0, a1, index, GPU alpha) on the RTX 5090 (4096 texels) fits
-// alpha = (a0*(64-w) + a1*w + 32) >> 6 with 6-bit weights w per palette entry k (index 2..5 in 6-value mode a0 <= a1, 2..7 in 8-value mode a0 > a1):
-// 6-value {12, 24, 40, 52}/64 (IDEAL 12.8/25.6/38.4/51.2), 8-value {9, 18, 28, 36, 46, 55}/64 (IDEAL 9.1/18.3/27.4/36.6/45.7/54.9). Residual vs the
-// GPU on the 4096 texels: 3896 exact, the rest +-1; IDEAL differed by up to 6. Entries 0/1 and the 6-value 0/255 stay exact.
+// NVIDIA BC3 alpha: rgbcx has no NVIDIA BC4 rule, so this one is fitted to a dump of every DXT5 texel's (a0, a1, index, GPU alpha)
+// (4096 texels): alpha = (a0*(64-w) + a1*w + 32) >> 6 with 6-bit weights w per palette entry k (index 2..5 in 6-value mode
+// a0 <= a1, 2..7 in 8-value mode a0 > a1): 6-value {12, 24, 40, 52}/64 (IDEAL 12.8/25.6/38.4/51.2), 8-value {9, 18, 28, 36, 46, 55}/64
+// (IDEAL 9.1/18.3/27.4/36.6/45.7/54.9). Residual vs the GPU: 3896 exact, the rest +-1; IDEAL differed by up to 6. Entries 0/1 stay exact.
 const int kNvAlphaW[2][8] = {{0, 0, 12, 24, 40, 52, 0, 0}, {0, 0, 9, 18, 28, 36, 46, 55}}; // [a0 > a1][k]
 
 int bcColour(int ch, unsigned sel, bool four, int q0, int q1, BcModel m)
@@ -1597,7 +1567,7 @@ std::vector<uint8_t> bcModelRGBA(uint32_t fmt, const uint8_t* blocks, uint32_t w
 				if (k < 2)
 					a = k ? a1 : a0;
 				else if (m == BcModel::NVidia && (a0 > a1 || k < 6))
-					a = (a0 * (64 - kNvAlphaW[a0 > a1][k]) + a1 * kNvAlphaW[a0 > a1][k] + 32) >> 6; // MEASURED on the RTX 5090 (see kNvAlphaW)
+					a = (a0 * (64 - kNvAlphaW[a0 > a1][k]) + a1 * kNvAlphaW[a0 > a1][k] + 32) >> 6; // fitted to NVIDIA output (see kNvAlphaW)
 				else if (a0 > a1)
 					a = ((8 - k) * a0 + (k - 1) * a1 + 3) / 7; // palette entry k = interpolant i = k-1
 				else
@@ -1750,7 +1720,7 @@ bool armBcDecode(GxResources& native, std::string* d, BcPlant plant, BcResult* r
 	return ok;
 }
 
-// HD art (PLAN §1b "+"): ASTC 4x4 and BC7, each with blocks whose decode is fixed by the format itself - ASTC void-extent
+// HD art: ASTC 4x4 and BC7, each with blocks whose decode is fixed by the format itself - ASTC void-extent
 // (constant-colour) blocks and BC7 mode-6 blocks with equal endpoints - so the sampled texel must equal the colour exactly
 // without a CPU decoder. Then chooseHdFormat under forced caps: ASTC > BC7 > refused, and a refused format fails init cleanly.
 void astcConstant(const uint8_t rgba[4], uint8_t out[16])
@@ -1886,7 +1856,7 @@ bool armForceCaps(GxResources& res, std::string* d)
 bool armRtSampled(GxResources& res, std::string* d, bool planted)
 {
 	VkSampleCountFlags dev = res.ctx().limits().sampledImageColorSampleCounts;
-	if (uint32_t cap = res.formats().caps().maxSampledSamples)   // a --force sampled=N run: the device as forced (code-r7 #5)
+	if (uint32_t cap = res.formats().caps().maxSampledSamples)   // a --force sampled=N run: the device as forced
 		dev &= (VkSampleCountFlags(GxRenderTarget::capPow2(cap)) << 1) - 1;
 	std::string why;
 	GxRenderTarget own;
@@ -1926,7 +1896,7 @@ struct ArmResult
 	std::string detail;
 };
 
-// R19 (rw3-V; integrator condition 2): a submission the submit thread REFUSES returns false to the call that made it - immediate()
+// A submission the submit thread REFUSES returns false to the call that made it - immediate()
 // (it waits on its value) and submitPending(false) (it waits for its op to run). The op is queued behind a hold, refused at the
 // thread's choke point, then released from another thread. X-thread-pending-refused plants an answer that does not wait.
 // *setup = false: no gate ran (thread off, setup failed, or the target op was never REFUSED at the thread - e.g. its command buffer
@@ -2015,8 +1985,8 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 		posix_spawnattr_t sa;
 		posix_spawnattr_init(&sa);
 #if defined(__APPLE__)
-		// the child dies on purpose (SIGABRT): no exception port, so ReportCrash never sees it - no "quit unexpectedly" dialog on the
-		// owner's desk, no .ips (18/10, as gx_native_test's runSelf 4c9d60fee). The kernel still delivers the signal: waitpid reads it.
+		// the child aborts on purpose (SIGABRT): with no exception port ReportCrash never sees it, so no crash dialog and no .ips.
+		// The kernel still delivers the signal: waitpid reads it.
 		posix_spawnattr_setexceptionports_np(&sa, EXC_MASK_BAD_ACCESS | EXC_MASK_BAD_INSTRUCTION | EXC_MASK_ARITHMETIC | EXC_MASK_CRASH |
 			EXC_MASK_CORPSE_NOTIFY, MACH_PORT_NULL, EXCEPTION_DEFAULT, THREAD_STATE_NONE);
 #endif
@@ -2046,12 +2016,12 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 	desc.validation = opt.validation;
 	desc.syncValidation = true;
 	// Fail arms plant real errors (a buffer destroyed while a recorded command buffer uses it): the layer must skip the
-	// offending call instead of handing a freed object to the driver (rw1-B's convention, VkCtxDesc).
+	// offending call instead of handing a freed object to the driver (VkCtxDesc).
 	desc.abortCallsOnValidationError = res.expectDetected;
 	desc.deviceSelect = opt.device;
 	desc.loaderPath = opt.loader;
 	if (arm.find("thread-") != std::string::npos)
-		desc.submitThread = Vk::SubmitThreadMode::On;   // R19 arms
+		desc.submitThread = Vk::SubmitThreadMode::On;   // the submit-thread arms
 	std::string why;
 	if (!ctx.init(desc, &why)) {
 		res.detail = "VkCtx init failed: " + why;
@@ -2288,7 +2258,7 @@ const char* kAllArms[] = {"formats", "d3d-values", "buffer-static", "buffer-nest
 
 int main(int argc, char** argv)
 {
-	// First line of every log: the commit this binary was built from (rw2-C provenance; "-dirty" = uncommitted changes).
+	// First line of every log: the commit this binary was built from ("-dirty" = uncommitted changes).
 	say("[GXRES] build sha=%s", GX_RES_BUILD_SHA);
 	Options opt;
 	opt.self = argv[0];
@@ -2304,8 +2274,8 @@ int main(int argc, char** argv)
 			opt.loader = argv[++i];
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
 		else if (!std::strcmp(argv[i], "--ios-loader")) {
-			// The iPad leg (rw2-C): the game loads MoltenVK directly, where no layer can be inserted. For a VALIDATED run
-			// the app bundle carries the LunarG SDK's iOS loader, the validation layer and their manifests (rw2-C/ipad-pack.sh).
+			// The iPad leg: the game loads MoltenVK directly, where no layer can be inserted. For a VALIDATED run
+			// the app bundle carries the LunarG SDK's iOS loader, the validation layer and their manifests (ipad-pack.sh).
 			static std::string bundle, loader;
 			bundle = opt.self.substr(0, opt.self.find_last_of('/'));
 			loader = bundle + "/Frameworks/vulkan.framework/vulkan";

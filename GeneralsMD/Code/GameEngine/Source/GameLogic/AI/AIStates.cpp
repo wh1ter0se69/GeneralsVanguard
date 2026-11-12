@@ -54,7 +54,7 @@
 #include "GameLogic/AIGuardRetaliate.h"
 #include "GameLogic/AITNGuard.h"
 #include "GameLogic/AIStateMachine.h"
-#include "GameLogic/AIPlayer.h"	// GeneralsX 27/10/2026 T2: gxAirWatchTeamMemberSkips
+#include "GameLogic/AIPlayer.h"	// gxAirWatchTeamMemberSkips
 #include "GameLogic/AIPathfind.h"
 #include "GameLogic/Locomotor.h"
 #include "GameLogic/PartitionManager.h"
@@ -71,7 +71,7 @@
 #include "GameLogic/Module/PhysicsUpdate.h"
 #include "GameLogic/Module/StealthUpdate.h"
 
-// GeneralsX 28/10/2026 ai-pro-rules-2 T2 r8/r9 (r8 #17: declared before its first use): the owner's AI player refuses this aircraft to a watched unit
+// the owner's AI player refuses this aircraft to a watched unit
 static Bool gxAirAttackRefused(const Object *owner, const Object *victim)
 {
 	const Player *pl = owner ? owner->getControllingPlayer() : nullptr;
@@ -139,7 +139,7 @@ void AICommandParmsStorage::reconstitute(AICommandParms& parms) const
 void AICommandParmsStorage::doXfer(Xfer *xfer)
 {
 	xfer->xferUser(&m_cmd, sizeof(m_cmd));
-	// GeneralsX @bugfix was &m_cmd — m_cmd was written twice and m_cmdSource never
+	// GeneralsX: was &m_cmd — m_cmd was written twice and m_cmdSource never
 	// serialized at all, so the command source was lost across save/load.
 	xfer->xferUser(&m_cmdSource, sizeof(m_cmdSource));
 	// GeneralsX: Retail saves (and saves from before the fix above) hold an
@@ -1479,7 +1479,7 @@ StateReturnType AIIdleState::update()
 			{
 				// If we're supposed to attack based on mood, etc, then we will do so.
 				Object* enemy = ai->getNextMoodTarget( true, true );
-				// GeneralsX 27/10/2026 ai-pro-rules-2 T2: a watched AA team member takes no aircraft by itself
+				// a watched AA team member takes no aircraft by itself
 				if (enemy && getMachineOwner()->getControllingPlayer() && getMachineOwner()->getControllingPlayer()->getAIPlayer()
 						&& getMachineOwner()->getControllingPlayer()->getAIPlayer()->gxAirWatchTeamMemberSkips(getMachineOwner(), enemy))
 					enemy = nullptr;
@@ -1571,17 +1571,8 @@ StateReturnType AIDeadState::update()
 		{
 			// we want 'em to stop, but looks wonky if they stop dead in their tracks in onEnter.
 			// this slows 'em down quickly
-			// GeneralsX: A per-frame DECAY factor, applied once per logic frame,
-			// so it needs an EXPONENT rather than the usual divisor: at twice the tick rate it is
-			// applied twice as often and would decay twice as fast. 0.8^30 == 0.012 per second at
-			// 30 Hz; 0.894427191^60 is the same 0.012, so the per-SECOND behaviour is preserved.
-			//
-			// WRITTEN AS A LITERAL ON PURPOSE - do not "simplify" this to powf(0.8f, 30.0f/rate).
-			// This is digested simulation code, and powf appears ZERO times anywhere in the digested
-			// GameLogic of either tree. That is not an accident: this fork carries hand-written
-			// deterministic GameMath precisely because a libm function that differs in the last bit
-			// between platforms is a cross-platform desync. A literal is bit-identical everywhere;
-			// a runtime powf is a promise about four different libms.
+			// GeneralsX: per-frame decay: 0.8^30 per second at 30 Hz equals 0.894427191^60 at 60 Hz, so the per-second rate holds.
+			// A literal on purpose, not powf: libm can differ in the last bit across platforms, which desyncs.
 #if GX_LOGIC_60HZ
 			const Real FACTOR = 0.894427191f;	// 0.8 ^ (1/2), so FACTOR ^ 60 == 0.8 ^ 30 == 0.012
 #else
@@ -2145,10 +2136,9 @@ StateReturnType AIMoveToState::update()
 	// current state. AI_MOVE_TO also runs as the TEMPORARY state an internal CMD_FROM_AI move gets while the unit is
 	// busy (privateMoveToPosition: "move for 20 seconds"), and there the conversion clears and re-enters the main
 	// state - ATTACK_MOVE_TO, with a fresh path request - every frame, while the temporary move keeps running and the
-	// main state never updates. AIStateMachine::clear() does not drop a temporary state. Measured 01/10
-	// (Killing Fields AI 1v1s, GX_PFTRACE): AI dozers and tanks re-ordered every frame for
-	// exactly 1,202 frames at a time (the 20 s limit), 3,657-11,046 times per unit per match, standing at their goal
-	// without scanning for targets. Mood conversion only applies to AI-controlled units, so player units are unaffected.
+	// main state never updates. AIStateMachine::clear() does not drop a temporary state. Without the check, AI dozers and
+	// tanks are re-ordered every frame for exactly 1,202 frames at a time (the 20 s limit), 3,657-11,046 times per unit per
+	// match, standing at their goal without scanning for targets. Mood conversion only applies to AI-controlled units, so player units are unaffected.
 	Bool convertToAttackMove = m_isMoveTo && (adjustment & MAA_Action_To_AttackMove);
 #if !RETAIL_COMPATIBLE_CRC
 	convertToAttackMove = convertToAttackMove && getMachine()->getCurrentStateID() == getID();
@@ -3727,8 +3717,7 @@ StateReturnType AIAttackMoveToState::update()
 
 		Object* nextObjectToAttack;
 		nextObjectToAttack = ai->getNextMoodTarget( !forceRetargetThisFrame, false );
-		// GeneralsX 28/10/2026 ai-pro-rules-2 T2 (smoke T2s1, diag T2d1: a row unit's attack order replaced by a mood-converted attack-move
-		// that took another aircraft): a watched row unit / AA team member takes no aircraft by its own mood here either - the watch's
+		// a watched row unit / AA team member takes no aircraft by its own mood here either; the watch's
 		// assignment is its only air target
 		if (nextObjectToAttack && getMachineOwner()->getControllingPlayer() && getMachineOwner()->getControllingPlayer()->getAIPlayer()
 				&& getMachineOwner()->getControllingPlayer()->getAIPlayer()->gxAirWatchTeamMemberSkips(getMachineOwner(), nextObjectToAttack))
@@ -4578,8 +4567,7 @@ StateReturnType AIAttackFollowWaypointPathState::update()
 
 			nextObjectToAttack = ai->getNextMoodTarget( !forceRetargetThisFrame, false );
 		}
-		// GeneralsX 28/10/2026 ai-pro-rules-2 T2 (smoke T2s1, diag T2d1: a row unit's attack order replaced by a mood-converted attack-move
-		// that took another aircraft): a watched row unit / AA team member takes no aircraft by its own mood here either - the watch's
+		// a watched row unit / AA team member takes no aircraft by its own mood here either; the watch's
 		// assignment is its only air target
 		if (nextObjectToAttack && getMachineOwner()->getControllingPlayer() && getMachineOwner()->getControllingPlayer()->getAIPlayer()
 				&& getMachineOwner()->getControllingPlayer()->getAIPlayer()->gxAirWatchTeamMemberSkips(getMachineOwner(), nextObjectToAttack))
@@ -5394,7 +5382,7 @@ StateReturnType AIAttackFireWeaponState::update()
 				// note that we look around originalVictimPos, *not* the current victim's pos.
 				victim = ThePartitionManager->getClosestObject( originalVictimPos, continueRange, FROM_CENTER_2D, filters );// could be null. this is ok.
 				if (victim && gxAirAttackRefused(obj, victim))
-					victim = nullptr;	// T2 r8: the continue-range retarget gives a watched unit no unassigned aircraft
+					victim = nullptr;	// the continue-range retarget gives a watched unit no unassigned aircraft
 				if (victim)
 				{
 					getMachine()->setGoalObject(victim);
@@ -5652,7 +5640,7 @@ StateReturnType AIAttackState::onEnter()
 			return STATE_FAILURE;	// we have nothing to attack!
 		}
 		if (gxAirAttackRefused(source, victim))
-			return STATE_FAILURE;	// T2 r8: an aircraft this watched unit was not assigned
+			return STATE_FAILURE;	// an aircraft this watched unit was not assigned
 		m_victimTeam = victim->getTeam();
 		m_attackMachine->setGoalObject( victim );
 		m_originalVictimPos = *victim->getPosition();
@@ -5723,7 +5711,7 @@ StateReturnType AIAttackState::update()
 		}
 
 		if (gxAirAttackRefused(source, victim))
-			return STATE_FAILURE;	// T2 r8: an aircraft this watched unit was not assigned (a retarget inside the attack included)
+			return STATE_FAILURE;	// an aircraft this watched unit was not assigned (a retarget inside the attack included)
 
 		if (victim)
 		{
@@ -6052,9 +6040,9 @@ void AIAttackSquadState::onExit( StateExitType status )
 }
 
 //----------------------------------------------------------------------------------------------------------
-// GeneralsX 28/10/2026 ai-pro-rules-2 T2 r10: a watched unit refused the stock choice (an aircraft it was not
-// assigned) takes the closest live member of the squad it may attack, else none - the squad order then ends instead of re-picking the
-// refused aircraft every frame. Every other unit and player: the stock choice, untouched.
+// A watched unit refused the stock choice (an aircraft it was not assigned) takes the closest live member of the squad
+// it may attack, else none, so the squad order ends instead of re-picking the refused aircraft every frame.
+// Every other unit and player: the stock choice.
 Object *AIAttackSquadState::chooseVictim()
 {
 	Object *v = gxChooseVictimStock();
@@ -6667,11 +6655,10 @@ StateReturnType AIExitState::update()
 		if (goal->isEffectivelyDead())
 			return STATE_FAILURE;
 
-		// GeneralsX: Ask again now. privateExit (TheSuperHackers #3089/#3136) checked membership
-		// when the order arrived, but the exit can wait here for frames (a busy door, a Chinook landing) while the
-		// container changes under it: capturing a tunnel endpoint re-homes its passengers to another endpoint of the old
-		// owner's network, and exiting through the captured one cleared the passenger's containment without removing it
-		// from the old network's list - a dangling entry once the unit later died.
+		// Ask again now. privateExit (TheSuperHackers #3089/#3136) checked membership when the order arrived, but the
+		// exit can wait here for frames while the container changes under it: capturing a tunnel endpoint re-homes its
+		// passengers to another endpoint, and exiting through the captured one left a dangling entry in the old
+		// network's list once the unit died.
 		if (!goal->getContain()->isContained(obj))
 			return STATE_FAILURE;
 #endif

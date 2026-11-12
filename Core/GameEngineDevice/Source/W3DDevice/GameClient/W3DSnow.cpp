@@ -315,7 +315,7 @@ flush_particles:
 		{
 			Debug_Statistics::Record_DX8_Polys_And_Vertices(numberInBatch*2,numberInBatch*4,ShaderClass::_PresetOpaqueShader);
 			DX8Wrapper::_Get_D3D_Device8()->DrawPrimitive( D3DPT_POINTLIST, m_dwBase, numberInBatch);
-			DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+			DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 			totalPart -= numberInBatch;
 			m_dwBase += numberInBatch;
 		}

@@ -1,35 +1,25 @@
-// GeneralsX: RA3 WATER - the engine glue (the look and its arithmetic: GameClient/GXWaterRA3.h).
-//
-// Included at the end of W3DWater.cpp, after the clearer- and live-water glue and below every GX-SIMID region. Called from
-// render code only: WaterRenderObjClass::load / ReleaseResources / the destructor and skyBoxMapReset (all outside the SimID
-// closure, simdigest_exclusions.txt), drawTrapezoidWater and setupFlatWaterShader (the water's colour and surface texture),
-// clearer water's apply (the TransparentWater override values), BaseHeightMap::initDestAlphaLUT / setShoreLineDetail (the
-// opacity LUT) and the terrain renders, late (HeightMap / FlatHeightMap Render: the tint pass over the shore tiles).
-//
-// THE TINT PASS. renderShoreLines draws the visible shore tiles once more between gxWaterRA3TintBegin and gxWaterRA3TintEnd,
-// with the state set here instead of its own: the tint LUT on stage 0 by the tiles' depth coordinate, stage 1 off, blend
-// SRC=DESTCOLOR, DEST=SRCALPHA (seabed x (src.rgb + src.a)), RGB only (the destination alpha the water reads stays), z LEQUAL
-// with no z write, no fog (fog would pull the multiplier toward the fog colour). The terrain's shroud pass (HeightMap) comes
-// after it and multiplies the result; FlatHeightMap's terrain already holds its shroud: a multiplier keeps black black.
-//
-// THE TEXTURES. A 256 x 1 tint LUT and a 128 x 128 surface texture with its mip chain, made on first use while the option is
-// on and filled from GXWaterRA3.h; a device reset loses their contents (ReleaseResources marks them for a refill), the map's
-// teardown keeps them, the water object's destruction frees them.
-//
-// PHASE 2, THE MOTION (GXWaterRA3.h "PHASE 2"): each standing-water patch drawn once more, ADDED (ONE, ONE), right after
-// drawTrapezoidWater drew it with live water's glints (gxWaterRA3DrawSheen, from renderWater): a 256 x 256 normal map on stages 0
-// and 1 by two counter-scrolling tilings, the water:ra3 program (sun sheen + the sky x Fresnel, under the shroud on stage 3). Every texture and texture-stage state it changes
-// is read from the device first and put back RAW afterwards, so the wrapper's caches are never touched and the draws after it
-// see exactly what they saw before (retail binds stages 1-3 behind those caches already: a cached bind here could be skipped).
-//
-// PHASE 3, RIVERS (GXWaterRA3.h "PHASE 3"): drawRiverWater takes the deep colour (gxWaterRA3RiverColour) and a river copy of the
-// smooth surface at the river's own opacity (gxWaterRA3RiverSurfaceTexture); renderWater then draws each river once more, ADDED,
-// right after drawRiverWater returns (gxWaterRA3DrawRiverSheen): retail's own river triangles from its own buffers, each cut along the
-// bank fade's two lines (GXWaterRA3.h), the water:ra3river program (the sheen and the sky, x the bank fade x the shroud in the vertex alpha), the same save-and-restore-raw
-// rule as the standing pass. `river:0` (GX_WATER_RA3_TUNE) gives phase 2's retail rivers exactly.
-// PHASE 3b, DEEPER RIVERS (GXWaterRA3.h "PHASE 3b"): the river's colour x riverShade
-// (gxWaterRA3RiverShade) and the river sheen's sky x riverSky (gxWaterRA3RiverSheenTune); with riverOpacity 0.76 and both 1 it is
-// phase 3 exactly. Neither touches the standing pass.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// RA3 WATER: engine glue for GameClient/GXWaterRA3.h. Render-only, below every GX-SIMID region.
+// Tint pass: shore tiles redrawn with a tint LUT (blend DESTCOLOR/SRCALPHA, RGB only, no z write, no fog).
+// Sheen passes (standing water, rivers) draw ADDED; device state is restored RAW, never through the wrapper caches.
+// The 256x1 tint LUT and 128x128 surface texture are built on first use and refilled after a device reset.
 
 namespace
 {
@@ -649,8 +639,8 @@ static void gxWaterRA3DrawSheen(const Vector3 points[4], TextureClass *stage0, T
 	dev->GetRenderState(D3DRS_CULLMODE, &cull);
 
 	// Stages 0 and 1: the normal map by tiling A (u1/v1) and B (u2/v2), wrapped, filtered with its mips, anisotropic: the water is
-	// seen at a grazing angle, and plain trilinear blurred the ripples' highlights into soft blotches there (Mini 24/10, the beach
-	// camera). Stage 3 keeps the shroud.
+	// seen at a grazing angle, and plain trilinear blurred the ripples' highlights into soft blotches there.
+	// Stage 3 keeps the shroud.
 	for (DWORD st = 0; st < 2; ++st)
 	{
 		dev->SetTexture(st, s_gxRA3Normal->Peek_D3D_Texture());

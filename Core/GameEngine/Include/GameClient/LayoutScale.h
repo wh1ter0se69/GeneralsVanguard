@@ -1,17 +1,25 @@
 /*
-** GeneralsX: the map from a .wnd's authored coordinates to screen
-** pixels, as a pure function.
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
 **
-** It lived inline in parseScreenRect, which meant the only way to check it was to run the game and
-** read a rect back off a live window. It is arithmetic over six integers and needs neither a
-** display nor an engine.
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
 **
-** STRETCH is what shipped: each axis is scaled by its own ratio, so a 4:3-authored layout on a 16:9
-** display comes out 33% wider than it was drawn - MainMenu.wnd's 208x36 button (aspect 5.78) is
-** drawn 499x65 (aspect 7.68), and 7.68/5.78 is exactly 16:9 over 4:3. UNIFORM uses one factor for
-** both axes, which keeps every widget's shape, and anchors each GROUP of controls against the edge
-** the art puts it against - see the anchor note and the GROUPS block below. It centred the whole
-** creation-resolution box originally; that is what pushed right-hand menus 240px inboard.
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+** Maps a .wnd's authored coordinates to screen pixels, as a pure function of six integers.
+** STRETCH scales each axis by its own ratio (a 4:3 layout on 16:9 comes out 33% wider).
+** UNIFORM uses one factor for both axes, keeping shapes, and anchors each GROUP of controls to its art's edge.
 */
 
 #pragma once
@@ -79,8 +87,8 @@ inline Real LayoutScaleActiveDial( void )
 /**
 ** The dial, clamped. ONE definition, because there are two consumers.
 **
-** Found by a cross-model review: the rect path clamped and the parser's font path multiplied by the
-** raw value, so GX_UI_SCALE=0.01 gave boxes at 0.05 and text at 0.01 - text floored to 1pt inside
+** Both the rect path and the parser's font path must clamp: a font path that multiplied by the
+** raw value would give GX_UI_SCALE=0.01 boxes at 0.05 and text at 0.01 - text floored to 1pt inside
 ** boxes twenty times too big for it. Two copies of a clamp is one copy too many.
 */
 inline Real LayoutScaleClampDial( Real dial )
@@ -89,21 +97,9 @@ inline Real LayoutScaleClampDial( Real dial )
 }
 
 /**
-** Does this window cover the whole authored canvas?
-**
-** Such a window is a layout root or a full-screen backdrop, and it must keep filling the display in
-** every mode - a uniformly scaled backdrop would leave the desktop showing behind the menu.
-**
-** ALL FOUR EDGES are tested, not the width and height. Size alone says a rect is canvas-sized, not
-** that it is canvas-ALIGNED: {-100,0,700,600} is 800x600 on an 800x600 canvas and reaches neither
-** the left edge nor the right one. Raised by a cross-model review, and confirmed by arithmetic
-** here rather than by argument - the previous one-sided origin test read -100 * 100 <= 800 as true.
-**
-** The tolerance is 1%, not exact: LanGameOptionsMenu.wnd's root is authored 0,0..799,599 against a
-** CREATIONRESOLUTION of 800x600, while MainMenu.wnd's is a clean 0,0..800,600. An exact test passes
-** the main menu and fails the LAN lobby, which is the kind of difference that ships as "the
-** background is broken on one screen". Checked against 576 windows across 11 layouts: this selects
-** the layout roots and nothing else.
+** Does this window cover the whole authored canvas? Such layout roots and backdrops must keep filling the display.
+** All four edges are tested: size alone does not prove canvas-aligned ({-100,0,700,600} is 800 wide on 800x600).
+** 1% tolerance: LanGameOptionsMenu.wnd's root is 0,0..799,599 on 800x600, MainMenu.wnd's is 0,0..800,600.
 */
 inline Bool LayoutScaleIsFullBleedIn( const LayoutRect &a, Int createW, Int createH )
 {
@@ -122,47 +118,10 @@ inline Bool LayoutScaleIsFullBleed( const LayoutScaleContext &ctx, const LayoutR
 	return LayoutScaleIsFullBleedIn( a, ctx.createW, ctx.createH );
 }
 
-/* ================================================================================================
-** GROUPS: the set of controls that must share one anchor.
-**
-** WHY THIS EXISTS. The anchor rule below used to be computed from each rect ALONE, and the comment
-** on it claimed "a panel must not tear along this rule ... every control in a column shares [the
-** edges], so a column cannot split". That reasoning is about COLUMNS and rows falsify it.
-** ExtrasMenu.wnd authors five label/slider pairs like this:
-**
-**     SCREENRECT = UPPERLEFT: 100 120, BOTTOMRIGHT: 350 145;     <- label,  loX 100 -> anchors LEFT
-**     SCREENRECT = UPPERLEFT: 370 120, BOTTOMRIGHT: 650 145;     <- slider, hiX 650 -> anchors RIGHT
-**
-** At 1920x1080 from an 800x600 canvas the authored 20-unit gap opens to 366px. Centring BOTH does
-** not fix it: the anchor moves by the per-axis scale (2.400) while the size moves by the uniform
-** scale (1.800), so the label's right edge lands at 765 and the slider's left at 972 - still a
-** 207px tear. Two rects keep their authored gap if and only if they share ONE anchor point, at
-** which point the gap is (b.loX - a.hiX) * s by construction, whatever the anchor is.
-**
-** WHAT A GROUP IS. Two rects belong together when they share an authored edge PAIR:
-**
-**   * identical (loY,hiY) - they are the same ROW  (the label/slider defect)
-**   * identical (loX,hiX) - they are the same COLUMN
-**
-** and a group is the transitive closure, i.e. a connected component. Equality is an equivalence
-** relation, so the partition is well defined and does not depend on the order rects arrive in - a
-** tolerance band would not be transitive (A~B and B~C without A~C) and would chain across a screen.
-**
-** COLUMNS ARE NOT OPTIONAL. Measured over the 80 shipped layouts in WindowZH.big: rows alone fix
-** all 186 torn rows, but on ScoreScreen.wnd it anchors the column-header row (bbox 184..756 -> R)
-** differently from the eight data rows (bbox 65..756 -> C) and detaches every header from its
-** column by 207px - the same defect, rotated. Closing over columns as well merges those 79 windows
-** into one group and they move together. It also keeps MainMenu.wnd's right-hand button stack
-** together as one 24-member group anchored at 756, so the right-edge behaviour this mode exists for
-** is preserved rather than centred away.
-**
-** WHERE THE GROUP COMES FROM. The parser maps one window at a time as the file is read, and parent
-** and sibling links are applied afterwards, so at map time there is nothing to group ON. The caller
-** therefore does a cheap FIRST PASS over the layout text - SCREENRECT lines only, no window
-** creation - and hands the rects here; the real parse is unchanged and simply looks each rect up.
-** A caller that supplies no table (ControlBarScheme places its ~10 HUD controls with no layout file)
-** gets exactly today's per-rect behaviour.
-** ============================================================================================= */
+/* GROUPS: controls sharing an authored row (loY,hiY) or column (loX,hiX), transitively, share one anchor.
+** Rects keep their authored gap only if they share one anchor point (ExtrasMenu.wnd label/slider pairs tore).
+** Equality is transitive, so the partition ignores arrival order; a tolerance band would chain across the screen.
+** A first pass over SCREENRECT lines builds the table, as parent/sibling links do not exist at map time. */
 
 enum { LAYOUT_SCALE_GROUP_CAP = 512 };			///< 4.5x the largest shipped layout (ScoreScreen, 113)
 
@@ -413,36 +372,10 @@ inline void LayoutScaleMapRectGrouped( const LayoutScaleContext &ctx, const Layo
 	// far worse failure than a menu at the wrong size.
 	s *= LayoutScaleClampDial( ctx.uiScale );
 
-	// WHERE THE ANCHOR POINT GOES.
-	//
-	// Centring the whole canvas was the first answer and it has one visible cost: a 4:3 canvas on a
-	// 16:9 display has 480px of horizontal slack at dial 1.0, and splitting it evenly pushes a menu
-	// authored against the right edge 240px inboard. The dial makes that worse rather than better,
-	// because a smaller canvas leaves more slack to split. Measured on a 1920x1080 client, the main
-	// menu's right edge sat 125px from the screen edge under stretch and 334 / 428 / 490 / 553px
-	// under uniform at dial 1.00 / 0.85 / 0.75 / 0.65.
-	//
-	// Giving the slack to the display edge instead was the second answer and it OVERSHOOTS, for a
-	// reason worth writing down: the layout ROOT is full-bleed, so the backdrop and the border art
-	// drawn into it stretch by the per-axis xScale whatever the menu does. That art puts the
-	// composition's right edge at 748 * 2.400 = 1795. Anchoring the menu to 1920 instead lands it
-	// at 1826 - 31px OUTSIDE the frame it is supposed to sit inside, and further out as the dial
-	// shrinks. Reported from the running game before this comment existed.
-	//
-	// So the anchor point is mapped by the PER-AXIS scale, which is what the art it sits against
-	// uses, while the rect's SIZE comes from the uniform scale, which is the whole point of the
-	// mode. A right-hugging control then keeps the exact right edge it has today, at every dial,
-	// and only its shape changes.
-	//
-	// A PANEL MUST NOT TEAR ALONG THIS RULE, and the anchor is therefore chosen from the GROUP's
-	// edges, not from this rect's. The rule used to read them off the rect alone with the note that
-	// "every control in a column shares [the edges], so a column cannot split" - true of columns,
-	// false of rows, and ExtrasMenu.wnd's five label/slider pairs are the counterexample. See the
-	// GROUPS block above. With no group the box IS this rect, which is that older behaviour exactly.
-	//
-	// A rect reaching BOTH edges anchors on its centre, as does one reaching neither: pinning centred
-	// content to a side would drag half of it off the display. 20% is deliberately generous for the
-	// same reason - it must take a whole column, not clip its outermost member.
+	// Anchor point: mapped by the per-axis scale the backdrop art uses. Rect SIZE: the uniform scale.
+	// Centring or edge-anchoring instead leaves right-hugging menus inboard of, or outside, the art's frame.
+	// The anchor comes from the GROUP's edges so a panel cannot tear; with no group the box is this rect.
+	// A rect reaching both edges or neither anchors on its centre; 20% is generous so a whole column is taken.
 	const LayoutRect &box = ( group != NULL ) ? *group : authored;
 
 	const Int	 kAnchorPct = 20;

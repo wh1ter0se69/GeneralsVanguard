@@ -16,34 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: Who is speaking on a GXSAY: a player, the relay, or the
-// OPERATOR.
-//
-//     GXSAY <room> <sender> <text>
-//
-// <sender> is ALWAYS written by the relay - a player's line carries the virtual address from its
-// member record (relay.js chat()), never anything the datagram claimed - and both client sockets
-// accept a GXSAY only from the relay's own address. So a sender token is as trustworthy as the relay.
-//
-//   10.42.0.3    a player; the last octet is the room slot
-//   0.0.0.0      a relay notice: a name change, a mute or throttle refusal, an expired sign-in
-//   0.0.0.0|a    an ADMIN, speaking through the relay's operator console
-//   0.0.0.0|m    a MODERATOR, through the same console
-//
-// GeneralsX: Two tokens, so a moderator's line is never drawn as "@Admin" -
-// the distinction the whole enum below draws.
-//
-//
-//
-// THE MARKERS ARE ADDITIVE. A client built before either parses the sender with strtoul/atoi after
-// the last '.', which stops at the '|' and reads 0 - so it draws BOTH as the grey relay notice it has
-// always drawn. 'a' and 'm' are the roster's own role letters.
-//
-// EXACT MATCH, NOTHING FUZZIER, AND SEPARATELY FOR EACH. Anything that is not byte-for-byte a token
-// is neither voice, so a relay that grows a new suffix cannot make an older client promote a line it
-// did not mean to - and no arrangement of the moderator token can reach the admin one.
-//
-// Engine-free so scripts/test/relay-say-voice-test.cpp can build it without the engine.
+// Who is speaking on a GXSAY: GXSAY <room> <sender> <text>. The relay always writes <sender>; clients accept
+// GXSAY only from the relay address. 10.42.0.3 player (last octet = slot); 0.0.0.0 relay notice; 0.0.0.0|a admin;
+// 0.0.0.0|m moderator. The markers are additive: older clients stop parsing at the | and draw the grey relay notice.
+// Matching is exact and separate for each token, so no suffix can promote a line.
 
 #pragma once
 
@@ -61,8 +37,8 @@ enum GXSayVoice
 {
 	GX_SAY_VOICE_PLAYER = 0,	///< a room slot - [Name] in the speaker's colour
 	GX_SAY_VOICE_RELAY,			///< sender 0 - the grey notice line
-	GX_SAY_VOICE_OPERATOR,		///< the operator console, as an ADMIN - @Admin in the admin colour
-	GX_SAY_VOICE_MODERATOR		///< the operator console, as a MODERATOR - <@Mod> in the moderator colour
+	GX_SAY_VOICE_OPERATOR,		///< the admin socket, as an ADMIN - @Admin in the admin colour
+	GX_SAY_VOICE_MODERATOR		///< the admin socket, as a MODERATOR - <@Mod> in the moderator colour
 };
 
 inline bool gxSaySenderIsOperator( const char *token )

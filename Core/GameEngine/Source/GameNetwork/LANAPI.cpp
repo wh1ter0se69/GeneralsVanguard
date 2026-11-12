@@ -61,28 +61,16 @@ static_assert(MAX_SLOTS <= GX_RELAY_SEATS_MAX, "GXSLOT carries at most GX_RELAY_
 
 static const UnsignedShort lobbyPort = 8086; ///< This is the UDP port used by all LANAPI communication
 
-// GeneralsX: Lobby password / private flag, carried across a LANAPI
-// rebuild.
-//
-// This has to outlive the object because relayJoinSelectedGame DELETES TheLAN AND BUILDS A NEW
-// ONE in the middle of a join: moving to the listed game's relay room means taking a new virtual
-// address, and LANGameInfo snapshots the local IP in its constructor, so the only way to change
-// it is to throw the whole API away. A password held as a plain member would be destroyed by
-// exactly the action that is about to need it, and the join would come back "needs a password"
-// having just been given one - with nothing in any log to explain it.
-//
-// A fixed char buffer rather than an AsciiString: a namespace-scope AsciiString would run its
-// destructor at process exit, after the game memory pool it allocates from has been torn down.
-// This never allocates and has no destructor.
-//
-// Process lifetime is also the honest answer to "how long does it live": until it is changed,
-// cleared with /nopassword, or the process ends. It is never written to disk and never sent.
+// Lobby password and private flag, carried across a LANAPI rebuild: relayJoinSelectedGame deletes TheLAN and
+// builds a new one mid-join, so a member would be lost. A fixed char buffer, not AsciiString, because a
+// namespace-scope AsciiString would destruct at exit after the memory pool is gone. Lives until changed,
+// cleared with /nopassword, or exit; never written to disk or sent.
 static char s_carriedLobbyPassword[65] = { 0 };
 static Bool s_carriedLobbyPrivate = FALSE;
 
 AsciiString GetMessageTypeString(UnsignedInt type);
 
-// GeneralsX @bugfix Darwin fails every sendto(255.255.255.255) with EHOSTUNREACH - SO_BROADCAST,
+// GeneralsX: Darwin fails every sendto(255.255.255.255) with EHOSTUNREACH - SO_BROADCAST,
 // SO_DONTROUTE and IP_BOUND_IF make no difference - so a limited broadcast means the LAN lobby
 // never announces itself at all. The subnet-directed broadcast of the interface we are speaking
 // from (192.168.10.255, or 172.20.10.255 on a phone hotspot) is delivered normally, and is the
@@ -396,22 +384,10 @@ void LANAPI::reset()
 	GXHostCamera::clearHostLimits();
 }
 
-// GeneralsX: Send the bytes the message actually needs, not the size of
-// the whole union. See the long note at LANAPI.h's g_lanLegacyOptionsLength for why: sending
-// sizeof(LANMessage) padded every chat line and ready tick to ~763 bytes and every peer on a
-// 476-capped build dropped them without a word.
-//
-// Only MSG_GAME_OPTIONS ever writes GameOptions.options (LANAPI.cpp:1805 is the sole writer), and
-// it is the only member that grew, so it is the only type that needs measuring. Its length is the
-// string it carries, NOT the array: an eight-slot lobby's options string is far below the legacy
-// extent, so even the announce reaches an old peer. Only a genuinely twelve-slot announce exceeds
-// it, and a twelve-slot game cannot include an old peer anyway.
-//
-// Everything else is sent at the legacy extent rather than at its own true size. That is
-// deliberate and it is the conservative direction: the receiver casts the datagram straight to
-// LANMessage with NO length check (LANAPI.cpp:678), so under-sending a field some build reads
-// would be a silent misparse, while sending the full legacy prefix is exactly what every old
-// build already expects to receive.
+// Send the bytes the message needs, not sizeof the whole union (see g_lanLegacyOptionsLength in LANAPI.h):
+// padded datagrams were dropped by peers on a 476-capped build. Only MSG_GAME_OPTIONS grew, so only it is
+// measured by its string length. The rest go at the legacy extent: the receiver casts the datagram to
+// LANMessage with no length check (LANAPI.cpp:678), so under-sending would silently misparse.
 Int LANAPI::wireSize(const LANMessage *msg)
 {
 	// GeneralsX: One definition, in LANAPI.h, so the self-test measures
@@ -595,23 +571,9 @@ extern Bool LANbuttonPushed;
 extern Bool LANSocketErrorDetected;
 void LANAPI::update()
 {
-	// GeneralsX: THE RESET for the "already said" tier2 mask, and the whole
-	// reason the de-duplication is safe. The mask suppresses a condition for the rest of a lobby
-	// session; if it survived into the NEXT lobby it would suppress a real desync warning forever,
-	// turning an annoyance into a silent failure.
-	//
-	// Keyed on the STATE (are we in a game at all) rather than on the EVENT (a leave). There are ten
-	// places that set m_inLobby - RequestGameLeave, three action timeouts, the map-transfer bail,
-	// OnGameLeave - and an eleventh will be added by somebody who never reads this file. A state
-	// test cannot be forgotten by a new leave path: whatever route is taken out of a game ends up
-	// back in the lobby, and the next tick clears the mask there.
-	//
-	// ABOVE the early returns for the same reason the three flushes below are, and BEFORE them so a
-	// tick can never both clear the mask and then set bits into it from a stale pending word.
-	//
-	// isGameInProgress is deliberately NOT part of this. A match is the same lobby session: nobody
-	// joins during one, and clearing here would re-print every warning if a post-match screen ever
-	// pumped through this path.
+	// Reset the already-said tier2 mask whenever we are not in a game, so a surviving mask cannot suppress a real
+	// desync warning in the next lobby. Keyed on state, not on a leave event, so a new leave path cannot forget it.
+	// Above the early returns. Not tied to isGameInProgress: a match is the same lobby session.
 	if (m_inLobby || m_currentGame == nullptr)
 		m_saidSimWarnFlags = 0;
 
@@ -651,32 +613,10 @@ void LANAPI::update()
 			fflush(stderr);
 		}
 
-		// GeneralsX: Keep the joiner's keepalive alive across the latch.
-		//
-		// This is the root cause of "Accept and Back do nothing", measured from both ends.
-		//
-		// LANbuttonPushed is a UI latch - it stops a button handler firing twice while a screen
-		// transition is in flight. It is NOT a network state, and using it to return out of
-		// update() also stops the one message that keeps a joiner alive in the host's slot list.
-		//
-		// The host only refreshes a slot's last-heard from MSG_GAME_OPTIONS (LANAPICallbacks.cpp),
-		// and drops the slot after s_resendDelta*8 = 80s without one. The joiner's keepalive is
-		// the RequestGameOptions("HELLO") in the periodic block below. The latch is set by
-		// OnGameJoin(RET_OK) and cleared by LanGameOptionsMenuInit - so it is held for exactly as
-		// long as LanGameOptionsMenu.wnd takes to build. On a slow client that exceeded 80s, and
-		// the host synthesised a MSG_REQUEST_GAME_LEAVE for a peer that was never gone.
-		//
-		// After that the peer is in a lobby the host has no slot for. Its own packets still
-		// arrive - the host logged 13 Set Accept from it - but every reply the host tries to send
-		// "went to NOBODY - no human slot other than local slot 0", 123 times in one session. So
-		// Accept transmits and is ignored, and Back transmits and is ignored; the screen waits
-		// for a confirmation that cannot come, and both buttons look dead. Nothing is broken in
-		// the button code, the relay, or the identity - the relay logged unrouted 0.
-		//
-		// Only the keepalive is let through, not the receive loop: draining inbound can fire
-		// OnGameJoin/OnGameCreate, which push shell screens, and that re-entrancy is the thing
-		// the latch legitimately exists to prevent. RequestGameOptions only writes a datagram.
-		// m_lastResendTime is shared with the periodic block below so this cannot double-send.
+		// Keep the joiner keepalive running while LANbuttonPushed is set. The latch is a UI guard, not network
+		// state, but returning early also stops RequestGameOptions(HELLO), the only thing refreshing the joiner
+		// slot on the host, which reaps it after s_resendDelta*8 = 80s. Only the keepalive runs, not the
+		// receive loop: draining inbound can fire OnGameJoin/OnGameCreate and push shell screens.
 		const UnsignedInt nowKeep = timeGetTime();
 		if (nowKeep > s_resendDelta + m_lastResendTime
 			&& m_currentGame != NULL && !m_currentGame->isGameInProgress() && !AmIHost())
@@ -689,60 +629,20 @@ void LANAPI::update()
 	static const UnsignedInt LANAPIUpdateDelay = 200;
 	UnsignedInt now = timeGetTime();
 
-	// GeneralsX: Drain the socket EVERY call. The 200 ms delay below is a
-	// send throttle and was never meant to be a receive throttle.
-	//
-	// This used to sit after that early return, so inbound was serviced 5 times a second. Every
-	// relay control message - roster, chat, the game list, the GXMEMB that answers a GXROOM -
-	// therefore waited up to 200 ms in the kernel before anything looked at it.
-	//
-	// It made the lobby's latency readout meaningless, and that is how it was found. The stopwatch
-	// runs from send to "we noticed the reply", so every sample was quantised by this delay:
-	// measured 2026-08-07, the Linux host SHARES A PHYSICAL BOX with the relay and pings it in
-	// 0.107 ms, the relay answers a GXROOM in 1.2-5.6 ms, and the lobby displayed 203 ms. The Mac's
-	// real 62 ms showed as 182. Not jitter - a fixed quantum, which is also why reducing the
-	// samples by their MINIMUM did not help: every sample was the same wrong number.
-	//
-	// Draining first is safe and costs nothing extra. Transport::update() is doRecv() + doSend(),
-	// and doSend() already rate-limits the relay keepalive on its own 5 s timer
-	// (RELAY_REGISTRATION_INTERVAL), so calling it more often sends no more traffic. It only means
-	// packets that already arrived get read now instead of up to 200 ms later - which is a win for
-	// chat and the browser as well as for the number.
+	// Drain the socket on every call: the 200 ms delay below throttles sends, not receives. Servicing inbound
+	// only after it delayed relay messages by up to 200 ms and quantised the lobby latency readout.
+	// Safe: Transport::update() is doRecv() + doSend(), and doSend() rate-limits the relay keepalive itself
+	// (RELAY_REGISTRATION_INTERVAL, 5 s).
 	if ((m_transport->update() == FALSE) && (LANSocketErrorDetected == FALSE)) {
 		if (m_isInLANMenu == TRUE) {
 			LANSocketErrorDetected = TRUE;
 		}
 	}
 
-	// GeneralsX: The relay listing is DERIVED STATE, not a latch.
-	//
-	// The ghost lobby: the operator hosted a game, left it, and his own game was still in the
-	// Online browser afterwards. clearGameAdvertisement() existed and was correct - and had
-	// exactly ONE caller in the whole tree, LANAPI::RequestGameLeave. Every other way out of a
-	// hosted game left the datagram armed: the match ending and the player returning to the shell,
-	// LANAPI::reset(), the headless abort path, and any path added later by someone who did not
-	// know this rule existed.
-	//
-	// An armed advertisement is not a stale value that ages out. Transport::doSend re-sends it
-	// every RELAY_REGISTRATION_INTERVAL (5 s) and the relay expires a listing only after
-	// ADVERT_TIMEOUT_MS (15 s) of SILENCE - so it is refreshed forever and can never expire.
-	// d08348a4f, which pumps LANAPI in states where it previously did not run, is correct and is
-	// NOT the bug; it removed the last accidental gap in that re-send and so turned an intermittent
-	// ghost into a permanent one.
-	//
-	// So stop enumerating teardown paths and state the invariant instead: WE ADVERTISE EXACTLY
-	// WHILE WE ARE HOSTING A GAME THAT EXISTS. RequestGameOptions arms it while that is true; this
-	// disarms it the frame it stops being true, whatever made it stop. A match in progress still
-	// counts - a running game must stay findable by a player who left it (§3.4) - but only while
-	// the match is actually running, which is what closes the "host returns to the shell after the
-	// match and keeps advertising a game that ended" case.
-	//
-	// GeneralsX: And now it TELLS the relay, rather than only going quiet.
-	// Silence still delists - it has to, for the host that crashes - but it takes the relay's 15 s
-	// expiry plus a sweep plus the browser's own publish lag, which is the remaining half of the
-	// ghost row. withdrawGameAdvertisement() says the game is gone and clears the advertisement
-	// itself, so it goes exactly where clearGameAdvertisement() used to: on the one line that
-	// already knows we stopped hosting a live game, whatever made it stop.
+	// The relay listing is derived state: we advertise exactly while hosting a game that exists. RequestGameOptions
+	// arms it and this disarms it the frame that stops being true. An armed advertisement is re-sent every 5 s and
+	// never expires on the relay (ADVERT_TIMEOUT_MS, 15 s). A running match still counts, so a player who left can
+	// find it. withdrawGameAdvertisement() tells the relay the game is gone instead of waiting for expiry.
 	{
 		const Bool matchLive = (TheGameLogic != NULL)
 			&& (TheGameLogic->isInLanGame() || TheGameLogic->isInInternetGame());
@@ -917,21 +817,10 @@ void LANAPI::update()
 			// Mark it as read
 			m_transport->m_inBuffer[i].length = 0;
 		}
-		// GeneralsX: Scan the WHOLE buffer. This used to `break` at the
-		// first empty slot, which is only correct while the occupied slots are a prefix - and this
-		// very loop is the thing that breaks that invariant.
-		//
-		// The loop condition carries `&& !LANbuttonPushed`, and the latch is set from INSIDE it:
-		// OnGameJoin and OnGameCreate both set it out of a handler (see the note at the second gate
-		// below). So a drain can stop at slot k having cleared 0..k-1, leaving k..255 occupied
-		// behind a hole. Transport::doRecv restarts its own free-slot scan at 0 on every call
-		// (bufferIndex is per-call since upstream #2659), so the next datagram lands in slot 0, this
-		// loop processes it, hits the hole at slot 1 and stops - and everything above the hole stays
-		// unread until a burst big enough to fill the gap happens to arrive. In a quiet lobby that is
-		// never, and the stranded messages are exactly the join/accept/leave replies whose absence
-		// makes a button look dead.
-		//
-		// The cost of not breaking is a scan of MAX_MESSAGES ints at 5 Hz.
+		// Scan the whole buffer, do not break at the first empty slot. LANbuttonPushed ends this loop and handlers set
+		// it mid-drain, so a drain can stop at slot k with k..255 occupied behind a hole. Transport::doRecv restarts
+		// its free-slot scan at 0 each call, so a break would strand messages above the hole (join, accept, leave
+		// replies). Cost: MAX_MESSAGES ints at 5 Hz.
 	}
 	// GeneralsX: The second gate. Distinct message from the first on
 	// purpose: reaching here means the latch was CLEAR at the top of update() and got SET while
@@ -1026,22 +915,10 @@ void LANAPI::update()
 		}
 	}
 
-	// GeneralsX: Lobby datagram reasserts.
-	//
-	// MSG_MAP_AVAILABILITY and MSG_REQUEST_JOIN are single unacked datagrams that gate real
-	// decisions. A lost hasMap=false leaves every peer believing the sender has the map (slots
-	// default TRUE - GameSlot::reset - and the host's options broadcast stamps its belief
-	// lobby-wide), so the host starts without running the transfer and the mapless peer bounces
-	// with GUI:CouldNotTransferMap. A lost join request or accept surfaces as a 5 s RET_TIMEOUT -
-	// and a retry after a lost ACCEPT used to be denied RET_DUPLICATE_NAME, because the first
-	// request had already seated us (see the idempotent re-accept branch in handleRequestJoin).
-	// Both reproduced under netem 60 ms / 3% loss, 2026-08-10.
-	//
-	// hasMap: two extra shots (+1 s, then +2 s) after every announce - which also covers
-	// handleHasMap's map-CRC race-drop, where an announce racing the options broadcast that
-	// changed the map is silently discarded - plus a 10 s piggyback on the joiner keepalive
-	// above. join: the stored request is re-sent verbatim once a second while ACT_JOIN is
-	// pending; re-deriving it instead would re-read one-shot password state (m_joinPwOffered).
+	// Reassert unacked datagrams that gate decisions: a lost hasMap=false leaves peers assuming the sender has the map
+	// (slots default TRUE); a lost join request or accept times out. hasMap: extra shots at +1 s and +2 s after each
+	// announce, plus a 10 s piggyback on the joiner keepalive. Join: the stored request is re-sent verbatim each
+	// second while ACT_JOIN is pending; re-deriving it would re-read one-shot password state (m_joinPwOffered).
 	if (m_hasMapBurstLeft > 0 && m_hasMapBurstNext != 0 && now >= m_hasMapBurstNext
 		&& !m_inLobby && m_currentGame != NULL && !m_currentGame->isGameInProgress())
 	{
@@ -1125,22 +1002,10 @@ void LANAPI::update()
 	{
 		if ( !AmIHost() && (m_currentGame->getLastHeard() + s_resendDelta*16 < now) )
 		{
-			// GeneralsX: Do not offer this game back to us thirty seconds
-			// after telling us its host stopped answering.
-			//
-			// This branch is the guest's half of the ghost row, and it is the half with NO other
-			// signal at all: a host that crashed or lost its link sent no leave message and no
-			// withdrawal, so the relay is still serving the listing and will keep serving it until
-			// its own 15 s expiry - which restarts from the host's last advertisement, not from
-			// this moment. So the player is popped back to the browser with an explanation, and the
-			// game they were just thrown out of is sitting at the top of the list, joinable.
-			//
-			// Suppressed on the ROOM, taken from the transport before handleRequestGameLeave below
-			// deletes the game. The room is the transport's own: a guest is registered in the room
-			// of the game it joined (enterRelayRoom), which is why nothing here has to guess it.
-			// The evidence is direct - we waited s_resendDelta*16 and heard nothing - and it is
-			// bounded by the same expiry the relay applies, so if the host is somehow still alive
-			// the listing comes back on its own.
+			// Do not offer back a game whose host just stopped answering. A crashed host sent no leave or
+			// withdrawal, so the relay serves its listing until its own 15 s expiry. Suppressed on the room, taken
+			// from the transport before handleRequestGameLeave deletes the game. Bounded by the same expiry, so a
+			// host that is still alive reappears.
 			if (m_transport != NULL && m_transport->isRelayEnabled())
 				Transport::suppressRoomListing(m_transport->getRelayRoom());
 
@@ -1272,10 +1137,10 @@ void LANAPI::RequestGameJoin( LANGameInfo *game, UnsignedInt ip /* = 0 */ )
 		m_remoteSimValid = FALSE;
 		memset(&m_remoteSim, 0, sizeof(m_remoteSim));
 		m_remoteSimVerdict = SIMID_LOCAL_INVALID;
-		// GeneralsX: (cross-model review) Terminal. Reached from
-		// handleGameAnnounce mid-direct-connect, this used to leave ACT_JOINDIRECTCONNECT
-		// pending - so the game-info reassert kept knocking, every announce re-entered here and
-		// reopened this dialog, and the player got a second, misleading RET_TIMEOUT at expiry.
+		// GeneralsX: Terminal. Reached from
+		// handleGameAnnounce mid-direct-connect, leaving ACT_JOINDIRECTCONNECT
+		// pending would let the game-info reassert keep knocking: every announce would re-enter here and
+		// reopen this dialog, and the player would get a second, misleading RET_TIMEOUT at expiry.
 		// A machine that failed to load its own data has nothing to retry.
 		m_pendingAction = ACT_NONE;
 		m_expiration = 0;
@@ -1591,20 +1456,10 @@ void LANAPI::RequestGameLeave()
 	sendMessage(&msg);
 	m_transport->update();  // Send immediately, before OnPlayerLeave below resets everything.
 
-	// GeneralsX @feature Server list. Stop advertising the moment we leave, so a browser does not
-	// offer a game that has gone. The relay would delist it anyway once the advertisements stop,
-	// but that takes a timeout - this makes a clean exit immediate.
-	//
-	// GeneralsX: WITHDRAW here rather than only clearing, and this call
-	// site specifically - which is not a return to enumerating teardown paths. The invariant in
-	// update() is still the catch-all and still fires for every path that does not come through
-	// here. But this one runs before OnPlayerLeave pops the screen, and landing back on the browser
-	// runs SetUpOnlineLobbyLAN(), which DELETES TheLAN and its transport - so on the commonest exit
-	// of all, a player pressing Back, the object that would have withdrawn is destroyed first. A
-	// clear here would also disarm the advertisement and leave the invariant nothing to notice.
-	//
-	// Nothing to do for a guest: a guest holds no advertisement, withdrawGameAdvertisement() returns
-	// at once, and it must - the host's game is not over because we left it.
+	// Stop advertising the moment we leave so a browser does not offer a game that has gone. Withdraw here, not
+	// just clear: this runs before OnPlayerLeave pops the screen, and returning to the browser runs
+	// SetUpOnlineLobbyLAN(), which deletes TheLAN and its transport. A guest holds no advertisement, so this
+	// is a no-op for it.
 	m_transport->withdrawGameAdvertisement();
 
 	// GeneralsX: We are leaving this game, so whatever its host told us
@@ -1612,26 +1467,10 @@ void LANAPI::RequestGameLeave()
 	// headless harness's teardown - both unambiguously outside a running match.
 	GXHostCamera::clearHostLimits();
 
-	// GeneralsX: A joiner leaves its own screen at once, like the host.
-	//
-	// Reported live: a joiner clicks Back, the host removes them instantly, and the joiner's own
-	// screen sits there for about ten seconds. The host branch below has always exited
-	// immediately; the joiner branch armed ACT_LEAVE and waited for either the host's reply or
-	// m_actionTimeout, so the best case was one 200 ms receive quantum and the worst was the full
-	// timeout - and if the reply DID arrive, OnPlayerLeave ran twice: once from the booted branch
-	// of OnGameOptions and again when the still-armed ACT_LEAVE expired five seconds later. Two
-	// TheShell->pop() calls for one Back press pops one screen too many.
-	//
-	// THE INVARIANT: leaving is unilateral. handleRequestGameLeave has no refuse branch - the host
-	// opens the slot and tells everyone - so there is no acknowledgement to wait for, and waiting
-	// buys nothing but latency and a second exit. The datagram has already been forced onto the
-	// wire by the m_transport->update() above; if it is lost the host reaps the slot on its own
-	// timeout, which is exactly what the old timeout path degraded to anyway.
-	//
-	// What still differs by role is the GAME LIST, and it has to: our own game is gone when we
-	// leave it, but the host's game is not gone just because we left it - dropping it here would
-	// delist a game that is still running from our own browser. That is why the old ACT_LEAVE
-	// timeout only cleared the pointer and never called removeGame, and this keeps that.
+	// A joiner leaves its own screen at once, like the host. Leaving is unilateral: handleRequestGameLeave has no
+	// refuse branch, so there is nothing to wait for. Waiting on ACT_LEAVE ran OnPlayerLeave twice and popped one
+	// screen too many. If the datagram is lost the host reaps the slot. The host game stays in the joiner list
+	// (we only drop our own game), so removeGame is not called for a joiner.
 	const Bool wasHost = (m_currentGame != nullptr) && (m_currentGame->getIP(0) == m_localIP);
 
 	OnPlayerLeave(m_name);
@@ -1704,25 +1543,10 @@ void LANAPI::RequestAccept()
 	CopyWcharToWindowsWideChar(msg.Accept.gameName, m_currentGame->getName().str(), ARRAY_SIZE(msg.Accept.gameName) - 1);
 	sendMessage(&msg);
 
-	// GeneralsX: Show the accept on the machine that pressed it.
-	//
-	// Reported live: a joiner clicks Accept, the HOST ticks it immediately, and the joiner's own
-	// screen does nothing. The reason is that the tick is drawn from slot->isAccepted() in
-	// UpdateSlotList (GUIUtil.cpp), and nothing on this side ever set it: RequestAccept only put a
-	// datagram on the wire and then waited for the host's slot list to come back and tell it what
-	// it had just done.
-	//
-	// THE INVARIANT, because "just set it locally" is how a lobby desynchronises: a client may
-	// apply locally ONLY a change the host has no path to refuse, and only where the host's next
-	// authoritative slot list will assert the same value. Accept is exactly that shape -
-	// handleSetAccept -> OnAccept sets the slot accepted unconditionally, there is no reject
-	// branch - and the slot list is still the only writer of record, so the very next
-	// MSG_GAME_OPTIONS overwrites this either way. If the host unaccepts everyone (a new player
-	// joins, someone changes team) the joiner is corrected on the same broadcast every other peer
-	// is corrected on. Nothing is invented and nothing survives that the host disagrees with.
-	//
-	// Host excluded deliberately: the host IS the writer of record, and its own accept already
-	// goes through OnAccept.
+	// Show the accept on the machine that pressed it. The tick is drawn from slot->isAccepted() (UpdateSlotList)
+	// and nothing set it locally. Safe because the host cannot refuse an accept (handleSetAccept -> OnAccept has no
+	// reject branch) and the next MSG_GAME_OPTIONS overwrites it either way. Host excluded: it is the writer of
+	// record and goes through OnAccept.
 	if (!AmIHost())
 	{
 		const Int localSlot = m_currentGame->getLocalSlotNum();
@@ -1862,7 +1686,7 @@ void LANAPI::RequestGameStart()
 	if (m_inLobby || !m_currentGame || m_currentGame->getIP(0) != m_localIP)
 		return;
 
-	m_currentGame->stampAiColours();	// GeneralsX @feature AI in three colours: the host's choice, only with one human
+	m_currentGame->stampAiColours();	// GeneralsX: AI in three colours: the host's choice, only with one human
 
 	LANMessage msg;
 	msg.messageType = LANMessage::MSG_GAME_START;
@@ -1873,26 +1697,17 @@ void LANAPI::RequestGameStart()
 	// doFileTransfer - is verbatim and idempotent at the receiver. handleGameStart drops a
 	// repeated nonce at any time, which is what makes re-sending safe after a transfer-only
 	// round restores the lobby (the legacy !isGameInProgress gate is disarmed exactly there,
-	// and a repeat used to be a stray start that launched the peers without the host).
+	// and a repeat would be a stray start that launches the peers without the host).
 	++m_startNonceCounter;
 	if (m_startNonceCounter == 0)
 		++m_startNonceCounter;	// 0 means "none yet" on the receive side; never issue it
 	msg.GameStart.nonceTag = STARTNONCE_WIRE_TAG;
 	msg.GameStart.nonce = m_startNonceCounter;
 
-	// GeneralsX: The host's camera height limits, stamped on the
-	// authoritative message. Every peer resolves its view from THIS pair for the whole match.
-	//
-	// WRITTEN UNCONDITIONALLY, INCLUDING THE CLEAR. `msg` above is a bare stack LANMessage and
-	// fillInLANMessage does not memset it, so these twelve bytes start as whatever the stack
-	// held. Skipping the else would let a leftover 'GXCM' pattern present two junk floats as a
-	// host decision - the exact failure the sentinel exists to prevent, arriving from our own
-	// stack rather than from an old peer's.
-	//
-	// Stamped BEFORE m_lastStartMsg is taken, so the stored copy the burst and the delivery-
-	// window resends re-emit is byte-identical to the one just sent. Re-sends must stay verbatim:
-	// the nonce makes them inert at a receiver that already ran this start, and a copy that
-	// differed in these bytes would be a second, contradictory answer for anyone who had not.
+	// Host camera height limits, stamped on the authoritative message; every peer resolves its view from this pair.
+	// Written unconditionally, including the clear: msg is an unzeroed stack LANMessage, so skipping the else would
+	// let stale bytes pass as a host decision. Stamped before m_lastStartMsg is stored so burst and delivery-window
+	// resends stay byte-identical (the nonce makes them inert at a peer that already ran this start).
 	{
 		GXHostCamera::Limits mine;
 		if (GXHostCamera::getLocalLimits(&mine))
@@ -1971,20 +1786,10 @@ void LANAPI::RequestGameStart()
 	sendMessage(&msg);
 	m_transport->update(); // force a send
 
-	// GeneralsX: The start itself was the last single-shot gate: a peer
-	// that misses this one datagram sits in the lobby while everyone else launches (measured -
-	// the two-start transfer flow doubles the exposure and a confirm run lost the second start).
-	//
-	// OnGameStart below is SYNCHRONOUS when the start becomes a map-delivery run (cross-model
-	// review, P1): it blocks in DoAnyMapTransfers and returns with the lobby RESTORED. An
-	// immediate second copy covers the delivery run's entry (loss of two back-to-back datagrams
-	// is the square of the loss rate), doFileTransfer re-sends the stored start every 2 s INSIDE
-	// the delivery window (the burst timers cannot fire there - update() never runs), and the
-	// timer burst below covers a REAL launch, where the L8 baseline measured the redundancy
-	// thinning to a single surviving copy (xfer-base-L8-4: 3 of 6 copies arrived, round 2
-	// started on the last one). Five shots at 1.5 s spacing also cover a peer whose
-	// drain-before-teardown epilogue (bounded 10 s) had its duplicate gate closed while the
-	// early copies arrived - the original run-8 shape.
+	// A peer that misses the single start datagram stays in the lobby, so send redundant copies. An immediate second
+	// copy covers a map-delivery run (OnGameStart blocks in DoAnyMapTransfers); doFileTransfer re-sends the stored
+	// start every 2 s inside the delivery window (update() does not run there); the timer burst of five shots at 1.5 s
+	// covers a real launch and a peer still in its drain-before-teardown epilogue (bounded 10 s).
 	sendMessage(&msg);
 	m_transport->update();
 
@@ -2008,9 +1813,9 @@ void LANAPI::RequestGameStart()
 
 // GeneralsX: Re-emit the stored MSG_GAME_START, verbatim (same
 // nonce). Called from the transfer loop while the host blocks in its delivery run - the one
-// window where a lost start previously had NO further chance to arrive (round-2 run 6: the
-// joiner missed the single... then double... start, never built a TheNetwork, and the host
-// sent 60 s of unackable chunks into a void). Self-throttled to one datagram per 2 s.
+// window where a lost start has NO further chance to arrive (the joiner misses the single... then double... start,
+// never builds a TheNetwork, and the host sends 60 s of unackable chunks into a void).
+// Self-throttled to one datagram per 2 s.
 void LANAPI::resendPendingGameStart()
 {
 	if (m_inLobby || !m_currentGame || m_currentGame->getIP(0) != m_localIP || !m_lastStartValid)
@@ -2072,53 +1877,20 @@ void LANAPI::RequestGameOptions( AsciiString gameOptions, Bool isPublic, Unsigne
 
 	m_lastGameopt = gameOptions;
 
-	// GeneralsX @feature Server list. Refresh the relay's listing whenever the slot list changes.
-	//
-	// This is deliberately the hook: it is the ONE place both the UI host and the headless host
-	// already pass through on every change, so the advertised player count tracks the lobby
-	// without either path having to remember to update it, and without a second timer.
-	//
-	// Policy for now is that a relay host lists itself, unless it has asked not to be.
-	//
-	// GeneralsX: /private is now the thing that exposes the choice the
-	// comment below used to say nothing exposed. The mechanism was always here: the relay lists a
-	// room only for as long as an advertisement keeps arriving, so withdrawing one is the whole
-	// implementation. HeadlessMatch has been telling operators "a private game never advertises -
-	// join it with GENERALSX_LANROOM=<room>" for months, in a failure message, about a state no
-	// host could actually reach. It can be reached now, and that sentence is finally true.
-	//
-	// This is deliberately LOCAL policy and is neither advertised nor persisted: a "hidden" flag
-	// that travels with the listing would be a flag the relay could ignore, and the only honest
-	// way to not be listed is to not send the listing.
+	// Refresh the relay listing whenever the slot list changes: the UI host and the headless host both pass through
+	// here, so the advertised count tracks the lobby without a second timer. A relay host lists itself unless
+	// /private is set. That is local policy, neither advertised nor persisted: the relay lists a room only while
+	// advertisements keep arriving, so withdrawing is the whole implementation.
 	if (m_transport && m_transport->isRelayEnabled() && AmIHost() && m_hostPrivate)
 	{
 		m_transport->clearGameAdvertisement();
 	}
 	else if (m_transport && m_transport->isRelayEnabled() && AmIHost())
 	{
-		// GeneralsX: The denominator is the seats this lobby actually has,
-		// not MAX_SLOTS.
-		//
-		// The browser showed "1/8" for a game on Alpine Assault, a TWO player map. MAX_SLOTS is a
-		// compile-time 8 and was passed verbatim, so every row claimed eight seats however few the
-		// map or the host allowed. The number is not decoration: relayJoinSelectedGame refuses a
-		// join on `players >= slots`, so an inflated denominator is the browser inviting players
-		// into a lobby with no start position for them - and an over-capacity lobby is a KNOWN real
-		// failure here (surplus players get no start position and no Command Center; see the
-		// map-capacity preflight note).
-		//
-		// What is counted, and why:
-		//   occupied = SLOT_PLAYER + the three AI states. A human cannot take an AI's seat without
-		//             the host opening it, so an AI is as full as a person for "can I get in".
-		//   open     = SLOT_OPEN only. SLOT_CLOSED is neither occupied nor available - the host
-		//             shut it - so it must not appear in either number.
-		//   capacity = occupied + open, then CAPPED BY THE MAP. A lobby can hold eight open slots
-		//             on a two-player map; the extra six are not seats, they are the over-capacity
-		//             bug. The map's own m_numPlayers is the only authority on that.
-		//
-		// The cap is applied only when the map is in the cache and reports a sane count; a host
-		// that cannot resolve its own map falls back to the slot arithmetic rather than publishing
-		// a zero, because "0 slots" is refused by the relay's parser and would delist the game.
+		// The denominator is the seats this lobby really has, not MAX_SLOTS: relayJoinSelectedGame refuses a join on
+		// players >= slots. occupied = SLOT_PLAYER plus the three AI states; open = SLOT_OPEN only (SLOT_CLOSED counts
+		// for neither); capacity = occupied + open, capped by the map m_numPlayers when the cache reports a sane
+		// count, else slot arithmetic, because 0 slots is refused by the relay parser and would delist the game.
 		Int players = 0;
 		Int openSeats = 0;
 		for (Int s = 0; s < MAX_SLOTS; ++s)
@@ -2174,31 +1946,10 @@ void LANAPI::RequestGameOptions( AsciiString gameOptions, Bool isPublic, Unsigne
 		if (nameLen > 4 && _stricmp(mapName + nameLen - 4, ".map") == 0)
 			mapName[nameLen - 4] = '\0';
 
-		// GeneralsX: The lobby's own name, so a BROWSER can show it.
-		//
-		// This is the field the host actually typed. It already rides the LAN announce as "LN=" and
-		// is already the in-game game-options title, but the announce is ROOM-SCOPED - every browsing
-		// client sits in its own relay room and only the global GXLIST crosses between them - so it
-		// could not reach the browser at all. It travels separately, as GXLNAM; see
-		// Transport::setRelayLobbyName for why it is not simply appended to the advertisement.
-		//
-		// CALLED ON EVERY PASS INCLUDING WHEN THE NAME IS EMPTY, and called BEFORE the advertisement.
-		//
-		// Every pass, because the relay holds this on a per-room member record that outlives one
-		// hosted game: a host who names a lobby, leaves, and hosts an unnamed one lands in the SAME
-		// room (getLocalHostRoom is generated once per process) and the relay would otherwise still
-		// be handing the old name to every browser. Only a positive "no name" can retract it, so the
-		// empty case has to reach the transport rather than being filtered out here.
-		//
-		// Calling is not sending: setRelayLobbyName compares before it transmits, so the repeats this
-		// hook produces - one per slot change plus the host's 10 s periodic - cost nothing on the
-		// wire. That check lives there rather than here because the transport owns what it last told
-		// the relay; this function does not.
-		//
-		// Before the advertisement, because a CHANGED name is transmitted the moment it is set, and
-		// so is a changed advertisement. Advertising first would leave a window - short, but a whole
-		// GXLIST sweep can fall inside it - in which the new game is listed while the relay still
-		// holds the previous game's name to attach to it.
+		// The lobby name the host typed, for the browser. The LAN announce is room-scoped and cannot reach it, so it
+		// travels separately as GXLNAM (see Transport::setRelayLobbyName). Called every pass, even when empty: the
+		// relay keeps it on a per-room record that outlives one game, and only an empty name retracts it. Calling is
+		// not sending (it compares first). Called before the advertisement so a new game is never listed with the old name.
 		m_transport->setRelayLobbyName(m_currentGame->getLobbyName().str());
 
 		m_transport->setGameAdvertisement(gameName.str(), mapName, players, advertisedSlots);

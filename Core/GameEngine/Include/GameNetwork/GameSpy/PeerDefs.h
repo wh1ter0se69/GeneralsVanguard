@@ -300,20 +300,7 @@ extern Int GetAdditionalDisconnectsFromUserFile(Int playerID);
 void SetUpGameSpy( const char *motdBuffer, const char *configBuffer );
 void TearDownGameSpy();
 
-/// GeneralsX @feature Matchmaking. The subset of SetUpGameSpy that the WOL lobby SCREENS need,
-/// with none of the GameSpy backend.
-///
-/// WOLCustomLobby.wnd and the LobbyUtils code that fills it are pure presentation: they read
-/// TheGameSpyInfo's staging-room and player maps, colour rows against TheGameSpyConfig and
-/// TheLadderList, and draw rank icons out of TheRankPointValues. None of that cares where the rows
-/// came from, which is what makes driving those screens from our relay a data-source swap.
-///
-/// What they must NOT get is the rest of SetUpGameSpy: it starts the peer, buddy and persistent
-/// storage threads and the pinger, and those exist to talk to gamestats.gamespy.com and
-/// peerchat.gamespy.com, which have not answered since 2014. Leaving the message queues null is
-/// also load-bearing rather than merely tidy - WOLLobbyMenuUpdate already gates its whole GameSpy
-/// message pump on TheGameSpyPeerMessageQueue being non-null, so a null queue is exactly the
-/// "there is no backend" signal the screen already understands.
-///
-/// TearDownGameSpy is the matching teardown and null-checks every one of these.
+/// Matchmaking. The subset of SetUpGameSpy the WOL lobby screens need, without the GameSpy backend.
+/// The peer, buddy and persistent-storage threads and the pinger are not started. The message queues stay null, which
+/// WOLLobbyMenuUpdate already treats as no backend. TearDownGameSpy null-checks all of these.
 void SetUpGameSpyForRelayLobby();

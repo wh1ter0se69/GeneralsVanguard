@@ -44,13 +44,13 @@ public:
 	void setIPstring( AsciiString name ) { m_IPstring = name; }
 	UnsignedInt getIP() { return m_IP; }
 	void setIP( UnsignedInt IP ) { m_IP = IP; }
-	// GeneralsX @bugfix The subnet-directed broadcast address of the interface this address
+	// GeneralsX: The subnet-directed broadcast address of the interface this address
 	// lives on. Darwin rejects a limited broadcast (255.255.255.255) with EHOSTUNREACH, so LAN
 	// discovery has to aim at the subnet instead. 0 means the platform enumeration could not
 	// supply one and the caller should fall back to INADDR_BROADCAST.
 	UnsignedInt getBroadcastIP() { return m_broadcastIP; }
 	void setBroadcastIP( UnsignedInt IP ) { m_broadcastIP = IP; }
-	// GeneralsX @bugfix The address lives on an interface with no LAN segment behind it - point-to-
+	// GeneralsX: The address lives on an interface with no LAN segment behind it - point-to-
 	// point (utun, tun, wg, tailscale0, a cellular pdp_ip) or a /32 mask: a VPN or overlay tunnel.
 	// FALSE when the platform could not say, which keeps that address in retail order.
 	Bool isTunnel() { return m_tunnel; }

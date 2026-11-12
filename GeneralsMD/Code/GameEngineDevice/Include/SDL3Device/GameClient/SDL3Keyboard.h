@@ -57,7 +57,7 @@ public:
 	// Keyboard interface
 	virtual KeyboardIO *getKeyboard(void);
 	virtual Bool getCapsState(void);  // GeneralsX @build fbraz 12/02/2026 - Caps Lock state
-	virtual WideChar getLayoutKey(KeyDefType key);  // GeneralsX: (no override: this class marks none)
+	virtual WideChar getLayoutKey(KeyDefType key);  // (no override: this class marks none)
 	
 	// SDL3-specific methods - Fighter19 pattern
 	// GeneralsX @refactor felipebraz 16/02/2026 Add direct addSDLEvent() method
@@ -68,7 +68,7 @@ public:
 
 protected:
 	virtual void getKey(KeyboardIO *key);  // GeneralsX @build fbraz 12/02/2026 - Get keyboard event
-	// GeneralsX: Take the scancode at its real width.
+	// Take the scancode at its real width.
 	//
 	// This used to be `unsigned char`, but SDL_Scancode runs to SDL_SCANCODE_COUNT == 512.
 	// Every scancode at or above 256 was silently truncated modulo 256 and could therefore
@@ -88,7 +88,7 @@ private:
 	SDL_Event m_eventBuffer[MAX_SDL3_KEY_EVENTS];
 	UnsignedInt m_nextFreeIndex;  // Write position
 	UnsignedInt m_nextGetIndex;   // Read position
-	/// GeneralsX: Key -> the character its last key-down's SDL keycode names in the
+	/// Key -> the character its last key-down's SDL keycode names in the
 	/// active layout (0 = not seen yet, or no character), written as getKey drains it, so before dispatch.
 	WideChar m_layoutKey[KEY_COUNT];
 };

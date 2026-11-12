@@ -609,51 +609,10 @@ void ToggleControlBar( Bool immediate )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX: TOGGLE_GAME_HUD - hide the retail game chrome for a clean
-	* view of the world, and put it back exactly as it was.
-	*
-	* WHAT THIS HIDES is one window and therefore its whole subtree: ControlBar.wnd:ControlBarParent
-	* is the ONLY top-level window in that layout (verified against both the retail Window\ControlBar.wnd
-	* in WindowZH.big and the ControlBarPro override in 340_ControlBarProZH.big - one `NAME` at
-	* top-level indentation in each). The build cameos, the money and power readouts, LeftHUD - which is
-	* where TheRadar actually draws, via W3DLeftHUDDraw - and RightHUD are all children of it, and
-	* GameWindowManager::drawWindow returns before recursing into a hidden window's children. So the
-	* minimap and radar go with the bar rather than needing a second switch each.
-	*
-	* WHY IT REUSES HideControlBar/ShowControlBar RATHER THAN switchControlBarStage(CONTROL_BAR_STAGE_HIDDEN).
-	* The stage enum has a HIDDEN entry and setHiddenControlBar() implements it, but nothing in the
-	* shipped engine ever reaches it - it is dead code, and it is dead for a reason: it hides CP_MASTER
-	* without touching the tactical viewport, so the world would keep being drawn at the scaled height
-	* and the player would get a black band where the bar used to be. HideControlBar() is the live
-	* mechanism (it is what retail F9 / MSG_META_TOGGLE_CONTROL_BAR uses) and it also expands the
-	* viewport, drops the replay controls and drops the special-power shortcut bar. Using a second
-	* mechanism beside it is exactly how two switches end up disagreeing about one piece of state.
-	*
-	* WHY THE HIDDEN TEST READS THE WINDOW rather than a flag of our own. F9 is still bound and still
-	* works, scripts call HideControlBar/ShowControlBar (ScriptActions.cpp), and GameLogic calls them
-	* at game start and end. A remembered Bool would go stale the moment any of those ran and the key
-	* would then need two presses to do anything. The window's own hidden bit is the one truth all of
-	* those paths already write, so reading it makes this key agree with them by construction.
-	*
-	* RESTORING IS EXACT, and mostly for free: hiding the PARENT leaves every child's own state alone,
-	* so the context (what is selected, which context window is up, the radar's attack flash) is never
-	* saved or reconstructed - it is simply not disturbed. The one thing that is not free is the
-	* control bar stage, because ShowControlBar() forces CONTROL_BAR_STAGE_DEFAULT; that is right for
-	* its other callers but would quietly reset a player who had chosen the LOW stage, so we save it
-	* here and re-apply it after. The replay controls and the shortcut bar re-derive their own
-	* visibility inside showReplayControls()/showSpecialPowerShortcut() rather than being blindly
-	* shown, so a state change while hidden resolves correctly on the way back.
-	*
-	* INPUT: command-button hotkeys keep working while the bar is hidden, which is deliberate and is
-	* also what retail F9 already does - HotKeyManager::executeHotKey tests WIN_STATUS_HIDDEN on the
-	* button itself, and winHide() sets that bit only on the window it is called on, never on children.
-	* Mouse clicks in the vacated strip reach the world, and that is correct rather than a click-through
-	* bug: setFullViewportHeight() has genuinely grown TheTacticalView to the full display, so the
-	* terrain the click lands on is the terrain being drawn under the cursor.
-	*
-	* NOT SIM-VISIBLE: every call below is a GameWindow visibility change or a TheTacticalView height
-	* change. No message is appended to TheMessageStream, so nothing enters the command stream that
-	* peers execute.
+/** GeneralsX: TOGGLE_GAME_HUD - hide the retail chrome (ControlBarParent, with radar and minimap), then restore it.
+	* Uses HideControlBar/ShowControlBar, the live path F9 uses (also expands the viewport), not the dead STAGE_HIDDEN.
+	* Hidden state is read from the window bit so F9 and scripts agree; the saved bar stage is re-applied on show.
+	* NOT SIM-VISIBLE: only window visibility and view height change; nothing enters TheMessageStream.
 	*/
 //-------------------------------------------------------------------------------------------------
 void ToggleGameHud()

@@ -1,97 +1,25 @@
-// GeneralsX: WS-F1 gates: gx_record_test - GxPacketWriter v1 and its pass graph.
-//
-//   gx_record_test [--arm NAME[,NAME...]|all] [--msaa N] [--no-validation] [--device SEL] [--loader PATH]
-//
-// Every arm runs with Khronos core + synchronization validation (refused when the layer is missing or sync is off). Clean arms
-// PASS when their own checks hold AND validation reports 0 errors / 0 hazards; fail arms (X-...) plant one defect and PASS
-// only when their named detector fires. The first line names the build (sha + dirty flag): a log must prove its build.
-//
-// Clean arms (validation 0 errors / 0 hazards, GxOrderCheck 0 violations, retirement ledger 0, own checks):
-//   graph             the pass graph: water-reflection target (256x256 render-target texture) -> opaque (MSAA colour + depth,
-//                     a quad sampling the reflection, an FF draw through GxPipelineCache's generic pipeline) -> translucent
-//                     (additive, depth-tested, no write) -> ui (depth off); 6 probe pixels exact; scopes = 2 (opaque,
-//                     translucent and ui merged on one scope; the reflection handed to sampling at its close, no split)
-//   midframe-upload   a static VB drawn, locked + rewritten (D3D8 SAMEFRAME) and drawn again in one frame: the writer closes
-//                     the scope, records the GXRES upload, resumes with LOAD; draw 1 shows the old bytes, draw 2 the new
-//   midframe-outside  two draws around outsideScope() work (CopyRects-style): the resumed scope needs the writer's own
-//                     attachment barrier (nothing else orders the two render-pass instances)
-//   wrap-delayed      32 frames, 4 in flight, every submission held 100 ms on a timeline semaphore a releaser thread signals
-//                     (DELAYED consumption: the GPU reads each frame's bytes long after the CPU wrote them); per frame 8 point
-//                     draws: dynamic VB (D3D8 shared-VB protocol, DISCARD at wrap / NOOVERWRITE appends, wraps every frame),
-//                     DrawPrimitiveUP through a 4 KiB stream ring (full every few frames: it must WAIT for held submissions),
-//                     a per-draw FF VS block (dynamic UBO offset); all 80 x 32 points read back exact
-//   instance-order    an INSTANCE-rate static buffer rewritten SAMEFRAME between two instanced draws: ordering proven by
-//                     GxOrderCheck (sync validation cannot see instance reads) and by pixels
-//   vertex-order      the same with the per-vertex buffer rewritten
-//   clear-outside     a pass whose whole clear is still its pending load op, read by outsideScope() work: the copy sees
-//                     the clear
-//   upload-then-clear a copy into a render-target texture, then a whole clear of it: the clear wins
-//   rt-mips           a CLEAR of level 0 keeps level 1: the barrier's old layout is not UNDEFINED, level 1 reads back
-//
-//   upload-then-pass-clear  a copy into a render-target texture, then a NEW pass on it whose load op clears: the clear wins,
-//                     in a clear-only frame and with a draw
-//   forget-before-flush a barrier queued for an image, then forget() before any flush: no queued barrier names the image
-//                     (its handle may be freed before endFrame records them)
-//   outside-unknown-write  outsideScope() work clears a texture and leaves it SHADER_READ_ONLY with nothing made visible; the
-//                     next sampled use must queue a barrier - the tracker's own answer is the detector
-//   texture-refusal   a draw with a texture that has no image is refused before the tracker sees it; the same draw with a
-//                     real texture is drawn (a null view is never written to a descriptor)
-//   stride-limits     keyed FF draws with a stride equal to the attribute extent (drawn), below it (UP and a stream: refused
-//                     before anything is recorded) and 0 (drawn)
-//   hoist-*           upload hoisting (A18), at the run's --msaa: an upload into a resource the frame has
-//                     not touched is recorded into the frame's init command buffer (no split, new bytes); touched by a draw,
-//                     a main-buffer copy or a copy FROM it, it splits as before; WAR across frames in flight; textures the
-//                     tracker knows / has never seen, hoisted and sampled later in the frame - armHoist() lists them
-//   sampler-limits    samplers with a D3D LOD bias of +-100: created within the device's maxSamplerLodBias, and 0 on a
-//                     portability device without samplerMipLodBias; MIRRORONCE on this device, then
-//                     with the feature assumed absent: the MIRRORED_REPEAT fallback is taken and counted (r7 #1) - core
-//                     validation must stay clean
-// Fail arms (PASS = the named detector fires):
-//   X-sampled-nosrc   graph, the reflection hand-off barrier with an empty source scope       -> sync validation hazard
-//   X-resume-nobarrier midframe-outside, the resumed scope without its attachment barrier      -> GxOrderCheck (attachment);
-//                     the sync-validation count is reported (OBSERVED silent on VVL 1.4.357: a second blind spot)
-//   X-ring-early      wrap-delayed, VkUploadRing reclaims in-flight ranges (Vk mutant)          -> retirement ledger AND pixels
-//   X-slot-early      wrap-delayed, the writer cycles one descriptor-pool set too few (a set reset while the frame before
-//                     last still reads it)                                                        -> retirement ledger
-//   X-slices-early    wrap-delayed, GXRES DISCARD reuses an in-flight slice                    -> pixels
-//   X-inst-nobarrier  instance-order, the SAMEFRAME upload without GXRES' post-copy barrier     -> GxOrderCheck (INSTANCE);
-//                     the sync-validation count is reported (expected silent: the blind spot)
-//   X-vert-nobarrier  vertex-order, the same plant                                              -> GxOrderCheck (vertex)
-//                     AND sync validation (the cross-check where the layer can see)
-//   X-inst-narrow     instance-order, a barrier COPY -> VERTEX_SHADER / SHADER_READ instead     -> GxOrderCheck (INSTANCE)
-//   X-hoist-drawn / X-hoist-texdrawn  GXRES' front recording ignores the touch    -> a wrong value AND hoisted > 0
-//   X-hoist-maincopy  a main-buffer copy does not stamp its buffer                     -> a wrong value AND hoisted > 0
-//   X-hoist-copysrc   GxBuffer::bind does not stamp (a copy-source reference)          -> a wrong value AND hoisted > 0
-//   X-hoist-inflight  GXRES' pre-copy barrier waits for earlier copies only             -> sync validation hazard AND hoisted > 0
-//   X-hoist-stalelayout  the tracker keeps a layout a hoisted copy changed              -> VUID-vkCmdDraw-None-09600 AND hoisted > 0
-//   X-thread-initlast hoist-buffer on a submit-thread context whose thread submits a frame's init buffer AFTER its main buffer
-//                     (R19, A21 amendment 2 (3))                              -> the draw reads vb2's OLD bytes AND hoisted > 0
-//                     (listed unless GX_VK_SUBMIT_THREAD=0; the clean proof is every hoist arm passing with GX_VK_SUBMIT_THREAD=1)
-//   X-foreign-submit  check mode OFF: a GXRES immediate() inside an open frame -> counted (production aborts) (review P2):
-//                     between two draws (the draw-time check) and after the last draw (endFrame's check alone, #3)
-//   X-order-units     GxOrderCheck's own regression cases: a partial buffer barrier, two insufficient
-//                     dependencies, a host-signalled wait, a signal whose stage mask excludes the producer, a colour-only
-//                     barrier after a depth store, two barriers of ONE command forming a "chain", a barrier on mip level 1
-//                     after a level-0 store, a destroyed image's history meeting its handle's next image (writer forget), an
-//                     UpdateBuffer ordered by a CLEAR (not COPY) barrier as the Khronos layer has it, a chain through an ALL_COMMANDS destination, a wait
-//                     on an old signal widened by a later barrier, a stencil store behind a depth
-//                     DONT_CARE in one D24S8 instance, then a stencil LOAD, an ALL_GRAPHICS
-//                     destination "chained" to a COMPUTE_SHADER source, chains through a
-//                     PRE_RASTERIZATION_SHADERS and a TOP_OF_PIPE destination (valid) and a BOTTOM_OF_PIPE one (none, r7 #2);
-//                     coverage (render-integration's bar): a fill inside a SECONDARY, a SUSPENDING/RESUMING pair (one
-//                     instance) and a new instance after it, a v1 vkCmdPipelineBarrier, vkCmdCopyBuffer2 writes, a v1
-//                     vkQueueSubmit counted as unchecked; a DONT_CARE store as a write, a depth LOAD ordered by a dependency
-//                     to EARLY_FRAGMENT_TESTS; a dynamic-rendering resolve and a primary recorded
-//                     before install() are COUNTED as unchecked; a command buffer begun before install()
-//                     and finished after is unchecked, a timeline wait a host value already satisfied credits no GPU signal
-//                     a command buffer observed before an uninstall and re-recorded while uninstalled is
-//                     unchecked, a destroyed semaphore's signals never credit the new semaphore reusing its handle (r11); a
-//                     signal credits only the pieces of a split write in its scope, a pre-reinstall pipeline is unknown (r12);
-//                     a STORE_OP_NONE instance counts as a write (r13); a buffer recorded before forget() and submitted late
-//                     never erases the new image's history (r14); execution chains meet through logical stage order (r15),
-//                     never backwards (index input before attribute input, r16) -
-//                     each next to its synchronised control; PASS = every case moved its counter by exactly the expected
-//                     amount
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// gx_record_test - gates for GxPacketWriter and its pass graph: [--arm NAME[,NAME...]|all] [--msaa N].
+// Clean arms PASS on their own checks plus 0 validation errors, 0 GxOrderCheck violations and a clean ledger.
+// Fail arms (X-...) plant one defect and PASS only when their named detector fires.
+// The first line names the build (sha + dirty flag).
 #include "GxBuffer.h"
 #include "GxD3D.h"
 #include "GxOrderCheck.h"
@@ -165,14 +93,13 @@ struct Vtx
 };
 static_assert(sizeof(Vtx) == 24, "test vertex layout");
 
-// The FF draws (rw3-P, 11/10/2026: ws-D2's ubershader replaced ws-D v1's placeholder generic shaders): the blocks and the key
-// come from GxPackFF over a D3D8 state, exactly as the translator packs a game draw. The state makes the expected colour
-// derivable without reading any output: FVF XYZ | DIFFUSE | TEX1 (the test vertex), lighting OFF, stage 0 colour and alpha =
-// SELECTARG1(DIFFUSE), stage 1 DISABLE (the default), no fog, no alpha test -> every pixel = the vertex's D3DCOLOR (a unorm8
-// value written to a unorm8 attachment); projection = pixels -> NDC (D3D row-vector order: v * M), world = view = identity.
+// The FF draws: the blocks and the key come from GxPackFF over a D3D8 state, exactly as the translator packs a game draw. The state
+// makes the expected colour derivable without reading any output: FVF XYZ | DIFFUSE | TEX1 (the test vertex), lighting OFF, stage 0
+// colour and alpha = SELECTARG1(DIFFUSE), stage 1 DISABLE (the default), no fog, no alpha test -> every pixel = the vertex's D3DCOLOR
+// (a unorm8 value written to a unorm8 attachment); projection = pixels -> NDC (D3D row-vector order: v * M), world = view = identity.
 // The test's own pipelines read only the first 16 B of set 0's VS block (gxrec_test.vert: colorAdd), but the writer copies whole
 // FF blocks (layout().vsBlockBytes / psBlockBytes = the real GxFFVsBlock / GxFFPsBlock): every block a test packet hands it must be
-// that big, or the copy reads past it (rw3-L's renamed-headers run: rc 139).
+// that big, or the copy reads past it.
 struct TestBlock { float colorAdd[4]; uint8_t rest[sizeof(GXRender::GxFFVsBlock) - 16]; };
 static_assert(sizeof(GXRender::GxFFVsBlock) >= sizeof(GXRender::GxFFPsBlock), "one TestBlock serves both FF block slots");
 struct TestFF { GXRender::GxFFVsBlock vs; GXRender::GxFFPsBlock ps; GXRender::GxFFSpecBlock spec; };
@@ -519,7 +446,7 @@ bool armGraph(Env& e, std::string* d)
 	GxDrawPacket du = packet(pOpaque, W, H, vu, &pu);
 	ok &= w.draw(du);
 
-	// MSAA: the resolve before read-back (PLAN §1b #1: resolved before post), outside the scope
+	// MSAA: the resolve before read-back (resolved before post), outside the scope
 	if (msaa) {
 		R::GxImage* touched[2] = { &main.image(), &resolved.image() };
 		w.outsideScope([&](VkCommandBuffer cmd) { ok &= main.resolveTo(cmd, resolved.image()); }, touched, 2);
@@ -1039,8 +966,8 @@ void colourImageBarrier(VkCommandBuffer cmd, VkImage img, uint32_t mip, VkPipeli
 	vkCmdPipelineBarrier2(cmd, &d);
 }
 
-// X-order-units: GxOrderCheck's own regression cases. Each case plants an incomplete dependency the
-// pre-r1 checker accepted, next to its correctly synchronised control; the arm PASSES when every case moves the right
+// X-order-units: GxOrderCheck's own regression cases. Each case plants an incomplete dependency a checker could
+// wrongly accept, next to its correctly synchronised control; the arm PASSES when every case moves the right
 // counter by exactly its expected amount. (The planted ones are real hazards on purpose: the layer's verdict is reported only.)
 bool armOrderUnits(Env& e, std::string* d)
 {
@@ -1166,7 +1093,7 @@ bool armOrderUnits(Env& e, std::string* d)
 		s2.waits.push_back({ gpuSem, 1, VAI });
 		oneFrame([](VkCommandBuffer) {}, s2);   // the fill came before the signal this wait is satisfied by
 	});
-	// r2 #3 a signal covers only the writes of its first synchronisation scope: a FRAGMENT_SHADER-only signal does not carry a
+	// A signal covers only the writes of its first synchronisation scope: a FRAGMENT_SHADER-only signal does not carry a
 	// fill (CLEAR stage) to the wait
 	runCase("signal-scope-excludes-producer", &GxOrderCheck::Counts::instanceViolations, 1, [&] {
 		Vk::SubmitDesc s1;
@@ -1177,7 +1104,7 @@ bool armOrderUnits(Env& e, std::string* d)
 		oneFrame([](VkCommandBuffer) {}, s2);
 	});
 	// #5 an attachment store is reached only by a barrier whose source access holds THAT write (depth here; D24S8: the depth AND
-	// the stencil aspect each count - r5 #2 keeps their histories apart)
+	// the stencil aspect each count - Keeps their histories apart)
 	runCase("depth-store-colour-barrier", &GxOrderCheck::Counts::attachmentViolations, 2, [&] {
 		w.debug().resumeNoBarrier = true;
 		if (!w.beginFrame()) {
@@ -1196,7 +1123,7 @@ bool armOrderUnits(Env& e, std::string* d)
 		w.debug().resumeNoBarrier = false;
 		dp.depthTest = dp.depthWrite = false;
 	});
-	// r3 #2 the barriers of ONE vkCmdPipelineBarrier2 do not chain: fill -> (CLEAR/TW -> FRAG/none) + (FRAG/none -> VAI/VAR)
+	// The barriers of ONE vkCmdPipelineBarrier2 do not chain: fill -> (CLEAR/TW -> FRAG/none) + (FRAG/none -> VAI/VAR)
 	// in one command leaves the instance read unordered; the same two barriers as two commands form a real chain
 	runCase("one-command-chain", &GxOrderCheck::Counts::instanceViolations, 1, [&] {
 		oneFrame([&](VkCommandBuffer cmd) {
@@ -1227,7 +1154,7 @@ bool armOrderUnits(Env& e, std::string* d)
 			bufferBarrier(cmd, vbBuf(), 0, bd.bytes, VK_PIPELINE_STAGE_2_COPY_BIT, TW, VAI, VAR);
 		}, noSync);
 	});
-	// r4 #3 a chain through an AGGREGATE destination: CLEAR/TW -> ALL_COMMANDS, then FRAGMENT_SHADER -> VAI/VAR is a valid chain
+	// A chain through an AGGREGATE destination: CLEAR/TW -> ALL_COMMANDS, then FRAGMENT_SHADER -> VAI/VAR is a valid chain
 	runCase("aggregate-chain (control)", &GxOrderCheck::Counts::instanceViolations, 0, [&] {
 		oneFrame([&](VkCommandBuffer cmd) {
 			vkCmdFillBuffer(cmd, instBuf(), 0, 64, 0);
@@ -1235,7 +1162,7 @@ bool armOrderUnits(Env& e, std::string* d)
 			memoryBarrier(cmd, FRAG, 0, VAI, VAR);
 		}, noSync);
 	});
-	// r6 #2 ALL_GRAPHICS does not hold compute: CLEAR/TW -> ALL_GRAPHICS then COMPUTE_SHADER -> VAI/VAR is no chain; with a
+	// ALL_GRAPHICS does not hold compute: CLEAR/TW -> ALL_GRAPHICS then COMPUTE_SHADER -> VAI/VAR is no chain; with a
 	// FRAGMENT_SHADER source it is
 	runCase("all-graphics-vs-compute", &GxOrderCheck::Counts::instanceViolations, 1, [&] {
 		oneFrame([&](VkCommandBuffer cmd) {
@@ -1251,7 +1178,7 @@ bool armOrderUnits(Env& e, std::string* d)
 			memoryBarrier(cmd, FRAG, 0, VAI, VAR);
 		}, noSync);
 	});
-	// r15 #3 an execution chain meets through logical stage order: CLEAR/TW -> VERTEX_SHADER (whose second scope holds the
+	// An execution chain meets through logical stage order: CLEAR/TW -> VERTEX_SHADER (whose second scope holds the
 	// logically later FRAGMENT_SHADER), then FRAGMENT_SHADER -> VAI/VAR: a valid chain (0). Access scopes stay explicit: a barrier
 	// to VERTEX_SHADER/SHADER_READ never makes the write visible to VAI/VAR (X-inst-narrow keeps that).
 	runCase("logical-order-chain (control)", &GxOrderCheck::Counts::instanceViolations, 0, [&] {
@@ -1261,7 +1188,7 @@ bool armOrderUnits(Env& e, std::string* d)
 			memoryBarrier(cmd, FRAG, 0, VAI, VAR);
 		}, noSync);
 	});
-	// r16 backwards: CLEAR/TW -> VERTEX_ATTRIBUTE_INPUT, then INDEX_INPUT (logically EARLIER) -> VAI/VAR is no chain (1)
+	// Backwards: CLEAR/TW -> VERTEX_ATTRIBUTE_INPUT, then INDEX_INPUT (logically EARLIER) -> VAI/VAR is no chain (1)
 	runCase("index-before-attribute-no-chain", &GxOrderCheck::Counts::instanceViolations, 1, [&] {
 		oneFrame([&](VkCommandBuffer cmd) {
 			vkCmdFillBuffer(cmd, instBuf(), 0, 64, 0);
@@ -1269,7 +1196,7 @@ bool armOrderUnits(Env& e, std::string* d)
 			memoryBarrier(cmd, VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, 0, VAI, VAR);
 		}, noSync);
 	});
-	// r7 #2 every aggregate expands, with sync2's TOP/BOTTOM_OF_PIPE rules: PRE_RASTERIZATION_SHADERS holds VERTEX_SHADER, a
+	// Every aggregate expands, with sync2's TOP/BOTTOM_OF_PIPE rules: PRE_RASTERIZATION_SHADERS holds VERTEX_SHADER, a
 	// TOP_OF_PIPE destination is all commands (a chain), a BOTTOM_OF_PIPE destination is none (no chain)
 	auto chainCase = [&](const char* name, uint64_t want, VkPipelineStageFlags2 dst1, VkPipelineStageFlags2 src2) {
 		runCase(name, &GxOrderCheck::Counts::instanceViolations, want, [&] {
@@ -1283,7 +1210,7 @@ bool armOrderUnits(Env& e, std::string* d)
 	chainCase("pre-rasterization-chain (control)", 0, VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT, VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT);
 	chainCase("top-of-pipe-dst-chain (control)", 0, VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, FRAG);
 	chainCase("bottom-of-pipe-dst", 1, VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT, FRAG);
-	// COVERAGE (render-integration's bar, 11/10: a blind spot of the stated detector is fixed or listed). Secondaries: their
+	// COVERAGE (a blind spot of the stated detector is fixed or listed). Secondaries: their
 	// commands replay in place - a fill in a secondary is seen (unordered read -> 1; with its barrier -> 0)
 	VkCommandPoolCreateInfo pci = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
 	pci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -1478,7 +1405,7 @@ bool armOrderUnits(Env& e, std::string* d)
 	runCase("copybuffer2-barrier (control)", &GxOrderCheck::Counts::instanceViolations, 0, [&] {
 		oneFrame([&](VkCommandBuffer cmd) { copy2(cmd, true); }, noSync);
 	});
-	// r10 #2 the host set the timeline to 1; a fill submission signals 2; a draw waits for 1 - the HOST value satisfies it, the
+	// The host set the timeline to 1; a fill submission signals 2; a draw waits for 1 - the HOST value satisfies it, the
 	// fill is unordered: 1 violation (the old rule credited signal 2's writes)
 	VkSemaphore hostSem10 = VK_NULL_HANDLE;
 	if (vkCreateSemaphore(ctx.device(), &sci, nullptr, &hostSem10) != VK_SUCCESS) {
@@ -1497,7 +1424,7 @@ bool armOrderUnits(Env& e, std::string* d)
 		s2.waits.push_back({ hostSem10, 1, VAI });
 		oneFrame([](VkCommandBuffer) {}, s2);
 	});
-	// r11 #2 a GPU signal of 1 on a semaphore, the semaphore destroyed, a NEW one that reuses its handle host-signalled to 1, a draw
+	// A GPU signal of 1 on a semaphore, the semaphore destroyed, a NEW one that reuses its handle host-signalled to 1, a draw
 	// waiting for 1 on it: the old signal must not credit the fill (1 violation). Handle reuse is the driver's choice: up to 64
 	// creations are tried; without reuse the case cannot be built and says so (want 0, nothing waits).
 	{
@@ -1541,7 +1468,7 @@ bool armOrderUnits(Env& e, std::string* d)
 		if (again)
 			vkDestroySemaphore(ctx.device(), again, nullptr);
 	}
-	// r9 #2 a dynamic-rendering resolve (MSAA colour -> t.color) is counted as unchecked
+	// A dynamic-rendering resolve (MSAA colour -> t.color) is counted as unchecked
 	R::GxRenderTarget msaa;
 	R::RenderTargetDesc mrd;
 	mrd.width = W;
@@ -1587,10 +1514,10 @@ bool armOrderUnits(Env& e, std::string* d)
 	// a v1 vkQueueSubmit is not replayed: it must be COUNTED (a gate requires 0), never silently ignored
 	runCase("queuesubmit-v1-counted", &GxOrderCheck::Counts::uncheckedSubmits, 1, [&] {
 		VkSubmitInfo si = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-		ctx.waitIdle();   // R19: the submit thread is drained and idle before this raw queue access
+		ctx.waitIdle();   // the submit thread is drained and idle before this raw queue access
 		ok &= vkQueueSubmit(ctx.queue(Vk::QueueKind::Graphics).queue, 1, &si, VK_NULL_HANDLE) == VK_SUCCESS;
 	});
-	// r12 #1 a signal covers only the PIECES of a split write that were in its scope: fill [0,64), a barrier over [0,16) to
+	// A signal covers only the PIECES of a split write that were in its scope: fill [0,64), a barrier over [0,16) to
 	// FRAGMENT_SHADER, a FRAGMENT_SHADER-only signal, a wait at vertex input, an instance read at byte 32 -> 1
 	runCase("split-then-signal", &GxOrderCheck::Counts::instanceViolations, 1, [&] {
 		Vk::SubmitDesc s1;
@@ -1603,7 +1530,7 @@ bool armOrderUnits(Env& e, std::string* d)
 		s2.waits.push_back({ gpuSem, 3, VAI });
 		oneFrame([](VkCommandBuffer) {}, s2);
 	});
-	// r4 #1 what a signal covers is fixed at the signal: a FRAGMENT_SHADER-only signal after a fill, then (another submission) a
+	// What a signal covers is fixed at the signal: a FRAGMENT_SHADER-only signal after a fill, then (another submission) a
 	// CLEAR -> FRAGMENT_SHADER barrier, then a wait on that OLD signal at vertex input - the barrier does not chain to the wait
 	runCase("signal-frozen-at-submission", &GxOrderCheck::Counts::instanceViolations, 1, [&] {
 		Vk::SubmitDesc s1;
@@ -1624,7 +1551,7 @@ bool armOrderUnits(Env& e, std::string* d)
 		s2.waits.push_back({ gpuSem, 5, VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT });
 		oneFrame([](VkCommandBuffer) {}, s2);
 	});
-	// r5 #2 depth and stencil of one D24S8 view have their own load/store ops: an instance storing STENCIL only (depth DONT_CARE)
+	// Depth and stencil of one D24S8 view have their own load/store ops: an instance storing STENCIL only (depth DONT_CARE)
 	// then an instance LOADING stencil, with no barrier between -> one stencil violation; with a depth+stencil barrier -> none
 	auto dsInstances = [&](bool barrierBetween) {
 		if (!w.beginFrame()) {
@@ -1679,10 +1606,10 @@ bool armOrderUnits(Env& e, std::string* d)
 		}, &di, 1);
 		ok &= w.endFrame() != 0;
 	};
-	// (r8 #1: the depth DONT_CARE store is a write too, so the second instance's depth CLEAR is unordered as well: 2)
+	// (the depth DONT_CARE store is a write too, so the second instance's depth CLEAR is unordered as well: 2)
 	runCase("stencil-store-behind-depth-dontcare", &GxOrderCheck::Counts::attachmentViolations, 2, [&] { dsInstances(false); });
 	runCase("stencil-barrier (control)", &GxOrderCheck::Counts::attachmentViolations, 0, [&] { dsInstances(true); });
-	// r8 #1 a DONT_CARE store is still a write: CLEAR/DONT_CARE then a new CLEAR instance with no barrier -> 1. r8 #2 a depth LOAD
+	// A DONT_CARE store is still a write: CLEAR/DONT_CARE then a new CLEAR instance with no barrier -> 1. A depth LOAD
 	// runs at EARLY_FRAGMENT_TESTS: a LATE/DS_WRITE -> EARLY/DS_READ dependency orders it (0)
 	auto rawPair = [&](bool depthAtt, VkAttachmentStoreOp firstStore, VkAttachmentLoadOp secondLoad, bool earlyBarrier) {
 		if (!w.beginFrame()) {
@@ -1745,14 +1672,14 @@ bool armOrderUnits(Env& e, std::string* d)
 	runCase("dontcare-store-then-clear", &GxOrderCheck::Counts::attachmentViolations, 1, [&] {
 		rawPair(false, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_ATTACHMENT_LOAD_OP_CLEAR, false);
 	});
-	// r13 #3 a STORE_OP_NONE instance still wrote (its CLEAR load): a new CLEAR instance with no barrier -> 1
+	// A STORE_OP_NONE instance still wrote (its CLEAR load): a new CLEAR instance with no barrier -> 1
 	runCase("none-store-then-clear", &GxOrderCheck::Counts::attachmentViolations, 1, [&] {
 		rawPair(false, VK_ATTACHMENT_STORE_OP_NONE, VK_ATTACHMENT_LOAD_OP_CLEAR, false);
 	});
 	runCase("depth-load-early-barrier (control)", &GxOrderCheck::Counts::attachmentViolations, 0, [&] {
 		rawPair(true, VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_LOAD_OP_LOAD, true);
 	});
-	// r3 #3 an image barrier credits only the subresources it covers: a level-0 store, a barrier on level 1, a LOAD of level 0
+	// An image barrier credits only the subresources it covers: a level-0 store, a barrier on level 1, a LOAD of level 0
 	R::GxTexture mipHost, mipRt;
 	if (!hostAndTarget(e, 8, 8, 2, argb(255, 0, 0, 0), mipHost, mipRt, d, 2)) {
 		*d += "mip target setup failed; ";
@@ -1789,7 +1716,7 @@ bool armOrderUnits(Env& e, std::string* d)
 		mipCase(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 	});
 	w.forget(&mipRt.image());
-	// r3 #4 a destroyed image's attachment history must not meet the next image its handle names: modelled by the same image
+	// A destroyed image's attachment history must not meet the next image its handle names: modelled by the same image
 	// used again as a NEW one would be (discard barrier with an empty source scope, CLEAR) after writer.forget(); without the
 	// forget the stale store is reported (the control proves the case can see it). Also #1: after forget() of the
 	// current pass's target a draw is refused (no pass) instead of opening a scope on it.
@@ -1849,7 +1776,7 @@ bool armOrderUnits(Env& e, std::string* d)
 		ok &= w.endFrame() != 0;
 		asNewImage();
 	});
-	// r14 #1 a command buffer recorded BEFORE forget() and submitted after the "new image" (h again, as a reused handle) stored:
+	// A command buffer recorded BEFORE forget() and submitted after the "new image" (h again, as a reused handle) stored:
 	// its late replay must not erase the new image's history - the new image's unordered LOAD is still a violation (1)
 	runCase("late-old-generation-buffer", &GxOrderCheck::Counts::attachmentViolations, 1, [&] {
 		VkCommandBufferAllocateInfo pai = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
@@ -1873,7 +1800,7 @@ bool armOrderUnits(Env& e, std::string* d)
 		VkSubmitInfo2 s2 = { VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
 		s2.commandBufferInfoCount = 1;
 		s2.pCommandBufferInfos = &cbi;
-		ctx.waitIdle();   // R19: the submit thread is drained and idle before this raw queue access
+		ctx.waitIdle();   // the submit thread is drained and idle before this raw queue access
 		ok &= vkQueueSubmit2(ctx.queue(Vk::QueueKind::Graphics).queue, 1, &s2, VK_NULL_HANDLE) == VK_SUCCESS;   // the late one
 		ctx.waitIdle();
 		if (!w.beginFrame()) {
@@ -1899,8 +1826,8 @@ bool armOrderUnits(Env& e, std::string* d)
 		ok &= w.endFrame() != 0;
 	});
 	// LAST: the cases that take the hooks out (uninstall/install). After a reinstall every pipeline and view made before it is
-	// unknown (r12 #2), so nothing after these may rely on draws being checked.
-	// r9 #3 a primary recorded before install() (here: while uninstalled) and submitted after: counted as unchecked
+	// unknown, so nothing after these may rely on draws being checked.
+	// A primary recorded before install() (here: while uninstalled) and submitted after: counted as unchecked
 	runCase("unlogged-primary-counted", &GxOrderCheck::Counts::uncheckedCommandBuffers, 1, [&] {
 		VkCommandBufferAllocateInfo pai = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 		pai.commandPool = pool;
@@ -1922,11 +1849,11 @@ bool armOrderUnits(Env& e, std::string* d)
 		VkSubmitInfo2 s2 = { VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
 		s2.commandBufferInfoCount = 1;
 		s2.pCommandBufferInfos = &cbi;
-		ctx.waitIdle();   // R19: the submit thread is drained and idle before this raw queue access
+		ctx.waitIdle();   // the submit thread is drained and idle before this raw queue access
 		ok &= vkQueueSubmit2(ctx.queue(Vk::QueueKind::Graphics).queue, 1, &s2, VK_NULL_HANDLE) == VK_SUCCESS;
 		ctx.waitIdle();
 	});
-	// r10 #1 begun before install(), finished after: the log holds only the wrapped tail - the buffer is unchecked, not replayed
+	// Begun before install(), finished after: the log holds only the wrapped tail - the buffer is unchecked, not replayed
 	RawBuffer dst10;
 	if (!dst10.init(ctx.allocator(), 64, VK_BUFFER_USAGE_TRANSFER_DST_BIT)) {
 		*d += "r10 buffer setup failed; ";
@@ -1955,11 +1882,11 @@ bool armOrderUnits(Env& e, std::string* d)
 		VkSubmitInfo2 s2 = { VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
 		s2.commandBufferInfoCount = 1;
 		s2.pCommandBufferInfos = &cbi;
-		ctx.waitIdle();   // R19: the submit thread is drained and idle before this raw queue access
+		ctx.waitIdle();   // the submit thread is drained and idle before this raw queue access
 		ok &= vkQueueSubmit2(ctx.queue(Vk::QueueKind::Graphics).queue, 1, &s2, VK_NULL_HANDLE) == VK_SUCCESS;
 		ctx.waitIdle();
 	});
-	// r11 #1 a buffer observed once (installed), then re-recorded while UNINSTALLED with an unseen fill: unchecked after reinstall
+	// A buffer observed once (installed), then re-recorded while UNINSTALLED with an unseen fill: unchecked after reinstall
 	runCase("rerecorded-while-uninstalled", &GxOrderCheck::Counts::uncheckedCommandBuffers, 1, [&] {
 		VkCommandBufferAllocateInfo pai = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 		pai.commandPool = pool;
@@ -1984,11 +1911,11 @@ bool armOrderUnits(Env& e, std::string* d)
 		VkSubmitInfo2 s2 = { VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
 		s2.commandBufferInfoCount = 1;
 		s2.pCommandBufferInfos = &cbi;
-		ctx.waitIdle();   // R19: the submit thread is drained and idle before this raw queue access
+		ctx.waitIdle();   // the submit thread is drained and idle before this raw queue access
 		ok &= vkQueueSubmit2(ctx.queue(Vk::QueueKind::Graphics).queue, 1, &s2, VK_NULL_HANDLE) == VK_SUCCESS;
 		ctx.waitIdle();
 	});
-	// r12 #2 a pipeline created before an uninstall/reinstall is UNKNOWN afterwards (its handle may have been reused unseen): a
+	// A pipeline created before an uninstall/reinstall is UNKNOWN afterwards (its handle may have been reused unseen): a
 	// draw with it counts in unknownPipelineDraws instead of being checked against stale bindings
 	runCase("pipeline-cache-after-reinstall", &GxOrderCheck::Counts::unknownPipelineDraws, 1, [&] {
 		GxOrderCheck::uninstall();
@@ -2268,9 +2195,9 @@ bool armOutsideUnknownWrite(Env& e, std::string* d)
 
 // texture-refusal: a texture with no image (here: never initialised) must be refused before the tracker or a descriptor sees it
 // a real texture in the same slot is drawn.
-// pass-draws (A22 (a); r4 #7): the writer's per-pass draw counts equal the parent's - the pass name is
+// pass-draws: the writer's per-pass draw counts equal the parent's - the pass name is
 // read at EVERY draw (the caller may rewrite the borrowed bytes after beginPass), and a pass with no draw makes no entry.
-// X-pass-draws-stale plants the r1 defect (the counter resolved once per pass): the same checks must fail.
+// X-pass-draws-stale plants the defect (the counter resolved once per pass): the same checks must fail.
 bool armPassDraws(Env& e, std::string* d)
 {
 	GxPacketWriter& w = *e.writer;
@@ -2415,7 +2342,7 @@ bool armStrideLimits(Env& e, std::string* d)
 
 // sampler-limits: D3D lets a stage ask any LOD bias; the device takes |bias| <= maxSamplerLodBias, and a portability device
 // without samplerMipLodBias takes none. D3DTADDRESS_MIRRORONCE needs samplerMirrorClampToEdge: on this
-// device as it is, then with the feature assumed absent (the fallback must be taken and counted - r7 #1). Core validation is
+// device as it is, then with the feature assumed absent (the fallback must be taken and counted). Core validation is
 // the detector for the invalid samplers (the arm runs with it on).
 bool armSamplerLimits(Env& e, std::string* d)
 {
@@ -2573,7 +2500,7 @@ bool armGpuTime(Env& e, std::string* d, bool plantNoEnd)
 	w.takeGpuSamples(&got, &missing);
 	w.setGpuTimer(nullptr, 0);
 	w.debug().gpuSkipEndScope = false;
-	e.ctx->waitIdle();   // drains the submit thread first (R19)
+	e.ctx->waitIdle();   // drains the submit thread first
 	t.forget(w);
 	uint32_t inRange = 0, onePass = 0;
 	float lo = 0.f, hi = 0.f;
@@ -2597,9 +2524,9 @@ bool armGpuTime(Env& e, std::string* d, bool plantNoEnd)
 // gputime-lost / X-gputime-lost: a frame whose submission fails never runs its query reset, so its set must
 // count as MISSING and never be read - reading it 8 frames later returns the stamps of the frame before (stale, but "available").
 // 16 frames run, the device idles, VkCtx::simulateDeviceLost() makes every later submission fail, 16 more frames: 16 samples (the
-// frames that ran) + 16 missing. S7 A101 (host reset): a failed frame stays MISSING by two layers - endFrame disarms its set, and its
+// frames that ran) + 16 missing. A failed frame stays MISSING by two layers - endFrame disarms its set, and its
 // queries were reset on the host. X-gputime-lost removes BOTH (gpuReadFailedSets + gpuSkipHostReset from the first failing frame): the
-// failed frames' sets still hold frames 8-15's results and read as stale samples. gputime-lost-armed (the integrator's 2409) removes only
+// failed frames' sets still hold frames 8-15's results and read as stale samples. gputime-lost-armed removes only
 // the first: the host reset alone must keep them MISSING - 16 / 16 / 16, 0 stale.
 bool armGpuTimeLost(Env& e, std::string* d, int mode)
 {
@@ -2623,7 +2550,7 @@ bool armGpuTimeLost(Env& e, std::string* d, int mode)
 	uint32_t failedSubmits = 0;
 	for (uint32_t i = 0; i < 2 * kFrames && ok; ++i) {
 		if (i == kFrames) {
-			e.ctx->waitIdle();   // drains the submit thread first (R19)
+			e.ctx->waitIdle();   // drains the submit thread first
 			e.ctx->simulateDeviceLost();   // from here every submission returns 0; waits on completed values still return
 			w.debug().gpuSkipHostReset = mode == 1;   // S7 A101 X-: the failed frames' sets are NOT reset on the host either
 		}
@@ -2657,7 +2584,7 @@ bool armGpuTimeLost(Env& e, std::string* d, int mode)
 	return got.size() == 2 * kSets && missing == kFrames && failedSubmits == kFrames;
 }
 
-// gputime-full (A17 P2): a frame that runs out of scopes carries its refusal with its OWN sample, read 8 frames later. The
+// gputime-full: a frame that runs out of scopes carries its refusal with its OWN sample, read 8 frames later. The
 // runner's timer has 4 scopes; each frame takes the frame scope and 3 named scopes, so its clear-only pass is refused: every sample
 // must say refused >= 1 and keep a valid whole-frame ms.
 bool armGpuTimeFull(Env& e, std::string* d)
@@ -2691,7 +2618,7 @@ bool armGpuTimeFull(Env& e, std::string* d)
 	uint32_t missing = 0, flagged = 0, whole = 0;
 	w.takeGpuSamples(&got, &missing);
 	w.setGpuTimer(nullptr, 0);
-	e.ctx->waitIdle();   // drains the submit thread first (R19)
+	e.ctx->waitIdle();   // drains the submit thread first
 	t.forget(w);
 	for (const GxPacketWriter::GpuSample& g : got) {
 		flagged += g.refused >= 1;
@@ -2767,10 +2694,10 @@ struct MsTarget
 	}
 };
 
-// S7 P0-a (Task 1): hardware depth compare through an IMMUTABLE compare
-// sampler on a single-sample D16 image - the receiver path S7 registers (set 2: compare sampler immutable in the layout, so the
+// Hardware depth compare through an IMMUTABLE compare
+// sampler on a single-sample D16 image - the shadow-map receiver path (set 2: compare sampler immutable in the layout, so the
 // portability subset's mutableComparisonSamplers never matters). It decides the receiver on MoltenVK (Mac, iPad) and lavapipe:
-// a pass = hardware compare; a fail = S7's receivers compare manually on raw depths (PREREG A20 records which).
+// a pass = hardware compare; a fail = the receivers compare manually on raw depths.
 // The 64x64 depth image is cleared to 0.25 on the left half and 0.75 on the right; a full-screen triangle samples it with dref 0.5.
 // Vulkan: the result is 1 when (dref op stored) passes. LESS_OR_EQUAL (the arm): left 0, right 1. X-shadow-compare flips the op to
 // GREATER, so the halves swap and the pixel probe (env.wrong) must fire with validation silent.
@@ -3009,27 +2936,10 @@ bool armShadowCompare(Env& e, std::string* d, bool plantGreater)
 
 bool fillTexture(R::GxTexture& t, uint32_t argbColor);   // defined with the hoist arms below (sm-dep-tex uses it)
 
-// S7 P0-b (A1/A21, PLAN Task 2): the shadow-map casters are captured in
-// the frame and replayed depth-only into its INIT command buffer, which runs BEFORE the frame's MAIN commands. A caster is
-// eligible only if no MAIN command of the frame wrote its buffers before its draw (GxBuffer::mainWrite); the capture is a
-// protected use (bound = used + touched), so a LATER upload cannot be hoisted ahead of the replay.
-// Probe: the 64x64 D16 atlas read back after the frame. Quad A (pixels 16..48, z 0.4) and quad B (pixels 0..16, z 0.2); the
-// light matrix maps pixels to clip space, so the atlas holds 0.4 at (32,32) when A was replayed, 0.2 at (8,8) when B was.
-//   sm-dep-new         a static VB first uploaded by this frame's beginFrame (MAIN)       -> skipped (lateBuf 1), atlas cleared
-//   sm-dep-redraw      drawn, re-uploaded (a MAIN split upload), then drawn as caster      -> skipped
-//   sm-dep-hoist       untouched VB uploaded with the scope open (hoisted into INIT), then
-//                      drawn as caster                                                    -> replayed with the NEW bytes (B)
-//   sm-dep-discard     dynamic VB: DISCARD A, caster, DISCARD B, draw                      -> replayed with A
-//   sm-dep-after       caster drawn, then its VB re-uploaded in MAIN                       -> replayed with the drawn bytes (A)
-//   sm-dep-hoist-later CAST-ONLY capture (nothing recorded into MAIN), then an upload into
-//                      the VB: the touch keeps it out of INIT                              -> replayed with A; no MAIN draw for it
-//   X-sm-dep-new / X-sm-dep-redraw  GXRES' mainWrite stamp planted off (mainWriteNoStamp): the stale caster is replayed
-//   X-sm-dep-hoist-later            the bind's touch planted off (bindNoTouch): the later upload is hoisted ahead of the replay
-// (integrator fold rulings 02:1xZ / 02:2xZ 19/10, PREREG 3.3; every X- below is a BROKEN INPUT - no product plant):
-//   sm-dep-tex         a caster draw BINDING a texture re-uploaded in MAIN this frame (drawn, refilled, drawn as caster): a texture is
-//                      not a caster dependency (the depth-only replay samples nothing) -> captured, replayed with A, skippedLateTex 0
-//   X-sm-dep-tex       the late upload moved to the caster's VERTEX buffer (a real dependency)          -> skipped: the probe moves
-//   X-sm-dep-discard   B written with LOCK_NOOVERWRITE (no rename) into the slice the caster captured     -> the replay draws B, not A
+// Shadow casters are captured in the frame and replayed depth-only into INIT, before MAIN. A caster is
+// eligible only if no MAIN command wrote its buffers before its draw (GxBuffer::mainWrite).
+// Probe: the 64x64 D16 atlas shows which of quad A (z 0.4) and quad B (z 0.2) was replayed.
+// X- arms plant a broken input and must move the probe.
 bool armShadowDep(Env& e, std::string* d, const std::string& arm)
 {
 	GxPacketWriter& w = *e.writer;
@@ -3256,7 +3166,7 @@ bool armShadowDep(Env& e, std::string* d, const std::string& arm)
 	return ok;
 }
 
-// (integrator fold ruling 02:1xZ / 02:2xZ 19/10, PREREG 3.3 "overflow is counted, not silent"): a caster list of
+// Overflow is counted, not silent: a caster list of
 // capacity 2 and three distinct casters in one frame - the third capture is REFUSED and counted, the list stops at its capacity (nothing
 // written past it), the replay draws exactly the two kept records, and the overflowing draw still reaches MAIN.
 // Probe: quads A (16..48, z 0.4) at (32,32), B (0..16, z 0.2) at (8,8), C (x 48..64, y 0..16, z 0.3) at (56,8) - C's texel stays cleared.
@@ -3399,7 +3309,7 @@ bool armShadowOverflow(Env& e, std::string* d, const std::string& arm)
 	return ok;
 }
 
-// ----: S7 P4 instrumentation (PREREG A92, the integrator's ruling 03:2xZ 19/10; A27 as registered) ----
+// ---- shadow-map instrumentation ----
 // One caster frame of armShadowDep's shape (64x64 atlas, quad A at z 0.4 as a VB caster), reusable by the gputime-shadow arms.
 struct SmFrame
 {
@@ -3470,24 +3380,10 @@ struct SmFrame
 	}
 };
 
-// gputime-init / X-gputime-init / X-gputime-frameinit (A27 as amended by A101, option (b); the integrator's rulings 06:4xZ / 2409):
-// under the timer INIT opens only when it has work, and `frame` spans INIT whenever it opened (frame_init: INIT top -> MAIN end). 48
-// frames (no caster pass) on 8 sets, every odd frame with an 8 MiB front copy hoisted into INIT MID-frame (after the frame's first draw:
-// recordPendingFront runs only with a scope open, so a front copy never opens INIT before MAIN has begun); each frame stamped with its own
-// logic frame (setLogicFrame), so a missing read never shifts the classification. Pass: every read a number (none backwards), shadow NONE
-// (-1), odd frames read from frame_init and even frames from MAIN (frameFromInit), no unstamped INIT, and the INIT copy INSIDE the frame
-// total - median frame with the copy >= 2 x the one without (the integrator's ruling :2447 dropped a fixed +0.05 ms floor: it discriminated
-// nothing - MAIN's pair grows with the copy on MoltenVK, and a desktop GPU copies 8 MiB in ~0.02 ms). Plants (the function returns true when
-// the symptom is seen):
-// mode 1 X-gputime-init (gpuResetOnMain: the set reset by a command at MAIN's top instead of on the host - INIT's stamps run BEFORE the
-// reset): every odd (INIT) frame MISSING, never a number (unavailable, or read backwards and counted), every even frame a number - and
-// validation names the stamp into an un-reset query (checked by the runner); mode 2 X-gputime-frameinit (gpuFrameIgnoresInit: `frame`
-// read from MAIN's pair): every read a number, but `frame` no longer exceeds MAIN's own pair in the INIT frames. MEASURED 19/10 (M5,
-// MoltenVK): MAIN's own pair ALSO grows with the INIT copy (0.015 -> 0.19 ms; frame_init 0.43), so "the copy inside the frame total"
-// cannot tell the two pairs apart - the detector is `frame` - MAIN's pair: >= 0 in EVERY INIT frame (INIT runs first: an earlier begin, the
-// same end) and its median over them > 0 (exactly 0 under the plant: the same pair, the same floats; measured clean on the M5 0.029-0.091
-// ms over 5 runs - a fixed floor like 0.05 failed 2 of those 5, and a fast desktop GPU copies 8 MiB in ~0.02 ms), and exactly 0 in the
-// frames without INIT.
+// gputime-init arms: INIT opens only when it has work, and `frame` spans INIT whenever it opened. Odd frames
+// hoist an 8 MiB copy into INIT mid-frame. Pass: every read a number, odd frames read frame_init, and
+// `frame` exceeds MAIN's pair in INIT frames. Plants: gpuResetOnMain leaves INIT frames' reads missing;
+// gpuFrameIgnoresInit reads `frame` from MAIN's pair.
 bool armGpuTimeInit(Env& e, std::string* d, int mode)
 {
 	GxPacketWriter& w = *e.writer;
@@ -3579,7 +3475,7 @@ bool armGpuTimeInit(Env& e, std::string* d, int mode)
 	return true;
 }
 
-// gputime-initcast / X-gputime-casterhook (A101 r6a): INIT opened ONLY by the caster pass (key on, no uploads).
+// gputime-initcast / X-gputime-casterhook: INIT opened ONLY by the caster pass (key on, no uploads).
 // 48 frames with the casters on. Pass: >= 16 reads, EVERY sample's frame read from frame_init (frameFromInit), no unstamped INIT, the
 // shadow pair read in every sample and inside it (frame >= shadow). X- (gpuCasterBypass: the caster pass opens INIT past initCmdGpu): no
 // frame_init - every frame MISSING, counted unstamped (returns true when that symptom is seen).
@@ -3683,7 +3579,7 @@ bool armGpuTimeNoInit(Env& e, std::string* d, bool planted)
 		bool good = true;
 		for (uint32_t i = 0; i < kFrames && good; ++i)
 			good = f.frame(e, false, nullptr, nullptr);
-		e.ctx->waitIdle();   // drains the submit thread (R19): every frame's submission has gone through the wrapper
+		e.ctx->waitIdle();   // drains the submit thread: every frame's submission has gone through the wrapper
 		{ std::lock_guard<std::mutex> l(g_submitMu); *cbs = g_submitCbs; }
 		return good;
 	};
@@ -3712,7 +3608,7 @@ bool armGpuTimeNoInit(Env& e, std::string* d, bool planted)
 	return off >= kFrames && on == off && got.size() == kFrames - kSets && missing == 0 && valid == got.size() && fromInit == 0;
 }
 
-// gputime-stage / X-gputime-stage (A92 r5): VkGpuTimer::beginScope's begin stamp carries the stage it is given - TOP_OF_PIPE by default
+// gputime-stage / X-gputime-stage: VkGpuTimer::beginScope's begin stamp carries the stage it is given - TOP_OF_PIPE by default
 // (every existing caller), ALL_COMMANDS for S7's `shadow`. Checked on the FORWARDED call: volk's vkCmdWriteTimestamp2 swapped for a
 // recording wrapper (this process only, restored on exit) around two scopes. X- (TestMutants::gpuTimerIgnoreStage): the stage ignored.
 std::vector<VkPipelineStageFlags2> g_stampStages;
@@ -4222,28 +4118,10 @@ bool fillTexture(R::GxTexture& t, uint32_t argbColor)
 	return true;
 }
 
-// The hoist arms. A static VB vb2 (or a texture) is rewritten while the frame's scope is open:
-//   hoist-buffer    vb2 untouched this frame -> recorded into the init buffer: no split, the draw sees the new bytes
-//   hoist-inflight  the frame BEFORE drew vb2 (no CPU wait between): the hoisted copy must wait for that read (WAR across
-//                   frames in flight - GXRES' pre-copy barrier, ALL_COMMANDS first scope); frame N-1 old bytes, frame N new
-//   hoist-texture   hoisted and sampled later in the same frame: a MANAGED texture sampled in an earlier frame (the tracker
-//                   knows it in SHADER_READ_ONLY), one uploaded for the first time, and a render-target texture frame 0 left
-//                   in COLOR_ATTACHMENT layout (the tracker must resync to the SHADER_READ_ONLY the init buffer left: a
-//                   stale layout would queue a wrong barrier = a sample split and a validation error)
-//   hoist-drawn     vb2 drawn earlier this frame -> NOT hoisted (split): draw 1 old bytes, draw 2 new  (X-: frontIgnoresTouch)
-//   hoist-maincopy  vb2's previous upload was recorded in this frame's main buffer (beginFrame) -> NOT hoisted, or the front
-//                   copy would run before it and lose                                                (X-: mainCopyNoTouch)
-//   hoist-copysrc   vb2 copied FROM by outsideScope work earlier this frame -> NOT hoisted, the copy reads the old bytes
-//                                                                                                     (X-: bindNoTouch)
-//   hoist-texdrawn  a texture sampled earlier this frame -> NOT hoisted: draw 1 old texels, draw 2 new (X-: frontIgnoresTouch)
-//   hoist-mixed     ONE batch of four: vb2 and tx1 used earlier this frame (kept: the main-path split) with vb3 and tx2
-//                   untouched (hoisted) - every upload lands and in order (a partition that dropped the
-//                   kept copies passed every other arm)
-//   (X-hoist-inflight: hoist-inflight with GXRES' pre-copy barrier narrowed to COPY: sync validation must report the WAR)
-//   (X-hoist-stalelayout: hoist-texture with the tracker keeping rt3's stale attachment layout: validation must report the draw's
-//    image layout - VUID-vkCmdDraw-None-09600, OBSERVED with the resync condition deleted)
-// A planted arm counts only when the experiment ran (every step succeeded, every check its plant does not touch held -
-// env.hoistValid) and the plant took the hoist path; then its own probe must move.
+// The hoist arms: a static VB (or texture) is rewritten while the frame's scope is open. An untouched
+// destination is hoisted into the init buffer (no split, the draw sees the new bytes); one already drawn,
+// copied from or written in MAIN splits. X- arms plant the matching defect; a plant counts only when the
+// experiment ran and took the hoist path.
 bool armHoist(Env& e, std::string* d, const std::string& arm)
 {
 	GxPacketWriter& w = *e.writer;
@@ -4277,7 +4155,7 @@ bool armHoist(Env& e, std::string* d, const std::string& arm)
 				std::fflush(stderr);
 				std::_Exit(3);
 			}
-			ctx->waitIdle();   // drains the submit thread first (R19)
+			ctx->waitIdle();   // drains the submit thread first
 			vkDestroySemaphore(ctx->device(), sem, nullptr);
 			sem = VK_NULL_HANDLE;
 			return true;
@@ -4432,7 +4310,7 @@ bool armHoist(Env& e, std::string* d, const std::string& arm)
 	steps &= t.resolve(w) && (!hold.sem || t1.resolve(w));
 	steps &= w.endFrame() != 0;
 	hold.release();   // release frame N-1 only now
-	e.ctx->waitIdle();   // drains the submit thread first (R19)
+	e.ctx->waitIdle();   // drains the submit thread first
 	const GxWriterStats& s = w.stats();
 	const uint64_t hoisted = s.hoistedUploads - s0.hoistedUploads, split = s.splitUpload - s0.splitUpload, scopes = s.scopes - s0.scopes;
 	e.hoisted = hoisted;
@@ -4532,7 +4410,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 	                                                              // stamps must still be written so the reads can show MISSING
 	desc.deviceSelect = opt.device;
 	desc.loaderPath = opt.loader;
-	// R19: order-units' refused-submit case needs a context that survives a refused submit (under the submit thread a refusal is
+	// order-units' refused-submit case needs a context that survives a refused submit (under the submit thread a refusal is
 	// terminal, so the case's later draw could not run): this arm keeps the synchronous context in every mode
 	if (arm == "order-units" || arm == "X-order-units")
 		desc.submitThread = Vk::SubmitThreadMode::Off;
@@ -4574,8 +4452,8 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 	if (wrap) {
 		wd.framesInFlight = 4;
 		// smaller than the traffic of the frames in flight: the ring must wait for held submissions. Sized to ~3.3 frames of
-		// traffic, as the 4 KB of ws-F1 was with 16-byte blocks (38,912 B / 32 frames); with ws-D2's blocks a frame streams
-		// 18,368 B (8 draws x (GxFFVsBlock + GxFFPsBlock) + the points; M5 run, rw3-P), and 4 KB sent every block to
+		// traffic, as the 4 KB was with 16-byte blocks (38,912 B / 32 frames); with the current blocks a frame streams
+		// 18,368 B (8 draws x (GxFFVsBlock + GxFFPsBlock) + the points), and 4 KB sent every block to
 		// dedicated overflow buffers (352), so the early-reuse fail arms never met live data
 		wd.streamBytes = 60 << 10;
 	}
@@ -4722,7 +4600,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 	ctx.shutdown();
 
 	if (!res.expectDetected) {
-		// a drawing arm must show the checker saw its draws (a silent GxOrderCheck would pass vacuously - review P3 #6)
+		// a drawing arm must show the checker saw its draws (a silent GxOrderCheck would pass vacuously)
 		const bool drawsNone = arm == "clear-outside" || arm == "gputime" || arm == "gputime-lost" || arm == "gputime-lost-armed" || arm == "gputime-full" || arm == "gputime-stage" || arm == "upload-then-clear" || arm == "rt-mips" || arm == "forget-before-flush" ||
 			arm == "sampler-limits" || arm == "shadow-compare" || arm == "sm-stride";   // shadow-compare: raw Vulkan in one immediate() - no writer draw
 		res.detected = !ok || fifWrong || vc.errors || vc.syncHazards || oc.total() || oc.unknownPipelineDraws || oc.unknownAttachmentViews || retire ||

@@ -47,24 +47,24 @@
 #include "GameLogic/GameLogic.h"
 #include "GameLogic/Object.h"
 #include "GameLogic/AISkirmishPlayer.h"
-#include "GameLogic/GXOctant.h"	// GeneralsX 22/10/2026 ai-wh1ter0se-econ R
-#if defined(GX_TEST_INSTRUMENTS)	// GeneralsX 23/10/2026 ai-wh1ter0se-econ R: [GXROT] defence events, test-instruments builds only
+#include "GameLogic/GXOctant.h"
+#if defined(GX_TEST_INSTRUMENTS)	// [GXROT] defence events, test-instruments builds only
 #define GX_ROT_LOG(...) \
 	do { fprintf(stderr, "[GXROT] f=%u ", (unsigned)TheGameLogic->getFrame()); fprintf(stderr, __VA_ARGS__); fputc('\n', stderr); \
 		fflush(stderr); } while (0)
-extern void gxDoorRuleFixture();	// GeneralsX 04/11/2026 base-layout: AIPlayer.cpp, GX_DOORRULE_FIXTURE
-extern void gxLayoutFallbackFixture();	// GeneralsX 06/11/2026 base-layout: AIPlayer.cpp, GX_LAYOUTFB_FIXTURE
+extern void gxDoorRuleFixture();	// AIPlayer.cpp, GX_DOORRULE_FIXTURE
+extern void gxLayoutFallbackFixture();	// AIPlayer.cpp, GX_LAYOUTFB_FIXTURE
 #else
 #define GX_ROT_LOG(...) do { } while (0)
 #endif
-#include "Common/TunnelTracker.h"	// GeneralsX 22/10/2026 ai-wh1ter0se-econ T
-#include "GameLogic/AITNGuard.h"	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: gxAirEngageable, gxTunnelNearest
+#include "Common/TunnelTracker.h"
+#include "GameLogic/AITNGuard.h"	// gxAirEngageable, gxTunnelNearest
 #include "GameLogic/Module/ContainModule.h"
-#include "GameLogic/AIStateMachine.h"	// GeneralsX 27/10/2026 T2: AI_GUARD_TUNNEL_NETWORK
-#include "GameLogic/Weapon.h"	// GeneralsX 27/10/2026 T2: NO_MAX_SHOTS_LIMIT
-#include "Common/GameState.h"	// GeneralsX 27/10/2026 T2: SC_INVALID_DATA (xfer v4)
+#include "GameLogic/AIStateMachine.h"	// AI_GUARD_TUNNEL_NETWORK
+#include "GameLogic/Weapon.h"	// NO_MAX_SHOTS_LIMIT
+#include "Common/GameState.h"	// SC_INVALID_DATA
 #include "GameLogic/Module/PhysicsUpdate.h"
-#if defined(GX_TEST_INSTRUMENTS)	// GeneralsX 22/10/2026 ai-wh1ter0se-econ T: [GXTAA] events, test-instruments builds only
+#if defined(GX_TEST_INSTRUMENTS)	// [GXTAA] events, test-instruments builds only
 #include <cstdarg>
 #include "GameLogic/GameLogic.h"	// TheGameLogic, read by the helper below
 // GeneralsX: t2-cheap: ONE write per [GXTAA] line - the same bytes the old fprintf + fprintf + fputc wrote
@@ -107,8 +107,8 @@ static void gxTaaLogLine(const char *fmt, ...)
 #include "GameLogic/Module/RebuildHoleBehavior.h"
 #include "GameLogic/Module/UpdateModule.h"
 #include "GameLogic/PartitionManager.h"
-#include "GameLogic/GXHookTimer.h"	// GeneralsX 22/10/2026 ai-wh1ter0se-econ: [GXHOOK] CPU timer (test-instruments builds)
-#include "GameLogic/GXRules/GXRuleBank.h"	// GeneralsX 30/10/2026 rb-core: the AI rule bank
+#include "GameLogic/GXHookTimer.h"	// [GXHOOK] CPU timer (test-instruments builds)
+#include "GameLogic/GXRules/GXRuleBank.h"	// the AI rule bank
 GX_HOOK_STATS_EXTERN(gxFaceFrontHook);	// AIPlayer.cpp: the face-front arm's one per-tick sum
 // arm T's per-tick time: the air watch here AND the guard-side checks in AITNGuard.cpp, ONE sum
 GX_HOOK_STATS_DEFINE(gxTunnelAAHook, "tunnel_air_watch");
@@ -158,14 +158,14 @@ m_gxStockCenterSet(FALSE)
 {
 	m_frameLastBuildingBuilt = TheGameLogic->getFrame();
 	p->setCanBuildUnits(true); // turn on ai production by default.
-	m_gxRules = new GXRuleBank(p);	// GeneralsX 30/10/2026 rb-core: empty until an AI_PLAYER_GX_RULE action configures it
+	m_gxRules = new GXRuleBank(p);	// empty until an AI_PLAYER_GX_RULE action configures it
 	m_gxStockCenter.zero();
 }
 
 AISkirmishPlayer::~AISkirmishPlayer()
 {
 	clearTeamsInQueue();
-	delete m_gxRules;	// GeneralsX 30/10/2026 rb-core (test-instruments builds print its ev=cost / ev=activity first)
+	delete m_gxRules;	// test-instruments builds print its ev=cost / ev=activity first
 	m_gxRules = nullptr;
 }
 
@@ -286,10 +286,10 @@ void AISkirmishPlayer::processBaseBuilding()
 				if (fallback == nullptr || !isLocationSafe(fallback, curPlan)) {
 					continue;
 				}
-				// GeneralsX 06/11/2026 base-layout (ADDENDUM_8 (c)): a keyed entry's layout fallback, the stock spot, is taken the same way, but only by
-				// the entry this pass builds: it stays a candidate here, unmoved, and moves below once it is the pick. One this
-				// pass could not pick at all (not a priority request, not automatic, not a forced power plant: a tech building the scripts have not
-				// asked for yet) waits on its layout spot as before. Either way a passing enemy cannot spend its one move.
+				// A keyed entry's layout fallback, the stock spot, is taken the same way, but only by the entry this pass builds: it stays a
+				// candidate here, unmoved, and moves below once it is the pick. One this pass could not pick at all (not a priority request,
+				// not automatic, not a forced power plant: a tech building the scripts have not asked for yet) waits on its layout spot.
+				// Either way a passing enemy cannot spend its one move.
 				if (info->hasLayoutFallback()) {
 					const Bool gxCanPick = info->isPriorityBuild() || info->isAutomaticBuild()
 						|| (isUnderPowered && curPlan->isKindOf(KINDOF_FS_POWER) && !curPlan->isKindOf(KINDOF_CASH_GENERATOR));
@@ -351,8 +351,8 @@ void AISkirmishPlayer::processBaseBuilding()
 			}
 		}
 		if (bldgPlan && bldgInfo) {
-			// GeneralsX 06/11/2026 base-layout (ADDENDUM_8 (c)): the keyed entry this pass builds, kept a candidate above with its
-			// layout spot unsafe and its stock spot safe (the same test, this same frame), moves to the stock spot now.
+			// The keyed entry this pass builds, kept a candidate above with its layout spot unsafe and its stock spot safe (the same
+			// test, this same frame), moves to the stock spot now.
 			if (bldgInfo->hasLayoutFallback() && !isLocationSafe(bldgInfo->getLocation(), bldgPlan)) {
 				GX_ROT_LOG("p=%d ev=fallback why=unsafe tmpl=%s x=%.2f y=%.2f", (Int)m_player->getPlayerIndex(), bldgInfo->getTemplateName().str(),
 					bldgInfo->getFallbackLocation()->x, bldgInfo->getFallbackLocation()->y);
@@ -610,7 +610,7 @@ static Bool aiTeamAttacks( const TeamTemplateInfo *info )
  */
 Bool AISkirmishPlayer::isAGoodIdeaToBuildTeam( TeamPrototype *proto )
 {
-	if (!gxAirTeamAllowed(proto, FALSE))	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: the AA team only while a hostile airfield stands
+	if (!gxAirTeamAllowed(proto, FALSE))	// the AA team only while a hostile airfield stands
 		return false;
 	// Check condition.
 	if (!proto->evaluateProductionCondition()) {
@@ -761,21 +761,10 @@ void AISkirmishPlayer::acquireEnemy()
 	Player *bestEnemy = nullptr;
 	Real bestDistanceSqr = HUGE_DIST*HUGE_DIST;
 
-	// GeneralsX: Smarter target picking for Normal and Hard skirmish AIs.
-	// Retail kept the current enemy until it had no units or no build facility, and its two tie-breakers below
-	// (+500^2 when another AI already targets him, -25^2 when he targets me) are negligible against squared base
-	// distances of ~3.6-6.8 M on a 12-spawn map - so every AI fought its nearest neighbour to the end and never answered
-	// whoever was actually in its base. Normal and Hard now re-score every enemy: squared distance x (1 + 0.5 per OTHER
-	// AI already on him, for a candidate I would switch TO) x 0.25 if he has >= 3 combat units inside my base, and switch
-	// only when the best is clearly better (score < 0.7 x the current enemy's) or the current enemy is gone or crippled.
-	// A healthy current enemy is re-scored at most once a minute, counted from when I last chose or re-scored him (so
-	// a new pick is held a minute): re-scoring on every 5 s check made about half of all switches flip back within
-	// 10-25 s (measured, 12-AI A/B b4), and the choice steers attack waves, defence placement and expansion. A crippled
-	// one is still dropped on the next 5 s check. The minute is per AI, not a global window, because getAiEnemy() runs
-	// on demand and a caller could keep missing a window. No new saved state (m_frameEnemyReviewed is an
-	// unsaved timer, like m_frameToCheckEnemy) and deterministic (players by index; per-player counts from one
-	// partition scan, which are order-independent; logic frames only, no wall clock, no per-peer state). Easy keeps the
-	// retail rule so it does not get harder.
+	// Normal and Hard AIs re-score every enemy: squared distance x (1 + 0.5 per OTHER AI on him, if a switch candidate)
+	// x 0.25 if he has >= 3 combat units in my base; switch only when the best scores < 0.7 x the current enemy's.
+	// A healthy enemy is re-scored at most once a minute (every 5 s flipped half the switches back within 10-25 s).
+	// Deterministic: players by index, logic frames only; m_frameEnemyReviewed is unsaved. Easy keeps retail.
 	const Bool smart = (m_difficulty != DIFFICULTY_EASY);
 	const UnsignedInt now = TheGameLogic->getFrame();
 
@@ -915,16 +904,13 @@ Player *AISkirmishPlayer::getAiEnemy()
 	return m_currentEnemy;
 }
 
-// ------------------------------------------------------------------------------------------------
-// GeneralsX: ai-wh1ter0se-econ R: the base FRONT - what front base defences
-// aim at (buildAIBaseDefenseStructure, !flank): the waypoint of this player's own Center path closest to its base centre, else the
-// centre of its enemy's structures. FALSE before the base centre is known.
-// ------------------------------------------------------------------------------------------------
+// The base FRONT - what front base defences aim at (buildAIBaseDefenseStructure, !flank): the waypoint of this player's own
+// Center path closest to its base centre, else the centre of its enemy's structures. FALSE before the base centre is known.
 Bool AISkirmishPlayer::gxFrontPoint(Coord3D *out)
 {
 	if (!m_baseCenterSet)
 		return FALSE;
-	// GeneralsX 04/11/2026 base-layout: GXFrontDoors reads the one fixed point the layout turn and the door rule share
+	// GXFrontDoors reads the one fixed point the layout turn and the door rule share
 	if (gxFrontDoors()) {
 		// the start, as the layout turn resolves it: from the list's centre the two could fall either side of GX_FRONT_MIN_DIST and
 		// disagree about the front. The start waypoint, not the list's command centre: gxRelocateQueued can move a destroyed one's entry.
@@ -1223,8 +1209,8 @@ void AISkirmishPlayer::buildAIBaseDefenseStructure(const AsciiString &thingName,
 
 			/* See if we can build there. */
 			placeAngle = tTemplate->getPlacementViewAngle();
-			// GeneralsX: ai-wh1ter0se-econ R: with AI_PLAYER_FACE_FRONT on, a base defence faces away from the
-			// base centre - toward the approach it covers - when that angle is legal here; else the template's view angle, as before.
+			// With AI_PLAYER_FACE_FRONT on, a base defence faces away from the base centre - toward the approach it covers -
+			// when that angle is legal here; else the template's view angle, as before.
 			if (m_gxFaceFront) {
 				GX_HOOK_TIMER_ON(gxFaceFrontHook);
 				const Real outward = gxOctantAngle(buildPos.x - m_baseCenter.x, buildPos.y - m_baseCenter.y);
@@ -1285,7 +1271,7 @@ Bool AISkirmishPlayer::checkBridges(Object *unit, Waypoint *way)
 	*/
 void AISkirmishPlayer::buildSpecificAITeam( TeamPrototype *teamProto, Bool priorityBuild)
 {
-	gxAirLogTeam(teamProto, "produce");	// GeneralsX 27/10/2026 ai-pro-rules-2 T2 (test-instruments log; the air-watch team only)
+	gxAirLogTeam(teamProto, "produce");	// test-instruments log; the air-watch team only
 	AIPlayer::buildSpecificAITeam(teamProto, priorityBuild);
 }
 
@@ -1350,7 +1336,7 @@ void AISkirmishPlayer::recruitSpecificAITeam(TeamPrototype *teamProto, Real recr
 						TheScriptEngine->AppendDebugMessage(teamStr, false);
 
 						unit->setTeam(theTeam);
-						gxAirRecruitEndsAirAttack(unit);	// GeneralsX 01/11/2026 t2-fix cause N (AIPlayer.cpp)
+						gxAirRecruitEndsAirAttack(unit);	// defined in AIPlayer.cpp
 
 						AIUpdateInterface *ai = unit->getAIUpdateInterface();
 						if (ai)
@@ -1511,29 +1497,14 @@ void AISkirmishPlayer::doTeamBuilding()
 void AISkirmishPlayer::update()
 {
 	AIPlayer::update();
-	m_gxRules->update();	// GeneralsX 30/10/2026 rb-core: the AI rule bank; returns at once while no rule is enabled
-	gxTunnelAirWatch();	// GeneralsX 22/10/2026 ai-wh1ter0se-econ T: a no-op unless the scb turned the watch on
+	m_gxRules->update();	// the AI rule bank; returns at once while no rule is enabled
+	gxTunnelAirWatch();	// a no-op unless the scb turned the watch on
 }
 
-// ------------------------------------------------------------------------------------------------
-// GeneralsX: ai-wh1ter0se-econ T.
-//
-// GeneralsX: ai-pro-rules-2 T2.
-// Every 6 frames:
-//  * RAID PLANES: every enemy aircraft this player can see (free of fog, not stealthed-undetected, not UNATTACKABLE) within the watch
-//    radius of an own tunnel - beyond GX_AIR_HOLD only while closing on that tunnel (T's rule) - nearest to its nearest tunnel first.
-//  * ASSIGNMENT (acting watch only): a tunnel GUARD inside the network that can shoot a raid plane (the tunnel guard's attack test and
-//    gxAirEngageable from the exit nearest the plane) is assigned to it, vehicles (Quad Cannons) before infantry, then by id, at most
-//    GX_AIR_FOCUS per plane: it leaves through the tunnel nearest the plane and gets an explicit attack order on that plane.
-//  * RETURN: an assignment whose plane is dead, gone or no longer engageable by that unit ends at the next pass; a unit outside is sent
-//    back into the tunnels at once (aiGuardTunnelNetwork; its Return state turns for nothing while gxAirReturning holds).
-//  * LIFETIME (both arms): C = a hostile player owns an airfield OR a hostile aircraft was visible in the last 180 s, every 30 frames;
-//    the team is built only on the airfield term, reinforced only while C (AIPlayer::gxAirTeamAllowed), released to the default team
-//    when C turns false.
-//  * T0 (radius < 0): the same team, lifetime and [GXTAA] engageable lines; no assignment.
-// A guard never takes an aircraft as a nemesis on its own with the acting watch on (AITNGuard gxGuardTakesNemesis), so every shot at an
-// aircraft from a tunnel is one of these assignments. Rows, C and the last sighting are saved (AISkirmishPlayer::xfer AIR_GUARDS = 5).
-// ------------------------------------------------------------------------------------------------
+// Tunnel air watch, every 6 frames: tunnel guards that can shoot an enemy aircraft within the watch radius of an own
+// tunnel go for it (vehicles first, then by id; at most GX_AIR_FOCUS per plane) until it is gone or cannot be engaged.
+// Every 30 frames C = a hostile airfield or aircraft seen in the last 180 s; the team is built on the airfield term,
+// reinforced while C. Rows, C and the last sighting are saved (AIR_GUARDS = 5).
 static const Real GX_AIR_HOLD = 400.0f;	///< Quad Cannon AA range 350 + 50
 static const Int GX_AIR_FOCUS = 3;			///< T2: at most this many tunnel guards are assigned to one aircraft (focus fire)
 static const UnsignedInt GX_AIR_SEEN_FRAMES = 180 * LOGICFRAMES_PER_SECOND;	///< T2 lifetime: a sighting keeps C for 180 s
@@ -1745,8 +1716,8 @@ void AISkirmishPlayer::gxTunnelAirWatch()
 		Object *t = TheGameLogic->findObjectByID(*it);
 		if (t == nullptr)
 			continue;
-		// GeneralsX: t2-cheap: first in the list, so the scan skips every cell holding no enemy object (getCellOwnerMask;
-		// the same objects pass in the same order - AIGuard.cpp's scan does the same since 06/10/2026)
+		// First in the list, so the scan skips every cell holding no enemy object (getCellOwnerMask);
+		// the same objects pass in the same order - AIGuard.cpp's scan does the same
 		PartitionFilterRelationship fEnemy(t, PartitionFilterRelationship::ALLOW_ENEMIES | PartitionFilterRelationship::SKIP_CELLS_BY_OWNER);
 		// UNATTACKABLE "aircraft" (the China artillery barrage's shells) never count
 		PartitionFilterAcceptByKindOf fAir(MAKE_KINDOF_MASK(KINDOF_AIRCRAFT), MAKE_KINDOF_MASK(KINDOF_UNATTACKABLE));
@@ -1875,15 +1846,15 @@ void AISkirmishPlayer::gxTunnelAirWatch()
 	}
 #endif
 
-	// --- every EXISTING row is reconciled BEFORE this pass assigns (T2 r15, #26 / t2-readers-r11): dead or captured
-	// units, rows back inside, planes destroyed or out of reach (target_lost + the return order), returns, re-asserts, exits - so an expiring
-	// row never counts as coverage and a replacement never makes a 4th open row
+	// --- every EXISTING row is reconciled BEFORE this pass assigns: dead or captured units, rows back inside, planes
+	// destroyed or out of reach (target_lost + the return order), returns, re-asserts, exits - so an expiring row never
+	// counts as coverage and a replacement never makes a 4th open row
 	gxAirRows(0, now, me);
 	const Int firstNew = m_gxAirGuardCount;
 
-	// --- new assignments (T2 r12/r13, 28/10: "a guard must never stand idle while a plane bombs the tunnel because nobody was
-	// assigned to it"), from the FREE tunnel guards of this pass: inside the network with no row, or OUTSIDE with no row and not attacking
-	// (no victim, not OBJECT_STATUS_IS_ATTACKING - an attack being entered has no victim yet). Preference: outside (no pop),
+	// --- new assignments, from the FREE tunnel guards of this pass: inside the network with no row, or OUTSIDE with no row and not attacking
+	// (no victim, not OBJECT_STATUS_IS_ATTACKING - an attack being entered has no victim yet). A guard must never stand idle while a plane
+	// bombs the tunnel because nobody was assigned to it. Preference: outside (no pop),
 	// then vehicles, then id. LEVEL 1 is a MAXIMUM matching of the planes with no row to the free guards (augmenting paths, planes nearest
 	// first: greedy can leave a coverable plane bare); levels 2 and 3 then go round-robin. Nothing else is ever assigned.
 	std::vector<Object *> cand;	// the free guards at the pass start, in preference order
@@ -2027,17 +1998,15 @@ void AISkirmishPlayer::gxTunnelAirWatch()
 	}
 #endif
 
-	// --- the rows assigned in this pass: out and attack at once (T2 r15: the existing rows were reconciled before the assignment)
+	// --- the rows assigned in this pass: out and attack at once (the existing rows were reconciled before the assignment)
 	gxAirRows(firstNew, now, me);
 }
 
-//----------------------------------------------------------------------------------------------------------
-// GeneralsX 01/11/2026 t2-fix cause A (363 of the 408 auto_air episodes of the T2 grid): a
-// return order the unit REFUSED - AIUpdateInterface::privateGuardTunnelNetwork does nothing while the unit is not mobile (an EMP, subdual or
-// paralysis disable) - left its attack on the plane standing, AI victim included, with its AI update suspended, so the watch saw an
-// aircraft victim (ev=auto_air) until the disable lapsed. Such a unit is idled: privateIdle clears the machine whatever the unit's
-// mobility, and the attack state's exit clears the victim and the turret targets. The RETURNING row orders it back once a second, as
-// before. A unit whose return order took holds no aircraft victim after it, and nothing changes for it.
+// A return order the unit REFUSED - AIUpdateInterface::privateGuardTunnelNetwork does nothing while the unit is not mobile (an EMP,
+// subdual or paralysis disable) - left its attack on the plane standing, AI victim included, with its AI update suspended, so the
+// watch saw an aircraft victim (ev=auto_air) until the disable lapsed. Such a unit is idled: privateIdle clears the machine
+// whatever the unit's mobility, and the attack state's exit clears the victim and the turret targets. The RETURNING row orders it
+// back once a second. A unit whose return order took holds no aircraft victim after it, and nothing changes for it.
 static void gxAirEndRefusedAttack(Object *u, Int me)
 {
 	const Object *v = u->getAI()->getCurrentVictim();
@@ -2047,9 +2016,8 @@ static void gxAirEndRefusedAttack(Object *u, Int me)
 	u->getAI()->aiIdle(CMD_FROM_AI);
 }
 
-//----------------------------------------------------------------------------------------------------------
-// GeneralsX 28/10/2026 ai-pro-rules-2 T2 r15: the watch's row loop (out and attack, or back in), from row <from> on - called for every
-// existing row before the pass assigns, and for the rows assigned in the pass after it
+// The watch's row loop (out and attack, or back in), from row <from> on - called for every existing row before the pass assigns,
+// and for the rows assigned in the pass after it
 void AISkirmishPlayer::gxAirRows(Int from, UnsignedInt now, Int me)
 {
 	for (Int r = from; r < m_gxAirGuardCount; )
@@ -2076,7 +2044,7 @@ void AISkirmishPlayer::gxAirRows(Int from, UnsignedInt now, Int me)
 			{
 				u->getAI()->aiGuardTunnelNetwork(GUARDMODE_NORMAL, CMD_FROM_AI);
 				GX_TAA_LOG("p=%d ev=return_order unit=%u again=1", me, (unsigned)row.unit);
-				gxAirEndRefusedAttack(u, me);	// GeneralsX 01/11/2026 t2-fix cause A
+				gxAirEndRefusedAttack(u, me);
 			}
 		}
 		else if (row.state == GX_AIR_ATTACKING && u->getContainedBy() != nullptr)
@@ -2110,7 +2078,7 @@ void AISkirmishPlayer::gxAirRows(Int from, UnsignedInt now, Int me)
 					row.plane = INVALID_ID;
 					u->getAI()->aiGuardTunnelNetwork(GUARDMODE_NORMAL, CMD_FROM_AI);
 					GX_TAA_LOG("p=%d ev=return_order unit=%u", me, (unsigned)row.unit);
-					gxAirEndRefusedAttack(u, me);	// GeneralsX 01/11/2026 t2-fix cause A
+					gxAirEndRefusedAttack(u, me);
 				}
 			}
 			else if (row.state == GX_AIR_ASSIGNED)
@@ -2135,9 +2103,9 @@ void AISkirmishPlayer::gxAirRows(Int from, UnsignedInt now, Int me)
 			else if (row.state == GX_AIR_ATTACKING && u->getContainedBy() == nullptr
 					&& (u->getAI()->getAIStateType() != AI_ATTACK_OBJECT || u->getAI()->getGoalObject() != p))
 			{
-				// GeneralsX 28/10/2026 T2 (diag T2d1; "re-assert the per-plane order"): its MAIN state is no longer the attack on
-				// ITS plane (an AI move the mood matrix turned into an attack-move, or a stock attack that gave up on an airborne target -
-				// a computer player does not chase one) - given again. (The tunnel exit is a temporary state: the main state is kept.)
+				// Its MAIN state is no longer the attack on ITS plane (an AI move the mood matrix turned into an attack-move, or a stock
+				// attack that gave up on an airborne target - a computer player does not chase one) - given again.
+				// (The tunnel exit is a temporary state: the main state is kept.)
 				u->getAI()->aiAttackObject(p, NO_MAX_SHOTS_LIMIT, CMD_FROM_AI);
 				GX_TAA_LOG("p=%d ev=attack unit=%u plane=%u ptmpl=%s again=1", me, (unsigned)row.unit, (unsigned)row.plane,
 					p->getTemplate()->getName().str());
@@ -2236,7 +2204,7 @@ void AISkirmishPlayer::adjustBuildList(BuildListInfo *list)
 	}
 
 	angle += 3*PI/4;
-	const Real gxRetailAngle = angle;	// GeneralsX 06/11/2026 base-layout (ADDENDUM_8): where the stock list's spots go, for a keyed list's fallbacks
+	const Real gxRetailAngle = angle;	// where the stock list's spots go, for a keyed list's fallbacks
 
 	// GeneralsX: base-layout: GXTurnLayout places the list rigidly, the template's +X at the base front: the turn is the
 	// octant of the front direction seen from the start, and it reaches the angles too (the retail line below keeps each entry's angle, so a
@@ -2286,19 +2254,19 @@ void AISkirmishPlayer::adjustBuildList(BuildListInfo *list)
 				cur->gxSetLayoutFallback(fb, cur->getFallbackAngle());
 			}
 		}
-		// GeneralsX 06/11/2026 base-layout: a fallback is read on a GXTurnLayout list only; any other list (a stock one cannot carry it) loses it here.
+		// A fallback is read on a GXTurnLayout list only; any other list (a stock one cannot carry it) loses it here.
 		if (!gxTurn) {
 			cur->gxDropLayoutFallback();
 		}
 		cur = cur->getNext();
 	}
 #if defined(GX_TEST_INSTRUMENTS)
-	// GeneralsX 04/11/2026 base-layout: the placed list, for the rigid-transform oracle (PLAN S0.3)
+	// The placed list, for the rigid-transform oracle
 	for (cur = list; cur; cur = cur->getNext()) {
 		GX_ROT_LOG("p=%d ev=layout side=%s keyed=%d doors=%d tmpl=%s x=%.2f y=%.2f ang=%.3f sx=%.2f sy=%.2f bx=%.2f by=%.2f turn=%.3f fx=%.2f fy=%.2f way=%d",
 			(Int)m_player->getPlayerIndex(), m_player->getSide().str(), (Int)gxTurn, (Int)(gxList != nullptr && gxList->m_gxFrontDoors), cur->getTemplateName().str(),
 			cur->getLocation()->x, cur->getLocation()->y, cur->getAngle(), startPos.x, startPos.y, buildPos.x, buildPos.y, angle, gxFront.x, gxFront.y, (Int)gxFrontIsWay);
-		if (cur->hasLayoutFallback())	// GeneralsX 06/11/2026 base-layout (ADDENDUM_8): the placed fallback, for the same oracle against the stock arm's spots
+		if (cur->hasLayoutFallback())	// the placed fallback, for the same oracle against the stock arm's spots
 			GX_ROT_LOG("p=%d ev=layoutfb tmpl=%s x=%.2f y=%.2f ang=%.3f turn=%.3f", (Int)m_player->getPlayerIndex(), cur->getTemplateName().str(),
 				cur->getFallbackLocation()->x, cur->getFallbackLocation()->y, cur->getFallbackAngle(), gxRetailAngle);
 	}
@@ -2329,7 +2297,7 @@ void AISkirmishPlayer::newMap()
 			m_player->setBuildList(buildList);
 			computeCenterAndRadiusOfBase(&m_baseCenter, &m_baseRadius);
 			gxComputeStockCenter();
-			// GeneralsX 06/11/2026 base-layout (ADDENDUM_9): every skirmish AI's centres, for ORACLE-SC (a keyed seat's stock centre = its stock partner's base)
+			// Every skirmish AI's centres, for ORACLE-SC (a keyed seat's stock centre = its stock partner's base)
 			GX_ROT_LOG("p=%d ev=centers base=%.2f,%.2f stock=%d,%.2f,%.2f", (Int)m_player->getPlayerIndex(), m_baseCenter.x, m_baseCenter.y,
 				(Int)m_gxStockCenterSet, m_gxStockCenter.x, m_gxStockCenter.y);
 			break;
@@ -2438,26 +2406,19 @@ void AISkirmishPlayer::crc( Xfer *xfer )
 	* Version Info;
 	* 1: Initial version */
 // ------------------------------------------------------------------------------------------------
-static const XferVersion GX_SKIRMISH_XFER_FACE_FRONT = 2;	///< GeneralsX 22/10/2026 ai-wh1ter0se-econ R: m_gxFaceFront
-static const XferVersion GX_SKIRMISH_XFER_RULEBANK = 3;		///< GeneralsX 30/10/2026 rb-core: the AI rule bank's block (3 = integration's next free number after FACE_FRONT, checked at the core-land merge 01/11/2026; an AI branch landing after it takes 4)
-static const XferVersion GX_SKIRMISH_XFER_AIR_WATCH = 4;	///< GeneralsX 01/11/2026 t2-fix-2: ai-wh1ter0se-econ T, the tunnel air watch's radius + team (3 on, renumbered after the bank)
-static const XferVersion GX_SKIRMISH_XFER_AIR_GUARDS = 5;	///< GeneralsX 01/11/2026 t2-fix-2: ai-pro-rules-2 T2, the air watch's guard rows, C and the last sighting
-static const XferVersion GX_SKIRMISH_XFER_STOCKCENTER = 6;	///< GeneralsX 06/11/2026 base-layout ADDENDUM_9: m_gxStockCenter / Set (4 on; renumbered after AIR_GUARDS at the 0.9.70 rebase, 08/11/2026)
+static const XferVersion GX_SKIRMISH_XFER_FACE_FRONT = 2;	///< m_gxFaceFront
+static const XferVersion GX_SKIRMISH_XFER_RULEBANK = 3;	///< the AI rule bank's block
+static const XferVersion GX_SKIRMISH_XFER_AIR_WATCH = 4;	///< the tunnel air watch's radius + team
+static const XferVersion GX_SKIRMISH_XFER_AIR_GUARDS = 5;	///< the air watch's guard rows, C and the last sighting
+static const XferVersion GX_SKIRMISH_XFER_STOCKCENTER = 6;	///< m_gxStockCenter / Set
 void AISkirmishPlayer::xfer( Xfer *xfer )
 {
 
 	// version
-	// GeneralsX 22/10/2026: 2 = AI_PLAYER_FACE_FRONT (ai-wh1ter0se-econ R); a retail-compatible save stays version 1, which retail's reader
-	// accepts (the rule of the neighbouring serializers)
-	// GeneralsX 30/10/2026: GX_SKIRMISH_XFER_RULEBANK = the rule bank's block (rb-core). The versions are named so that a renumber when
-	// several AI branches merge is one line here; the loader accepts every earlier version. Once the bank exists a new rule
-	// never bumps this version again: it versions its OWN state inside the bank block (GXRuleCore.h bankXfer).
-	// GeneralsX 01/11/2026 t2-fix-2: GX_SKIRMISH_XFER_AIR_WATCH (ai-wh1ter0se-econ T: AI_PLAYER_TUNNEL_AIR_WATCH's radius + team) and
-	// GX_SKIRMISH_XFER_AIR_GUARDS (ai-pro-rules-2 T2: the air watch's guard rows, C and the last sighting) come after the bank. On the
-	// unmerged T2 branches they were 3 and 4: a save written there must not be loaded here - its version-3 bytes are read as the bank
-	// block, which refuses them on its format byte unless the watch radius's low byte happens to be 1 (then it misreads them).
-	// GeneralsX 08/11/2026 base-layout: GX_SKIRMISH_XFER_STOCKCENTER (ADDENDUM_9's stock base centre) comes after the air guards. On the
-	// unmerged feat/ai-base-layout it was 4: a save written there must not be loaded here - its stock-centre bytes are read as the air watch.
+	// 2 = AI_PLAYER_FACE_FRONT (a retail-compatible save stays 1); 3 = rule bank block (rules version their own state);
+	// 4 = air watch, 5 = air guards, 6 = stock centre. The loader accepts every earlier version of THIS layout; never reuse a
+	// number. A save from an unmerged branch that used 3/4 (air watch) or 4 (stock centre) must not be loaded here: its
+	// bytes would be read as the bank block or the air watch.
 #if RETAIL_COMPATIBLE_XFER_SAVE
 	XferVersion currentVersion = 1;
 #else
@@ -2493,20 +2454,20 @@ void AISkirmishPlayer::xfer( Xfer *xfer )
 	// right flank right defense angle
 	xfer->xferReal( &m_curRightFlankRightDefenseAngle );
 
-	// GeneralsX 22/10/2026 (ai-wh1ter0se-econ R): the AI_PLAYER_FACE_FRONT flag (AIPlayer::m_gxFaceFront); off in a version-1 save
+	// The AI_PLAYER_FACE_FRONT flag (AIPlayer::m_gxFaceFront); off in a version-1 save
 	if( version >= GX_SKIRMISH_XFER_FACE_FRONT )
 		xfer->xferBool( &m_gxFaceFront );
 	else if( xfer->getXferMode() == XFER_LOAD )
 		m_gxFaceFront = FALSE;	// an older save starts with it off; on LOAD only - a retail-compatible save WRITES v1 too
 
-	// GeneralsX 30/10/2026 rb-core: the rule bank (configuration, unit claims, money reserves, each rule's own state block). An older save
-	// has none: nothing configured. A retail-compatible build writes version 1 and refuses every enable, so it never holds rule state.
+	// The rule bank (configuration, unit claims, money reserves, each rule's own state block). An older save has none: nothing
+	// configured. A retail-compatible build writes version 1 and refuses every enable, so it never holds rule state.
 	if( version >= GX_SKIRMISH_XFER_RULEBANK )
 		m_gxRules->xfer( xfer );
 	else if( xfer->getXferMode() == XFER_LOAD )
 		m_gxRules->reset();
 
-	// GeneralsX 22/10/2026 (ai-wh1ter0se-econ T): the air watch radius (AIPlayer::m_gxAirWatchRadius); off in a save older than AIR_WATCH
+	// The air watch radius (AIPlayer::m_gxAirWatchRadius); off in a save older than AIR_WATCH
 	if( version >= GX_SKIRMISH_XFER_AIR_WATCH )
 	{
 		xfer->xferInt( &m_gxAirWatchRadius );
@@ -2520,7 +2481,7 @@ void AISkirmishPlayer::xfer( Xfer *xfer )
 		m_gxAirWatchTeam.clear();
 	}
 
-	// GeneralsX 27/10/2026 (ai-pro-rules-2 T2): the AA guards out at (or coming back from) an aircraft, C and the last sighting - all
+	// The AA guards out at (or coming back from) an aircraft, C and the last sighting - all
 	// read by the simulation (return orders, the team's build / reinforce / release). Older saves: none, C not yet evaluated.
 	if( version >= GX_SKIRMISH_XFER_AIR_GUARDS )
 	{
@@ -2550,7 +2511,7 @@ void AISkirmishPlayer::xfer( Xfer *xfer )
 		m_gxAirSeenFrame = 0;
 	}
 
-	// GeneralsX 06/11/2026 base-layout ADDENDUM_9: a keyed list's stock centre. An older save has none: it ranks from m_baseCenter, as it did.
+	// A keyed list's stock centre. An older save has none: it ranks from m_baseCenter, as it did.
 	if( version >= GX_SKIRMISH_XFER_STOCKCENTER )
 	{
 		xfer->xferCoord3D( &m_gxStockCenter );

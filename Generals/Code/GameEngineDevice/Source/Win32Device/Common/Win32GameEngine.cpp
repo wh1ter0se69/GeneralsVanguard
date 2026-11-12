@@ -134,19 +134,8 @@ void Win32GameEngine::update()
 			}
 		}
 
-		// GeneralsX: ZH-to-Generals parity for the alt-tab audio wake,
-		// ported from TheSuperHackers PR #3046 (upstream 64dc9877f). GeneralsMD already carried
-		// this block; only this twin was missing it.
-		//
-		// The upstream comment names Miles, but nothing here is Miles-specific. 0x10 is
-		// AudioAffect_SystemSetting (Core/GameEngine/Include/Common/AudioAffect.h) with no channel
-		// bit set, so all four channel branches of AudioManager::setVolume
-		// (Core/GameEngine/Source/Common/Audio/GameAudio.cpp) fall through and no stored volume is
-		// written. The single effect is the applyVolumes() call at the end, which raises
-		// m_volumeHasChanged - and both backends in this fork gate their volume re-push on that
-		// flag (OpenALAudioManager.cpp and MilesAudioManager.cpp each test it), so the wake works
-		// under OpenAL as well. Body kept byte-identical to the GeneralsMD twin, odd indentation
-		// included, so the two files keep diffing clean.
+		// GeneralsX: port of TheSuperHackers PR #3046. 0x10 is AudioAffect_SystemSetting with no channel bit, so only
+		// applyVolumes() runs and raises m_volumeHasChanged; both the OpenAL and Miles backends re-push volumes on it.
     // When we are alt-tabbed out... the MilesAudioManager seems to go into a coma sometimes
     // and not regain focus properly when we come back. This seems to wake it up nicely.
     AudioAffect aa = (AudioAffect)0x10;

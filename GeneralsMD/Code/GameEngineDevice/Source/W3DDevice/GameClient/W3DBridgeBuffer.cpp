@@ -203,18 +203,10 @@ void W3DBridge::init(Vector3 fromLoc, Vector3 toLoc, AsciiString bridgeTemplateN
 	m_templateName = bridgeTemplateName;
 	m_enabled = true;
 
-	// GeneralsX: A SLOT MUST DESCRIBE ITSELF BEFORE load() RUNS.
-	//
-	// addBridge now hands this bridge to the LOGIC whether or not load() finds a W3D model, so
-	// getBridgeInfo() can be asked about a slot whose meshes never arrived. Besides m_start/m_end
-	// these three fields are everything getBridgeInfo() reads, and m_bridges is a reused array -
-	// leaving them would read out whichever bridge sat in this slot for the previous map.
-	//
-	// The footprint these produce is NOT the real model's: measured on KandaharBridge the model
-	// gives minY=-70.33, maxY=71.86, scale=1. A peer that cannot load the model therefore gets a
-	// different bridge FOOTPRINT (m_bounds, and so the pathfind layer) from one that can - which
-	// is exactly why such a peer is refused a network game. What is now identical either way is
-	// the set of simulation objects and their transforms, which is what the CRC hashes.
+	// A slot must describe itself before load() runs: addBridge hands the bridge to the logic even when load() finds no
+	// W3D model, so getBridgeInfo() can be asked about a slot whose meshes never arrived, and m_bridges is reused across
+	// maps. The footprint differs from the real model, which is why a peer that cannot load the model is refused a
+	// network game.
 	m_bridgeType = FIXED_BRIDGE;
 	m_scale = BRIDGE_DEFAULT_SCALE;
 	m_maxY = BRIDGE_DEFAULT_WIDTH * 0.5f;
@@ -879,31 +871,10 @@ void W3DBridgeBuffer::loadBridges(W3DTerrainLogic *pTerrainLogic, Bool saveGame)
 			}
 			if (pMapObj2==nullptr) break;
 			if (!pMapObj2->getFlag(FLAG_BRIDGE_POINT2)) continue;
-			// GeneralsX @note /09/2026 THIS Z IS MAP DATA, DESPITE THE OBJECT IT HANGS OFF.
-			//
-			// Flagged when the bridge desync was fixed: a simulation value read through
-			// TheTerrainRenderObject looks exactly like the model-derived footprint that caused
-			// that bug. It is not the same thing, and the difference is worth writing down so
-			// nobody has to re-derive it.
-			//
-			// getHeightMapHeight does NOT sample render state. Its first act is
-			//   WorldHeightMap *logicHeightMap = TheTerrainVisual ? TheTerrainVisual->getLogicHeightMap() : m_map;
-			// (Core/.../BaseHeightMap.cpp:873) and the engine's own comment above that line says it
-			// was deliberately made "logic safe" for this reason. m_logicHeightMap is constructed
-			// straight from the map file stream (W3DTerrainVisual.cpp:606) and is described there
-			// as "the true, golden standard"; the deformable render copy is a separate
-			// m_clientHeightMap. The m_map fallback is the same object anyway - initHeightData is
-			// handed m_logicHeightMap (W3DTerrainVisual.cpp:663) and stores it at
-			// BaseHeightMap.cpp:1788. So both arms of that ternary are the map's own heightmap and
-			// the height is identical on every peer that loaded the same map.
-			//
-			// It also cannot usefully move. The logic-side API, W3DTerrainLogic::getGroundHeight,
-			// forwards to this very call (W3DTerrainLogic.cpp:284), and WorldHeightMap exposes no
-			// interpolating height-at-(x,y) of its own - the triangle interpolation only exists
-			// here. Routing through TheTerrainLogic would be a rename onto the identical body, and
-			// it would need a null branch, because WorldBuilder calls loadRoadsAndBridges(nullptr,
-			// FALSE) (wbview3d.cpp:534, :2046) with no TerrainLogic at all. Two call paths that
-			// must stay equal, for no change in behaviour: not worth it.
+			// This Z is map data despite the object it hangs off: getHeightMapHeight reads the logic heightmap built from the map
+			// file, not the deformable render copy, so the height is identical on every peer. W3DTerrainLogic::getGroundHeight
+			// forwards to this call, and WorldBuilder calls loadRoadsAndBridges with no TerrainLogic, so routing through it adds
+			// nothing.
 			Vector3 from, to;
 			from.Set(pMapObj->getLocation()->x, pMapObj->getLocation()->y, 0);
 			from.Z = TheTerrainRenderObject->getHeightMapHeight(from.X, from.Y, nullptr) + BRIDGE_FLOAT_AMT;
@@ -1179,17 +1150,10 @@ void W3DBridgeBuffer::addBridge(Vector3 fromLoc, Vector3 toLoc, AsciiString name
 		return;
 	}
 
-	// GeneralsX: A BRIDGE POINT PAIR NAMING NO BRIDGE IS STILL IGNORED.
-	//
-	// Found by review (r4): the decouple below first applied to this case too, so a map whose
-	// bridge points name a template TerrainRoads does not define gained an invisible GenericBridge
-	// and a pathfind layer made of fallback geometry, where the game has always ignored the pair.
-	// Every peer with the same INI answers this the same way, so it needs no decoupling - only a
-	// missing MODEL for a real template does, because that is the part that differs by install.
-	// A template that names NO model is the same case: retail's load() fails on it on every install
-	// (Roads.ini's six landmark bridges - EuropeanLandmarkBridge, TsingMaLandmarkBridge and the rest -
-	// are objects, built through TerrainLogic::addLandmarkBridgeToLogic, and carry no BridgeModelName),
-	// so the pair was always ignored and must stay ignored for retail replays to match.
+	// A bridge point pair naming no bridge is still ignored: an unknown template, or one with no model (retail load()
+	// fails on it on every install, e.g. the landmark bridges built as objects), was always ignored and must stay so for
+	// retail replays to match. Only a missing MODEL for a real template differs by install and needs the decoupling
+	// below.
 	TerrainRoadType *bridgeTemplate = TheTerrainRoads->findBridge(name);
 	if (bridgeTemplate == nullptr || bridgeTemplate->getBridgeModel().isEmpty()) {
 		return;
@@ -1197,19 +1161,10 @@ void W3DBridgeBuffer::addBridge(Vector3 fromLoc, Vector3 toLoc, AsciiString name
 
 	m_bridges[m_numBridges].init(fromLoc, toLoc, name);
 
-	// GeneralsX: A SIMULATION OBJECT MUST NOT EXIST ONLY WHEN ITS ART DOES.
-	//
-	//
-	//
-	// MEASURED 2026-09-20 on this box, one symlink the only variable:
-	// a Zero Hour data root with no reachable base-Generals archives ran twilight flame with 452
-	// objects at frame 0 where the same build with them had 456, every later object id shifted by
-	// two, and the frame-0 CRC differed (4A947AEF vs BAF0B59D) and never recovered for the whole
-	// match. The only visible symptom was one [ASSET_ROOT] warning.
-	//
-	// The renderer needs no model: getIndicesNVertices gives a meshless slot zero polygons and
-	// renderBridge skips a bridge with none, so an artless bridge still simply is not drawn. It does
-	// now consume an m_bridges slot, which is what keeps info.bridgeIndex pointing at its own slot.
+	// A simulation object must not exist only when its art does: a data root without the base-Generals archives got fewer
+	// objects at frame 0, shifted every later object id by two, and had a different frame-0 CRC for the whole match. The
+	// renderer needs no model (a meshless slot has zero polygons and renderBridge skips it), but the bridge still
+	// consumes an m_bridges slot, which keeps info.bridgeIndex pointing at its own slot.
 	if (!m_bridges[m_numBridges].load(BODY_PRISTINE)) {
 		// GeneralsX: THE LAST LINE, where the map's own bridges are built.
 		//

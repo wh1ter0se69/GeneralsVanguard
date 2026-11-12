@@ -913,23 +913,10 @@ void W3DShadowGeometryMesh::buildPolygonNeighbors()
 
 	}
 
-	// GeneralsX: The base game's twin of Zero Hour's fix (
-	// GeneralsMD's W3DVolumetricShadow.cpp). The 2003 search below tested every polygon against every other one (O(n^2) pair tests).
-	// The base game runs it eagerly, from W3DShadowGeometry::initFromHLOD/initFromMesh, the first time a model's shadow geometry is
-	// loaded: while a map loads, or inside the frame the first object of a new model is created.
-	// A polygon that shares no vertex index with polygon i can never set index1 in the pair test below, so it can
-	// never become a neighbour, and its test has no side effect (GetPolygonNormal(j) is read only after a match). So the loop
-	// visits only the polygons that share a vertex index with i, in ascending order like the 2003 loop, and the pair test is
-	// unchanged: the same neighbours land in the same slots. vertexPolys lists, per vertex index, the polygons using it (each
-	// polygon once per distinct index, ascending). scripts/test/shadow-neighbors-test.sh runs this function and the 2003 one
-	// (from git) on the same meshes, degenerate ones included, and compares every slot, for both games.
-	// The index is built only where it pays and is safe: a mesh of at least 64 polygons whose vertex indices span no more than
-	// 3 per polygon + 1024 (shadow meshes are welded, so their indices are dense), and only when all its scratch memory is
-	// allocated up front - the merge buffers hold the polygon count, which a merged list never reaches (a polygon
-	// whose lists add up to the mesh takes the 2003 scan below), so nothing allocates after this block. Anything else (a tiny or
-	// sparse mesh, a failed allocation - whatever it throws) takes the 2003 scan of every polygon, exactly as before.
-	// The scratch is unique_ptr arrays, not std::vector: a checked-iterator (debug) MSVC vector allocates a proxy in its noexcept
-	// default constructor, so a failed allocation there would end the process instead of reaching the catch.
+	// GeneralsX: only polygons sharing a vertex index with polygon i can become neighbours, so visit just those, ascending;
+	// the pair test is unchanged, so the same neighbours land in the same slots as the 2003 all-pairs scan.
+	// Used only for meshes of 64+ polygons with dense indices and up-front scratch; anything else takes the 2003 scan.
+	// unique_ptr arrays, not std::vector: a checked MSVC vector allocates in its noexcept constructor.
 	std::unique_ptr<Short[]> polyIndex;
 	std::unique_ptr<size_t[]> vertexStart;
 	std::unique_ptr<Int[]> vertexPolys, candidates, merged;

@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule TECH.CHINA_UPGRADE_GATES: buy China's key upgrades on the army
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule TECH.CHINA_UPGRADE_GATES: buy China's key upgrades on the army
 # they help, and Black Napalm only in a safe window (rows 132, 134, 180, 254). Stock Hard China buys Black Napalm and MiG Armor at 4
 # Dragons / MiGs, Subliminal Messaging on a Speaker Tower alone, the nuke upgrades behind 2 Overlords, and Tank's Autoloader the moment
 # its Propaganda Center stands. Per China general the stock upgrade scripts change in place:
@@ -23,7 +25,7 @@ DEFAULTS = {'migs_min': 2, 'napalm_with_dragons': 3}
 
 
 def _overlord(o):
-    # Tank and Infantry: no Overlord term (Dominator stand-in answer 31/10: Subliminal is for speaker support, not Emperor towers)
+    # Tank and Infantry: no Overlord term (Subliminal is for speaker support, not Emperor towers)
     return {'SkirmishChinaTankGeneral': None, 'SkirmishChinaInfantryGeneral': None}.get(o, P[o] + 'ChinaTankOverlord')
 
 

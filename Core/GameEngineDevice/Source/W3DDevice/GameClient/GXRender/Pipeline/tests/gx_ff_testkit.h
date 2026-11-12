@@ -1,5 +1,23 @@
-// gx_ff_testkit.h - what an FF draw needs in the WS-D tests: the FF pipeline layout (a mirror of
-// rw2-F1's GxRecordLayout contract in GxFFState.h: set 0 = VS/PS dynamic uniform buffers, set 1 = eight 2D combined image
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// gx_ff_testkit.h - what an FF draw needs in the pipeline tests: the FF pipeline layout (a mirror of
+// the GxRecordLayout contract in GxFFState.h: set 0 = VS/PS dynamic uniform buffers, set 1 = eight 2D combined image
 // samplers, push constants 0-128 VS|FS = the FF key), a host-visible uniform buffer carved per draw, eight noise textures
 // and one descriptor set pair. Test code only.
 #pragma once

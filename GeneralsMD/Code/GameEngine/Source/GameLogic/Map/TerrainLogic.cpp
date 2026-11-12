@@ -216,14 +216,10 @@ Object *Bridge::createTower( Coord3D *worldPos,
 //-------------------------------------------------------------------------------------------------
 // GeneralsX: m_next AND m_layer MUST BE INITIALISED HERE, NOT AT THE END.
 //
-// Both used to be left to the tail of the body - m_next by the trailing assignment that the two
-// early returns below skip, m_layer by nothing at all. A MemoryPoolObject block is recycled, not
-// zeroed, in a release build (GameMemory.cpp fills it only under the debug allocator), so either
-// early return handed the caller a Bridge whose m_next and m_layer were whatever the previous
-// occupant of that block left there. TerrainLogic::addBridgeToLogic happens to overwrite m_next
-// immediately (its setNext call), which is the only reason this never showed; m_layer had no
-// such cover.
-// An initialiser list cannot be skipped by any return, so this is the fix for every path at once.
+// A MemoryPoolObject block is recycled, not zeroed, in a release build (GameMemory.cpp fills it only under the
+// debug allocator), so an early return below would hand the caller a Bridge whose m_next and m_layer were whatever
+// the previous occupant of that block left there.
+// An initialiser list cannot be skipped by any return, so it covers every path at once.
 Bridge::Bridge(BridgeInfo &theInfo, Dict *props, AsciiString bridgeTemplateName) :
 m_next(nullptr),
 m_bridgeInfo(theInfo),
@@ -243,20 +239,10 @@ m_layer(LAYER_INVALID)
 	m_bridgeInfo.curDamageState = BODY_PRISTINE;
 
 
-	// GeneralsX: A MISSING GenericBridge IS A DESYNC, NOT A WARNING.
-	//
-	// This used to log and return, which left a Bridge on TerrainLogic's list carrying no Object
-	// at all. That is the same failure the missing bridge MODEL used to cause, and that the
-	// previous commit on this branch fixed just above, reached through a different input: a peer
-	// whose INI does define GenericBridge simulates one more object than a peer whose INI does
-	// not, and Object::crc hashes every object, so the two peers disagree on frame 0 and on every
-	// frame after it. Logging it only guaranteed that the disagreement would be discovered as
-	// "desync" rather than as "your data is broken".
-	//
-	// GenericBridge is stock content that ships in the base object INI set, so there is no install
-	// that legitimately lacks it and no gameplay to preserve by continuing. Fail here, loudly and
-	// in release too - RELEASE_CRASH is the engine's own mechanism for exactly this (see the
-	// sleepy-update-module checks in GameLogic.cpp), it writes ReleaseCrashInfo and then _exit(1).
+	// A MISSING GenericBridge IS A DESYNC, NOT A WARNING. A Bridge left on TerrainLogic's list with no Object means a
+	// peer whose INI defines GenericBridge simulates one more object than one whose INI does not, and Object::crc
+	// hashes every object, so they disagree from frame 0. GenericBridge is stock content, so no valid install lacks it:
+	// fail loudly in release too (RELEASE_CRASH writes ReleaseCrashInfo, then _exit(1)).
 	static const ThingTemplate* genericBridgeTemplate = TheThingFactory->findTemplate("GenericBridge");
 	if (!genericBridgeTemplate) {
 		RELEASE_CRASH("GenericBridge template not found - this map needs bridge objects and this install cannot create them. Reinstall or repair the game data; continuing would simulate a different map from every other player.");
@@ -267,16 +253,13 @@ m_layer(LAYER_INVALID)
 	}
 	Object *bridge = TheThingFactory->newObject(genericBridgeTemplate, nullptr);
 
-	// GeneralsX @note /09/2026 RETAIL'S TRANSFORM, KEPT ON PURPOSE.
+	// GeneralsX: RETAIL'S TRANSFORM, KEPT ON PURPOSE.
 	//
 	// The centre and angle come from the model-derived corners exactly as retail computes them, and
-	// Object::crc hashes the transform, so a recorded retail replay of a bridge map still matches.
-	// This branch briefly moved them to the map's bare from/to points (about 0.76 world units on
-	// twilight flame's KandaharBridge), which broke that for every complete install; review
-	// (r5) caught it. With the model loaded this is retail; without it the corners come from
-	// W3DBridge::init's fallback numbers, and that happens only where nobody can disagree - network
-	// play is refused (TerrainVisual::isEveryBridgeModelAvailable) or stopped at the bridge
-	// (W3DBridgeBuffer::addBridge).
+	// Object::crc hashes the transform, so a recorded retail replay of a bridge map still matches. The map's bare
+	// from/to points would differ (about 0.76 world units on twilight flame's KandaharBridge). Without the model the
+	// corners come from W3DBridge::init's fallback numbers, which happens only where nobody can disagree: network play
+	// is refused (TerrainVisual::isEveryBridgeModelAvailable) or stopped at the bridge (W3DBridgeBuffer::addBridge).
 	Coord3D center;
 	center.x = (m_bridgeInfo.fromLeft.x + m_bridgeInfo.toRight.x)/2.0f;
 	center.y = (m_bridgeInfo.fromLeft.y + m_bridgeInfo.toRight.y)/2.0f;
@@ -300,16 +283,10 @@ m_layer(LAYER_INVALID)
 
 	// get the template of the bridge
 	//
-	// GeneralsX @note /09/2026 THIS ONE STAYS TOLERANT, AND THAT IS DELIBERATE.
-	//
-	// Unlike GenericBridge above, a missing TerrainRoads entry costs no simulation object: the
-	// bridge Object already exists by this point, positioned and oriented from map data, and
-	// bridgeTemplate is read only inside the BRIDGE_TOWERS block - which is compiled out (the
-	// #define below is no_BRIDGE_TOWERS, so #if BRIDGE_TOWERS is 0). Every peer with the same INI
-	// set therefore agrees, and retail tolerated this exact case, so crashing here would refuse
-	// maps the original game loads. The return is kept because bridgeTemplate IS required if
-	// anyone re-enables towers; what used to make it dangerous was that it also skipped the
-	// trailing m_next assignment, and the initialiser list above now owns that.
+	// GeneralsX: THIS ONE STAYS TOLERANT ON PURPOSE. Unlike GenericBridge above, a missing TerrainRoads entry costs no
+	// simulation object: the bridge Object already exists, and bridgeTemplate is read only inside the BRIDGE_TOWERS
+	// block, which is compiled out (#if BRIDGE_TOWERS is 0). Peers with the same INI set agree, and retail tolerated it.
+	// The return stays because bridgeTemplate is required if towers are re-enabled.
 	TerrainRoadType *bridgeTemplate = TheTerrainRoads->findBridge( bridgeTemplateName );
 	if( bridgeTemplate == nullptr ) {
 		DEBUG_LOG(( "*** Bridge Template Not Found '%s'.", bridgeTemplateName.str() ));
@@ -1328,10 +1305,9 @@ Bool TerrainLogic::loadMap( AsciiString filename, Bool query )
 		}
 		theInputStream.close();
 	} catch (ErrorCode) {
-		// GeneralsX: A damaged WaypointsList is a damaged map, not a legacy one: isValidFileType()
-		// above already keeps legacy files out of parse(), and the chunk readers now throw ERROR_CORRUPT_FILE_FORMAT where
-		// they used to read on past the data (DataChunk.cpp readChunkBytes). Eating it below started the match with half a
-		// waypoint graph; it goes to the start's damaged-map refusal (GameLogic::startNewGame) instead.
+		// A damaged WaypointsList is a damaged map, not a legacy one: isValidFileType() above already keeps legacy
+		// files out of parse(), and the chunk readers throw ERROR_CORRUPT_FILE_FORMAT on bad data (DataChunk.cpp
+		// readChunkBytes). It goes to the start's damaged-map refusal (GameLogic::startNewGame) instead of being eaten below.
 		throw;
 	} catch (...) {
 		// Eat the error - legacy files are not valid chunk format (and don't have waypoint info.)

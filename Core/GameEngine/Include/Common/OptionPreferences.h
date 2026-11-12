@@ -70,7 +70,7 @@ public:
 	void setOnlineIPAddress(AsciiString IP);
 	void setLANIPAddress(UnsignedInt IP);
 	void setOnlineIPAddress(UnsignedInt IP);
-	// GeneralsX @feature Relay transport. RelayAddress being set, together with LocalVirtualIP,
+	// GeneralsX: Relay transport. RelayAddress being set, together with LocalVirtualIP,
 	// is what turns relay mode on. LocalVirtualIP is this machine's identity - what the lobby,
 	// the slot list and the in-game connections see - so no machine ever has to know another's
 	// public address.

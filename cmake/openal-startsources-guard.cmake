@@ -1,4 +1,6 @@
-# GeneralsX: openal-soft 1.24.2 StartSources: never dereference a null voice.
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# openal-soft 1.24.2 StartSources: never dereference a null voice.
 #
 # Run by cmake/openal.cmake as the openal_soft PATCH_COMMAND: cmake -DSRC=<source dir> -P <this file>.
 #

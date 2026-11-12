@@ -1,25 +1,25 @@
-// GeneralsX: [GXGFX], the per-frame render split (graphics P2, item i-01).
-//
-// WHY. No perf claim, governor or upscaler decision can be made until a rendered frame can be split
-// honestly, and the live build had no per-frame render timer at all: [GXDRAW] counts draws (badly, see
-// W3DDisplay.cpp) and [GXPACE] times the whole loop. This header owns the clocks and the accumulator;
-// W3DDisplay::draw marks the spans, DX8Wrapper::End_Scene calls gxGfxPresentMark around Present through a
-// function pointer (WW3D2 cannot include this file), and GameClient::update prints one line per window.
-//
-// WHAT `pres` IS, because the name invites the wrong reading. It is the time the MAIN thread spends inside
-// IDirect3DDevice8::Present. Under DXVK that call waits in SyncFrameLatency for frame N-latency to clear the
-// ENTIRE downstream chain: the dxvk-cs translation thread, the submission thread (on Apple that is where
-// MoltenVK encodes Metal), the GPU, presentation/vsync and DXVK's own frame limiter. It is NOT GPU time and it
-// cannot tell a busy GPU from an idle one on a FIFO swapchain. Classes that need that distinction (gpu,
-// display, cs) need DXVK's own counters (graphics P1 items i-03/i-04) and are reserved, not faked.
-//
-// DIGEST. Core/GameEngine/Include/GameClient is not in the SimID source digest (simid-digest.sh lists only
-// Common/GameLogic/GameNetwork under it), and every caller is in GameClient/, GameEngineDevice/ or WW3D2
-// source, none digested. The headless peer runs none of it: the frame marks sit after W3DDisplay::draw's
-// m_headless return, and nothing is printed until a rendered frame completes.
-//
-// OFF COSTS A BRANCH. Everything is gated on GX_GFX (or GX_HITCH for [GXDRAWP]) read once into a static.
-// With both unset no clock is read and nothing is allocated; the state below is plain static storage.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// [GXGFX], the per-frame render split. W3DDisplay::draw marks the spans, DX8Wrapper::End_Scene calls
+// gxGfxPresentMark around Present through a function pointer (WW3D2 cannot include this file);
+// GameClient::update prints a line. `pres` is the MAIN thread's time inside Present, which under DXVK waits on
+// the whole downstream chain: NOT GPU time. Not in the SimID digest. Gated on GX_GFX (or GX_HITCH for [GXDRAWP]).
 
 #pragma once
 
@@ -76,19 +76,10 @@ inline int64_t gxGfxBucketHigh( int i )
 	return (int64_t)( 9 + i % 8 ) << ( bw - 4 );
 }
 
-// GeneralsX: [GXGFXF] (graphics P2 c3-12): where the `scene` span goes, and the per-feature
-// work the T3 features (lights, water, particles) will grow. Printed with GX_GFX=1, one line per [GXGFX] window.
-// Sub-spans (wall only, one read per boundary) split RTS3DScene::Customized_Render and RTS3DScene::Flush in their
-// own order: vis (visibility check), fupd (every render object's On_Frame_Update: terrain dynamic relight,
-// emitters), terr (terrain draw), obj (object submit), then Flush's decal (projected shadows/decals), opaque
-// (TheDX8MeshRenderer flush), occl (occluded objects into stencil), shd (shader meshes), trees, vol (stencil
-// shadow volumes), static (static sort lists: water), transl (translucent meshes), partq (particle queue build),
-// sort (the sorting flush: particles and alpha). Summed over every scene render in the frame, including the
-// shadow/water render-to-texture passes. Counters: lights (dynamic lights terrain relit), relit (terrain
-// vertices relit, one doTheDynamicLight call each), smcopy (heat-haze full back-buffer copies), pon/ptot
-// (particles on screen / alive), and hmupd (ms in HeightMapRenderObjClass::On_Frame_Update, inside fupd).
-// NOT covered: DXVK's CS thread (translation, pipelines) - main-thread CPU only; renderMirror (dead while the
-// shipped GameData has WaterType=0; add it when T3 turns water type 2 on).
+// [GXGFXF]: where the `scene` span goes. Printed with GX_GFX=1, one line per [GXGFX] window. Wall-only sub-spans
+// split RTS3DScene::Customized_Render and Flush in their own order (vis, fupd, terr, obj, decal, opaque, occl,
+// shd, trees, vol, static, transl, partq, sort), summed over every scene render. Counters: lights, relit,
+// smcopy, pon/ptot, hmupd. NOT covered: DXVK's CS thread (main-thread CPU only).
 enum GxGfxSub
 {
 	GXSUB_VIS, GXSUB_FUPD, GXSUB_TERR, GXSUB_OBJ, GXSUB_DECAL, GXSUB_OPAQUE, GXSUB_OCCL, GXSUB_SHD, GXSUB_TREES,
@@ -99,21 +90,15 @@ static const char *const kGxGfxSubName[GXSUB_N] = {
 enum GxGfxFeat { GXF_LIGHTS, GXF_RELIT, GXF_SMCOPY, GXF_PON, GXF_PTOT, GXF_HMUPD, GXF_N };
 static const char *const kGxGfxFeatName[GXF_N] = { "lights", "relit", "smcopy", "pon", "ptot", "hmupd" };
 
-// GeneralsX: [GXSHADOW] (graphics P2 c1-01): where the stencil-shadow CPU goes TODAY.
-// Every shadow profile on record predates the 23/09 shadow fixes (TS-06 reuse, the 64K ring, setShadowWorld,
-// world-space upload, the cull-before-height), so the current cost is unknown. GX_SHADOWSTATS=1 (with GX_GFX=1,
-// whose window it shares) counts and times inside W3DVolumetricShadowManager::renderShadows and the player-colour
-// stencil flush. Counters are what the earlier profiles found dominant: casters walked vs enabled, dynamic vs static
-// volumes drawn, upload bytes, ring DISCARDs (including the forced first one of each frame), TS-06 reuse hits vs
-// re-uploads in the DECR pass, setShadowWorld sets vs skips, silhouette rebuilds by trigger, volumes turned
-// SHADOW_DYNAMIC, slot failures. Timers (wall): Update per caster (a pair per enabled caster), the INCR pass minus
-// Update, the DECR pass, the resolve quad, the whole of renderShadows, the occluded-object stencil flush and the
-// renderStenciledPlayerColor quads inside it (occ - pcol is ordinary mesh submission, NOT stencil work).
+// [GXSHADOW]: where the stencil-shadow CPU goes. GX_SHADOWSTATS=1 (with GX_GFX=1, whose window it shares) counts
+// and times inside W3DVolumetricShadowManager::renderShadows and the player-colour stencil flush: casters,
+// volumes, upload bytes, ring DISCARDs, reuse hits, silhouette rebuilds. Timers (wall) cover Update, the
+// INCR/DECR passes and the resolve quad; occ - pcol is ordinary mesh submission, NOT stencil work.
 enum GxShadowStat
 {
 	GXS_CAST, GXS_CASTON, GXS_DYNV, GXS_STATV, GXS_UPB, GXS_DISC, GXS_REUSE, GXS_REUP, GXS_WSET, GXS_WSKIP,
 	GXS_RBROT, GXS_RBLIGHT, GXS_RBZ, GXS_DYNFLIP, GXS_SLOTFAIL, GXS_SREFILL,
-	GXS_GPUV, GXS_GPUSW, GXS_GPUDRAW, GXS_GPUBLD, GXS_GPUREF,	// GX_SHADOW_GPU (08/10/2026): volumes queued, meshes drawn, draws, edge meshes built / refused
+	GXS_GPUV, GXS_GPUSW, GXS_GPUDRAW, GXS_GPUBLD, GXS_GPUREF,	// GX_SHADOW_GPU: volumes queued, meshes drawn, draws, edge meshes built / refused
 	GXS_T_UPD, GXS_T_INCR, GXS_T_DECR, GXS_T_QUAD, GXS_T_ALL, GXS_T_OCC, GXS_T_PCOL,
 	GXS_N
 };
@@ -195,7 +180,7 @@ struct GxGfxState
 
 inline GxGfxState g_gxGfx;
 
-// GeneralsX: [GXCENSUS] (GX_DRAWCENSUS=1 with GX_GFX=1; R-CPU roadmap step 2): the draw/state
+// [GXCENSUS] (GX_DRAWCENSUS=1 with GX_GFX=1; R-CPU roadmap step 2): the draw/state
 // census per [GXGFXF] sub-span. The counters are WW3D2's never-reset totals (DX8Wrapper::Census, names and meaning
 // in dx8wrapper.h enum DX8CensusCounter); W3DDisplay attaches them here because WW3D2 cannot include this file. Each
 // sub-span mark charges the counters' movement since the previous mark to that sub-span, exactly as it charges the
@@ -252,7 +237,7 @@ inline int gxGfxHitchMs()
 	return s_ms;
 }
 
-// GeneralsX: The look governor (GXLookGovernor.h, S14) needs this frame's draw CPU and Present wait
+// The look governor (GXLookGovernor.h, S14) needs this frame's draw CPU and Present wait
 // without the printed lines: W3DDisplay sets this once, before the first frame it governs. The clocks then run as with
 // GX_HITCH alone (frames are marked, nothing accumulates or prints unless GX_GFX is set too).
 inline bool g_gxGfxGovTiming = false;
@@ -293,11 +278,11 @@ inline int64_t gxGfxCpuNs()
 #endif
 }
 
-// GX_GFX_LOAD=<span>:<us>[:sleep], e.g. scene:2000 or ui:2000:sleep. The calibration test for [GXGFX]
-// (graphics P2 i-06): a KNOWN load at a KNOWN place, so the report tool can check it lands in that span's wall
-// time, and in its CPU time for a spin but not for a sleep (gx-gfx-report.py --calib). Render-only: it delays
-// the main thread inside W3DDisplay::draw and touches no state. Loaded and unloaded windows alternate, so one
-// run compares itself. Never set it in a timing arm.
+// GX_GFX_LOAD=<span>:<us>[:sleep], e.g. scene:2000 or ui:2000:sleep. The calibration test for [GXGFX]: a KNOWN
+// load at a KNOWN place, so the report tool can check it lands in that span's wall time, and in its CPU time for a
+// spin but not for a sleep (gx-gfx-report.py --calib). Render-only: it delays the main thread inside
+// W3DDisplay::draw and touches no state. Loaded and unloaded windows alternate, so one run compares itself.
+// Never set it in a timing arm.
 inline void gxGfxParseLoad()
 {
 	GxGfxState &g = g_gxGfx;
@@ -557,7 +542,7 @@ inline void gxGfxClientBegin()
 		g_gxGfx.cliStart = gxGfxWallNs();
 }
 
-// GeneralsX: Leave a span out of cli= (H02's orders-before-draw pass, GameClient.cpp): cli - draw stays
+// Leave a span out of cli= (H02's orders-before-draw pass, GameClient.cpp): cli - draw stays
 // client work outside the renderer, comparable with builds that translated the orders after the client update.
 inline void gxGfxClientExclude( int64_t ns )
 {
@@ -575,7 +560,7 @@ inline void gxGfxClientEnd()
 	g.cliStart = 0;
 }
 
-// GeneralsX: [GXDRAWP] (graphics P2 f-06): the W8 per-hitch draw split
+// [GXDRAWP]: the W8 per-hitch draw split
 // (test/w8-probe9 6064c467e), ported onto the [GXGFX] marks instead of merged. W8 read CLOCK_THREAD_CPUTIME_ID
 // unconditionally on every frame (it does not compile under MSVC, and its reads ran with the print off); here
 // the marks run only when GX_GFX or GX_HITCH is set, Windows gets the calibrated cycle clock, and every span is
@@ -673,7 +658,7 @@ struct GxGfxFeatScope	// times a whole function into a feature counter, across e
 };
 
 #if defined(__APPLE__)
-// GeneralsX: [GXGFX] therm= lpm= (graphics P2 i-08): the OS's own throttling signals, the
+// [GXGFX] therm= lpm=: the OS's own throttling signals, the
 // iPad governor's slow prior. NSProcessInfo.thermalState is 0 nominal, 1 fair, 2 serious, 3 critical (macOS 10.10.3+,
 // iOS 11+; by Apple's header only serious/critical mean performance may be reduced), isLowPowerModeEnabled is 0/1
 // (iOS 9+, macOS 12+). Asked through the Objective-C runtime from plain C++, under PRIVATE asm-label aliases: this

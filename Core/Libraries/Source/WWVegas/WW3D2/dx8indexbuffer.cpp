@@ -292,7 +292,7 @@ DX8IndexBufferClass::DX8IndexBufferClass(unsigned short index_count_,UsageType u
 	:
 	IndexBufferClass(BUFFER_TYPE_DX8,index_count_)
 {
-	DX8Wrapper::GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: WS-G Task 5: a known device access (no RAW_ACCESS)
+	DX8Wrapper::GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: a known device access (no RAW_ACCESS)
 	DX8_THREAD_ASSERT();
 	WWASSERT(index_count);
 	unsigned usage_flags=

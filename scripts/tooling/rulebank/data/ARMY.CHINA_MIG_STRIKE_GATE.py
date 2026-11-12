@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule ARMY.CHINA_MIG_STRIKE_GATE: China Infantry launches its MiG
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule ARMY.CHINA_MIG_STRIKE_GATE: China Infantry launches its MiG
 # raid only at a set MiG count. Stock Infantry Hard's air raid teams "3RD Wave Air. 1" (0-4 MiGs) and "4TH Wave Air B. 1" (0-2) have a
 # MiG minimum of 0, so a raid can leave with whatever is ready. Here each team's minimum becomes min(mig_strike_count, its maximum): the
 # raid forms only once that many MiGs exist (one Air Field parks 4, so the default 5 means the full 4 and 2). Team counts only; the

@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule EXPAND.SUPPLY_BOOM: an early supply-centre boom on the own clock.
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule EXPAND.SUPPLY_BOOM: an early supply-centre boom on the own clock.
 # Stock Hard expands through the gift-carrying "Base Expansion Check" (an ENGINE hook: EXPAND.TIMING_COND); this rule leaves it alone and
 # adds, per general, one ONE-SHOT script per centre number n, "GX Supply Boom <n> - H", that orders one more supply centre / stash the way
 # the stock expansion does (AI_PLAYER_BUILD_SUPPLY_CENTER on a pile of 5000+ - ENGINE_READS, listed in the manifest) while the player owns

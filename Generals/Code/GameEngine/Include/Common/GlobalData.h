@@ -590,18 +590,8 @@ private:
 
 	static const FieldParse s_GlobalDataFieldParseTable[];
 
-	// GeneralsX: Restricted field table for SagePatch.ini.
-	//
-	// SagePatch.ini is auto-created in the user data directory and opens a "GameData" block, which
-	// meant it could set ANY field in s_GlobalDataFieldParseTable - including simulation constants.
-	// "Gravity = -0.5" in a user-editable text file desyncs every network game the user joins
-	// (Locomotor.cpp integrates m_gravity every frame on every peer) and is a trivial cheat that no
-	// CRC catches until the next mismatch check. The file is meant to carry a small set of
-	// client-only comfort settings, so it gets a table containing exactly those.
-	//
-	// Fields outside the table are silently ignored in release (INI::initFromINI reports an unknown
-	// field via DEBUG_CRASH only), so an existing SagePatch.ini keeps working and simply stops
-	// being able to reach the simulation.
+	// GeneralsX: restricted field table for SagePatch.ini. The file is user-editable, so it must not reach simulation
+	// constants (Gravity, for one, desyncs every network game). Fields outside the table are silently ignored in release.
 	static const FieldParse s_SagePatchFieldParseTable[];
 	static Bool s_restrictToSagePatchFields;
 

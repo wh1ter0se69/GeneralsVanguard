@@ -1,4 +1,22 @@
-// GeneralsX: WS-F1: GxPacketWriter v1 (see GxPacketWriter.h for the pass graph and lifetimes).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// WS-F1: GxPacketWriter v1 (see GxPacketWriter.h for the pass graph and lifetimes).
 #include "GxPacketWriter.h"
 #include "GxLookFrame.h"
 #include "GxShadowCasters.h"
@@ -67,7 +85,7 @@ bool GxPacketWriter::init(Vk::VkCtx& ctx, Res::GxResources& res, const GxWriterD
 	m_lastPs.assign(desc.psBlockBytes, 0);
 	if (!m_layout.init(dev, desc.vsBlockBytes, desc.psBlockBytes, why, desc.lookFeatures) || !m_samplers.init(ctx))
 		return false;
-	if (m_layout.look) {   // S7 P2: set 2 = one persistent set + a host-visible UBO, one kLookFrameStride slice per frame slot
+	if (m_layout.look) {   // set 2 = one persistent set + a host-visible UBO, one kLookFrameStride slice per frame slot
 		const VkDescriptorPoolSize ls[2] = { { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2 }, { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1 } };
 		VkDescriptorPoolCreateInfo lp = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 		lp.maxSets = 1;
@@ -302,7 +320,7 @@ bool GxPacketWriter::beginFrame()
 	m_cmd = f->cmd;
 	if (m_gpu) {   // GX_GPUTIME. A query set is read only when it comes round again, m_gpuSets frames later: MoltenVK's stamps are not
 	               // there yet when the slot's timeline signals (read at retire: 3-5 of 8 frames missing; read 5-20 ms later: 0 of 8 -
-	               // M5, gx_record_test, 12/10). Resetting the set is safe: its frame is >= framesInFlight frames old, so retired.
+	               // gx_record_test). Resetting the set is safe: its frame is >= framesInFlight frames old, so retired.
 		const uint32_t set = uint32_t(m_gpuFrames++ % m_gpuSets);
 		if (m_gpuRingSlot[set] >= 0)
 			readGpuSet(set);
@@ -310,9 +328,9 @@ bool GxPacketWriter::beginFrame()
 		m_gpuShadowExpected[set] = 0;
 		m_gpuSetInit[set] = 0;
 		m_gpuSetLogic[set] = m_logicFrame;
-		// S7 A101 (PREREG A27 as amended; the integrator's rulings 06:4xZ / 2409, option (b)): the set is reset on the HOST, so every
+		// The set is reset on the HOST, so every
 		// stamp of this frame - on MAIN, or in INIT however late INIT opens - follows the reset in execution order; `frame` begins on
-		// MAIN as before A27, and INIT opens only when it has work (initCmdGpu: front copies, the caster pass), its first open beginning
+		// MAIN, and INIT opens only when it has work (initCmdGpu: front copies, the caster pass), its first open beginning
 		// `frame_init` as its first command - the frame's total whenever INIT exists
 		if (m_debug.gpuResetOnMain)   // TEST-ONLY X-gputime-init: the parent's command reset at MAIN's top - INIT's stamps precede it
 			m_gpu->beginFrame(m_cmd, set);
@@ -510,8 +528,8 @@ uint64_t GxPacketWriter::endFrame(const Vk::SubmitDesc& extra)
 		if (shadow >= 0)
 			m_gpu->endScope(init, shadow);
 	}
-	// S7 P2: this slot's look frame = the pass the INIT replay just drew (the frame's last BeginShadowFrame), so every receiver of the
-	// frame samples that map; host writes before the submission are visible to it (flushed: the memory need not be coherent, A36 4d)
+	// This slot's look frame = the pass the INIT replay just drew (the frame's last BeginShadowFrame), so every receiver of the
+	// frame samples that map; host writes before the submission are visible to it (flushed: the memory need not be coherent)
 	if (m_lookMapped && !m_debug.lookFrameStale) {
 		GxLookFrameUbo u;
 		const GxShadowPassDesc none{};
@@ -691,7 +709,7 @@ bool GxPacketWriter::openScope()
 			ca.resolveImageView = rs.colourView;
 			ca.resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			rs.colourTarget->markUsed(m_frameValue);
-			rs.colourTarget->mainWrite = m_frameValue;   // S7 A1: the scope's resolve writes it in MAIN (integrator 12:1xZ)
+			rs.colourTarget->mainWrite = m_frameValue;   // the scope's resolve writes it in MAIN
 		}
 		color->mainWrite = m_frameValue;   // S7 A1: written by this frame's MAIN commands
 	}
@@ -773,7 +791,7 @@ void GxPacketWriter::recordUploads()
 		(m_scope.depth.image && m_res->hasPendingFor(m_scope.depth.image)))
 		flushPendingClear();
 	if (m_scope.open) {
-		// the copies into resources this frame has not touched run before the frame instead: the scope stays open (rw3-T-4)
+		// the copies into resources this frame has not touched run before the frame instead: the scope stays open
 		if (m_res->recordPendingFront(m_frameValue, [this]() { return initCmdGpu(); }))
 			++m_stats.hoistedUploads;
 		if (m_res->pendingCount() == 0)
@@ -848,7 +866,7 @@ void GxPacketWriter::clear(bool color, bool depth, bool stencil, const VkClearCo
 	if (cr.empty())
 		return;
 	vkCmdClearAttachments(m_cmd, n, att, uint32_t(cr.size()), cr.data());
-	// R38: MoltenVK records an in-pass clear as a Metal draw of its own and leaves the bound descriptor sets / push constants of
+	// MoltenVK records an in-pass clear as a Metal draw of its own and leaves the bound descriptor sets / push constants of
 	// the NEXT draw disturbed, although Vulkan says vkCmdClearAttachments keeps bound state - the draw after a mid-frame clear was
 	// lost (api_dump: the recorded order was right). So the shadow is dropped and the next draw re-sends everything: one re-bind
 	// per in-pass clear (rare), on every platform rather than a MoltenVK-only branch nobody tests elsewhere.
@@ -1084,7 +1102,7 @@ bool GxPacketWriter::draw(const GxDrawPacket& p)
 				}
 		if (firstOf[i] != i)
 			views[i] = views[firstOf[i]];
-		else if (!(views[i] = tex[i]->view(m_frameValue)))   // VkCtx enables no nullDescriptor: never write a null view (r14 #2)
+		else if (!(views[i] = tex[i]->view(m_frameValue)))   // VkCtx enables no nullDescriptor: never write a null view
 			return refuse("texture view creation failed");
 	}
 	for (uint32_t i = 0; i < GxRecordLayout::kStages; ++i)
@@ -1270,12 +1288,12 @@ bool GxPacketWriter::draw(const GxDrawPacket& p)
 		castIb = ib;
 		castIbOff = off;
 	}
-	// 7b. S7: a caster is captured AFTER its prologue (A21: uploads flushed above, every buffer bound = used + touched)
-	// a DRAWN caster must test and write depth (PREREG 2.2.3); the cast-only path has no camera z-write to ask (A8)
+	// A caster is captured AFTER its prologue (uploads flushed above, every buffer bound = used + touched)
+	// a DRAWN caster must test and write depth; the cast-only path has no camera z-write to ask
 	if (p.cast == 1 && m_casters && p.depthTest && p.depthWrite)
 		captureCaster(p, castVb, castVbOff, castIb, castIbOff, false);
 
-	// 7c. S7 P2 (A36 item 4): set 2 (the look frame set) once per command buffer - every pipeline the writer binds uses its layout -
+	// Set 2 (the look frame set) once per command buffer - every pipeline the writer binds uses its layout -
 	// and again after a state reset (outsideScope's foreign-layout passes, an in-pass clear)
 	if (m_lookSet && !sh.lookBound) {
 		const uint32_t off = kLookFrameStride * m_slot;

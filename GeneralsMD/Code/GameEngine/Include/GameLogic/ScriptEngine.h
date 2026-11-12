@@ -46,6 +46,7 @@ class Object;
 class ThingTemplate;
 class Player;
 class PolygonTrigger;
+class Parameter;
 class ObjectTypes;
 
 #ifdef RTS_PROFILE_LEGACY
@@ -250,6 +251,7 @@ public:
 	void notifyOfTeamDestruction(Team *teamDestroyed);
 	void notifyOfObjectCreationOrDestruction();
 	UnsignedInt getFrameObjectCountChanged() {return m_frameObjectCountChanged;}
+	UnsignedInt getObjectTypeListsGeneration() const { return m_objectTypeListsGeneration; }	///< GeneralsX: moves when any script ObjectTypes list changes
 	void setSequentialTimer(Object *obj, Int frameCount);
 	void setSequentialTimer(Team *team, Int frameCount);
 
@@ -288,6 +290,7 @@ public:
 
 	/// Return the trigger area with the given name
 	virtual PolygonTrigger *getQualifiedTriggerAreaByName( AsciiString name );
+	PolygonTrigger *getQualifiedTriggerAreaForParam( Parameter *pTriggerParm );	///< GeneralsX: same answer, cached on the Parameter
 
 	// For other systems to evaluate Conditions, execute Actions, etc.
 
@@ -474,6 +477,7 @@ protected:
 	Int								m_fadeFramesDecrease;
 
 	UnsignedInt				m_frameObjectCountChanged;
+	UnsignedInt				m_objectTypeListsGeneration = 1;	///< GeneralsX: NOT saved; a load moves it
 
 	ObjectTypeCount		m_objectCounts[MAX_PLAYER_COUNT];
 

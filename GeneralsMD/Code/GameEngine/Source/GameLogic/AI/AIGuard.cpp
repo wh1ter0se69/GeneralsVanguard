@@ -52,6 +52,10 @@
 #include "GameLogic/Object.h"
 #include "GameLogic/PartitionManager.h"
 #include "GameLogic/PolygonTrigger.h"
+#include "GameLogic/Weapon.h"					// GeneralsX A2-G3: Weapon::isContactWeapon
+#include "GameLogic/Module/ContainModule.h"	// GeneralsX A2-G3: ContainModuleInterface::isPassengerAllowedToFire
+#include "Common/Player.h"						// GeneralsX A2-G3: Player::getAIPlayer
+#include "GameLogic/AIPlayer.h"				// GeneralsX A2-G3: AIPlayer::gxAirWatchRadius
 
 const Real CLOSE_ENOUGH = (25.0f);
 
@@ -209,6 +213,35 @@ AIGuardMachine::~AIGuardMachine()
 }
 
 //--------------------------------------------------------------------------------------
+
+#ifdef GX_TEST_INSTRUMENTS
+// GeneralsX TEST-ONLY per-call checker (GX_RW1_CHECK, never in a shipped build): the retail walk beside the new one, from the
+// same world. Each walk stamps its own done flag, and the filters of a cheap-order scan have no side effect, so the
+// second run starts clean. A window line per 600 frames; diff must stay 0, and GX_RW1_BREAK (PartitionManager) must make it bite.
+static void gxRw1Check(Object *fast, const Coord3D &pos, Real range, PartitionFilter **filters)
+{
+	static const Bool on = getenv("GX_RW1_CHECK") != nullptr;
+	if (!on)
+		return;
+	static UnsignedInt calls = 0, diffs = 0, window = 0xffffffff;
+	Object *slow = ThePartitionManager->getClosestObject(&pos, range, FROM_CENTER_2D, filters);
+	++calls;
+	const UnsignedInt frame = TheGameLogic->getFrame();
+	if (slow != fast)
+	{
+		++diffs;
+		fprintf(stderr, "[GXRW1 DIFF] f=%u new=%u retail=%u\n", frame, fast ? (UnsignedInt)fast->getID() : 0u, slow ? (UnsignedInt)slow->getID() : 0u);
+	}
+	if (frame / 600 != window)
+	{
+		window = frame / 600;
+		fprintf(stderr, "[GXRW1] f=%u calls=%u diff=%u area_calls=%u stopped=%u rings=%u dirty=%u\n", frame, calls, diffs, TheGXRw1Stats.calls,
+			TheGXRw1Stats.stopped, TheGXRw1Stats.rings, TheGXRw1Stats.dirtyWalked);
+		fflush(stderr);
+	}
+}
+#endif
+
 Bool AIGuardMachine::lookForInnerTarget()
 {
 	Object* owner = getOwner();
@@ -246,6 +279,21 @@ Bool AIGuardMachine::lookForInnerTarget()
 	PartitionFilter *filters[16];
 	Int count = 0;
 
+	// Filters are ANDed and called in order; when none has a side effect, order changes only cost, so the cheap ones (map status,
+	// area, flying) go before the weapon check. The weapon check has no side effect unless it can start a nested partition walk
+	// (Weapon::isWithinAttackRange's contact-weapon branch, via the current weapon, firing passengers or slaves), which moves this scan's walk flag.
+	// The tunnel air watch's check for an aircraft target (AIPlayer::gxAirAttackAuthorized -> findTeamPrototype) can intern a new name key
+	// while the owner's watch is acting: then the retail order stays, unless that name already has a key (the lookup only reads).
+	// (Weapon::getStatus's lazy m_status write is not in Weapon::crc.)
+	const Weapon *gxCurWeapon = owner->getCurrentWeapon();
+	const Player *gxOwnerPlayer = owner->getControllingPlayer();
+	const AIPlayer *gxOwnerAI = gxOwnerPlayer ? gxOwnerPlayer->getAIPlayer() : nullptr;
+	const Bool gxCheapFiltersFirst = !owner->getTemplate()->isEnterGuard()
+		&& (gxCurWeapon == nullptr || !gxCurWeapon->isContactWeapon())
+		&& (owner->getContain() == nullptr || !owner->getContain()->isPassengerAllowedToFire())
+		&& owner->getSpawnBehaviorInterface() == nullptr
+		&& (gxOwnerAI == nullptr || gxOwnerAI->gxAirWatchRadius() == 0 || gxOwnerAI->gxAirWatchTeamKeyKnown());
+
 	// Enter Guard state
 	if (owner->getTemplate()->isEnterGuard())
 	{
@@ -266,7 +314,8 @@ Bool AIGuardMachine::lookForInnerTarget()
 	else
 	{
 		filters[count++] = &f1;
-		filters[count++] = &f2;
+		if (!gxCheapFiltersFirst)
+			filters[count++] = &f2;
 	}
 
 	filters[count++] = &filterMapStatus;
@@ -290,6 +339,9 @@ Bool AIGuardMachine::lookForInnerTarget()
 		filters[count++] = &f4;
 	}
 
+	if (gxCheapFiltersFirst)
+		filters[count++] = &f2;	// GeneralsX A2-G3: last, see gxCheapFiltersFirst
+
 	filters[count++] = nullptr;
 
 //	SimpleObjectIterator* iter = ThePartitionManager->iterateObjectsInRange(
@@ -301,7 +353,20 @@ Bool AIGuardMachine::lookForInnerTarget()
 // just ask for that; the above has to find ALL objects in range, but we ignore all
 // but the first (closest).
 //
-	Object* target = ThePartitionManager->getClosestObject(&pos, visionRange, FROM_CENTER_2D, filters);
+	// GeneralsX: perf32 rw-1 the area test runs before the weapon check when gxCheapFiltersFirst, and nothing
+	// before it has a side effect, so an object outside the area can be skipped: see PartitionManager::getClosestObjectInArea.
+	Object* target;
+	if (area && gxCheapFiltersFirst)
+	{
+		target = ThePartitionManager->getClosestObjectInArea(&pos, visionRange, FROM_CENTER_2D, filters, area);
+#ifdef GX_TEST_INSTRUMENTS
+		gxRw1Check(target, pos, visionRange, filters);
+#endif
+	}
+	else
+	{
+		target = ThePartitionManager->getClosestObject(&pos, visionRange, FROM_CENTER_2D, filters);
+	}
 	if (target)
 	{
 		setNemesisID(target->getID());
@@ -513,7 +578,7 @@ void AIGuardOuterState::xfer( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 void AIGuardOuterState::loadPostProcess()
 {
-	// GeneralsX @bugfix A stray 'AIGuardOuterState' sat here, which made the next line
+	// GeneralsX: A stray 'AIGuardOuterState' sat here, which made the next line
 	// parse as a declaration — 'AIGuardOuterState onEnter();' — rather than a call. The
 	// state was therefore never re-entered after loading a save, so guarding
 	// units abandoned their guard orders on load.

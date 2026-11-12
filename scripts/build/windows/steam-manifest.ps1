@@ -1,3 +1,5 @@
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # READ-ONLY integrity manifest of the Steam Zero Hour install.
 # GeneralsX:
 #

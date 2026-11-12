@@ -54,6 +54,7 @@
 #include "GameClient/MapUtil.h"
 #include "GameClient/GameWindowTransitions.h"
 #include "GameClient/ChallengeGenerals.h"
+#include "GameClient/GXLobbyCommands.h"		// GXChatBoxAdd: the score screen's two-column chat box
 
 #include "GameLogic/GameLogic.h"
 
@@ -1058,8 +1059,8 @@ void WOLQuickMatchMenuUpdate( WindowLayout * layout, void *userData)
 						GameWindow *listboxChatWindowScoreScreen = TheWindowManager->winGetWindowFromId( nullptr, listboxChatWindowScoreScreenID );
 						if (listboxChatWindowScoreScreen)
 						{
-							GadgetListBoxAddEntryText(listboxChatWindowScoreScreen, TheGameText->fetch(disconMunkee),
-								GameSpyColor[GSCOLOR_DEFAULT], -1);
+							GXChatBoxAdd(listboxChatWindowScoreScreen, UnicodeString(L"[S]"), TheGameText->fetch(disconMunkee),
+								GXChatMutedColor());	// GeneralsX @feature through the chat-box helper
 						}
 						else
 						{

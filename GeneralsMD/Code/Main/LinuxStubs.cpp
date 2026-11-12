@@ -35,7 +35,7 @@
 // P2: OSDisplay functions (cursor, warning dialogs)
 
 /**
- * OSDisplaySetBusyState - Set cursor busy/not busy (P2)
+ * OSDisplaySetBusyState - Set cursor busy/not busy
  * TheSuperHackers @build felipebraz 13/02/2026 - Linux stub
  */
 void OSDisplaySetBusyState(bool is_busy, bool force_update)
@@ -47,7 +47,7 @@ void OSDisplaySetBusyState(bool is_busy, bool force_update)
 }
 
 /**
- * OSDisplayWarningBox - Show warning dialog (P2)
+ * OSDisplayWarningBox - Show warning dialog
  * TheSuperHackers @build felipebraz 13/02/2026 - Linux stub
  */
 void OSDisplayWarningBox(AsciiString title, AsciiString message, unsigned int icon_type, unsigned int button_type)

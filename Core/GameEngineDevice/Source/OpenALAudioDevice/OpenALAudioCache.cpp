@@ -1,3 +1,21 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "OpenALAudioCache.h"
 
 #include "Common/AudioEventInfo.h"
@@ -15,7 +33,7 @@ OpenALAudioFileCache::OpenALAudioFileCache() : m_maxSize(14*1024*1024), m_curren
 {
 }
 
-// GeneralsX: Was decodeFFmpeg, and hard-coded to AVFrame. AudioDecoder
+// Was decodeFFmpeg, and hard-coded to AVFrame. AudioDecoder
 // hands back interleaved PCM on every platform - the planar conversion this function used to carry
 // now lives inside the FFmpeg implementation of the facade, so macOS, Linux and iOS still run
 // exactly the same conversion and produce exactly the same bytes.
@@ -133,7 +151,7 @@ ALuint OpenALAudioFileCache::getBufferForFile(const OpenFileInfo &fileInfo)
 		return 0;
 	}
 
-	// GeneralsX: A failed alGenBuffers (e.g. AL_OUT_OF_MEMORY, no current
+	// A failed alGenBuffers (e.g. AL_OUT_OF_MEMORY, no current
 	// context) leaves m_buffer 0, and decodeAudio does not check AL errors. Cached with a live
 	// reference that handle could never be closed (closeBuffer(0) returns at once) or evicted, and
 	// every retry would hit it and add another reference. Refuse it here - after the decoder owns
@@ -146,7 +164,7 @@ ALuint OpenALAudioFileCache::getBufferForFile(const OpenFileInfo &fileInfo)
 
 	if (eventToOpenFrom && eventToOpenFrom->isPositionalAudio()) {
 		if (openedAudioFile.m_decoder->getNumChannels() > 1) {
-			// GeneralsX @bugfix Bender 09/05/2026 Keep multichannel positional assets loadable so playback can fall back to non-spatial output.
+			// Keep multichannel positional assets loadable so playback can fall back to non-spatial output.
 			DEBUG_LOG(("OpenAL positional fallback armed for multichannel audio '%s' (%d channels)\n",
 				strToFind.str(), openedAudioFile.m_decoder->getNumChannels()));
 		}
@@ -159,26 +177,10 @@ ALuint OpenALAudioFileCache::getBufferForFile(const OpenFileInfo &fileInfo)
 
 	openedAudioFile.m_decoder->close();
 
-	// KNOWN DEFECT, LEFT IN DELIBERATELY - DO NOT "TIDY" THIS AWAY WITHOUT READING THIS NOTE.
-	//
-	// decodeAudio() has just accumulated the DECODED size into m_fileSize, one chunk at a time.
-	// This line throws that away and replaces it with the ON-DISK COMPRESSED size, which is then
-	// what the whole cache budget is accounted in. Every eviction decision below, and the 14 MiB
-	// m_maxSize ceiling, are therefore computed against a number that is not the memory actually
-	// held.
-	//
-	// The error is not small and it is not uniform. IMA-ADPCM decodes to roughly 4x its on-disk
-	// size, and 2572 of the 3530 audio entries in the shipped BIGs are IMA-ADPCM - so on a normal
-	// match the cache believes it is holding 14 MiB while actually holding something closer to
-	// four times that. PCM entries (951) are accounted correctly, so the overshoot varies with
-	// which sounds a match happens to touch.
-	//
-	// NOT FIXED HERE ON PURPOSE. Correcting it makes evictions fire far more often, which changes
-	// which samples are resident and when they are re-decoded. That is a real behaviour change,
-	// and this landed as part of giving Windows an audio decoder at all - a change whose whole
-	// discipline was that Windows must behave exactly like the other three peers. Fixing it is a
-	// separate, deliberate change that lands on all four platforms together, with the memory
-	// profile measured before and after.
+	// KNOWN DEFECT, kept deliberately: this line replaces the DECODED size decodeAudio() accumulated with the
+	// ON-DISK COMPRESSED size, and the cache budget (m_maxSize, 14 MiB) is accounted in that. IMA-ADPCM decodes to
+	// about 4x its size, so the cache holds up to ~4x what it believes. Not fixed here: it changes eviction timing,
+	// so it must land on all four platforms together, with the memory profile measured before and after.
 	openedAudioFile.m_fileSize = fileSize;
 	m_currentlyUsedSize += openedAudioFile.m_fileSize;
 	if (m_currentlyUsedSize > m_maxSize) {
@@ -192,7 +194,7 @@ ALuint OpenALAudioFileCache::getBufferForFile(const OpenFileInfo &fileInfo)
 		}
 	}
 
-	// GeneralsX: The caller that triggered the load holds a reference, as the
+	// The caller that triggered the load holds a reference, as the
 	// cache-hit path above and Miles' openFile (m_openCount = 1) both count it. Leaving it at 0 made
 	// that caller's closeBuffer wrap the unsigned count to UINT_MAX: a finished sample then looked
 	// "playing" forever and could never be evicted, so once 14 MiB was resident every new sample of

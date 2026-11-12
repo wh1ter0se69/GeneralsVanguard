@@ -16,8 +16,8 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G Task 5: the device-less wrapper model's LOGICAL layer - render_state, its dirty flags,
-// the light environment and Apply_Render_State_Changes (GxL2Model.h). Cites are W/dx8wrapper.{h,cpp} at 3a59e5b2a.
+// The device-less wrapper model's LOGICAL layer - render_state, its dirty flags,
+// the light environment and Apply_Render_State_Changes (GxL2Model.h).
 
 #include "W3DDevice/GameClient/GXRender/Scene/GxL2Model.h"
 

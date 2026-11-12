@@ -76,7 +76,7 @@ public:
 
 	Object *getCurNemesis();
 	void updateNemesis(const Object *target);
-	/// GeneralsX 23/10/2026 (ai-wh1ter0se-econ T, test-instruments logs only): the STORED nemesis id, read with no side effect
+	/// GeneralsX: test-instruments logs only: the STORED nemesis id, read with no side effect
 	/// (getCurNemesis() clears a stale one, so a log must never call it).
 	ObjectID gxPeekNemesisID() const { return m_curNemesisID; }
 

@@ -6345,11 +6345,10 @@ StateReturnType AIExitState::update()
 		if (goal->isEffectivelyDead())
 			return STATE_FAILURE;
 
-		// GeneralsX: Ask again now. privateExit (TheSuperHackers #3089/#3136) checked membership
-		// when the order arrived, but the exit can wait here for frames (a busy door, a Chinook landing) while the
-		// container changes under it: capturing a tunnel endpoint re-homes its passengers to another endpoint of the old
-		// owner's network, and exiting through the captured one cleared the passenger's containment without removing it
-		// from the old network's list - a dangling entry once the unit later died.
+		// GeneralsX: Ask again now. privateExit checked membership when the order arrived, but the exit can wait here
+		// for frames (a busy door, a Chinook landing) while the container changes under it: capturing a tunnel endpoint
+		// re-homes its passengers to another endpoint of the previous network, and exiting through the captured one cleared the
+		// passenger containment without removing it from that network list - a dangling entry once the unit later died.
 		if (!goal->getContain()->isContained(obj))
 			return STATE_FAILURE;
 #endif

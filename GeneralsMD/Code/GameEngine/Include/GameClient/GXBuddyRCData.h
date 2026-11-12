@@ -1,30 +1,27 @@
-// GeneralsX: The gx right-click payload, shared by every surface that
-// opens the buddy RC menus: the overlay's own lists (WOLBuddyOverlay.cpp) and the lobby roster
-// (WOLLobbyMenu.cpp). One shared handler reads whatever payload the menu carries, so the two
-// types must be tellable apart BEFORE any downcast:
-//
-//   * GXRCMenuData derives from GameSpyRCMenuData, so the handler's existing base-pointer read is
-//     well-formed for both.
-//   * The discriminator is m_id == GX_RC_PROFILE_SENTINEL. A real GameSpy user is m_id > 0, and
-//     the GameSpy path treats anything else as "not a GameSpy user", so the sentinel is inert if
-//     it ever leaks into old code. A global mode flag cannot type a heap object - the menu can
-//     outlive the click that made it - so the tag lives in the payload itself.
-//   * Deletion happens on the DERIVED type after the sentinel check (the base has no virtual
-//     dtor, so deleting through the base pointer would be undefined for gx payloads).
-//
-// Ownership is take-and-null: whoever consumes the payload nulls the window's user data and
-// deletes; closeRightClickMenu deletes whatever is still attached, so a menu dismissed without a
-// click cannot leak - the GameSpy path's historical leak-on-dismiss is not copied.
-//
-// m_gxKind picks the action route. BY_ID acts on a durable id the store already holds (friend and
-// ignore rows). BY_SLOT acts on a room slot - a pending request row or a roster row - and every
-// BY_SLOT action revalidates m_nick (the snapshot taken at menu open) against the live roster
-// before sending anything, because slots are recycled across humans.
-//
-// SELF (18/09/2026) is the player's OWN roster row, opened as EA's retail RCLocalPlayerMenu.wnd -
-// the menu the GameSpy lobby opened for "me". Its single button (ButtonStats) is relabelled Sign
-// Out rather than hidden, and it acts on nothing but this player's own sign-in, so it carries no
-// id, no slot and nothing to revalidate.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// gx right-click payload shared by the buddy RC menus (WOLBuddyOverlay.cpp lists, WOLLobbyMenu.cpp roster).
+// GXRCMenuData derives from GameSpyRCMenuData; m_id == GX_RC_PROFILE_SENTINEL identifies it before any downcast.
+// Delete the DERIVED type after that check (no virtual dtor). The consumer nulls the window's user data;
+// closeRightClickMenu deletes whatever is still attached, so a dismissed menu cannot leak.
+// BY_SLOT actions revalidate m_nick against the live roster first, because slots are recycled.
+// SELF is the player's own roster row (RCLocalPlayerMenu.wnd, its one button relabelled Sign Out): no id or slot.
 #pragma once
 
 #include "GameNetwork/GameSpy/PeerDefs.h"	// GameSpyRCMenuData, RCItemType, GPProfile

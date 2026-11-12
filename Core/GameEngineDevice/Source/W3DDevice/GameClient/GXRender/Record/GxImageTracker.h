@@ -1,16 +1,25 @@
-// GeneralsX: WS-F1: per-image access state and the precise barriers the pass graph needs.
-//
-// GXRES' own GxImage::transition is a full barrier (everything -> one use): right for its rare copies, too blunt for a frame
-// that hands a render target to its readers. The writer asks need(image, use) before every attachment, sampled or transfer
-// use; the tracker queues a barrier only when the use is not already covered (a layout change, a write not yet visible to
-// that stage/access, or a write after reads), and flush() records the queued ones in one vkCmdPipelineBarrier2 - always
-// OUTSIDE a rendering scope (dynamic rendering allows no such barrier inside).
-//
-// State survives command buffers (a write in frame N still needs a barrier before a read in frame N+1: queue order is an
-// execution order, not a memory dependency). When something else changed the image (its GxImage::layout or VkImage differs
-// from what the tracker last saw - GXRES recordPending / resolveTo / readImage), the tracker assumes an unknown write, except
-// for the GXRES contract case ("The contract" #2): an image GXRES left in SHADER_READ_ONLY_OPTIMAL has its copy
-// writes already visible to sampling and transfer reads at every stage.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GxImageTracker - per-image access state and the precise barriers the pass graph needs. The writer asks
+// need(image, use) before each use; flush() records the queued barriers in one vkCmdPipelineBarrier2, always
+// OUTSIDE a rendering scope. If something else changed an image the tracker assumes an unknown write,
+// except one GXRES left in SHADER_READ_ONLY_OPTIMAL.
 #pragma once
 
 #include "VkCommon.h"

@@ -1,41 +1,25 @@
-// GeneralsX: what the GAME socket (Transport) tells the relay about who is
-// playing, decided in PURE code: no socket, no engine, no AsciiString. Transport.cpp cannot be compiled
-// on its own (5,500 lines over the whole engine), so scripts/test/game-socket-identity-test.cpp drives
-// THIS - the code Transport::resendRelayIdentity actually runs - and checks the wiring at source level.
-//
-// Two things live here, and each closes a gap the lobby-socket fix (2b6d141fd) left open because
-// closing it meant touching Transport.cpp, which is in the simulation digest:
-//
-//   1. THE SIGN-OUT CLEAR IS OWED UNTIL SOMETHING NEW IS DECLARED. "GXIDN <room> -" used to go out
-//      once. It is one unacknowledged UDP datagram, and a single lost one left the relay holding the
-//      account on that membership - its sub, its role, its sanctions - for as long as the membership
-//      lasted, which for a socket that keeps re-registering is indefinitely. GXLobbyIdentity.h makes
-//      the same argument for the lobby presence socket and repeats its clear on every tick; this is
-//      the game socket's version of that latch.
-//
-//   2. The line itself: the assertion while one is held, the clear while one is owed, nothing
-//      otherwise. Transport sends it directly after EVERY registration keepalive (see
-//      sendRelayRegistration), so the clear is repeated on that cadence without a clock of its own.
-//
-// THE DEBT IS PROCESS-WIDE, NOT PER TRANSPORT, and that is the point of it being a class at all.
-// Transport objects do not live as long as a relay membership does: SetUpOnlineLobbyLAN and a browser
-// join both delete TheLAN and build a new transport, which binds the same local port, reaches the relay
-// from the same public endpoint and can re-register the SAME (room, id) - at which point the relay
-// treats it as the old membership continuing, sub and all. A latch stored in the old transport would
-// die with it, possibly before it had repeated anything. Transport.cpp therefore keeps ONE of
-// these at file scope, beside the other process-wide relay state it keeps for the same reason
-// (s_assignedRoom, the dead-room table).
-//
-// KEYED ON THE PORT, because the port IS the relay socket. The relay runs a separate listener per port
-// with its own rooms and members, and a Transport always talks to the relay port equal to its own local
-// port. The identity is only ever declared on the lobby transport (LANAPI, 8086); the in-match
-// transport (ConnectionManager, 8088) never holds an assertion, so it can never owe a clear either, and
-// its traffic is byte-identical to what it was before this existed.
-//
-// IN THE DIGEST, harmlessly. Core/GameEngine/Include/GameNetwork is a digested root, so adding or editing
-// this file moves the simulation source digest - that is a property of the tree, not of the code. Nothing
-// here is read by the simulation: the line is a control datagram addressed to the relay, which consumes
-// it and never forwards it.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// What the game socket (Transport) tells the relay about who is playing. Pure code; test: game-socket-identity-test.cpp
+// The sign-out clear (GXIDN <room> -) is one unacknowledged UDP datagram, so it is owed until something new is
+// declared and repeated after each registration keepalive. The debt is process-wide and keyed on the port, as
+// Transport objects are rebuilt while the relay membership lives on. Not read by the simulation.
 #pragma once
 
 #include <stddef.h>
@@ -68,7 +52,7 @@ private:
 	unsigned short m_port;	///< the port the clear is owed on; 0 while nothing is owed
 };
 
-/// GeneralsX: Bare keepalives of a signed-out membership the relay may leave
+/// Bare keepalives of a signed-out membership the relay may leave
 /// unanswered before the client gives that id up and asks for a new one. ONE policy for both sockets that
 /// discard their secret at sign-out: GXLobbyPresence::update re-asks GXWHO itself, and the lobby transport
 /// raises Transport::isRelayIdentityStranded for the Online screen to re-enter its room. The relay answers

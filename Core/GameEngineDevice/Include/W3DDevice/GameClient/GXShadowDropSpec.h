@@ -1,11 +1,29 @@
-// GeneralsX: S7 PREREG A60/A73 (TEST-ONLY): the drop spec GX_SHADOW_DROP_MESH /
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// TEST-ONLY: the drop spec GX_SHADOW_DROP_MESH /
 // GX_SHADOWMAP_DROP_CAST name - pure parsing and matching, host-tested (scripts/test/sm-fit/sm-fit-test.cpp A73-drop-*, with the
 // compile-time mutants sm-fit-test.sh builds), used by W3DVolumetricShadowManager::gxShadowDropMesh. Render-only diagnostics.
 //
-// A value is ONE entry, or (A73) a comma list of up to 8. An entry is <CONTAINERPREFIX>.<MESH>, case-insensitive: a mesh name matches
-// when its name after the last '.' is MESH and the part before starts with CONTAINERPREFIX (A60, unchanged); (A73) an entry ending in '.'
+// A value is ONE entry, or a comma list of up to 8. An entry is <CONTAINERPREFIX>.<MESH>, case-insensitive: a mesh name matches
+// when its name after the last '.' is MESH and the part before starts with CONTAINERPREFIX; an entry ending in '.'
 // matches every mesh of that container prefix. Any invalid entry leaves the whole spec off. A single entry with a mesh parses exactly as
-// A60's parser did (the host test compares the two).
+// the single-entry parser does (the host test compares the two).
 #pragma once
 
 #include <cctype>

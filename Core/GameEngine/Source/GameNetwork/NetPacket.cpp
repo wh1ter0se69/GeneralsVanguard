@@ -36,7 +36,7 @@
 #include <set>
 
 
-// GeneralsX @bugfix Bounded implementation behind NetPacket::readFileMessage. The read*
+// GeneralsX: Bounded implementation behind NetPacket::readFileMessage. The read*
 // helpers are only handed (data, i) and so have no idea how many bytes of the buffer
 // they are parsing actually exist; the packet path knows and passes it in here. See the
 // definition further down for what the missing bound allowed a remote peer to do.
@@ -211,7 +211,7 @@ NetCommandRef * NetPacket::ConstructNetCommandMsgFromRawData(UnsignedByte *data,
 
 			}
 
-			// GeneralsX @bugfix The switch above has no default case and msg starts
+			// GeneralsX: The switch above has no default case and msg starts
 			// null, so a command type this build does not recognise — trivially
 			// supplied by a peer — left msg null and every call below dereferenced
 			// it. Drop the command instead of crashing on it.
@@ -582,12 +582,11 @@ Bool NetPacket::isFrameRepeat(NetCommandRef *msg) {
 		return FALSE;
 	}
 	// GeneralsX: The repeat must be the SAME originator's. The 'Z' reader rebuilds a repeated
-	// FRAMEINFO with the player id of the command before it, and nothing above compared it: on the packet router one
+	// FRAMEINFO with the player id of the command before it, and on the packet router one
 	// destination's packet holds several originators' FRAMEINFOs, so originator C's FRAMEINFO(N+1, id k+1) written right
-	// after originator A's (N, id k) went out as a one-byte repeat and was read as A's. C's input for N+1 was lost at
-	// every receiver although its datagram arrived, the receiver acked the wrong command, and only the sender's retry
-	// timer (3 x mean latency) repaired it - a stall. Measured in the m1-net-lab netns lab (4 peers, 31 ms legs, 0% loss):
-	// jitter sigma 5 ms per leg 12.6% of wall time blocked -> 0.00%; with the retry timer at 5 s 74% -> 0.00%.
+	// after originator A's (N, id k) would go out as a one-byte repeat and be read as A's. C's input for N+1 would be lost at
+	// every receiver although its datagram arrived, the receiver would ack the wrong command, and only the sender's retry
+	// timer (3 x mean latency) would repair it - a stall.
 	// Writer-only: an explicit FRAMEINFO is what every reader already decodes.
 	if (framemsg->getPlayerID() != lastmsg->getPlayerID()) {
 		return FALSE;
@@ -701,7 +700,7 @@ NetCommandList * NetPacket::getCommandList() {
 
 	// GeneralsX: The fixed-size readers and the field headers read their width with no
 	// check against packetEnd, so a command at the end of the datagram read past what arrived - and past m_packet when
-	// the datagram filled it (net-hardening reader-bounds-r1). Walk a copy with READER_SLACK zeroed bytes after
+	// the datagram filled it. Walk a copy with READER_SLACK zeroed bytes after
 	// the received ones, and refuse a command whose reader went past packetEnd (below). One copy of at most
 	// MAX_PACKET_SIZE bytes per datagram.
 	UnsignedByte data[MAX_PACKET_SIZE + READER_SLACK];
@@ -731,23 +730,9 @@ NetCommandList * NetPacket::getCommandList() {
 			break;
 		case NetPacketFieldTypes::Relay:
 			++i;
-			// GeneralsX: THE 9-PEER STALL. This read was the one place the
-			// RelayMaskType byte->short widening did not reach: the writer emits
-			// sizeof(RelayMaskType) bytes (NetPacketRelayField, pack(1)), and the sibling parser in
-			// NetPacket::getCommandList's static counterpart above reads sizeof(relay) - but this
-			// one hard-coded UnsignedByte. On little-endian it therefore kept only the LOW byte of
-			// the mask and left the high byte in the stream, where the switch's default branch
-			// silently consumed it with ++i and a DEBUG_CRASH that compiles away in a deploy build.
-			//
-			// Slots 0-7 live entirely in the low byte, so eight peers were unaffected and the
-			// stray byte was always 0x00 - which is why this survived every 8-peer proof. Slot 8's
-			// mask is 0x0100: the low byte is 0x00, so the command decoded with relay == 0, and
-			// ConnectionManager::sendRemoteCommand's `relay & (1 << m_localSlot)` then refused to
-			// add it to the ninth peer's own FrameData. That peer's allCommandsReady could never
-			// become true, so it froze at exactly the run-ahead window and every other peer froze
-			// one window later waiting on it. Deterministic, and exactly at the 9th peer.
-			//
-			// Sized off the destination variable so it tracks RelayMaskType automatically.
+			// Read sizeof(relay) bytes, not a fixed byte: RelayMaskType is wider than one byte, and a one-byte read kept
+			// only the low byte, so from the ninth peer on (slot 8 = mask 0x0100) the command decoded with relay == 0.
+			// Sized off the destination variable so it tracks RelayMaskType.
 			memcpy(&relay, data + i, sizeof(relay));
 			i += sizeof(relay);
 			break;
@@ -858,7 +843,7 @@ NetCommandList * NetPacket::getCommandList() {
 				break;
 			case NETCOMMANDTYPE_FILE:
 				DEBUG_LOG_LEVEL(DEBUG_LEVEL_NET, ("read file message from player %d", playerID));
-				// GeneralsX @bugfix Hand the reader the number of bytes we actually received.
+				// GeneralsX: Hand the reader the number of bytes we actually received.
 				// Without it the file payload length taken from the packet was believed
 				// verbatim and copied out of m_packet, which is only MAX_PACKET_SIZE bytes.
 				// m_packetLen is the length the sender claimed and the constructor never
@@ -895,17 +880,9 @@ NetCommandList * NetPacket::getCommandList() {
 			}
 
 			if (msg == nullptr) {
-				// GeneralsX: `continue` was wrong, and it is why a reader
-				// in here can only ever be half-hardened. A reader returns null precisely when a
-				// length field it was handed did not describe the bytes that arrived - at which
-				// point `i` no longer points at a command boundary, so resuming the walk decodes
-				// whatever happens to follow AS commands. Stop reading this packet; the commands
-				// already collected are still returned.
-				//
-				// It has to be done by exhausting the cursor, NOT by `break`: this block is inside
-				// `case NetPacketFieldTypes::Data:` of the OUTER switch, so a bare break would leave
-				// the switch and land straight back in the while loop - the same behaviour the
-				// `continue` it replaces had.
+				// A reader returns null when a length field did not match the bytes received, so i no longer sits on a
+				// command boundary: stop reading this packet (commands already collected are kept). Exhaust the cursor,
+				// not break: this is inside case Data of the outer switch, and a bare break would resume the while loop.
 				DEBUG_CRASH(("Didn't read a message from the packet. Things are about to go wrong."));
 				i = packetEnd;
 				break;
@@ -947,7 +924,7 @@ NetCommandList * NetPacket::getCommandList() {
 			++i;
 			// Repeat the last command, doing some funky cool byte-saving stuff
 			if (lastCommand == nullptr) {
-				// GeneralsX @bugfix DEBUG_CRASH compiles away in release, and every
+				// GeneralsX: DEBUG_CRASH compiles away in release, and every
 				// branch below dereferences lastCommand. A 'Z' repeat command arriving
 				// first — before anything exists to repeat — is a remote null deref.
 				// Skip the command; the surrounding loop already uses continue to
@@ -1129,8 +1106,8 @@ NetCommandMsg * NetPacket::readGameMessage(UnsignedByte *data, Int &i, Int bytes
 
 		// GeneralsX: An empty group desyncs the argument walk below: it starts on the first
 		// group's type and moves on only when a count runs down to zero, so (INTEGER,0),(PIXELREGION,1) read one INTEGER
-		// for the region and left the rest of its bytes to be parsed as more commands (net-hardening
-		// reader-bounds-r1). An honest message never has one (GameMessageParser groups non-empty runs).
+		// for the region and left the rest of its bytes to be parsed as more commands. An honest message never has one
+		// (GameMessageParser groups non-empty runs).
 		if (argCount == 0) {
 			deleteInstance(parser);
 			msg->detach();
@@ -1216,8 +1193,7 @@ void NetPacket::readGameMessageArgumentFromPacket(GameMessageArgumentDataType ty
 	{
 		// GeneralsX: A peer's BYTE, not a bool: copying 0x02 into a bool is an invalid object
 		// representation (undefined; Clang read it as FALSE), and a vote-kick ballot decides a kick on it. Read the byte
-		// and normalise it here, where every network BOOLEAN argument is parsed, so every peer decides the same
-		// (batch0958 r1-robustness P2).
+		// and normalise it here, where every network BOOLEAN argument is parsed, so every peer decides the same.
 		static_assert(sizeof(Bool) == sizeof(UnsignedByte), "a BOOLEAN argument is one byte on the wire");
 		UnsignedByte thebyte;
 		memcpy(&thebyte, data + i, sizeof(thebyte));
@@ -1547,21 +1523,10 @@ NetCommandMsg * NetPacket::readPacketRouterAckMessage(UnsignedByte *data, Int &i
 	return msg;
 }
 
-// GeneralsX: The one place remote chat text becomes a string.
-//
-// Reads a length-prefixed run of 16-bit wire characters (see NetPacketStructs.h - the wire unit is
-// deliberately NOT WideChar, which is 2 bytes on MSVC and 4 on clang/gcc), refusing any length the
-// buffer cannot actually contain, and hands back sanitised text.
-//
-// `bytesAvailable` is how much of `data` really exists; pass a negative value only when the caller
-// genuinely cannot know. Returns FALSE when the command is unreadable, in which case the caller
-// must drop it AND stop parsing this buffer: once a length field has lied there is no way to find
-// where the next command begins, so continuing would decode whatever follows as commands.
-//
-// Note what is NOT a risk here, because it is the first thing to check in a parser like this and
-// the answer is worth recording: this payload is length-prefixed, not delimited. There is no
-// separator for an empty or separator-containing message to collapse, so the strtok_r
-// empty-field-collapse trap that bites the comma-separated lobby announce cannot apply.
+// The one place remote chat text becomes a string. Reads a length-prefixed run of 16-bit wire characters (not WideChar:
+// its size differs by compiler), refusing any length the buffer cannot hold. bytesAvailable is the real size of data.
+// FALSE means unreadable: the caller must drop the command and stop parsing this buffer, since the next command
+// boundary is unknown.
 static Bool readWireChatText(UnsignedByte *data, Int &i, Int bytesAvailable, UnicodeString &outText)
 {
 	outText.clear();
@@ -1800,26 +1765,16 @@ NetCommandMsg * NetPacket::readWrapperAckMessage(UnsignedByte *data, Int &i) {
 	return msg;
 }
 
-// GeneralsX @bugfix Largest payload a file command can carry. ConnectionManager rejects
+// GeneralsX: Largest payload a file command can carry. ConnectionManager rejects
 // anything bigger on the way to disk (the biggest transferFileRules entry, .map, is 5 MiB),
 // so a claim above this can never turn into an accepted transfer and is refused up front.
 // This is the only bound available on the reassembled-wrapper path, where the real extent
 // of the buffer is not known here.
 static const UnsignedInt MAX_NET_FILE_TRANSFER_BYTES = 5 * 1024 * 1024;
 
-// GeneralsX @bugfix The payload length is a raw 32-bit value straight off the wire and was
-// used verbatim both to size the allocation and as the memcpy count, with nothing checking
-// it against the bytes actually present. A peer sending 0xFFFFFFFF asked for a 4 GiB
-// allocation and a 4 GiB read off the end of m_packet, which is only MAX_PACKET_SIZE bytes
-// (476 in a retail compatible build); a smaller bogus value quietly copied adjacent heap
-// into a file that then gets written to disk. The adjacent filename read was hardened with
-// strlcpy but the payload length was not.
-// bytesAvailable is how much of the buffer really exists (both callers know it: the packet's length, or
-// the reassembled command's).
-//
-// GeneralsX: The file name is scanned within bytesAvailable too (sweep
-// v-files-03). strlcpy bounds the COPY but runs strlen over the whole source, so a name with no
-// terminator inside the buffer read past its end, and the length after it was read from there.
+// The payload length is a raw 32-bit wire value: check it against bytesAvailable before allocating or copying.
+// bytesAvailable is the real size of the buffer (the packet, or the reassembled command).
+// The file name is scanned within bytesAvailable too: strlcpy bounds the copy but runs strlen over the whole source.
 static Bool readWireFileName(UnsignedByte *data, Int &i, Int bytesAvailable, char *filename, size_t filenameSize) {
 	if ((i < 0) || (i >= bytesAvailable)) {
 		return FALSE;
@@ -1847,7 +1802,7 @@ static NetCommandMsg * readFileMessageBounded(UnsignedByte *data, Int &i, Int by
 	memcpy(&dataLength, data + i, sizeof(dataLength));
 	i += sizeof(dataLength);
 
-	// GeneralsX @bugfix Validate the length before it is used to allocate or to copy.
+	// GeneralsX: Validate the length before it is used to allocate or to copy.
 	const Bool lengthIsValid = (dataLength <= MAX_NET_FILE_TRANSFER_BYTES) && (i <= bytesAvailable)
 		&& (dataLength <= (UnsignedInt)(bytesAvailable - i));
 	if (!lengthIsValid) {
@@ -1861,7 +1816,7 @@ static NetCommandMsg * readFileMessageBounded(UnsignedByte *data, Int &i, Int by
 	NetFileCommandMsg *msg = newInstance(NetFileCommandMsg);
 	msg->setPortableFilename(AsciiString(filename));	// it's transferred as a portable filename
 
-	// GeneralsX @bugfix setFileData makes its own copy, so the temporary buffer that used
+	// GeneralsX: setFileData makes its own copy, so the temporary buffer that used
 	// to be allocated here was both a second copy of the whole file and a straight leak -
 	// nothing ever deleted it. Copy from the packet directly.
 	msg->setFileData(data + i, dataLength);
@@ -1871,7 +1826,7 @@ static NetCommandMsg * readFileMessageBounded(UnsignedByte *data, Int &i, Int by
 }
 
 NetCommandMsg * NetPacket::readFileMessage(UnsignedByte *data, Int &i, Int bytesAvailable) {
-	// GeneralsX @bugfix The wrapper payload's true extent is now carried through from
+	// GeneralsX: The wrapper payload's true extent is now carried through from
 	// ConstructNetCommandMsgFromRawData (its length parameter was widened from
 	// UnsignedShort to UnsignedInt), so the copy is bounded against the actual
 	// buffer rather than merely capped at the maximum legal transfer size. Without

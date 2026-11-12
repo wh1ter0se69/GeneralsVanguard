@@ -69,6 +69,7 @@
 #define OUTER_PERIMETER "OuterPerimeter"
 
 class Parameter;
+class PolygonTrigger;
 class Script;
 class OrCondition;
 class Condition;
@@ -543,11 +544,11 @@ public:
 		TEAM_SET_BOOBYTRAPPED,										///< Add boobytrap to all units on team.
 		SHOW_WEATHER,															///< show map defined weather.
 		AI_PLAYER_BUILD_TYPE_NEAREST_TEAM,				///< Tell the ai player to build an object nearest team.
-		AI_PLAYER_FACE_FRONT,											///< GeneralsX 22/10/2026 (ai-wh1ter0se-econ R): this skirmish AI turns its production doors to its base front and its defences outward.
-		AI_PLAYER_GX_RULE,												///< GeneralsX 30/10/2026 (rb-core): AI rule bank - (player, rule id, key, int value); key 0 = enable
-		AI_PLAYER_GX_RULE_TEMPLATE,										///< GeneralsX 30/10/2026 (rb-core): AI rule bank - (player, rule id, key, template name)
-		AI_PLAYER_GX_RULE_TEAM,											///< GeneralsX 30/10/2026 (rb-core): AI rule bank - (player, rule id, key, team)
-		AI_PLAYER_TUNNEL_AIR_WATCH,								///< GeneralsX 22/10/2026 (ai-wh1ter0se-econ T): incoming enemy aircraft within N of this AI's tunnels become their nemesis (0 = off); the team's idle members are sent back into the tunnels.
+		AI_PLAYER_FACE_FRONT,											///< this skirmish AI turns its production doors to its base front and its defences outward.
+		AI_PLAYER_GX_RULE,												///< AI rule bank - (player, rule id, key, int value); key 0 = enable
+		AI_PLAYER_GX_RULE_TEMPLATE,										///< AI rule bank - (player, rule id, key, template name)
+		AI_PLAYER_GX_RULE_TEAM,											///< AI rule bank - (player, rule id, key, team)
+		AI_PLAYER_TUNNEL_AIR_WATCH,								///< incoming enemy aircraft within N of this AI's tunnels become their nemesis (0 = off); the team's idle members are sent back into the tunnels.
 		// add new items here, please
 		NUM_ITEMS
 	};
@@ -814,6 +815,12 @@ private:
 	Coord3D				m_coord;
 	ObjectStatusMaskType m_objectStatus;
 
+	// GeneralsX: ScriptEngine::getQualifiedTriggerAreaForParam's cache (NOT saved)
+	PolygonTrigger *m_gxTrigger = nullptr;
+	Int						m_gxTriggerNdx = 0;
+	UnsignedInt		m_gxTriggerGeneration = 0;
+	Int						m_gxTriggerKind = -1;	///< which alias the name is, once known; -1 = not looked at yet
+
 protected:
 	void setInt(Int i) {m_int = i;}
 	void setReal(Real r) {m_real = r;}
@@ -822,6 +829,15 @@ protected:
 	void setStatus( ObjectStatusMaskType objectStatus ) { m_objectStatus.set( objectStatus ); }
 
 public:
+	Int gxGetTriggerKind() const { return m_gxTriggerKind; }
+	void gxSetTriggerKind(Int kind) { m_gxTriggerKind = kind; }
+	Bool gxHasCachedTrigger(Int ndx, UnsignedInt generation) const { return m_gxTriggerNdx == ndx && m_gxTriggerGeneration == generation; }	///< 0, the default generation, is never a list's
+	PolygonTrigger *gxGetCachedTrigger() const { return m_gxTrigger; }
+	void gxSetCachedTrigger(PolygonTrigger *trig, Int ndx, UnsignedInt generation) { m_gxTrigger = trig; m_gxTriggerNdx = ndx; m_gxTriggerGeneration = generation; }
+#if defined(GX_TEST_INSTRUMENTS)
+	Bool gxHasCachedTriggerAtAnyNdx(UnsignedInt generation) const { return m_gxTriggerGeneration == generation; }
+#endif
+
 	Int getInt() const {return m_int;}
 	Real getReal() const {return m_real;}
 	void getCoord3D(Coord3D *pLoc) const;
@@ -975,9 +991,9 @@ public:
 		SUPPLY_SOURCE_ATTACKED,									// True if our supply depot or dozer near depot was attacked.
 		START_POSITION_IS,											// True if our start position matches.
 		NAMED_HAS_FREE_CONTAINER_SLOTS,					///< Kris -- Checks if any given container has any free slots.
-		AI_PLAYER_GX_SENSE,											///< GeneralsX 01/11/2026 (rb-sense-1): AI rule bank - (ai player, player, faction): the AI fairly knows that player's faction (lobby, or 3 different units seen)
-		AI_PLAYER_GX_SEEN_COUNT,								///< GeneralsX 02/11/2026 (rb-sense-2): AI rule bank - (ai player, player, comparison, count, object type): how many of the player's units of that type the AI's OWN units and buildings see now
-		AI_PLAYER_GX_SEEN_VALUE,								///< GeneralsX 02/11/2026 (rb-sense-2): AI rule bank - (ai player, player, comparison, value, area): the cost of the player's armed units the AI's OWN units and buildings see now inside the area
+		AI_PLAYER_GX_SENSE,											///< AI rule bank - (ai player, player, faction): the AI knows that player's faction (lobby, or 3 different units seen)
+		AI_PLAYER_GX_SEEN_COUNT,								///< AI rule bank - (ai player, player, comparison, count, object type): how many of the player's units of that type the AI's OWN units and buildings see now
+		AI_PLAYER_GX_SEEN_VALUE,								///< AI rule bank - (ai player, player, comparison, value, area): the cost of the player's armed units the AI's OWN units and buildings see now inside the area
 
 		NUM_ITEMS		 // Always the last condition.
 	};
@@ -1001,6 +1017,11 @@ private:
 	Int				m_hasWarnings; ///< Runtime flag used by the editor only.
 	Int				m_customData;  ///< Custom data for cacheing.
 	UnsignedInt m_customFrame; ///< Custom frame count for cacheing.
+
+	// GeneralsX: what the cached answer was computed from (NOT saved; see gxConditionCacheCurrent)
+	Int				m_gxCachePlayerIndex = -1;
+	UnsignedInt m_gxCacheMemberVersion = 0;
+	UnsignedInt m_gxCacheTypeListsGeneration = 0;
 
 public:
 	void setConditionType(enum ConditionType type);
@@ -1027,6 +1048,16 @@ public:
 
 	Int getCustomFrame() const {return m_customFrame;}
 	void setCustomFrame(Int val) { m_customFrame = val;}
+
+	Int gxGetCachePlayerIndex() const { return m_gxCachePlayerIndex; }
+	UnsignedInt gxGetCacheMemberVersion() const { return m_gxCacheMemberVersion; }
+	UnsignedInt gxGetCacheTypeListsGeneration() const { return m_gxCacheTypeListsGeneration; }
+	void gxSetCacheKey(Int playerIndex, UnsignedInt memberVersion, UnsignedInt typeListsGeneration)
+	{
+		m_gxCachePlayerIndex = playerIndex;
+		m_gxCacheMemberVersion = memberVersion;
+		m_gxCacheTypeListsGeneration = typeListsGeneration;
+	}
 
 	static void WriteConditionDataChunk(DataChunkOutput &chunkWriter, Condition *pCond);
 	static Bool ParseConditionDataChunk(DataChunkInput &file, DataChunkInfo *info, void *userData);

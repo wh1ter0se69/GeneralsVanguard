@@ -251,7 +251,17 @@ Object* PointDefenseLaserUpdate::scanClosestTarget()
 	bonus.clear();
 	Real fireRange = data->m_weaponTemplate->getAttackRange( bonus );
 
-	ObjectIterator *iter = ThePartitionManager->iterateObjectsInRange( me->getPosition(), data->m_scanRange, FROM_CENTER_2D );
+	// GeneralsX: when every KindOf this laser accepts is BALLISTIC_MISSILE or
+	// SMALL_MISSILE (PartitionData::friend_isMissile), nothing else can pass the KindOf test below, and iterateMissilesInRange
+	// hands over the missiles in range in the order iterateObjectsInRange would have, without walking every object in range.
+	static const KindOfMaskType s_gxMissileKinds( KindOfMaskType::kInit, KINDOF_BALLISTIC_MISSILE, KINDOF_SMALL_MISSILE );
+	KindOfMaskType gxOtherKinds = data->m_primaryTargetKindOf;
+	gxOtherKinds.set( data->m_secondaryTargetKindOf );
+	gxOtherKinds.clear( s_gxMissileKinds );
+
+	ObjectIterator *iter = gxOtherKinds.any()
+		? ThePartitionManager->iterateObjectsInRange( me->getPosition(), data->m_scanRange, FROM_CENTER_2D )
+		: ThePartitionManager->iterateMissilesInRange( me->getPosition(), data->m_scanRange, FROM_CENTER_2D );
 	MemoryPoolObjectHolder hold(iter);
 
 	for( Object *other = iter->first(); other; other = iter->next() )

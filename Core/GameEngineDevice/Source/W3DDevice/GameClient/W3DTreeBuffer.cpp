@@ -1200,12 +1200,9 @@ void W3DTreeBuffer::unitMoved(Object *unit)
 					treeNdx = m_trees[treeNdx].nextInPartition;
 					continue;	//  Tree is deleted. [7/11/2003]
 				}
-				// GeneralsX @bugfix wh1ter0se 12/08/2026 Defence in depth, NOT the fix - addTreeType
-				// above is. treeNdx is checked on BOTH ends four lines up ("paranoia [7/7/2003]")
-				// while treeType was only ever checked for <0, so an index past the populated end of
-				// m_treeTypes read a slot whose m_data was never assigned. The xfer path at the
-				// bottom of this file already pairs its DELETED_TREE_TYPE test with
-				// `treeType < m_numTreeTypes`; this is the same check, in the place that crashed.
+				// GeneralsX @bugfix wh1ter0se 12/08/2026 Defence in depth, not the fix (addTreeType is): treeNdx is range-checked above but treeType was only
+				// checked for <0, so an index past the populated types read a slot whose m_data was never assigned.
+				// The xfer path at the bottom of this file pairs its DELETED_TREE_TYPE test with the same `< m_numTreeTypes` check.
 				if (m_trees[treeNdx].treeType >= m_numTreeTypes) {
 					DEBUG_CRASH(("Tree %d has type %d but only %d types are registered.",
 						treeNdx, m_trees[treeNdx].treeType, m_numTreeTypes));
@@ -1353,31 +1350,9 @@ void W3DTreeBuffer::removeTreesForConstruction(const Coord3D* pos, const Geometr
 // W3DTreeBuffer::addTreeTypes
 //=============================================================================
 /** Adds a type of tree (model & texture). */
-//=============================================================================
-// GeneralsX @bugfix wh1ter0se 12/08/2026 EVERY FAILURE PATH HERE USED TO `return 0`, WHICH IS A
-// VALID TREE TYPE - and that is the whole bug, not the missing null check further down.
-//
-// The only caller (addTree, below) rejects a negative and accepts everything else, so a failure
-// reported as 0 was indistinguishable from "registered successfully as type 0". When the FIRST tree
-// failed, m_numTreeTypes was still 0, nothing had ever been written to m_treeTypes[0], and the tree
-// was recorded pointing at a slot whose m_data had never been assigned. The next unit to move within
-// ~7 world units of it dereferenced that null in unitMoved().
-//
-// Measured, not reasoned: a friend's release build, three crash dumps on 2026-08-12.
-//   generalszh!W3DTreeBuffer::unitMoved+0x5a2   cmp dword ptr [rax+20h],1   rax=0
-//   PDB: W3DTreeDrawModuleData +0x020 m_framesToMoveOutward
-// which is the `m_data->m_framesToMoveOutward>1` test below. His game also rendered magenta - the
-// engine's own missing-texture fallback (missingtexture.cpp fills 0x7FFF00FF) - and that is the
-// same fault, one step earlier: Create_Render_Obj could not load the tree models, so the ONLY path
-// out of this function was a failure path, and every failure path lied about it.
-//
-// DEBUG_CRASH compiles out in release, so on a shipped build all three returned 0 in total silence.
-//
-// DELETED_TREE_TYPE (-2) rather than -1: -1 is END_OF_PARTITION and means something else in this
-// file, and addTree already initialises its local to DELETED_TREE_TYPE for exactly this "no usable
-// type" meaning. Its `if (treeType<0) return;` then drops the tree instead of aliasing it onto
-// type 0, which is also better behaviour when only SOME models are missing - one absent tree stops
-// being drawn as a different tree.
+// GeneralsX @bugfix wh1ter0se 12/08/2026 failures return DELETED_TREE_TYPE (-2), not 0: 0 is a valid type, so a failed first tree was recorded
+// against a slot whose m_data was never assigned and unitMoved() dereferenced null. -1 is END_OF_PARTITION here.
+// addTree's `if (treeType<0) return;` then drops the tree; DEBUG_CRASH compiles out in release.
 Int W3DTreeBuffer::addTreeType(const W3DTreeDrawModuleData *data)
 {
 	if (m_numTreeTypes>=MAX_TYPES) {

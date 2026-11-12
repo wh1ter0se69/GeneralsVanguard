@@ -438,19 +438,9 @@ void TunnelTracker::xfer( Xfer *xfer )
 
 	// version
 	//
-	// GeneralsX: v2 is only VALID when retail CRC compatibility is off.
-	//
-	// Version 2 drops m_tunnelCount on the argument that it always equals m_tunnelIDs.size().
-	// That premise is exactly what the RETAIL_COMPATIBLE_CRC arm does NOT hold: it deliberately
-	// lets the two diverge, because retail did. So with CRC compatibility ON but XFER_SAVE off,
-	// a v2 save omitted the count and the load path normalised it to the list size - and
-	// friend_getTunnelCount(), which decides whether the last tunnel caves in and kills everyone
-	// inside, silently changed across a save/load round trip.
-	//
-	// Neither switch can produce that mix through RTS_BUILD_OPTION_RETAIL_COMPATIBLE_GAME, which
-	// moves every RETAIL_COMPATIBLE_* together, so this is defensive against a hand -D override
-	// rather than a live defect. Making the condition state the real invariant is cheaper than
-	// leaving a trap for whoever first sets one of these independently.
+	// GeneralsX: v2 is valid only without retail CRC compat: it drops m_tunnelCount, assumed equal to m_tunnelIDs.size(),
+	// but the RETAIL_COMPATIBLE_CRC arm lets them diverge, so friend_getTunnelCount() would change across save/load.
+	// Defensive against a hand -D override of one switch; RTS_BUILD_OPTION_RETAIL_COMPATIBLE_GAME moves them together.
 #if RETAIL_COMPATIBLE_XFER_SAVE || RETAIL_COMPATIBLE_CRC
 	XferVersion currentVersion = 1;
 #else

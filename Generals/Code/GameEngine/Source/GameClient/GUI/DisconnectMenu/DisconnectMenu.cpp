@@ -94,22 +94,10 @@ DisconnectMenu::DisconnectMenu() {
 DisconnectMenu::~DisconnectMenu() {
 }
 
-// GeneralsX: A ROW WITH NO CONTROL NAME MUST NOT REACH nameToKey.
-//
-// The four tables below are declared [MAX_SLOTS] but defined with SEVEN names, so every entry from
-// index 7 upward is a null pointer - and NameKeyGenerator::nameToKey(const char*) dereferences its
-// argument with no null check (calcHashForString). Every lookup here already null-checks the
-// resulting GameWindow*, which is why this looked safe; the crash is one step earlier, on the NAME.
-//
-// MEASURED 2026-08-12: this killed all twelve peers of a twelve-player match within ~30 frames,
-// with an identical SIGSEGV in every one -
-//   nameToKey(name=0x0) <- DisconnectMenu::setPlayerName(playerNum=7) <- populateDisconnectScreen
-// - the moment the disconnect screen turned on. It is NOT caused by raising the slot count: index 7
-// is the EIGHTH player, so a stock eight-player game whose disconnect screen appears crashes the
-// same way. Raising MAX_SLOTS only makes it reachable more often, and a busy twelve-peer lobby
-// reaches it immediately.
-//
-// A missing row is a display limit of DisconnectScreen.wnd (it has seven), not an error: skip it.
+// GeneralsX: a row with no control name must not reach nameToKey. The four tables are sized [MAX_SLOTS] but name only
+// SEVEN controls, so entries from index 7 up are null, and nameToKey(const char*) does not null-check its argument.
+// This crashed every peer as the disconnect screen opened (setPlayerName, playerNum 7).
+// A missing row is a display limit of DisconnectScreen.wnd (seven rows), not an error: skip it.
 static NameKeyType rowKey( const char *controlName )
 {
 	return (controlName != nullptr) ? TheNameKeyGenerator->nameToKey( controlName ) : NAMEKEY_INVALID;

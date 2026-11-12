@@ -667,7 +667,7 @@ void FadeTransition::update( Int frame )
 	case FADETRANSITION_FADE_IN_7:
 	case FADETRANSITION_FADE_IN_8:
 	case FADETRANSITION_FADE_IN_9:
-		// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window); the 01/10 fix guarded draw() only (sweep c080-01).
+		// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window).
 		if(m_win)
 			m_win->winHide(TRUE);
 
@@ -1411,7 +1411,7 @@ void TextTypeTransition::update( Int frame )
 			m_isFinished = TRUE;
 		}
 	}
-	// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window); the 01/10 fix guarded draw() only (sweep c080-01).
+	// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window).
 	if(frame >= m_frameLength && m_win)
 	{
 		m_win->winHide(FALSE);
@@ -1560,7 +1560,7 @@ void CountUpTransition::update( Int frame )
 			m_isFinished = TRUE;
 		}
 	}
-	// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window); the 01/10 fix guarded draw() only (sweep c080-01).
+	// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window).
 	if(frame >= m_frameLength && m_win)
 	{
 		m_win->winHide(FALSE);
@@ -1866,7 +1866,7 @@ void FullFadeTransition::update( Int frame )
 
 		}
 	}
-	// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window); the 01/10 fix guarded draw() only (sweep c080-01).
+	// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window).
 	if(frame == FULLFADETRANSITION_END/2 && m_win)
 	{
 		if(m_isForward)

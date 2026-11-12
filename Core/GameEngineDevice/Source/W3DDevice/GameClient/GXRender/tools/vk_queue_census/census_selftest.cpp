@@ -1,11 +1,29 @@
-// GeneralsX: census_selftest: proves VK_LAYER_GX_queue_census sees what it claims, in both
-// directions (PREREG A39a). One device, one queue, empty submits; no window, no swapchain.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// census_selftest: proves VK_LAYER_GX_queue_census sees what it claims, in both
+// directions. One device, one queue, empty submits; no window, no swapchain.
 //   control  the main thread submits alone           -> the queue shows ONE thread, overlaps 0
 //   overlap  a 2nd thread submits while the main one is held INSIDE the layer (gxCensusTestHoldNext; the held call has not
 //            reached the driver yet, so there is no real driver race)   -> two threads on the queue, overlaps >= 1
 //   plant    GX_VK_CENSUS_PLANT=3                    -> one "census-plant" operation on the queue
 // Exit 0 = the census reported exactly what the mode does. census_verdict.py on the same summary must PASS control and FAIL the
-// other two (C3, C1).
+// other two.
 #if defined(_WIN32)
 #include <windows.h>
 #else

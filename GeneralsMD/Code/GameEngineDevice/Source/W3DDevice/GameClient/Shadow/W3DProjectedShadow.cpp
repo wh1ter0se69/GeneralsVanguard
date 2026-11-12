@@ -589,7 +589,7 @@ Int W3DProjectedShadowManager::renderProjectedTerrainShadow(W3DProjectedShadow *
 		{
 			Debug_Statistics::Record_DX8_Polys_And_Vertices(numPolys,numVerts,ShaderClass::_PresetOpaqueShader);
 			m_pDev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,0,numVerts,nShadowStartBatchIndex,numPolys);
-			DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+			DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 		}
 
 		GxRawRS(m_pDev, D3DRS_ALPHATESTENABLE, FALSE);	//should reject background pixels
@@ -831,7 +831,7 @@ void W3DProjectedShadowManager::flushDecals(W3DShadowTexture *texture, ShadowTyp
 	{
 		Debug_Statistics::Record_DX8_Polys_And_Vertices(nShadowDecalPolysInBatch,nShadowDecalVertsInBatch,ShaderClass::_PresetOpaqueShader);
 		m_pDev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST,0,nShadowDecalVertsInBatch,nShadowDecalStartBatchIndex,nShadowDecalPolysInBatch);
-		DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+		DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 	}
 
 //	GxRawRS(m_pDev, D3DRS_ALPHATESTENABLE, FALSE);	//should reject background pixels
@@ -1521,7 +1521,7 @@ Int W3DProjectedShadowManager::renderShadows(RenderInfoClass & rinfo)
 		}
 
 		flushDecals(lastShadowDecalTexture,lastShadowType);	//make sure there are not any unrendered decals left over.
-		GxFlushSiteNext = GXFS_PROJ_SHADOW;	// GeneralsX: WS-G (dx8renderer.h GxFlushSite)
+		GxFlushSiteNext = GXFS_PROJ_SHADOW;	// GeneralsX: dx8renderer.h GxFlushSite
 		TheDX8MeshRenderer.Flush();	//draw all the shadow receiving objects
 	}
 	if (m_decalList)

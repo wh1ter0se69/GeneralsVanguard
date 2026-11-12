@@ -16,22 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// FILE: GXPickProbe.h ///////////////////////////////////////////////////////////////////////////
-//
-// GeneralsX: [GXPICK] - "the item spawns not aligned with the preview
-// of the drone/scan". A targeted special power has two picks of the same mouse: the PREVIEW (the
-// radius-cursor decal, InGameUI::handleRadiusCursor, every rendered frame from the mouse status
-// position, radar first then terrain) and the SEND (CommandXlat's click handler, from the click
-// message's pixel, terrain only). Read side by side they run the same screenToTerrain on the same
-// scaled pixel, so the code alone does not show where an offset would come from.
-//
-// This records what the preview last put the decal on and where the last rendered frame drew it, so
-// the send side can print both. Reprojecting a picked point through the pick's own camera math only
-// gives the click back (see gxPickLog in CommandXlat.cpp); the drawn pixel is computed from render-side
-// inputs instead, so it is the field that can disagree with the click. One line per issued location
-// special power; client only, outside the sim digest. Remove once the rendered repro has named the cause.
-//
-// The G build compiles CommandXlat.cpp too but never records a preview; it prints preview=none.
+// FILE: GXPickProbe.h //////////////////////////////////////////////
+// [GXPICK]: a targeted special power picks the mouse twice, for the PREVIEW (InGameUI::handleRadiusCursor) and the SEND
+// (CommandXlat click). This records where the preview put the decal and where it was drawn; the send side prints both.
+// One line per location power; client only, outside the sim digest. The G build prints preview=none.
 
 #pragma once
 

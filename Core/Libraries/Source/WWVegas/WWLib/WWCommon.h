@@ -64,37 +64,10 @@ template <typename Type, size_t Size> char (*ArraySizeHelper(Type(&)[Size]))[Siz
 #endif
 #endif // ARRAY_SIZE
 
-// GeneralsX: GX_LOGIC_60HZ - opt-in 60 Hz simulation tick.
-//
-// DEFAULT IS 30 AND MUST STAY 30. This is the shipped rate, the rate the four-platform determinism
-// corpus was captured at, and the rate every .rep recorded so
-// far replays at. Flipping the default would silently invalidate all three.
-// [23/09/2026] Still true of the CMake OPTION default, but no longer "the shipped rate": every
-// shipping preset sets GX_LOGIC_60HZ=ON since 0b9bed517, so 60 Hz is what players run.
-//
-// A 30 Hz and a 60 Hz build CANNOT desync against each other: engineID hashes LOGICFRAMES_PER_SECOND
-// (SimID epoch 3, GameDefines.h), so a mismatched pair refuses to join with ENGINE_DIFFERS instead
-// of diverging on contact. That safety net is why this can be a build-time choice at all.
-//
-// WHAT IS NOT DONE YET, so nobody switches this on expecting a finished feature. Status updated
-// 23/09/2026 - the original three points are kept, each with what became of it:
-//   * [DONE, 44107218d] ConnectionManager caps the negotiated rate at a literal 30, so a 60 Hz
-//     NETWORK match would run at half speed until that is made rate-relative. -> It now clamps to
-//     LOGICFRAMES_PER_SECOND (ConnectionManager.cpp, the fpsCeiling clamp).
-//   * [DONE, d11d68de5 + 644a00372 + 9b3db2ea1 + branch fix/logic-60hz-retail-timers] ~20 gameplay
-//     constants are raw frame counts (build times, reload delays, spawn throttles, AI wait timers)
-//     and halve in wall-clock duration at 60 Hz. -> Frame-count durations go through GX_FRAMES30;
-//     per-frame rates, impulses and thresholds are #if GX_LOGIC_60HZ literals (x1/2, x1/4, exact);
-//     per-frame decays are square-root literals or sqrtf of the INI value (never powf); INI msec
-//     durations round on the retail 30 Hz grid. The full site table, and the handful left as owner
-//     calls (altitude controller, zero-delay script cadence, MIN_LOGIC_FRAMES / MIN_RUNAHEAD, the
-//     network history lengths), is, and
-//     scripts/test/audit/logic-frame-literals-lint.sh fails on any new raw frame literal.
-//   * [STILL TRUE] a network peer must RENDER at >= the tick rate, because canUpdateNetworkGameLogic
-//     has no time accumulator - so 60 Hz logic demands 60+ fps on EVERY peer.
-// The converters in GameCommon.h (ConvertDurationFromMsecsToFrames, ConvertVelocityInSecsToFrames,
-// ConvertAccelerationInSecsToFrames) already scale correctly, so INI-authored values are fine; it
-// is only the hard-coded frame counts that are not.
+// GeneralsX: GX_LOGIC_60HZ - opt-in 60 Hz tick. The option defaults OFF (30 Hz); shipping presets set it ON.
+// engineID hashes LOGICFRAMES_PER_SECOND, so 30 Hz and 60 Hz builds refuse to join (ENGINE_DIFFERS) rather than desync.
+// Frame-count durations go through GX_FRAMES30. A network peer must RENDER at >= the tick rate, since
+// canUpdateNetworkGameLogic has no time accumulator.
 #ifndef GX_LOGIC_60HZ
 #define GX_LOGIC_60HZ 0
 #endif

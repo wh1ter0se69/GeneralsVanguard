@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Build GeneralsX (base game) natively on macOS (Apple Silicon / arm64)
 # GeneralsX: Add macOS base-game build script
 #
@@ -36,7 +38,7 @@ check_tool ninja "brew install ninja"
 check_tool meson "brew install meson"
 check_tool python3 "brew install python3"
 
-# GeneralsX: Auto-detect VCPKG_ROOT for preset toolchain resolution
+# Auto-detect VCPKG_ROOT for preset toolchain resolution
 resolve_vcpkg_root() {
     local candidate=""
     local -a candidates=()

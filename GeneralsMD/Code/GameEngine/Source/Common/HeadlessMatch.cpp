@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: Headless LAN host/join driver. See HeadlessMatch.h.
+// Headless LAN host/join driver. See HeadlessMatch.h.
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
@@ -52,24 +52,10 @@
 #include "GameNetwork/GUIUtil.h"			// EnableSlotListUpdates
 
 // ------------------------------------------------------------------------------------------
-// THE TRAP THAT DEFINES THIS FILE
-//
-// LANAPI::update() begins with `if (LANbuttonPushed) return;`, and LANAPI's own callbacks
-// SET that flag: OnGameCreate (LANAPICallbacks.cpp:699) and OnGameJoin (:511) both do
-// `LANbuttonPushed = true` and then `TheShell->push("Menus/LanGameOptionsMenu.wnd")`. The ONLY
-// place that clears it again is LanLobbyMenuInit (LanLobbyMenu.cpp:474).
-//
-// So a headless driver that reuses stock LANAPI deadlocks the instant its game is created or
-// joined: the pump is disabled for the rest of the process and nothing will ever re-enable it.
-// The symptom is a host that appears to start fine and then never hears a single peer.
-//
-// Rather than clear the flag behind LANAPI's back - which would race the real menus if a UI
-// build ever reached this path - the headless role gets its own subclass whose callbacks touch
-// neither the flag nor TheShell. Everything that is UI-free (notably OnGameStart, which builds
-// TheNetwork, parses the user list, posts MSG_NEW_GAME and seeds the RNG) still calls the base
-// implementation, so the headless lobby and the real lobby converge on identical simulation
-// state. That equality is the whole point: a headless peer must be indistinguishable from a
-// human-driven one, or it cannot be used to prove determinism.
+// LANAPI::update() begins with `if (LANbuttonPushed) return;`; OnGameCreate/OnGameJoin set it and only
+// LanLobbyMenuInit clears it, so stock LANAPI deadlocks a headless driver. The headless role subclasses it with
+// callbacks that touch neither the flag nor TheShell; UI-free parts (OnGameStart) still call the base, so
+// simulation state matches a human-driven peer.
 // ------------------------------------------------------------------------------------------
 
 namespace
@@ -77,8 +63,8 @@ namespace
 
 /// Set once OnGameStart has run, so the driver knows to leave the lobby loop.
 Bool s_gameStarted = FALSE;
-/// Starts that only delivered the map and put the lobby back (owner's two-start flow). The
-/// driver answers each one with a second RequestGameStart once every slot shows the map.
+/// Starts that only delivered the map and put the lobby back. The driver answers each one with a second
+/// RequestGameStart once every slot shows the map.
 Int s_transferOnlyStarts = 0;
 /// How many of those second starts the driver has already issued.
 Int s_restartsIssued = 0;
@@ -146,7 +132,7 @@ public:
 			// the two peers disagree about the player set before the match even starts.
 			LANPreferences pref;
 			AsciiString options;
-			// GeneralsX: -lanobserver takes an OBSERVER seat, which the preferred
+			// -lanobserver takes an OBSERVER seat, which the preferred
 			// faction never can (LANPreferences refuses it). The host clears an observer's colour, start
 			// and team itself (LANAPICallbacks, PlayerTemplate), so an observer sends no colour.
 			if (TheGlobalData->m_lanObserver)
@@ -200,7 +186,7 @@ public:
 			return;
 		}
 
-		// GeneralsX: A start can now legitimately end back in the room:
+		// A start can now legitimately end back in the room:
 		// the first start of a lobby with a map-less peer only DELIVERS the map and restores the
 		// lobby (see LANAPI::OnGameStart). The game is genuinely started only once startGame ran,
 		// which is what isGameInProgress reports. The driver emulates the human's second click
@@ -290,24 +276,10 @@ public:
 };
 
 // ------------------------------------------------------------------------------------------
-// GeneralsX @feature Matchmaking. Which relay room this process belongs in.
-//
-// A host gets a room of its own (Transport::getLocalHostRoom), because the relay lists exactly one
-// game per room and two hosts sharing one would overwrite each other's listing. A joiner has to
-// end up in the room of the game it wants, which it does not know from -lanjoin alone: addresses
-// are allocated per room, so every host on the relay is 10.42.0.1 and the address identifies
-// nothing on its own.
-//
-// So the joiner browses first, exactly as the UI's game list does, and takes the room off the
-// listing whose host address matches. When that is ambiguous or the game is not listed at all -
-// a private game never advertises - the room has to be given explicitly:
-//
-//   GENERALSX_LANROOM=<token>    environment, highest precedence, either role
-//   RelayRoom=<token>            Options.ini, the existing explicit setting
-//
-// The pin is an environment variable rather than a -lanroom flag ONLY because adding a flag means
-// editing CommandLine.cpp and GlobalData, which are outside the file set this change is allowed to
-// touch. It is read at exactly one place and behaves like a flag in every other respect.
+// Which relay room this process joins. A host gets its own (Transport::getLocalHostRoom): one listed game per
+// room. A joiner browses the listing and takes the room whose host address matches (addresses are per room). If
+// ambiguous or unlisted, pin it: GENERALSX_LANROOM=<token> (environment, wins) or RelayRoom=<token>
+// (Options.ini).
 // ------------------------------------------------------------------------------------------
 
 /// An explicitly pinned room, or empty. Environment first, then Options.ini.
@@ -448,7 +420,7 @@ Int countAcceptedPeers()
 	return accepted;
 }
 
-/// GeneralsX: How many slots will become real players: occupied and not
+/// How many slots will become real players: occupied and not
 /// an observer. This is deliberately the same loop the LAN lobby UI runs before it lets the host
 /// press Start (LanGameOptionsMenu.cpp StartPressed) - the headless driver and the GUI are supposed
 /// to accept and refuse exactly the same lobbies, and until now only the GUI checked.
@@ -491,21 +463,10 @@ static Int playableFaction(const AsciiString &faction, const char *where)
 	return ptIdx;
 }
 
-/// GeneralsX: Refuse a lobby holding more players than the map has start
-/// positions. This is a GUARD ONLY: it never reassigns or clamps anything, because start positions
-/// decide where every player's opening units are placed and are therefore part of the frame-0 world
-/// CRC. Moving them would invalidate every .crc baseline and, since this
-/// engine defaults RETAIL_COMPATIBLE_CRC to 1, retail 1.04 replay compatibility with it.
-///
-/// What it prevents: populateRandomStartPosition caps positions at md->m_numPlayers
-/// (GameLogic.cpp:882-885) and pre-marks every index past it as taken (:928). A surplus player
-/// therefore finds no free position, keeps startPos=-1, gets no Command Center, and its skirmish AI
-/// returns early from adjustBuildList and owns nothing for the whole match - while the run still
-/// reports the full AI count and passes. Every "8-player" result in this project before this guard
-/// was an overfilled 2-player map.
-///
-/// Fails closed when the map is not in the cache, matching the GUI. Every hosting harness in
-/// scripts/ passes -lanmap, which is pre-flighted against the cache earlier in publishGameOptions.
+/// Refuse a lobby with more players than the map has start positions. Guard only: it never clamps, because start
+/// positions are part of the frame-0 world CRC (RETAIL_COMPATIBLE_CRC defaults to 1). A surplus player gets
+/// startPos=-1, no Command Center, and an AI that owns nothing (populateRandomStartPosition caps at
+/// md->m_numPlayers). Fails closed if the map is not cached.
 Bool lobbyFitsTheMap(GameInfo *game, Int occupied, const char *when)
 {
 	if (!game)
@@ -519,7 +480,7 @@ Bool lobbyFitsTheMap(GameInfo *game, Int occupied, const char *when)
 		return FALSE;
 	}
 
-	// GeneralsX: The same side/player capacity the GUI lobbies and the start
+	// The same side/player capacity the GUI lobbies and the start
 	// check use (Common/PlayerCapacity.h): the civilian sides the map keeps plus neutral and the
 	// ReplayObserver share MAX_PLAYER_COUNT with the slots. Checked first - it is the one the start
 	// refuses on every peer. -lanoverfill bypasses it too, so the start-time refusal can be exercised.
@@ -591,26 +552,10 @@ Bool HeadlessMatch::pumpUntil(Predicate predicate, UnsignedInt timeoutMs, const 
 		// LanLobbyMenuUpdate; GameEngine::update only pumps it while alt-tabbed out.
 		TheLAN->update();
 
-		// GeneralsX: AND THE IDENTITY, HERE, BECAUSE THIS LOOP IS THE
-		// WHOLE LOBBY PHASE AND NOTHING ELSE RUNS IN IT.
-		//
-		// The plan for this work put the declare beside TheGXLobbyPresence->update() in the two
-		// engine classes - which is right for a GUI peer and USELESS for this one. Measured
-		// 20/09/2026 with a headless host against a local relay at RELAY_REQUIRE_IDENTITY=1: the
-		// peer was dropped every time, and the reason is two lines above. TheGameEngine->update()
-		// is called from EXACTLY ONE place in this file (runMatch's loop), and runMatch does not
-		// start until driveLobby has returned. The relay's IDENT_GRACE_MS runs out here, in the
-		// lobby, where the engine pump has never once been called - so the peer was swept before
-		// the code that would have identified it ever executed.
-		//
-		// Same function as the engine pumps call, not a second copy: it early-returns unless the
-		// transport is relay-enabled and the assertion has actually changed, so this costs a
-		// pointer test and a 256-byte hash per 10 ms pass and sends nothing on the LAN path.
-		//
-		// THIS FILE IS INSIDE THE SIMULATION SOURCE DIGEST and that is a real cost, paid on
-		// purpose: there is no non-digested code in this loop to hang it off, and a headless peer
-		// that cannot identify is the entire defect. scripts/test/headless-identity-test.sh is the
-		// arm that fails without it.
+		// Declare the identity here: this loop is the whole lobby phase and TheGameEngine->update() (which declares it)
+		// is not reached until runMatch, so the relay's IDENT_GRACE_MS would drop the peer first. It early-returns
+		// unless the transport is relay-enabled and the assertion changed: a pointer test and a 256-byte hash per 10 ms
+		// pass.
 		gxDeclareIdentityIfChanged();
 
 		// LANAPI::update self-throttles to one pass per 200ms, so a tight spin would burn a
@@ -634,7 +579,7 @@ Bool HeadlessMatch::setUpLan()
 	}
 	TheLAN = NEW HeadlessLANAPI();
 
-	// GeneralsX @feature Relay transport. With a relay configured our identity is the VIRTUAL LAN
+	// Relay transport. With a relay configured our identity is the VIRTUAL LAN
 	// address, not a NIC address: the lobby is a two-machine LAN whose members are 10.42.0.1 and
 	// 10.42.0.2 wherever the machines physically are. NetworkDirectConnectInit does exactly this
 	// and skips the interface enumeration for the same reason - the virtual address is on no
@@ -724,7 +669,7 @@ Bool HeadlessMatch::setUpLan()
 		headlessLog("failed to bind local IP %d.%d.%d.%d", PRINTF_IP_AS_4_INTS(ip));
 		return FALSE;
 	}
-	// GeneralsX: Say "relay mode" only once the transport has turned it on.
+	// Say "relay mode" only once the transport has turned it on.
 	// This used to print before init whenever an address had been chosen, so a host whose
 	// RelayAddress did not resolve (initRelay then leaves relay off) logged relay mode and ran as a
 	// plain LAN host; xplat-4platform-play.sh reads this line as the engine's final word. Printed
@@ -758,27 +703,10 @@ Bool HeadlessMatch::setUpLan()
 	return TRUE;
 }
 
-// GeneralsX: THE HOST'S STRESS BATTLEFIELD, from its own environment.
-//
-// This is the ONLY place any GX_STRESS* variable is read, and it runs only on the peer that
-// publishes the game options - the host. Every other peer gets the settings from the host's "ST="
-// field and applies them from there (GameLogic/GXStress.h), so a joiner's environment cannot change
-// what its simulation does. Template NAMES are resolved to ids here, against data every peer must
-// share anyway (dataID), which keeps the announce short.
-//
-// Anything wrong fails the host LOUDLY instead of publishing a lobby that silently does less than
-// the operator asked for - the same rule as the -lanai faction pin. Unset means off.
-//
-//   GX_STRESS=<n>                 units per playable player (0..200)
-//   GX_STRESS_UNIT=<template>     default AmericaVehicleHumvee
-//   GX_STRESS_FRAME=<f>           logic frame of the spawn, default 120
-//   GX_STRESS_PLACE=ring|base     ring: around the map's centroid, in contact (the old recipe, default)
-//                                 base: in front of each player's own base
-//   GX_STRESS_RADIUS=<r>          ring radius, default 200
-//   GX_STRESS_ORDER=none|enemy|centre   attack-move policy, default none (the old recipe)
-//   GX_STRESS_EVERY=<frames>      re-issue orders to idle stress units, default 300
-//   GX_STRESS_BUILDINGS=<n>       structures per playable player (0..400), default 0
-//   GX_STRESS_BUILDING_TYPES=a,b  default AmericaBarracks,ChinaGattlingCannon,AmericaPowerPlant,ChinaBunker
+// The host's stress battlefield, from its own environment. The only place GX_STRESS* variables are read, and
+// only on the peer that publishes the game options; joiners apply the host's "ST=" field (GameLogic/GXStress.h).
+// Template names are resolved to ids here, against data every peer shares (dataID). Anything wrong fails the host
+// loudly; unset means off.
 static Bool stressEnvInt(const char *name, Int def, Int *out)
 {
 	const char *v = getenv(name);
@@ -899,7 +827,7 @@ Bool HeadlessMatch::publishGameOptions()
 		return FALSE;
 	}
 
-	// GeneralsX: The lobby's display title, when -lanlobby gave one.
+	// The lobby's display title, when -lanlobby gave one.
 	// Set here rather than beside RequestSetName because the LANGameInfo does not exist until
 	// RequestGameCreate has run; this is the first point that has one. setLobbyName sanitises.
 	if (!TheGlobalData->m_lanLobbyName.isEmpty())
@@ -947,7 +875,7 @@ Bool HeadlessMatch::publishGameOptions()
 			TheGlobalData->m_lanMap.str(), mapData->m_CRC, mapData->m_filesize);
 	}
 
-	// GeneralsX: -lanobserver on the host: slot 0 is an observer seat, set
+	// -lanobserver on the host: slot 0 is an observer seat, set
 	// the way LANAPICallbacks sets a joiner's (no colour, start or team). The host still hosts and, as
 	// the lowest human slot, still routes the match's packets.
 	if (TheGlobalData->m_lanObserver)
@@ -962,9 +890,9 @@ Bool HeadlessMatch::publishGameOptions()
 		if (getenv("GX_HOST_FACTION") != nullptr)
 			headlessLog("GX_HOST_FACTION ignored: the host is an observer (-lanobserver)");
 	}
-	// GeneralsX: GX_HOST_FACTION=<FactionName> pins the host's own seat, as -lanai's :Faction pins an
+	// GX_HOST_FACTION=<FactionName> pins the host's own seat, as -lanai's :Faction pins an
 	// AI's. RequestGameCreate leaves the host's template random and a headless host has no lobby screen to pick one, so a
-	// harness seat driven by a bot (scripts/ai/gym, GX_ACT) would otherwise play a random general.
+	// harness seat driven by a bot (GX_ACT) would otherwise play a random general.
 	else if (const char *hf = getenv("GX_HOST_FACTION"))
 	{
 		const Int ptIdx = playableFaction(AsciiString(hf), "GX_HOST_FACTION");
@@ -1013,7 +941,7 @@ Bool HeadlessMatch::publishGameOptions()
 			// LANGameInfo::setSlot takes a LANGameSlot, not the base GameSlot.
 			LANGameSlot aiSlot;
 			aiSlot.setState(state);
-			// GeneralsX @feature: optional faction pin from -lanai Hx2:FactionChina. A/B harnesses
+			// optional faction pin from -lanai Hx2:FactionChina. A/B harnesses
 			// need a specific faction (e.g. China supply trucks); random factions make runs
 			// incomparable. Unknown names fail loudly - a silently random slot would invalidate
 			// the measurement while looking identical to success.
@@ -1029,17 +957,10 @@ Bool HeadlessMatch::publishGameOptions()
 		}
 	}
 
-	// GeneralsX: Capacity pre-check on INTENT, before any peer connects.
-	// nextSlot is exactly the intended final occupancy: it starts at 1 + m_lanWaitPeers (the host
-	// plus the human slots held open) and advances once per AI placed. The slots reserved for peers
-	// are still SLOT_OPEN here, so isOccupied() is FALSE for them and counting the slot list would
-	// undercount by -lanwait - hence the arithmetic rather than countOccupiedNonObserverSlots().
-	//
-	// This is the cheap half of the guard: a misconfigured harness dies here in about a second,
-	// instead of after a 60 s wait for peers that are then dropped. The authoritative check runs on
-	// the real slot list just before RequestGameStart.
-	// GeneralsX: ...less the seats that will observe: the host's own under
-	// -lanobserver and the -lanwaitobservers ones. Observers take no start position.
+	// Capacity pre-check on intent, before any peer connects. nextSlot is the intended final occupancy (1 +
+	// m_lanWaitPeers, plus one per AI placed); the peers' slots are still SLOT_OPEN, so counting the slot list would
+	// undercount. Less the seats that will observe (the host's under -lanobserver and the -lanwaitobservers ones):
+	// observers take no start position.
 	const Int intendedPlayers = nextSlot - (TheGlobalData->m_lanObserver ? 1 : 0) - TheGlobalData->m_lanWaitObservers;
 	if (!lobbyFitsTheMap(game, intendedPlayers, "intended lobby"))
 		return FALSE;
@@ -1073,7 +994,7 @@ Bool HeadlessMatch::publishGameOptions()
 		headlessLog("seed forced to %d", TheGlobalData->m_lanSeed);
 	}
 
-	// GeneralsX: GX_LIMIT_ARMIES=1: the lobby's Limit Armies option ("O=Y"),
+	// GX_LIMIT_ARMIES=1: the lobby's Limit Armies option ("O=Y"),
 	// carried to every peer in the options string like the rest of the host's settings. The -lanai
 	// pins above are deliberately NOT sanitised against it: a pinned sub-faction with this set is
 	// how the start-time refusal in GameLogic::startNewGame is exercised.
@@ -1118,7 +1039,7 @@ Bool HeadlessMatch::publishGameOptions()
 	return TRUE;
 }
 
-// GeneralsX: The host's cue to press start the second time: every
+// The host's cue to press start the second time: every
 // human slot reports the map. Slot 0 is the host itself, which always has it.
 static Bool allHumanSlotsHaveMap( LANGameInfo *game )
 {
@@ -1158,12 +1079,12 @@ Bool HeadlessMatch::driveLobby()
 				return FALSE;
 		}
 
-		// GeneralsX: GX_TEAMS=<t0>,<t1>,... - a lobby team per slot, '-' to leave
-		// one alone (scripts/test/victory-probe.sh). Applied only now, because a join replaces the slot
+		// GX_TEAMS=<t0>,<t1>,... - a lobby team per slot, '-' to leave
+		// one alone. Applied only now, because a join replaces the slot
 		// and with it any team set earlier. Then un-accept and re-publish, exactly as a UI team change
 		// does, and wait for the joiners to accept the new slot list, so every peer starts from it.
-		// GeneralsX: GX_STARTS=<p0>,<p1>,... - a start position per slot the same way, '-' to leave one
-		// random (scripts/ai/gym/evaluate.py: a side-swapped pair is the same map, factions and seed with the seats' starts
+		// GX_STARTS=<p0>,<p1>,... - a start position per slot the same way, '-' to leave one
+		// random (a side-swapped pair is the same map, factions and seed with the seats' starts
 		// exchanged). Refused unless every pinned position exists on the map and none is pinned twice.
 		const char *teams = getenv("GX_TEAMS");
 		const char *starts = getenv("GX_STARTS");
@@ -1182,7 +1103,7 @@ Bool HeadlessMatch::driveLobby()
 				// Split by hand: AsciiString::nextToken merges empty tokens, so "0,,1" would pin slots 0 and 1.
 				const MapMetaData *md = TheMapCache->findMap(game->getMap());
 				const Int positions = (md != nullptr) ? md->m_numPlayers : 0;
-				// GeneralsX: scale32: 64 bits - a 34-start map has positions 32 and 33, and `1u << 32` is undefined
+				// scale32: 64 bits - a 34-start map has positions 32 and 33, and `1u << 32` is undefined
 				// (on arm64 and x86 it aliases position 0, so a valid GX_STARTS was refused).
 				UnsignedInt64 taken = 0;
 				const char *p = starts;
@@ -1231,7 +1152,7 @@ Bool HeadlessMatch::driveLobby()
 				return FALSE;
 		}
 
-		// GeneralsX: The authoritative capacity check, on the slot list as
+		// The authoritative capacity check, on the slot list as
 		// it actually stands. Every accepted peer is SLOT_PLAYER by now, so this counts reality
 		// rather than intent and is the exact analogue of the GUI refusing to start
 		// (LanGameOptionsMenu.cpp:249-258). It is the last gate before the engine assigns start
@@ -1259,18 +1180,10 @@ Bool HeadlessMatch::driveLobby()
 		s_lastAcceptSent = timeGetTime();
 	}
 
-	// Both roles land here. The host reaches OnGameStart through its own RequestGameStart
-	// round trip, so it waits too rather than assuming.
-	//
-	// A joiner keeps re-asserting its accept while it waits - see reassertAcceptIfNeeded. Without
-	// it, any lobby with more than one joiner deadlocks: the second join resets the first peer's
-	// accept, the host never counts two, and every peer sits there believing it is ready.
-	//
-	// GeneralsX: A start that only transferred the map ends back in
-	// the lobby (owner's two-start flow); the host emulates the human's second click once every
-	// human slot reports the map - the has-map re-announcements land within a second or two. A
-	// genuinely undeliverable map still fails: the transfer round itself bails and s_lobbyFailed
-	// fires, so this cannot loop; the lobbyTimeout is the backstop.
+	// Both roles land here. A joiner keeps re-asserting its accept (reassertAcceptIfNeeded): with several joiners
+	// each join resets the previous accept and every peer would wait. A start that only transferred the map ends
+	// back in the lobby; the host issues the second start once every human slot reports the map. lobbyTimeout is the
+	// backstop.
 	const Bool isJoiner = (TheGlobalData->m_lanRole != LANROLE_HOST);
 	if (!pumpUntil([isJoiner]{
 			if (isJoiner)
@@ -1289,7 +1202,7 @@ Bool HeadlessMatch::driveLobby()
 	return TRUE;
 }
 
-// GeneralsX: The pacer's between-draws pass (GameEngine::updateBetweenDraws), stopped
+// The pacer's between-draws pass (GameEngine::updateBetweenDraws), stopped
 // at -lanframes N: runMatch's limit check below expects the logic AT N after each iteration - it holds the
 // logic for the final flush pass - and a pass inside the pacer's hold would otherwise simulate past it.
 static Bool headlessBetweenDraws()
@@ -1336,13 +1249,10 @@ Bool HeadlessMatch::runMatch()
 	Bool didKill = FALSE;
 	Bool cameraSet = FALSE;
 
-	// GeneralsX: GX_HEADLESS_LINGER_MS: keep running this long after the frame limit.
-	// Every peer used to exit the instant IT reached -lanframes, and a peer that exits sends no leave and answers
-	// no resend. So a peer a few frames behind - one whose commands for frame N were lost in flight from a peer
-	// that had already reached the limit and gone - waited forever for data nobody alive could resend. Measured
-	// 25/09/2026 with twelve headless peers on one Mac: gx08 stopped at frame 3593 "blocked=7" 7 frames short,
-	// 135 resend retries unanswered, after slot 7 and the router had exited at 3600. Lingering keeps every peer
-	// pumping and resending until the stragglers are past the limit too. Unset or 0 is the old behaviour.
+	// GX_HEADLESS_LINGER_MS: keep running this long after the frame limit. A peer that exits at -lanframes sends no
+	// leave and answers no resend, so a peer a few frames behind waited forever for data nobody could resend.
+	// Lingering keeps every peer pumping and resending until the stragglers pass the limit too. Unset or 0 disables
+	// it.
 	const char *lingerEnv = getenv("GX_HEADLESS_LINGER_MS");
 	const Int lingerMs = (lingerEnv != nullptr) ? atoi(lingerEnv) : 0;
 	UnsignedInt lingerUntil = 0;
@@ -1352,27 +1262,10 @@ Bool HeadlessMatch::runMatch()
 	{
 		TheGameEngine->update();
 
-		// GeneralsX: Drive the frame pacer from this loop too.
-		//
-		// This mirrors GameEngine::execute(). A -lanhost/-lanjoin peer never runs execute() -
-		// GameMain routes it here instead - so it never called TheFramePacer->update(), and the
-		// pacer is BOTH the render cap and the sole source of m_updateTime. With it never
-		// running, m_updateTime stayed frozen at the constructor's 1/BaseFps while this loop
-		// free-ran, so getActualLogicTimeScaleOverFpsRatio handed a full logic-frame animation
-		// step to every rendered frame. That is the measured 853[60]: the HUD prints [60]
-		// because the limit still RESOLVES correctly, and resolving and enforcing are different
-		// code paths - only the resolving one was running. Not Windows-specific despite where it
-		// was seen; any peer started -lanjoin without -headless renders unpaced.
-		//
-		// Simulation was never affected: canUpdateNetworkGameLogic gates purely on
-		// isFrameDataReady() and never reads the render limit, which is why 18 minutes of this
-		// produced zero mismatches.
-		//
-		// Headless peers are deliberately excluded - they have no renderer and want max speed.
-		//
-		// GeneralsX: GX_PACE_HEADLESS=1 paces a -headless peer too, at its
-		// max-FPS cap (-fps N / -noFPSLimit), so a headless lockstep run can measure what the cap does to
-		// the logic rate and prove the CRC stream does not depend on it. Read once; off by default.
+		// Drive the frame pacer from this loop as GameEngine::execute() does: a -lanhost/-lanjoin peer never runs
+		// execute(), and the pacer is both the render cap and the sole source of m_updateTime, so without it the loop
+		// renders unpaced. Simulation is unaffected (canUpdateNetworkGameLogic gates on isFrameDataReady()). Headless
+		// peers are excluded (max speed) unless GX_PACE_HEADLESS=1, read once.
 		static const Bool s_paceHeadless = (getenv("GX_PACE_HEADLESS") != nullptr);
 		if ((!TheGlobalData->m_headless || s_paceHeadless) && TheFramePacer != nullptr)
 			TheFramePacer->update(&headlessBetweenDraws);
@@ -1453,22 +1346,10 @@ Bool HeadlessMatch::runMatch()
 			break;
 		}
 
-		// GeneralsX: Test the limit against THIS iteration's frame, right
-		// after update() - never the previous iteration's. It used to run above the maxFrame
-		// update, so the loop reached the limit, went round once more and only then stopped: that
-		// extra update() simulated frame N when the network pacer was behind (its debt makes the
-		// frame ready at once) and nothing when it was on time, so a -lanframes 3000 run's trace
-		// ended at f=3000 or f=2999 depending on load. update() advances at most one logic frame,
-		// so stopping the moment getFrame() reaches the limit simulates exactly frames 0..N-1.
-		//
-		// The old extra pass was not all waste: the final tick queued its outgoing messages
-		// (MSG_LOGIC_CRC on a CRC frame) in TheMessageStream, and only the NEXT update() propagates
-		// them and hands them to TheNetwork - so a peer still playing got this one's last CRC. Keep
-		// that pass, with the logic held so it cannot simulate frame N.
-		//
-		// GeneralsX: (observer seats) ...unless GX_HEADLESS_LINGER_MS asks this peer to
-		// stay: then it keeps running past the limit, simulating as lockstep lets it, so a peer still short of
-		// the limit can finish instead of stalling on one that left. Its last messages go out with those updates.
+		// Test the limit against this iteration's frame right after update(), which advances at most one logic frame, so
+		// the run simulates exactly frames 0..N-1. One last pass is kept with the logic held: the final tick's queued
+		// messages (MSG_LOGIC_CRC) go out on the next update(). With GX_HEADLESS_LINGER_MS the peer keeps running past
+		// the limit so a peer still short of it can finish.
 		if (frameLimit > 0 && maxFrame >= (UnsignedInt)frameLimit && lingerMs > 0)
 		{
 			if (!lingering)
@@ -1527,26 +1408,10 @@ int HeadlessMatch::run()
 	s_lastAcceptSent = 0;
 	s_lobbyFailureReason.clear();
 
-	// GeneralsX: REFUSE, LOUDLY, RATHER THAN SIMULATE A DIFFERENT GAME.
-	//
-	// A peer with no reachable base-Generals archives is missing the bridge models, so before the
-	// decouple in W3DBridgeBuffer::addBridge it silently ran a match with two fewer objects than
-	// everybody else. The decouple fixes object EXISTENCE; it cannot recover the model's geometry,
-	// so such a peer still computes a different bridge footprint and must not be in a lobby.
-	// What is asked is exactly that - can every bridge model load (TerrainVisual.h); GameEngine::init
-	// already decided it, before any map, and printed it when the answer is no.
-	//
-	// Exiting non-zero is the point: GameMain.cpp uses this return value as the process exit code,
-	// and a harness that reads only "did it reach N frames" would otherwise score the run as a
-	// clean experiment. That is precisely what produced a 466-frame three-platform "result" on
-	// 2026-09-20.
-	//
-	// WHAT COUNTS AS A NETWORK GAME HERE, and why it is not simply "-lanhost or -lanjoin":
-	// a -lanhost with no -lanwait holds no human slot open and nobody can join it, so it is a solo
-	// AI match that happens to be driven through the LAN code path - the headless equivalent of
-	// Skirmish, which must keep working without base assets exactly as the GUI's Skirmish does.
-	// -lanjoin is always somebody else's game. -lanlist only asks a relay what exists and starts
-	// nothing, so it is left alone.
+	// Refuse, loudly, rather than simulate a different game: a peer without the base-Generals archives lacks the
+	// bridge models, so its bridge footprint differs (TerrainVisual::isEveryBridgeModelAvailable). The nonzero
+	// return is the process exit code (GameMain.cpp). A network game here is -lanjoin, or -lanhost with -lanwait; a
+	// -lanhost without -lanwait is a solo AI match and needs no base assets.
 	const Bool bridgeModelsLoad = (TheTerrainVisual == nullptr) || TheTerrainVisual->isEveryBridgeModelAvailable();
 	const Bool joiningOthers = (TheGlobalData->m_lanRole == LANROLE_JOIN);
 	const Bool hostingForOthers = (TheGlobalData->m_lanRole == LANROLE_HOST && TheGlobalData->m_lanWaitPeers > 0);

@@ -1,51 +1,25 @@
-/* Ed25519 signature VERIFICATION, for the engine and for the launcher.
- *
- * GeneralsX: moved out of the launcher 11/08/2026
- *
- * WHY THIS FILE EXISTS AT ALL. The release manifest is Ed25519-signed (scripts/tooling/
- * gx-manifest.py) and the launcher must refuse a manifest that does not verify - that check is the
- * only thing standing between "the relay told me where to download my game from" and "anyone who
- * can forge a UDP source address told me where to download my game from". Windows CNG has no
- * Ed25519: BCrypt offers RSA, ECDSA over the NIST curves, and DH/ECDH, and X25519 only for key
- * agreement. There is no OS call to make here, and the project deliberately carries no OpenSSL on
- * Windows, so the verifier is code.
- *
- * IT NOW HAS A SECOND CALLER, WHICH IS WHY IT LIVES HERE. The identity assertion
- * (GXIdentityAssertion.h) is Ed25519-signed too, and the client's only job is to verify it - the
- * Windows engine has no HTTPS at all, so fetching is the launcher's problem and verifying is the
- * engine's. One verifier serves both. See the .cpp header for why it moved rather than being
- * copied, and for the single behavioural change that came with the move: the SHA-512 underneath is
- * GXSha512.cpp on every platform now, not CNG.
- *
- * NOTE FOR THE LAUNCHER BUILD: define GX_ED25519_WITH_CNG to get gx_sha256/gx_sha256_file. The
- * engine does not, and must not - it would pull in bcrypt.lib for helpers it never calls.
- *
- * The autoship design doc already anticipated this ("an Ed25519 verifier is ~100 lines of
- * public-domain code and vendoring one is preferable to adding OpenSSL to three platforms"). This
- * is that, written rather than fetched.
- *
- * WHAT IS AND IS NOT CLAIMED. This verifies; it never signs, and it holds no secret. Every input
- * it touches is public: a compiled-in public key, a signature and a manifest that were both
- * broadcast over plain UDP. So it is not written to be constant-time, and it does not need to be -
- * there is no secret for a timing side channel to leak. What it DOES need to be is correct in one
- * specific direction: it must never accept a signature the real Ed25519 would reject. That is
- * checked by --selftest against vectors produced by OpenSSL through Python's `cryptography`, with
- * both good and deliberately corrupted cases, plus an internal check on the group order.
- *
- * VECTORS ARE NOT A PROOF, and the ones this file shipped with proved only the happy path. The
- * arithmetic was later differential-tested against OpenSSL and against Python big integers, on
- * macOS, over inputs no signer would ever produce: 36372 field comparisons, 8280 fe_reduce9 carry
- * cases, 9000 deliberately non-canonical operands, 4860 point encodings, and 2455 verifications
- * covering small-order and identity keys, small-order R, S at 0, L-1, L, L+1, L+8, 8L, 2^255 and
- * 2^256-1, the malleable S+L, and a NULL message. Everything matched except ONE class - public
- * keys carrying a torsion component - which is why gx_ed25519_verify now requires the key to lie
- * in the prime-order subgroup. See the comment at that check.
- *
- * The field arithmetic is schoolbook: 8 x 32-bit limbs, 64-bit products, fold 2^256 == 38 (mod p).
- * It is several times slower than a radix-2^25.5 implementation and that is a deliberate trade -
- * this runs ONCE per launch, and the fast representations are the ones whose carry chains are easy
- * to get subtly wrong.
- */
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/* Ed25519 signature VERIFICATION, shared by the engine and the launcher. It verifies only:
+ * every input is public, so it is not constant time. It must never accept a signature real Ed25519 rejects, and
+ * it requires the public key to lie in the prime-order subgroup. SHA-512 is GXSha512.cpp on every platform.
+ * Define GX_ED25519_WITH_CNG for gx_sha256/gx_sha256_file in the launcher; the engine must not (bcrypt.lib). */
 
 #ifndef GX_ED25519_H
 #define GX_ED25519_H
@@ -56,21 +30,10 @@
 extern "C" {
 #endif
 
-/* 1 if `sig` (64 bytes) is a valid Ed25519 signature by `pk` (32 bytes) over msg[0..len).
- * 0 for every other reason, including a malformed key, a malformed signature, or a hash failure.
- * `msg` may be NULL when len is 0.
- *
- * THREAD SAFE as of the move into the engine. It previously was not, and said so, on the grounds
- * that the launcher is single-threaded; the engine is not, so the one-time table init is now a
- * C++11 function-local static rather than a bare flag. See ge_init_once in the .cpp for why a race
- * there would have been worse than a crash.
- *
- * ACCEPT SET. Strictly conservative: canonical encodings only, S < L, and the public key must lie
- * in the prime-order subgroup and not be the identity. That last requirement is stricter than
- * libsodium, which rejects small-order keys but accepts mixed-order ones. No key any real
- * generator produces is affected - every Ed25519 public key is [s]B and therefore has order L -
- * and the direction of the strictness is the one that matters for a code-signing anchor: this
- * verifier refuses things a real Ed25519 accepts, never the reverse. */
+/* 1 if sig (64 bytes) is a valid Ed25519 signature by pk (32 bytes) over msg[0..len), else 0.
+ * msg may be NULL when len is 0. Thread safe: the one-time table init is a function-local static.
+ * Strictly conservative: canonical encodings only, S < L, key in the prime-order subgroup and not the identity.
+ * It refuses things real Ed25519 accepts, never the reverse. */
 int gx_ed25519_verify(const unsigned char *pk, const unsigned char *sig,
                       const void *msg, size_t len);
 
@@ -78,7 +41,7 @@ int gx_ed25519_verify(const unsigned char *pk, const unsigned char *sig,
  * check on the two constants that cannot be checked by inspection. 1 on success. */
 int gx_ed25519_selftest_group(void);
 
-/* GeneralsX: SIGNING, for exactly one caller: an admin's per-match key
+/* SIGNING, for exactly one caller: an admin's per-match key
  * (GameClient/GXAdminKey.h), which signs that admin's cheat orders so no other peer can send one in the
  * admin's name (Common/GXAdminOrder.h). RFC 8032 Ed25519 from a 32-byte seed; deterministic, so the output
  * is checked byte for byte against RFC 8032's vectors and against node:crypto by

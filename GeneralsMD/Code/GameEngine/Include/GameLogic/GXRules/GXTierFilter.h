@@ -1,17 +1,25 @@
-// GeneralsX: AI RULE BANK tier filter (2.8; mark grammar agreed with
-// 30/10). Hard, Sentient and Brutal run ONE script list, so a tuned script or team cannot simply be edited: the
-// recipe leaves every stock entry byte-identical and adds each replacement or new entry under a MARKED name, and this filter gives each
-// player its own list at game start, where Player::initFromDict copies its side's scripts and teams (Player.cpp).
-//   mark:  "GXT.<T>.<name>", <T> exactly one of SENTIENT, BRUTAL, SENTIENT+BRUTAL; the tier token runs to the next '.', the rest is the
-//          stock name byte for byte. Any other token (HARD, BRUTAL+SENTIENT, lowercase, empty), an empty name or a name that is itself
-//          marked ("GXT.BRUTAL.GXT.SENTIENT.x") is MALFORMED: dropped for every player.
-//   keep:  a mark whose tiers include the player's tier. A kept mark replaces the stock entry of its name IN THE SAME PARENT (top-level
-//          script list, one group, the group list, one owner's teams) at the STOCK entry's position and takes that name; with no stock
-//          twin it stays where it is, renamed. Every other mark is dropped. Two kept marks of one name in one parent: the first wins.
-// A player with no tier (Easy/Normal AI, human, HARD) keeps no mark, so a Hard player's lists are exactly stock: same entries, order,
-// RNG draws and team prototypes, and a save made before the marks existed still loads. The filter runs on the player's QUALIFIED copy
-// ("<name><start index>"); qualification only appends, so stripping the mark there equals renaming before qualification.
-// Pure: no engine type; scripts/test/gx-rulebank-test.cpp tests it.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// AI rule bank tier filter: Hard, Sentient and Brutal share one script list; tier entries carry a GXT.<T>.<name> mark.
+// A mark whose tiers include the player tier replaces the stock entry of that name in the same parent; others drop.
+// A malformed mark is dropped for every player. A player with no tier keeps no mark, so Hard lists are exactly stock.
+// Pure, no engine type; scripts/test/gx-rulebank-test.cpp tests it.
 #pragma once
 
 #include <string>

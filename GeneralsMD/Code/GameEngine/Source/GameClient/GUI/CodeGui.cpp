@@ -28,7 +28,7 @@
 
 #include "PreRTS.h"
 
-// GeneralsX: codeGuiFontFamily() has to tell iOS apart from macOS;
+// codeGuiFontFamily() has to tell iOS apart from macOS;
 // TARGET_OS_IPHONE is only defined once this is included.
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
@@ -66,10 +66,7 @@ Int CodeGuiAtLeast( Int value, Int floorValue ) { return value < floorValue ? fl
 //-------------------------------------------------------------------------------------------------
 static const CodeGuiTheme s_theme =
 {
-	// Deliberately translucent -- the owner reviewed the rendered result and prefers seeing the
-	// screen underneath. Do not "fix" this to opaque: the click-through that made the overlay feel
-	// broken was a separate defect (DebugMenuInput returned MSG_IGNORED for mouse messages, so
-	// taps fell through to the tactical view), and translucency was never the cause.
+	// Deliberately translucent so the screen underneath stays visible. Do not "fix" this to opaque: the click-through that made the overlay feel broken was a separate defect (DebugMenuInput returned MSG_IGNORED for mouse messages, so taps fell through to the tactical view), not the translucency.
 	/* panelBg */							GameMakeColor(   6,   8,  14, 235 ),
 	/* panelBorder */					GameMakeColor(  90, 110, 170, 255 ),
 	/* buttonBg */						GameMakeColor(  26,  34,  56, 255 ),
@@ -90,29 +87,10 @@ static const CodeGuiTheme s_theme =
 const CodeGuiTheme &CodeGuiGetTheme( void ) { return s_theme; }
 
 //-------------------------------------------------------------------------------------------------
-/** Spell the Arial family the way THIS platform's font locator wants it.
-	*
-	* GeneralsX: Real bold on the FreeType platforms.
-	*
-	* The Bool that winFindFont -> FontLibrary::getFont -> Get_FontChars -> Initialize_GDI_Font
-	* threads through only reaches FW_BOLD inside FontCharsClass::Create_GDI_Font. On macOS/iOS/Linux
-	* the build takes Create_Freetype_Font( font_name ) instead, which never reads IsBold — so the
-	* flag alone buys nothing but a duplicate GameFont with identical glyphs. The weight has to come
-	* out of the family name, and the two locators disagree on how to spell it:
-	*
-	*   iOS      Locate_Font_FontConfig lowercases the name, strips spaces, and opens
-	*            fonts/<name>.ttf under the CWD. "Arial Bold" -> fonts/arialbold.ttf, which
-	*            scripts/build/ios/stage-fonts.sh stages as LiberationSans-Bold. VERIFIED present.
-	*   macOS /  Locate_Font_FontConfig runs FcNameParse + FcFontMatch. FcNameParse treats
-	*   Linux    "Arial Bold" as a FAMILY, finds no such family, and FcFontMatch — which never
-	*            fails, it only degrades — hands back whatever it likes best (Verdana on the
-	*            reference Mac). ":bold" is fontconfig's own weight syntax and is the only spelling
-	*            that actually lands on Arial Bold.
-	*   Win32    GDI honours the bold flag directly, and a face name with a colon in it would not
-	*            resolve, so the plain family is correct there.
-	*
-	* Keep the bold flag set as well as the name: it is what keeps the bold and regular faces in
-	* separate FontCharsClass slots (FontCharsClass::Is_Font compares name, size AND bold). */
+/** Spell the Arial family the way this platform's font locator wants it, to get real bold.
+	* FreeType platforms (macOS/iOS/Linux) never read the bold flag, so weight must come from the family name:
+	* iOS "Arial Bold" (mapped to fonts/arialbold.ttf), macOS/Linux fontconfig ":bold", Win32 the plain family.
+	* Keep the bold flag set too: FontCharsClass::Is_Font compares name, size and bold. */
 //-------------------------------------------------------------------------------------------------
 static const char *codeGuiFontFamily( Bool bold )
 {
@@ -129,19 +107,9 @@ static const char *codeGuiFontFamily( Bool bold )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX: THE DEBUG OVERLAY DRAWS IN TAHOMA BOLD.
-	*
-	*
-	* Weight, not family, is what makes it sharper here, and that was measured, not assumed: rendered the way
-	* render2dsentence.cpp renders (FreeType v35, 96 dpi, 8-bit alpha) at the overlay's 10/12 pt, a line of its text
-	* is 38% solid ink in Arial and 38% in Tahoma - both spindly grey on a dark panel - and 55-61% in the bold faces.
-	* Tahoma is the different face: drawn pixel-first for exactly these sizes, and the Windows UI face of the game's
-	* own era, so it still reads as Zero Hour rather than a web font. It ships with Windows and macOS; Linux's
-	* fontconfig degrades it to the nearest hinted sans; iOS stages only the Liberation fonts, so there the overlay
-	* keeps Arial, in bold.
-	*
-	* Scoped to the overlay's own windows - the Debug menu and its floating button - by their root window id. Other
-	* code-built controls sit inside retail .wnd screens (the LAN password row) and stay in the game's Arial. */
+/** The debug overlay draws in Tahoma Bold: weight, not family, makes it sharper (38% solid ink vs 55-61% bold).
+	* Linux falls back to the nearest hinted sans; iOS stages only Liberation fonts, so it keeps Arial bold.
+	* Scoped to the overlay's own windows by root window id; other code-built controls stay Arial. */
 //-------------------------------------------------------------------------------------------------
 static Bool codeGuiInDebugOverlay( GameWindow *parent )
 {
@@ -210,27 +178,9 @@ static void codeGuiSetId( GameWindow *win, const char *idName )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** Draw code-built controls with Zero Hour's OWN art instead of flat theme colours.
-	*
-	* GeneralsX:
-	*
-	* assignDefaultGadgetLook ALREADY installs the retail skin on every gadget this file creates -
-	* GameWindowManager.cpp calls winFindImage("PushButtonEnabled"), "PushButtonHilite",
-	* "RadioButtonEnabledBoxSelected" and the rest, and CodeGui passes defaultVisual=TRUE for buttons
-	* and checkboxes, so the images are attached and paid for already. They never draw for exactly one
-	* reason: gogoGadget* picks the image variant or the colour variant AT CREATION from
-	* WIN_STATUS_IMAGE, and we do not pass it. So this is a switch, not a port.
-	*
-	* Verified present in the shipped data rather than assumed: "PushButtonEnabled" appears in
-	* WindowZH.big and the MappedImages definitions are in INIZH.big, on a stock Zero Hour install.
-	* That was the open worry in the scrollbar note below - if the mapped images were absent the
-	* scrollbar would draw nothing at all - and it is answered.
-	*
-	* OFF BY DEFAULT AND ENV-GATED WHILE IT IS BEING JUDGED. EA's control art is authored at fixed
-	* sizes, and CodeGui lays controls out at arbitrary rects scaled from an 800x600 authoring space,
-	* so a stretched 9-slice may well look worse than the flat theme on some of them. That is a
-	* judgement to make by looking, per screen, and an env gate makes it an A/B with no rebuild
-	* between the two. Flip the default here once the look is settled and delete the gate. */
+/** Draw code-built controls with Zero Hour's own art instead of flat theme colours.
+	* The retail skin is installed but never draws: gogoGadget* picks the variant from WIN_STATUS_IMAGE.
+	* Off by default, env-gated: the art is authored at fixed sizes and may look worse stretched. */
 //-------------------------------------------------------------------------------------------------
 static Bool codeGuiSkinned( void )
 {
@@ -930,35 +880,9 @@ static void codeGuiAdoptLook( GameWindow *win, GameWindow *tmpl )
 	if( tmpl->winGetFont() )
 		win->winSetFont( tmpl->winGetFont() );
 
-	// GeneralsX: A cloned static-text row must inherit its template's
-	// JUSTIFICATION, not just its palette. Without this the caption is drawn hard against the left
-	// edge of a box whose authored neighbours are centred, which is the "cloned rows sit at a
-	// different x" the owner photographed on the Diplomacy screen.
-	//
-	// This is not a no-op copy: the two creation paths disagree on the DEFAULTS. Every static text
-	// parsed from a .wnd goes through parseStaticTextData (GameWindowManagerScript.cpp), which sets
-	//     centeredVertically = TRUE;  leftMargin = 7;  topMargin = 7;
-	// unconditionally - they are hardcoded, there is no .wnd token for any of the three - on top of
-	// the CENTERED flag the layout does author. A row built here instead comes from CodeGuiLabel,
-	// which memsets its TextData and so starts at centered/centeredVertically FALSE and both margins
-	// 0. W3DStaticText.cpp::drawStaticText then places the glyphs at
-	//     centred:     origin.x + width/2 - textWidth/2
-	//     otherwise:   origin.x + leftMargin
-	// so the gap is (width - textWidth)/2 on a centred column and exactly 7 px on a left-justified
-	// one - always leftward, and WIDER THE WIDER THE COLUMN, which is why it reads as every column
-	// having its own wrong x rather than as one uniform shift.
-	//
-	// The rect is NOT the problem and is deliberately not touched here: codeGuiCloneRow already
-	// creates the row at the template's own parent-relative x under the template's own parent, and
-	// neither addWindowToParent nor codeGuiRowResize rebases or re-widens a static text. Only the
-	// glyph placement inside that identical rect was wrong.
-	//
-	// `text` is pointedly not copied. gogoGadgetStaticText allocates a DisplayString per window and
-	// the clone already owns its own; assigning the template's would alias it into two gadgets and
-	// double-free it. Only the four justification fields cross over.
-	//
-	// Both null checks are load bearing rather than defensive habit: GameWindowDummy (headless mode)
-	// overrides winGetUserData to return nullptr, and the harnesses run headless.
+	// A cloned static-text row inherits its template's justification (parseStaticTextData sets it; CodeGuiLabel zeroes it).
+	// `text` is not copied: sharing its DisplayString would double-free it. Only the four justification fields cross over.
+	// Both null checks are load bearing: GameWindowDummy (headless) makes winGetUserData return nullptr.
 	if( BitIsSet( tmpl->winGetStyle(), GWS_STATIC_TEXT ) &&
 			BitIsSet( win->winGetStyle(), GWS_STATIC_TEXT ) )
 	{
@@ -987,30 +911,9 @@ static void codeGuiAdoptLook( GameWindow *win, GameWindow *tmpl )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** Give the row at `index` whatever windowtransitions.ini gives the row at `tmplIndex`.
-	*
-	* Same reason as codeGuiAdoptLook, one layer out: a created row has to be INDISTINGUISHABLE from
-	* the authored ones beside it, and "how it arrives on screen" is part of that. A transition group
-	* is a list of window NAMES, so it can only ever name what a .wnd authored - the rows created
-	* here carry names no artist wrote and therefore animate not at all, appearing fully formed next
-	* to neighbours that count up. On the score screen that is the twelve-slot symptom exactly:
-	* players 9-12 pop in while 1-8 sweep left to right.
-	*
-	* BY NAME, not by window. TheTransitionHandler resolves a name to a window when its group starts
-	* (TransitionWindow::init), so nothing here needs the clone to be findable yet, and the registration
-	* outlives this particular instance of the screen - which is right, because it is a statement about
-	* the LAYOUT rather than about one GameWindow. mirrorWindowTransitions is idempotent for exactly
-	* that reason; see the note on it.
-	*
-	* The template's name is rebuilt from idFormat rather than read back off the window, deliberately:
-	* NameKeyGenerator::keyToName is a linear scan of every name key in the game, and this would run it
-	* once per created row per column - forty full scans on one score screen. The format string is
-	* right there and produces the same string by construction.
-	*
-	* ORDER MATTERS AND IT IS THE CALLER'S. This must run before the screen calls setGroup, because
-	* setGroup is what init()s the group's windows. Every caller does - CodeGuiRowsEnsure is called
-	* where a screen binds its parent, and the score screen's six setGroup calls are all below that.
-	* mirrorWindowTransitions handles the other order safely rather than correctly; see it. */
+/** Give the row at `index` whatever windowtransitions.ini gives the row at `tmplIndex`, so created rows animate.
+	* Registered by window name; must run before the screen calls setGroup, which init()s the group's windows.
+	* The template name is rebuilt from idFormat because NameKeyGenerator::keyToName is a linear scan. */
 //-------------------------------------------------------------------------------------------------
 static void codeGuiAdoptTransitions( const char *idFormat, Int tmplIndex, Int index )
 {
@@ -1131,35 +1034,52 @@ GameWindow *CodeGuiCheckboxLike( GameWindow *tmpl, const char *tmplName, const c
 }
 
 //-------------------------------------------------------------------------------------------------
+GameWindow *CodeGuiLabelLike( GameWindow *tmpl, GameWindow *parent, const char *idName,
+															Int x, Int y, Int width, Int height, const WideChar *text )
+{
+	if( tmpl == nullptr || parent == nullptr )
+		return nullptr;
+
+	GameWindow *label = CodeGuiLabel( parent, x, y, width, height, idName, text, FALSE, 12, FALSE );
+	codeGuiAdoptLook( label, tmpl );
+	return label;
+}
+
+//-------------------------------------------------------------------------------------------------
+GameWindow *CodeGuiTextEntryLike( GameWindow *tmpl, GameWindow *parent, const char *idName,
+																	Int x, Int y, Int width, Int height, Short maxTextLen )
+{
+	if( tmpl == nullptr || parent == nullptr )
+		return nullptr;
+
+	GameWindow *entry = CodeGuiTextEntry( parent, x, y, width, height, idName, maxTextLen, 12, FALSE );
+	codeGuiAdoptLook( entry, tmpl );
+	return entry;
+}
+
+//-------------------------------------------------------------------------------------------------
+GameWindow *CodeGuiButtonLike( GameWindow *tmpl, GameWindow *parent, const char *idName,
+															 Int x, Int y, Int width, Int height, const WideChar *label, const WideChar *tooltip )
+{
+	if( tmpl == nullptr || parent == nullptr )
+		return nullptr;
+
+	GameWindow *button = CodeGuiButton( parent, x, y, width, height, idName, label, tooltip );
+	codeGuiAdoptLook( button, tmpl );
+	return button;
+}
+
+//-------------------------------------------------------------------------------------------------
 /** The smallest face this will ever step a row down to. Below this the glyphs stop being readable,
 	* and a row whose text is too small to read is no better than one whose text overflows. */
 //-------------------------------------------------------------------------------------------------
 static const Int CODEGUI_ROW_MIN_POINT_SIZE = 6;
 
 //-------------------------------------------------------------------------------------------------
-/** How far below a row's top edge the gadget starts drawing glyphs, and therefore how much of the
-	* row height the face can NOT have.
-	*
-	* This is read off the draw code rather than chosen, and choosing it instead is what made this
-	* whole step-down miss. Two gadget families differ:
-	*
-	*  - A text entry - and therefore a COMBO BOX, whose visible text is drawn by its child edit box -
-	*    puts the first glyph row at origin.y + 5. That is `startOffset` in BOTH of W3DTextEntry.cpp's
-	*    draw functions, and it is a FIXED pixel count: it does not scale with the control, so a row
-	*    compressed from 43 px to 25 px still loses the same 5. A non-editable combo (ISEDITABLE: 0,
-	*    which is what every lobby player row is) additionally clips to its OWN rect rather than to the
-	*    glyph box - drawTextEntryText's drawTextFromStart branch sets the clip to
-	*    origin.y .. origin.y + size.y - so a face taller than height-5 does not visibly overflow into
-	*    the row below, it gets its descenders sliced off inside its own row. Budgeting height-2 for it
-	*    is 3 px too generous at 12 slots on 1080p, and 3 px is a whole descender.
-	*  - Static text parsed from a .wnd is ALWAYS centeredVertically - parseStaticTextData
-	*    (GameWindowManagerScript.cpp) sets it unconditionally, there is no .wnd token for it - and it
-	*    also clips to its own rect. Centred text needs only height >= the face, so the two pixels are
-	*    a margin there rather than a requirement, and they stay as they were.
-	*
-	* Keep the 5 in step with `startOffset` in W3DTextEntry.cpp. It lives in the device layer and
-	* cannot be read from here, which is precisely why it is named and explained rather than folded
-	* silently into the arithmetic. */
+/** Pixels below a row's top edge where the gadget starts drawing glyphs, i.e. row height the face cannot have.
+	* Text entries and combo boxes put the first glyph row at origin.y + 5; a non-editable combo also clips to its rect.
+	* Static text from a .wnd is centred vertically and clips to its rect, so it needs only height >= the face.
+	* Keep the 5 in step with `startOffset` in W3DTextEntry.cpp. */
 //-------------------------------------------------------------------------------------------------
 static const Int CODEGUI_ROW_ENTRY_TOP_INSET = 5;		// W3DTextEntry.cpp startOffset
 static const Int CODEGUI_ROW_DEFAULT_LEADING = 2;		// hairline, as before
@@ -1176,17 +1096,8 @@ static Int codeGuiRowTextTopInset( GameWindow *win )
 
 //-------------------------------------------------------------------------------------------------
 /** `GX_ROWFIT=1` traces every decision the row font step-down makes.
-	*
-	* This exists because the step-down is INVISIBLE when it misbehaves. Every way it can fail -
-	* a null font, a candidate the library refused, a budget that does not match what the draw code
-	* needs - looks identical from outside: no crash, no warning, just text that is the wrong size.
-	* It was assumed working for the whole of its life on that evidence.
-	*
-	* So the read-back is the point. `winSetFont` on a combo box does not set the combo's own glyphs;
-	* it dispatches to GadgetComboBoxSetFont, which re-fonts the child edit box, and the EDIT BOX is
-	* what draws the visible text. Reporting only what we assigned would prove nothing about what will
-	* be drawn - so both are read back off the live windows AFTER assignment, and the edit box's own
-	* height is used to state the exact glyph extent the draw will produce against its clip. */
+	* A bad step-down only shows as wrong-sized text, so the trace reads back the combo box and its child
+	* edit box, whose height is the glyph extent the draw will clip against. */
 //-------------------------------------------------------------------------------------------------
 static Bool codeGuiRowFitTraceEnabled( void )
 {
@@ -1266,29 +1177,9 @@ static void codeGuiRowFitTrace( GameWindow *win, Int height, Int budget,
 
 //-------------------------------------------------------------------------------------------------
 /** Step `win`'s font down until its glyphs fit inside a row `height` pixels tall.
-	*
-	* codeGuiRowResize used to move the rect and leave the face alone, so a band compressed from
-	* 24 px to 16 px kept drawing a 10 pt face and every caption overflowed its box.
-	*
-	* Four things about fonts here are not obvious and each one can turn this into a silent no-op:
-	*
-	*  - A GameFont is an INTERNED, process-wide immutable object (FontLibrary::getFont walks
-	*    m_fontList and returns the existing element on a name/size/bold match). Mutating one in
-	*    place would resize that face for every window in the game, so only the POINTER is ever
-	*    reassigned here.
-	*  - getFont returns null for pointSize < 1 (it clamps above 512, upstream #3051 / #3268) and on
-	*    a genuine load failure, and
-	*    winSetFont( nullptr ) draws no glyphs at all. A missing candidate is therefore skipped
-	*    rather than accepted, and if nothing in the range fits, the original face is kept: an
-	*    overflowing caption is a cosmetic defect, an empty one is a broken screen.
-	*  - pointSize is NOT pixel height. The step is gated on winFontHeight (GameFont::height, filled
-	*    by loadFontData) rather than on arithmetic over the point size.
-	*  - On a combo box, winSetFont dispatches through GameWindow::winSetFont's style switch to
-	*    GadgetComboBoxSetFont, which re-fonts the list and the edit box in the same call. The list
-	*    then takes GadgetListBox's WIN_STATUS_ONE_LINE branch, which reads winFontHeight live, so a
-	*    combo's open drop-down re-measures its rows from the new face; only the glyphs already
-	*    rasterised into existing entries keep their old size, which is why callers set the font
-	*    BEFORE populating a box. */
+	* A GameFont is interned and shared, so only the pointer is reassigned. Null candidates are skipped;
+	* if nothing fits the original face is kept. Gated on winFontHeight, not pointSize.
+	* On a combo box set the font BEFORE populating it: glyphs already rasterised keep their size. */
 //-------------------------------------------------------------------------------------------------
 static void codeGuiRowFitFont( GameWindow *win, Int height )
 {
@@ -1351,20 +1242,8 @@ static void codeGuiRowFitFont( GameWindow *win, Int height )
 
 //-------------------------------------------------------------------------------------------------
 /** The width a row should have once its height becomes `newH`.
-	*
-	* A row is compressed VERTICALLY, so most controls keep their width - a combo box owns its
-	* column's width, and narrowing one would leave a ragged column and clip the faction names.
-	* An ICON does not: the accept marker is a 16x16 image and the ping indicator a small square
-	* panel, and squashing one to 16x10 is exactly the "no longer square" the owner reported.
-	*
-	* The test is the gadget's STYLE rather than its proportions, because the .wnd parser scales x
-	* and y independently (GameWindowManagerScript.cpp: xScale = width/createW, yScale =
-	* height/createH), so an authored 16x16 arrives as 38x29 at 1920x1080 and a "is it square"
-	* test would answer no on exactly the resolutions the owner plays at. What is preserved is the
-	* control's ASPECT, which is what makes it look untouched.
-	*
-	* Never widens: a row only ever gets shorter here, and a control that grew sideways would run
-	* into the column beside it. */
+	* Most controls keep their width; icons (accept marker, ping panel) keep their aspect, decided by gadget
+	* STYLE since the .wnd parser scales x and y independently. Never widens: rows only get shorter. */
 //-------------------------------------------------------------------------------------------------
 static Int codeGuiRowFitWidth( GameWindow *win, Int curW, Int curH, Int newH )
 {
@@ -1428,26 +1307,9 @@ static Bool codeGuiRowsContains( GameWindow * const *rows, Int count, const Game
 
 //-------------------------------------------------------------------------------------------------
 /** Restore a column's front-to-back order after rows have been added to it.
-	*
-	* THE CHILD LIST IS FRONT TO BACK, HEAD FIRST. GameWindowManager::drawWindow walks to the TAIL
-	* and paints back through m_prev, so the head is painted LAST and is on top; GameWindow::
-	* winPointInChild walks from the HEAD and returns the first hit, so the head also wins the click.
-	* A covered row is therefore not merely hidden behind another - it is unclickable.
-	*
-	* Every stock lobby .wnd authors its combo columns DESCENDING (LanGameOptionsMenu.wnd lists
-	* ComboBoxPlayer7 first and ComboBoxPlayer0 last, verified against WindowZH.big) and winCreate
-	* PREPENDS each child as it is parsed, so the list comes out ASCENDING: row 0 at the head. That
-	* is not decoration. A combo's drop-down opens DOWNWARD - GadgetComboBox grows the box itself by
-	* the list's height and hangs the list below the edit box - so row i's open list lies over rows
-	* i+1.., and only an ascending list paints it over them instead of under them.
-	*
-	* CodeGuiRowsEnsure creates rows in ascending index order and each one is prepended, so rows
-	* 8..11 arrive in the list as 11,10,9,8 AHEAD of 0..7 - inverted exactly across the band where
-	* the extra rows live. Hence this pass.
-	*
-	* Only the column's own rows move, and only among the sibling POSITIONS the column already
-	* occupies: every other window keeps its neighbours, so nothing outside the column changes
-	* depth relative to anything else. */
+	* Stock lobby .wnd files author combo columns descending and winCreate prepends, so the list is ascending,
+	* which a downward-opening drop-down needs. Added rows arrive inverted, hence this pass.
+	* Only the column's own rows move, among sibling positions it already occupies. */
 //-------------------------------------------------------------------------------------------------
 static void codeGuiRowsRestoreZOrder( GameWindow *parent, const char *idFormat, Int rowCount )
 {
@@ -1585,16 +1447,9 @@ Int CodeGuiRowsEnsure( GameWindow *parent, const char *idFormat, Int rowCount, C
 	firstWin->winGetPosition( &firstX, &firstY );
 	firstWin->winGetSize( &firstW, &firstH );
 
-	// GeneralsX: FREE fit needs a template, never a pitch.
+	// FREE fit needs a template, never a pitch.
 	//
-	// A free-fit column is positioned by its owner afterwards - positionStartSpots puts the map start
-	// markers on the map's Player_N_Start waypoints - so the authored rects carry no layout this
-	// function uses. Gating it on the band arithmetic below meant a modded .wnd whose markers sit on
-	// one horizontal line, or with marker 7 above marker 0, or with one marker, got no clones at all.
-	// Each missing row is cut from the first authored one, at its rect: the owner moves it, and the
-	// template's geometry rather than a compressed one keeps it the same size as its neighbours, which
-	// is what the anti-overlap pass in positionStartSpotControls measures against. Indices below the
-	// first authored row stay absent, as in the band loop below.
+	// A free-fit column is positioned by its caller afterwards (positionStartSpots puts the map start markers on the map's Player_N_Start waypoints), so the authored rects carry no layout this function uses. Gating it on the band arithmetic below meant a modded .wnd whose markers sit on one horizontal line, or with marker 7 above marker 0, or with one marker, got no clones at all. Each missing row is cut from the first authored one, at its rect: the template's geometry keeps it the same size as its neighbours, which is what the anti-overlap pass in positionStartSpotControls measures against. Indices below the first authored row stay absent, as in the band loop below.
 	if( fit == CODEGUI_ROWS_FREE )
 	{
 		Int created = 0;
@@ -1665,22 +1520,9 @@ Int CodeGuiRowsEnsure( GameWindow *parent, const char *idFormat, Int rowCount, C
 	if( newPitch < newH )
 		newPitch = newH;
 
-	// The row the column does not author, re-pitched onto the SAME band as the rows it does.
-	//
-	// Skipping it is what produced the defect this parameter exists for: every ComboBoxPlayer row
-	// was compressed 43 px -> 25 px and its face stepped 23 pt -> 13 pt to fit, while
-	// TextEntryPlayerName - which is not a ComboBoxPlayer and so never entered the loop below -
-	// kept both, drew at nearly twice the height of every row under it, and overhung the next row
-	// by the difference. The face was never the odd one out; it was the only one left alone.
-	//
-	// leadIndex must sit BELOW firstIdx or it would fight a real row for the same slot. Position
-	// comes from the band like any other row, so at leadIndex 0 it lands on anchorY, which is
-	// exactly where the .wnd authored it - the rect and the face change, the placement does not.
-	// A column that does not start at 0 and was given no stand-in has a row this pass will not
-	// touch, which is the defect above waiting to happen again on some other screen. It is silent by
-	// construction - the missing row simply keeps its authored rect - so say so in the trace rather
-	// than let the next reader discover it from a screenshot. Every other ensured column in the game
-	// authors index 0 (checked against WindowZH.big, 2026-08-20), so this is expected never to fire.
+	// Re-pitch the row the column does not author (TextEntryPlayerName) onto the same band, or it keeps
+	// its authored size and overhangs the next row. leadIndex must sit below firstIdx to avoid a slot clash.
+	// A column not starting at 0 with no stand-in leaves a row untouched; the trace says so.
 	if( fit == CODEGUI_ROWS_BAND && firstIdx > 0 && leadRow == nullptr && codeGuiRowFitTraceEnabled() )
 	{
 		fprintf( stderr, "[GXROWFIT] column '%s' starts at index %d with no leadRow -"
@@ -1738,7 +1580,7 @@ Int CodeGuiRowsEnsure( GameWindow *parent, const char *idFormat, Int rowCount, C
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: Scrolling seat rows - see CodeGuiRowsScrollSetup in CodeGui.h.
+// Scrolling seat rows - see CodeGuiRowsScrollSetup in CodeGui.h.
 //-------------------------------------------------------------------------------------------------
 enum
 {
@@ -1763,6 +1605,9 @@ struct CodeGuiRowScroll
 	Int								maxDisplay[ CODEGUI_SCROLL_MAX_COLUMNS ][ CODEGUI_SCROLL_MAX_ROWS ];
 	GameWinInputFunc	input[ CODEGUI_SCROLL_MAX_COLUMNS ][ CODEGUI_SCROLL_MAX_ROWS ];
 	Int								rowY[ CODEGUI_SCROLL_MAX_COLUMNS ];		// parent-relative y of the first visible row
+	GameWindow			 *owner;																// the rows' parent, and its own input function
+	GameWinInputFunc	ownerInput;
+	Int								blockLeft, blockTop, blockRight, blockBottom;	// the visible rows and the bar, owner-relative
 };
 
 static CodeGuiRowScroll s_rowScroll;
@@ -1905,6 +1750,20 @@ static WindowMsgHandledType codeGuiRowScrollSystem( GameWindow *window, Unsigned
 }
 
 //-------------------------------------------------------------------------------------------------
+/** One wheel step, while the bar is shown: a screen that hides the per-player controls hides the bar with them
+	* (CodeGuiRowsScrollShow), and rows nobody can see must not move. */
+//-------------------------------------------------------------------------------------------------
+static Bool codeGuiRowScrollWheel( UnsignedInt msg )
+{
+	CodeGuiRowScroll &s = s_rowScroll;
+	if( s.bar == nullptr || s.bar->winIsHidden() )
+		return FALSE;
+
+	codeGuiRowScrollTo( s.top + ( msg == GWM_WHEEL_UP ? -1 : 1 ) );
+	return TRUE;
+}
+
+//-------------------------------------------------------------------------------------------------
 /** Wheel over a seat row scrolls the rows; everything else goes to the row's own input function. An open drop-down
 	* keeps the wheel for its own list. */
 //-------------------------------------------------------------------------------------------------
@@ -1925,14 +1784,37 @@ static WindowMsgHandledType codeGuiRowScrollInput( GameWindow *window, UnsignedI
 	if( msg == GWM_WHEEL_UP || msg == GWM_WHEEL_DOWN )
 	{
 		GameWindow *list = BitIsSet( window->winGetStyle(), GWS_COMBO_BOX ) ? GadgetComboBoxGetListBox( window ) : nullptr;
-		if( list == nullptr || list->winIsHidden() )
-		{
-			codeGuiRowScrollTo( s.top + ( msg == GWM_WHEEL_UP ? -1 : 1 ) );
+		if( ( list == nullptr || list->winIsHidden() ) && codeGuiRowScrollWheel( msg ) )
 			return MSG_HANDLED;
-		}
 	}
 
 	return original != nullptr ? original( window, msg, mData1, mData2 ) : MSG_IGNORED;
+}
+
+//-------------------------------------------------------------------------------------------------
+/** GeneralsX @bugfix The rest of the seat block takes the wheel too, as a listbox does over its whole rect. The window
+	* manager gives the wheel to the deepest ENABLED window under the pointer and walks up the parents: a disabled row
+	* (every other seat for a joining player, a host's own name) is skipped by the hit test, and the gaps between rows,
+	* the scroll bar's parts and its container all ignore the wheel, so each of those lands here, on the rows' parent. */
+//-------------------------------------------------------------------------------------------------
+static WindowMsgHandledType codeGuiRowScrollOwnerInput( GameWindow *window, UnsignedInt msg,
+																											 WindowMsgData mData1, WindowMsgData mData2 )
+{
+	CodeGuiRowScroll &s = s_rowScroll;
+	if( window != s.owner )
+		return MSG_IGNORED;
+
+	if( msg == GWM_WHEEL_UP || msg == GWM_WHEEL_DOWN )
+	{
+		Int ox, oy;
+		window->winGetScreenPosition( &ox, &oy );
+		const Int mx = (Int)LOLONGTOSHORT( mData1 ) - ox;
+		const Int my = (Int)HILONGTOSHORT( mData1 ) - oy;
+		if( mx >= s.blockLeft && mx < s.blockRight && my >= s.blockTop && my < s.blockBottom && codeGuiRowScrollWheel( msg ) )
+			return MSG_HANDLED;
+	}
+
+	return s.ownerInput != nullptr ? s.ownerInput( window, msg, mData1, mData2 ) : MSG_IGNORED;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -2230,10 +2112,7 @@ void CodeGuiRowsScrollSetup( GameWindow *parent, const char * const *idFormats, 
 		const Int barH = visible * newPitch;
 		s.bar = CodeGuiPanel( owner, barX, bandTop, CODEGUI_SCROLL_BAR_W, barH, codeGuiRowScrollSystem,
 													CODEGUI_ROW_SCROLL_BAR_ID, WIN_STATUS_SEE_THRU );
-		// A listbox authored without a scroll bar has no art to lend (SkirmishGameOptionsMenu's ListboxInfo), and the
-		// default VSliderLarge* images are not in the shipped data, so a bar dressed by neither is INVISIBLE - measured on
-		// the Mini 08/11, where the skirmish bar scrolled but could not be seen. Every seat combo box's drop-down list
-		// carries authored scroll-bar art; borrow the first one's.
+		// A listbox authored without a scroll bar has no art to lend (SkirmishGameOptionsMenu's ListboxInfo), and the default VSliderLarge* images are not in the shipped data, so a bar dressed by neither is invisible. Every seat combo box's drop-down list carries authored scroll-bar art; borrow the first one's.
 		if( lookListbox == nullptr || GadgetListBoxGetSlider( lookListbox ) == nullptr )
 		{
 			lookListbox = nullptr;
@@ -2262,10 +2141,40 @@ void CodeGuiRowsScrollSetup( GameWindow *parent, const char * const *idFormats, 
 			s.slider = codeGuiRowScrollPart( s.bar, TRUE, CODEGUI_SCROLL_BUTTON_H + 1,
 																			 CodeGuiAtLeast( barH - 2 * CODEGUI_SCROLL_BUTTON_H - 2, GADGET_SIZE ),
 																			 rowCount - visible, sliderLook );
+
+			// The wheel over the rest of the seat block: from the leftmost row control to the bar's right edge, the
+			// visible rows' height.
+			s.blockLeft = barX;
+			for( Int c = 0; c < columnCount; ++c )
+				for( Int i = 0; i < rowCount; ++i )
+					if( s.win[ c ][ i ] != nullptr && s.x[ c ][ i ] < s.blockLeft )
+						s.blockLeft = s.x[ c ][ i ];
+			s.blockTop		= bandTop;
+			s.blockRight	= barRight;
+			s.blockBottom = bandTop + barH;
+			s.owner				= owner;
+			if( owner->winGetInputFunc() != codeGuiRowScrollOwnerInput )
+				s.ownerInput = owner->winGetInputFunc();
+			owner->winSetInputFunc( codeGuiRowScrollOwnerInput );
 		}
 	}
 
 	codeGuiRowScrollLayout();
+}
+
+//-------------------------------------------------------------------------------------------------
+void CodeGuiRowsScrollShow( Bool show, const char *layoutFilename, const char *parentName )
+{
+	if( TheWindowManager == nullptr || TheNameKeyGenerator == nullptr || layoutFilename == nullptr || parentName == nullptr )
+		return;
+
+	AsciiString parentId;
+	parentId.format( "%s:%s", layoutFilename, parentName );
+	GameWindow *parent = TheWindowManager->winGetWindowFromId( nullptr, (Int)TheNameKeyGenerator->nameToKey( parentId ) );
+	GameWindow *bar = ( parent != nullptr ) ?
+		TheWindowManager->winGetWindowFromId( parent, (Int)TheNameKeyGenerator->nameToKey( CODEGUI_ROW_SCROLL_BAR_ID ) ) : nullptr;
+	if( bar != nullptr )
+		bar->winHide( !show );
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -2295,27 +2204,9 @@ void CodeGuiDestroyLayout( WindowLayout *&layout )
 	layout = nullptr;
 }
 
-//-------------------------------------------------------------------------------------------------
-// GeneralsX: Lend the row builder to the load screens, which are in Core.
-//
-// LoadScreen.cpp is shared with the Generals twin and cannot call CodeGuiRowsEnsure - that function
-// reaches the widget factories above it in this file, and the twin has no CodeGui at all. So Core
-// declares a hook (LoadScreen.h) and this registers the implementation.
-//
-// SELF-REGISTERING, on purpose. A call from some init function is a line somebody has to remember
-// to add, and the failure mode of forgetting it is silent: the load screen simply keeps showing
-// eight of twelve, which is exactly the bug this fixes and exactly how it survived the crash fix.
-// A file-scope object cannot be forgotten as long as this translation unit is linked, and it is -
-// every lobby screen calls into it.
-//
-// Static-initialisation order is not a hazard here: s_loadScreenRowBuilder is a raw pointer with
-// static storage duration, so it is ZERO-initialised before any dynamic initialiser in the program
-// runs. This constructor can therefore only ever overwrite a null, never race a later zeroing.
-//
-// BAND fit, matching the lobby: the load screen's player rows are a column that must stay inside
-// the band the authored rows occupy. The map start markers come through with placedByCaller and
-// get FREE fit instead - they are placed from the map's own waypoints rather than laid out in a
-// column, so band-fitting them would move them off the preview.
+// Lend the row builder to the load screens in Core: LoadScreen.cpp is shared with the Generals twin, which has
+// no CodeGui. Core declares a hook (LoadScreen.h) and this file-scope object registers it, so it cannot be forgotten.
+// BAND fit like the lobby; map start markers (placedByCaller) get FREE fit so they stay on the preview.
 static Int codeGuiLoadScreenRowBuilder( GameWindow *parent, const char *idFormat, Int rowCount,
 																				Bool placedByCaller )
 {
@@ -2325,7 +2216,7 @@ static Int codeGuiLoadScreenRowBuilder( GameWindow *parent, const char *idFormat
 
 //-------------------------------------------------------------------------------------------------
 /** Step a static text's face down until its text fits `maxWidth` pixels - a header narrowed into half the span would
-	* otherwise run into the one beside it ("Team" under "Progress" read "Tear Progress", Mini picture 08/11). */
+	* otherwise run into the one beside it ("Team" under "Progress" read "Tear Progress"). */
 //-------------------------------------------------------------------------------------------------
 static void codeGuiFitTextWidth( GameWindow *win, Int maxWidth )
 {
@@ -2359,7 +2250,7 @@ static void codeGuiFitTextWidth( GameWindow *win, Int maxWidth )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX: The load screen's player list, once it knows how many rows it filled (see
+/** The load screen's player list, once it knows how many rows it filled (see
 	* LoadScreenSplitRows in LoadScreen.h). Up to the authored row count it touches nothing - the rows are EA's. Past it
 	* the columns become two side-by-side groups over the same horizontal span, each with its own copy of the header row,
 	* row i in group i / R at row i % R, R = half the filled rows rounded up. The groups share the authored band: at the
@@ -2494,7 +2385,7 @@ namespace
 		CodeGuiLoadScreenRegistrar()
 		{
 			LoadScreenSetRowBuilder( codeGuiLoadScreenRowBuilder );
-			LoadScreenSetRowSplitter( codeGuiLoadScreenRowSplitter );		// GeneralsX 08/11/2026
+			LoadScreenSetRowSplitter( codeGuiLoadScreenRowSplitter );
 		}
 	};
 	CodeGuiLoadScreenRegistrar s_codeGuiLoadScreenRegistrar;

@@ -1,4 +1,22 @@
-// GeneralsX: WS-B VkCtx v0 - see VkCtx.h.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// See VkCtx.h.
 #include "VkCtx.h"
 
 #include "vk_mem_alloc.h"
@@ -227,7 +245,7 @@ bool Timeline::wait(uint64_t value, uint64_t timeoutNs) const
 	if (value > m_lastSubmitted)
 		return false; // never submitted: waiting would hang forever
 	if (m_owner && m_owner->m_threaded && !g_testMutants.waitSkipsSync) {
-		// R19: the op must have run on the submit thread first - a value refused or skipped behind a refusal is never signalled,
+		// The op must have run on the submit thread first - a value refused or skipped behind a refusal is never signalled,
 		// and a vkWaitSemaphores on it would hang. An EARLIER accepted value may still run on the GPU: it gets the real wait below
 		// (a refusal latches no driver loss)
 		const auto t0 = std::chrono::steady_clock::now();
@@ -1051,7 +1069,7 @@ void VkCtx::settleRetirements()
 		r.fn();
 }
 
-// ---------------------------------------------------------------------------------------------------- the submit thread (R19)
+// ---------------------------------------------------------------------------------------------------- the submit thread
 
 void VkCtx::startThread()
 {
@@ -1236,8 +1254,8 @@ void VkCtx::runOp(SubmitOp& op)
 	// them. threadMain notifies again when the op is done.
 	if (r != VK_SUCCESS)
 		m_doneCv.notify_all();
-	// ONE log call per refusal, where the synchronous path makes its own (VkCtx::submit's noteResult, VkCtx.cpp:881 @33d36f1cc): the
-	// thread adds no blocking point the synchronous path lacks (A21 am. 2 (6); stderr liveness itself is process-wide, R24).
+	// ONE log call per refusal, where the synchronous path makes its own (VkCtx::submit's noteResult): the
+	// thread adds no blocking point the synchronous path lacks (stderr liveness itself is process-wide).
 	// Not "FATAL": the device's own FATAL line names this refusal (one FATAL line per session).
 	if (r != VK_SUCCESS && (r != VK_ERROR_DEVICE_LOST || first)) {
 		char what[160];
@@ -1345,18 +1363,10 @@ bool VkCtx::waitExecuted(QueueKind kind, uint64_t value) const
 	return syncExecuted(queueIndex(kind), value, UINT64_MAX) == Sync::Executed;
 }
 
-// vkDeviceWaitIdle under the queue lock (no other submit-thread op may be running: callers drain or stopped it first, or ARE the
-// thread - the refusal drain), RETRIED until it proves idle: VK_SUCCESS, or VK_ERROR_DEVICE_LOST (completion for the call that
-// returns it). Vulkan also allows OUT_OF_HOST/DEVICE_MEMORY; freeing what the GPU may still read is worse than waiting, so such an
-// answer is retried - for at most 2 s of WALL time from the first one (a driver that keeps answering it
-// must not hang Reset or teardown). Then the device is terminal and its idle cannot be proven: the process ENDS (integrator
-// ruling 13/10, A21 am. 2 (2)) - keeping every object instead would need a guard at each of ~60 destroy/free sites, which
-// cannot be shown complete. COST: std::_Exit skips the game's own shutdown and atexit handlers, so a replay being recorded or a
-// log still queued in the stderr pump's ring may be cut short; the FATAL line itself goes straight to fd 2 (writeFatal: unbuffered,
-// best effort, never held for more than 1 s). A driver call that never RETURNS is not bounded here (no Vulkan call can be).
-// Acceptable only because this follows a terminal device failure MoltenVK is not known to produce: MVKDevice::waitIdle returns
-// the device's configuration result after waitUntilCompleted (MVKDevice.mm:3850-3858, MVKQueue.mm:152-163).
-// `inject` (TEST): answer with it instead of calling the driver.
+// vkDeviceWaitIdle under the queue lock, RETRIED until it proves idle (VK_SUCCESS or DEVICE_LOST). Callers have
+// drained or stopped the submit thread first, or are it. A memory-error answer is retried for at most 2 s of wall
+// time; then the device is terminal and the process ENDS via std::_Exit (freeing what the GPU may still read is
+// worse). _Exit skips atexit handlers; the FATAL line goes to fd 2. `inject` (TEST) answers instead of the driver.
 void VkCtx::idleDevice(VkResult inject)
 {
 	std::chrono::steady_clock::time_point firstFail;
@@ -1426,7 +1436,6 @@ void VkCtx::waitIdle()
 	}
 	idleDevice(g_testMutants.idleResult);
 	// idle is proven here: each owner settles the retirements a latch or a loss left, while the pools they free into still exist
-	//
 	if (!g_testMutants.latchNoRetire) {
 		bool latched;
 		{

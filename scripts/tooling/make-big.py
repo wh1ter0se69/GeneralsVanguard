@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # GeneralsX:
 #
 #   make-big.py <out.big> <virtual\path>=<source-file> [...]

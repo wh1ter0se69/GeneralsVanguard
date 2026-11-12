@@ -16,20 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: THE NETWORK NAMES AN UPGRADE OR A SCIENCE BY ITS NAME, NOT BY ITS NAMEKEY.
-//
-// MSG_QUEUE_UPGRADE, MSG_CANCEL_UPGRADE and MSG_PURCHASE_SCIENCE carried the template's NameKey, and a NameKey is a position
-// in one per-process sequence that every nameToKey of a new string advances. The INI-defined upgrades and sciences are
-// minted before any client code runs (GameEngine::init), but one a map.ini INVENTS is minted at map load, after whatever
-// this process minted before it: the shell screens a player opened (Shell::push parses each .wnd on first use and mints
-// every window name), none at all on a headless peer (its window manager is a dummy), and every map played earlier in the
-// process (keys are never un-minted). So two peers that loaded the same map disagreed on the number, and researching such
-// an upgrade on a live server (a headless standing host, rendered players) desynced (p2-live-ui).
-//
-// The id is FNV-1a over the name's bytes: the same on every peer whatever it minted before, and the same in a replay played
-// back in another process. UpgradeCenter / ScienceStore resolve it through a table built at map load; a map whose names
-// share an id is refused there, identically on every peer (GameLogic::startNewGame). scripts/ai/parse-replay.py computes
-// the same function (gx_wire_id), so keep the two in step.
+// The network names an upgrade or science by FNV-1a of its name, not its NameKey, which is a position in a
+// per-process sequence that differs between peers (map.ini names minted after shell screens or earlier maps).
+// UpgradeCenter / ScienceStore resolve the id via a table built at map load; colliding names are refused on every peer.
+// A Python replay parser computes the same function (gx_wire_id); keep the two in step.
 
 #pragma once
 

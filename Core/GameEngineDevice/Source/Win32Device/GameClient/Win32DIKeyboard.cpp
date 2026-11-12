@@ -324,9 +324,8 @@ void DirectInputKeyboard::getKey( KeyboardIO *key )
 		if( kbdat.dwData & 0x0080 )
 		{
 			key->state = KEY_STATE_DOWN;
-			// GeneralsX: the repeat clock is no longer seeded here. Keyboard::updateKeys() stamps the
-			// next repeat time with timeGetTime() (upstream #3591), the same clock that reads it, which
-			// also closes the 18/09/2026 GetTickCount-vs-timeGetTime wrap.
+			// GeneralsX: the repeat clock is no longer seeded here. Keyboard::updateKeys() stamps the next repeat time with
+			// timeGetTime() (upstream #3591), the same clock that reads it, which avoids a GetTickCount-vs-timeGetTime wrap.
 		}
 		else
 		{

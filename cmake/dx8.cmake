@@ -18,27 +18,10 @@
 
 set(DXVK_VERSION "v2.6")
 
-# GeneralsX: Give SAGE_USE_DX8 an actual default on Windows.
-#
-# Nothing in the tree ever declared this variable - no option(), no set(). The only places that
-# mention it are the linux64-deploy / macos-vulkan / ios-vulkan presets, and all three set it OFF.
-# Every Windows preset (vc6, win32, win32-vcpkg, mingw-w64-i686) left it undefined, so the branch
-# below evaluated false and Windows silently fell through to the LINUX arm at the bottom of this
-# file, unpacking dxvk-native-2.6-steamrt-sniper.tar.gz.
-#
-# That tarball is DXVK's Linux build, and its include/dxvk directory ships DXVK's stand-in for the
-# Win32 API - including <windows.h> and <windows_base.h>. CompatLib hangs that directory off the
-# d3d8lib INTERFACE, so it landed on the -I line of every translation unit ahead of the real
-# Windows SDK: the same shadowing failure as the CompatLib shim windows.h, and the direct source of
-# the C2371 'ULONG'/'DWORD' redefinitions against WWLib/bittype.h (windows_base.h:25 and :103).
-#
-# DXVK on Windows is not a header package at all - the official release is a drop-in d3d8.dll /
-# d3d9.dll pair with no headers - and dx8wrapper.cpp resolves Direct3DCreate8 through
-# LoadLibrary("D3D8.DLL") + GetProcAddress, so Windows needs DirectX 8 headers to COMPILE against
-# and nothing more. min-dx8-sdk is exactly that, and Core/CMakeLists.txt already anticipates it
-# creating the d3d8lib target ("Only create if not already created by min-dx8-sdk CMakeLists").
-#
-# Guarded on WIN32, so macOS / iOS / Linux configure identically to before.
+# Give SAGE_USE_DX8 a default on Windows. Left undefined, Windows would fall through to the Linux arm below and unpack
+# DXVK's Linux tarball, whose stand-in windows.h and windows_base.h shadow the real Windows SDK (C2371 redefinitions).
+# On Windows DXVK is a drop-in d3d8.dll with no headers and dx8wrapper.cpp loads D3D8.DLL at runtime, so only the
+# min-dx8-sdk headers are needed to compile.
 if(WIN32 AND NOT DEFINED SAGE_USE_DX8)
   set(SAGE_USE_DX8 ON CACHE BOOL "Use the native DirectX 8 SDK headers/libs (Windows only)")
 endif()
@@ -70,25 +53,10 @@ if(SAGE_USE_DX8)
     target_link_libraries(d3d8lib INTERFACE "${dx8_SOURCE_DIR}/d3dx8.lib")
   endif()
 
-  # GeneralsX: Keep min-dx8-sdk's x86 import libraries off the x64 link.
-  #
-  # All four archives min-dx8-sdk bundles - d3d8.lib, d3dx8.lib, dinput8.lib, dxguid.lib - report
-  # "14C machine (x86)" under dumpbin. DirectX 8 predates x64 and no 64-bit build of these was ever
-  # shipped. Handing any of them to a x64 link is a hard LNK1112 ("module machine type x86 conflicts
-  # with target machine type x64"), and min-dx8-sdk's own CMakeLists puts its source dir on the link
-  # search path with BEFORE, so its x86 copies would win over the Windows SDK's real x64 ones.
-  #
-  # At x64 the correct providers are:
-  #   dinput8 / dxguid - the Windows SDK ships x64 imports (Lib/<ver>/um/x64), so simply removing
-  #                      the min-dx8-sdk directory from the search path resolves them properly.
-  #   d3dx8            - GeneralsMD/Code/CompatLib builds the real STATIC d3dx8 target at x64
-  #                      exactly because the bundled .lib is unusable; the bare "d3dx8" reference
-  #                      min-dx8-sdk makes resolves to that target, which is what we want.
-  #   d3d8             - has no x64 provider anywhere, and needs none: dx8wrapper.cpp:581 resolves
-  #                      Direct3DCreate8 through LoadLibrary("D3D8.DLL") + GetProcAddress at
-  #                      runtime, so nothing references d3d8.lib at link time.
-  #
-  # Headers are untouched - dx8_SOURCE_DIR stays on the include path via INTERFACE_INCLUDE_DIRECTORIES.
+  # Keep min-dx8-sdk's x86 import libraries off the x64 link: d3d8.lib, d3dx8.lib, dinput8.lib and dxguid.lib are all
+  # x86 (LNK1112 on x64), and its link dir is added with BEFORE so it would win over the Windows SDK's x64 libs.
+  # dinput8/dxguid come from the Windows SDK; d3dx8 is the static target built in CompatLib; d3d8 is loaded at runtime
+  # by dx8wrapper.cpp, so nothing links d3d8.lib. Headers are untouched.
   if(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
     get_target_property(_dx8_link_dirs d3d8lib INTERFACE_LINK_DIRECTORIES)
     if(_dx8_link_dirs)
@@ -144,42 +112,9 @@ elseif(APPLE AND SAGE_USE_MOLTENVK)
     set(DXVK_SOURCE_DIR "${DXVK_LOCAL_FORK_DIR}")
     message(STATUS "DXVK macOS build: using local fork source at ${DXVK_SOURCE_DIR}")
     # Patches/dxvk-ios.patch carries the SDL3 drawable fixes and a bundle-relative MoltenVK dlopen
-    # list — apply it idempotently: skip when the working tree already carries it (reverse-check
-    # passes), fail the configure otherwise so an unpatched DXVK can never ship silently.
-    #
-    # GeneralsX: IT IS NOT AN iOS PATCH. The name says iOS, this gate said
-    # iOS, and the one fix in it that matters is needed by EVERY Retina Apple display.
-    #
-    # wsi_window_sdl3.cpp's getWindowSize feeds BOTH the present destination rect and the requested
-    # swapchain extent (d3d9_swapchain.cpp UpdatePresentRegion). Unpatched it calls
-    # SDL_GetWindowSize, which returns POINTS; Presenter::pickImageExtent then discards the request
-    # and takes caps.currentExtent, which MoltenVK derives from the CAMetalLayer drawable in
-    # PIXELS. At density 2.0 the whole backbuffer is blitted into the top-left quarter of the
-    # surface, and the mouse rect computed from it misses by the same factor. The patched file says
-    # so in its own comment: "Sizing the swapchain in points leaves it rendering into a corner of
-    # the surface."
-    #
-    # Reported from a MacBook Pro 14" M1 Pro (native 3024x1964, density 2.0) on the shipped
-    # GeneralsXZH-macos-arm64 bundle: picture in the top-left quarter, clicks landing nowhere.
-    # Measured on the two dylibs this tree has actually produced:
-    #
-    #   build/macos-vulkan/.../libdxvk_d3d9.0.dylib   SDL_GetWindowSizeInPixels x0   (Jul 31)
-    #   build/ios-vulkan/libdxvk_d3d9.0.dylib         SDL_GetWindowSizeInPixels x3   (Aug  7)
-    #
-    # Same fork, same pinned commit, opposite patch state — because of this gate.
-    #
-    # Why it hid for three weeks: every Retina fix on the ENGINE side is correct and shipped
-    # (SDL3Main.cpp sets SDL_WINDOW_HIGH_PIXEL_DENSITY, W3DDisplay scales the render target to
-    # pixels, Pillarbox_Get_Rect divides by density). DXVK is a separately-built binary on the far
-    # side of ExternalProject, and nothing in the engine can see its WSI. The GX_PBOX probe is a
-    # resolution-mode-list probe: it never observes the swapchain extent, so a healthy-looking
-    # probe is entirely compatible with a quarter-size picture. And at density 1.0 the defect is
-    # arithmetically a no-op, so the maintainer's 1x Mac could not have failed the check that was
-    # cited as verification.
-    #
-    # Applied for any target that builds from the local fork. The MoltenVK dlopen hunk is inert on
-    # macOS (the bundle ships MoltenVK in Contents/Resources/lib and the loose deploy puts it
-    # beside the binary), so there is nothing macOS-specific to exclude.
+    # list - apply it idempotently, and fail the configure otherwise so an unpatched DXVK never ships.
+    # It is needed on every Retina Apple display: unpatched, getWindowSize returns points while the swapchain takes
+    # pixels, so at density 2.0 the picture lands in a corner and the mouse rect is off by the same factor.
     execute_process(
       COMMAND git -C "${DXVK_LOCAL_FORK_DIR}" apply --reverse --check "${CMAKE_SOURCE_DIR}/Patches/dxvk-ios.patch"
       RESULT_VARIABLE DXVK_PATCH_ALREADY_APPLIED
@@ -197,7 +132,7 @@ elseif(APPLE AND SAGE_USE_MOLTENVK)
     endif()
   elseif(CMAKE_SYSTEM_NAME STREQUAL "iOS")
     # The remote clone has no way to receive the iOS patch; a silent fallback
-    # here previously produced dylibs that die at Vulkan init on device.
+    # here would produce dylibs that die at Vulkan init on device.
     message(FATAL_ERROR "iOS DXVK requires the local fork submodule. Run: git submodule update --init references/fbraz3-dxvk")
   else()
     set(DXVK_SOURCE_DIR "${CMAKE_BINARY_DIR}/_deps/dxvk-src-fbraz3")
@@ -275,24 +210,10 @@ elseif(APPLE AND SAGE_USE_MOLTENVK)
                    ${CMAKE_BINARY_DIR}/meson-arm64-ios-cross.ini @ONLY)
     set(DXVK_MESON_MACHINE_ARGS --cross-file ${CMAKE_BINARY_DIR}/meson-arm64-ios-cross.ini)
   else()
-    # GeneralsX: THE SDK AND THE DEPLOYMENT TARGET GO ON MESON'S COMMAND LINE.
-    # Without -isysroot the DXVK sub-build takes the compiler's default SDK - on a host whose OS is
-    # newer than its Xcode, the Command Line Tools' SDK for the NEWER OS, which the older Xcode linker
-    # cannot read. Measured 18/09/2026 on macOS 27.0 + Xcode 26.6: meson setup died on "Compiler clang
-    # cannot compile programs" (ld: tapi error ... MacOSX27.0.sdk/usr/lib/libSystem.B.tbd: unknown
-    # architecture). The shipped DXVK dylibs were also minos 26.0 while the game targets 15.0.
-    #
-    # NOT in the native file, although iOS does it that way: meson keeps the machine file a build dir
-    # was FIRST set up with. `--reconfigure --native-file <new>` silently keeps the old file, fails
-    # outright if the old one is gone, and ignores changed args in the same file (all three measured,
-    # meson 1.12). Every existing DXVK dir would have kept building against the default SDK, and the
-    # next Xcode move would have gone stale unseen. -D is re-applied on every --reconfigure, and
-    # ExternalProject re-runs the configure step whenever this command line changes. It REPLACES the
-    # native file's c_args rather than adding to them, hence the -arch.
-    #
-    # CMAKE_OSX_SYSROOT is already the resolved path here (Darwin-Initialize turns the preset's
-    # "macosx" into one at project()). Resolve the name ourselves when it is not a path - an empty
-    # cache from before the preset pinned it, or the Xcode generator.
+    # The SDK and deployment target go on meson's command line (-isysroot), else the sub-build takes the compiler's
+    # default SDK, which may be newer than the Xcode linker can read.
+    # Not in the native file: meson keeps the machine file a build dir was first set up with; -D is re-applied on every
+    # --reconfigure. It replaces the native file's c_args, hence the -arch. A SYSROOT given as a name is resolved via xcrun.
     set(DXVK_MACOS_SDK "${CMAKE_OSX_SYSROOT}")
     if(NOT IS_DIRECTORY "${DXVK_MACOS_SDK}")
       execute_process(COMMAND xcrun --sdk macosx --show-sdk-path
@@ -396,8 +317,8 @@ elseif(WIN32)
   # GeneralsX: Fail loudly instead of falling through to the Linux arm.
   # Reaching here means someone forced -DSAGE_USE_DX8=OFF on a Windows target. The arm below would
   # then put DXVK's Linux <windows.h>/<windows_base.h> on the include path of every translation
-  # unit and shadow the real Windows SDK. That silent fallthrough is what this file used to do by
-  # default, and it is not a configuration anyone can build.
+  # unit and shadow the real Windows SDK. A silent fallthrough is not a configuration
+  # anyone can build.
   message(FATAL_ERROR
     "SAGE_USE_DX8=OFF is not a supported Windows configuration.\n"
     "DXVK's native tarball is a Linux package: its include/dxvk ships DXVK's own windows.h and "

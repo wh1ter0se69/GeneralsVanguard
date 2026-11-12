@@ -21,7 +21,7 @@
 /* ABSTRACT */
 /*------------------------------------------------------------------*/
 /*                                                                  */
-/*             Huffman - Huffman with Runlength Codex               */
+/*             Huffman - Huffman with Runlength review               */
 /*                                                                  */
 /*                    by FrANK G. Barchard, EAC                     */
 /*                                                                  */

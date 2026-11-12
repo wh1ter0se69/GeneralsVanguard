@@ -1,4 +1,22 @@
-// GeneralsX: WS-F1: D3D8 texture-stage sampler state -> VkSampler, cached for the session.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// WS-F1: D3D8 texture-stage sampler state -> VkSampler, cached for the session.
 //
 // The mapping is DXVK's (references/fbraz3-dxvk src/d3d9/d3d9_device.cpp BindSampler + d3d9_util.h Decode*), so a native
 // draw samples exactly as the CLASSIC path on the same device: POINT/NONE -> NEAREST, anything above -> LINEAR; mip NONE ->

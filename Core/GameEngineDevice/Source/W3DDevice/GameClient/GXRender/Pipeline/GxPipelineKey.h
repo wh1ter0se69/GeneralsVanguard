@@ -1,8 +1,26 @@
-// GxPipelineKey.h - the native renderer's pipeline key (WS-D).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GxPipelineKey.h - the native renderer's pipeline key.
 //
 // A pipeline = GxStructKey (what Vulkan bakes and the session cannot set per draw) + GxShaderKey (which shaders). Depth/stencil,
 // cull, front face, depth-bias enable, vertex stride and topology within its class are DYNAMIC (Vulkan 1.3 core) and never part
-// of a key; every other VkGraphicsPipelineCreateInfo field is keyed here or a fixed invariant (DESIGN §2's table). Values are Vulkan enums so a key maps 1:1 onto VkGraphicsPipelineCreateInfo and onto the DXVK
+// of a key; every other VkGraphicsPipelineCreateInfo field is keyed here or a fixed invariant. Values are Vulkan enums so a key maps 1:1 onto VkGraphicsPipelineCreateInfo and onto the DXVK
 // census it was derived from (scripts/render/dxvk-census). Plain data: zero-initialised, compared and hashed byte-wise.
 #pragma once
 
@@ -36,9 +54,9 @@ enum GxTopologyClass : uint8_t { GxTopoPoints, GxTopoLines, GxTopoTriangles };
 
 // Which dimensions the device sets per draw beyond Vulkan 1.3 core (VK_EXT_extended_dynamic_state3 sub-features). A key is
 // normalised with the session's mask, so one table serves every policy. Each bit is enabled only after its per-backend
-// qualification (DESIGN §2).
+// qualification.
 // One bit per VK_EXT_extended_dynamic_state3 feature, used ONLY when that feature is supported AND enabled on the device
-// (MoltenVK 1.4.2: only PolygonMode; lavapipe: all - rw1-B, OBSERVED). census.py --mask uses the same bits.
+// (MoltenVK 1.4.2: only PolygonMode; lavapipe: all). census.py --mask uses the same bits.
 enum GxDynamicMask : uint32_t {
 	GxDynBlend          = 1u << 0,   // extendedDynamicState3ColorBlendEnable + ColorBlendEquation
 	GxDynWriteMask      = 1u << 1,   // extendedDynamicState3ColorWriteMask
@@ -89,7 +107,7 @@ static_assert(std::is_trivially_copyable<GxStructKey>::value, "GxStructKey is pl
 static_assert(sizeof(GxStructKey) == 16 * 8 + 8 + 8 + 8 + 16, "GxStructKey has no padding (byte-wise compare and hash)");
 
 // Generic = the run-time-state FF ubershader pair; FFSpecialised = the same with specialisation constants from the FF key AND the
-// spec values DXVK bakes (alpha-test func, fog modes...: hash64 covers both); Custom = a WS-E port (no generic fallback).
+// spec values DXVK bakes (alpha-test func, fog modes...: hash64 covers both); Custom = a ported program (no generic fallback).
 enum GxShaderKind : uint8_t { GxShaderGeneric, GxShaderFFSpecialised, GxShaderCustom };
 
 struct GxShaderKey {
@@ -113,7 +131,7 @@ inline uint64_t GxFnv1a64(const void* data, size_t size, uint64_t h = 1469598103
 }
 
 // In-memory bucketing only, NEVER persisted (the keys file keeps GxFnv1a64): 8 bytes per step (FxHash's rotate-xor-multiply)
-// + a final avalanche. The render thread hashes ~300 bytes per FF draw; byte-wise FNV made that ~0.6 us (rw2-D, measured).
+// + a final avalanche. The render thread hashes ~300 bytes per FF draw; byte-wise FNV made that ~0.6 us.
 inline uint64_t GxFastHash64(const void* data, size_t size) {
 	const uint8_t* p = static_cast<const uint8_t*>(data);
 	uint64_t h = 0x9e3779b97f4a7c15ull ^ size;

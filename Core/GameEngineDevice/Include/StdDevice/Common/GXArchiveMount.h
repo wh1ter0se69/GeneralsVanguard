@@ -16,39 +16,9 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: "Have I already mounted this archive?" - by FILE, not by
-// the string somebody happened to spell it with.
-//
-// ArchiveFileSystem::m_archiveFileMap is keyed by the full path string of the archive
-// (StdBIGFileSystem.cpp / Win32BIGFileSystem.cpp, the `m_archiveFileMap[(*it)] = archiveFile`
-// line at the bottom of loadBigFilesFromDirectory). One archive reached through two spellings
-// is therefore two entries: loadIntoDirectoryTree runs twice, the directory tree carries a
-// duplicate location for every path in the archive, the first ArchiveFile is leaked because
-// operator[] overwrites without deleting, and assetID - which hashes the map's basenames with
-// no dedup (ArchiveFileSystem.cpp:251-308) - counts the archive twice.
-//
-// This has been fixed once before, narrowly. StdBIGFileSystem.cpp:805-828 (27/07/2026) strips
-// trailing separators before joining "/../Generals", because "...Zero Hour/" + "/../Generals"
-// spelled the same directory differently from the recursive scan and "the same 15 base-Generals
-// archives got mounted TWICE under two spellings: 55 mounts for 40 files on disk". That fix
-// covers exactly one join. Every other route to the same directory - the sibling scan, the
-// Steam ZH_Generals subdirectory, a relative path from StdLocalFileSystem's recursive walk, a
-// symlink - produces its own spelling and is not covered by it.
-//
-// So the test is moved off the string and onto the file. realpath()/_fullpath() collapse "..",
-// ".", repeated separators and (on POSIX) symlinks, which is what makes two spellings of one
-// archive compare equal.
-//
-// WHY A HEADER. Same reason as StdAssetMarker.h next door: the decision used to be a file-static
-// inside a translation unit that pulls in most of the engine, so proving it meant building the
-// whole thing. Header-only and dependency-free, so scripts/test/archive-mount-dedupe-test.cpp
-// can drive it against real directories with a plain
-// `c++ -std=c++17 -I Core/GameEngineDevice/Include` - no cmake, no engine, no network.
-// It is also shared: StdBIGFileSystem and Win32BIGFileSystem are twins and both need it, so
-// one copy is the point rather than a side effect.
-//
-// Core/GameEngineDevice/Include is in NO sim-digest path ("GameEngineDevice" appears nowhere in
-// resources/gitinfo/simsourcedigest_watcher.cmake), so this cannot move sourceID.
+// Already mounted? Decided by FILE (realpath/_fullpath), not by the path string the archive was spelled with.
+// m_archiveFileMap is keyed by path string, so two spellings mount one archive twice: duplicate tree entries,
+// a leaked ArchiveFile and a double-counted assetID. Header-only so a test can build it; shared by Std and Win32.
 
 #pragma once
 
@@ -105,7 +75,7 @@ inline std::string canonicalPath(const char* path)
 /// Do two CANONICAL paths name the same file?
 ///
 /// POSIX compares exactly. realpath() already returns the on-disk case where the filesystem folds
-/// it (measured on APFS: "rp/sub/file.BIG" resolves to ".../rp/Sub/File.big"), so one file never
+/// it (APFS: "rp/sub/file.BIG" resolves to ".../rp/Sub/File.big"), so one file never
 /// canonicalises to two spellings there; and on a case-sensitive filesystem - Linux, iOS,
 /// case-sensitive APFS - paths differing only by case ARE different files. Folding here could only
 /// ever merge two real archives and drop one. FilenameList's case-insensitive set (FileSystem.h:66)
@@ -126,7 +96,7 @@ inline bool samePath(const std::string& lhs, const std::string& rhs)
 
 /// Is the archive named `archiveName` one the -mod argument supplied? `modBIG` is the single-file
 /// form, `modDir` the directory form (every *.big under it, recursively); either may be empty.
-/// GeneralsX: Both sides go through
+/// Both sides go through
 /// canonicalPath, so `-mod /game/./`, `/game/mod/../mod`, a trailing slash and a case spelling the
 /// filesystem folds all name the same archives as the clean path. A raw string prefix test here let
 /// an odd spelling defeat INI::loadFileDirectory's suppression of the patch's split command files.
@@ -225,20 +195,10 @@ inline int findMounted(const std::vector<std::string>& mountedKeys, const char* 
 	return -1;
 }
 
-/// loadBigFilesFromDirectory's handling of one scanned archive. FALSE when `candidatePath` is not
-/// mounted yet - the caller opens and mounts it exactly as before.
-///
-/// TRUE when it already is, under any spelling. The archive is then NOT reopened, but everything
-/// the reopen used to do FOR THE CALLER still happens, because callers depend on it:
-///   * `loaded` is set. The directory did provide that archive, and loadBigFilesFromDirectory's
-///     result is what tryLoadBigFiles reports. FALSE there sends loadBaseGeneralsAssetsForZH on to
-///     lower-priority installs: with the Steam layout, whose ZH_Generals/ the primary recursive scan
-///     already mounted, that means a SECOND base tree from a sibling folder, or a false "no base
-///     Generals assets found" warning.
-///   * with `overwrite` - ArchiveFileSystem::loadMods, a -mod directory - `promoteExisting(key)` is
-///     called with the key the archive IS mounted under, so the caller re-inserts that archive at
-///     the front and the mod still wins, exactly as the reopened copy used to. Without overwrite
-///     nothing moves: a copy appended behind the one already mounted never became instance 0.
+/// Handles one scanned archive in loadBigFilesFromDirectory. FALSE when `candidatePath` is not mounted yet.
+/// TRUE when already mounted under any spelling: not reopened, but `loaded` is set so callers do not fall through
+/// to lower-priority installs, and with `overwrite` (a -mod directory) `promoteExisting(key)` gets the mounted key
+/// so the mod still wins.
 template <typename PromoteFn>
 inline bool handleAlreadyMounted(const std::vector<std::string>& mountedKeys, const char* candidatePath,
                                  bool overwrite, bool& loaded, PromoteFn promoteExisting)

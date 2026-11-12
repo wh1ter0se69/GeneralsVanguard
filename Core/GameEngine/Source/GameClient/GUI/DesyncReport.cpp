@@ -17,37 +17,9 @@
 */
 
 // FILE: DesyncReport.cpp //////////////////////////////////////////////////////////////////////////
-// GeneralsX: The desync window: one row per player, in real columns.
-//
-// Retail's whole answer to a CRC mismatch was Menus/CRCMismatch.wnd, which names nobody. Since
-// 17/08/2026 Network.cpp put a per-player report into a MessageBoxOk body - but a static text is ONE
-// DisplayString with ONE colour, so the "table" was space-padded words in a proportional font (ragged
-// columns) and a name could not be told apart from the next by anything but its text. It also lived
-// in Core/GameEngine/Source/GameNetwork, so every change to its wording moved the SimID digest.
-//
-// Now: the same retail MessageBox.wnd (its frame, title, fonts, OK button and its sizing rules in
-// MessageBoxFit.h), with the table drawn as one static text per cell, cloned from the layout's own
-// body text so it wears the layout's face, size and drop shadow. What that buys:
-//
-//   * columns that line up at any font - every column starts at its own x;
-//   * each name in its player's house colour, as the game's own score and diplomacy screens show
-//     it, plus "(you)" on the viewer's row, and a Slot column for two players with the same name;
-//   * the players in the same game listed together (DesyncReport.h has the order and why);
-//   * the game time next to the frame - frames at the nominal tick rate, the clock a replay of the
-//     match runs on. Not wall time: a lockstep match that slowed down took longer than that.
-//
-// No new art and no .wnd change, so no data rollout. Nothing here is in the SimID digest.
-//
-// HOW THE BOX GETS ITS SIZE. The body text handed to MessageBoxOk IS the table, as plain rows - so
-// gogoMessageBox's fit (widen, grow, step the font down; MessageBoxFit.h) sizes the box for every
-// row at the font it ends up using. Only then is each row's text replaced by an empty line and the
-// cells laid over those lines: same font, same line pitch, so they land where the rows were
-// measured. If the cells cannot be built (no font, the headless dummy windows), the plain rows stay
-// and the report still reads.
-//
-// The same report goes to stderr as [DESYNC] lines - generals-stderr.log on the four platforms that
-// mirror stderr, and what the headless harness reads (scripts/test/net-kill-gates.sh desync-report).
-////////////////////////////////////////////////////////////////////////////////////////////////////
+// The desync window: MessageBox.wnd plus a per-player table drawn as one static text per cell, names in house colour.
+// The plain rows are the body, so MessageBoxFit.h sizes the box; they are then blanked and the cells laid over them.
+// The same report goes to stderr as [DESYNC] lines. Nothing here is in the SimID digest.
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
@@ -271,7 +243,7 @@ Bool layCells( GameWindow *box, const UnicodeString &header, const UnicodeString
 GameWindow *DesyncReportShow( const std::map<Int, UnsignedInt> &playerCRCs, Int noticedFrame, Int divergedFrame )
 {
 	// ITERATE THE SLOTS: the CRC table is keyed by the reporter's network SLOT (GameLogic::onLogicCrc).
-	// GeneralsX: (observer seats) No longer by Player index: observer slots all share
+	// (observer seats) No longer by Player index: observer slots all share
 	// the ReplayObserver, so a Player-keyed table held one report for every observer and named none of them.
 	std::vector<DesyncReportRow> rows;
 	for( Int slot = 0; slot < MAX_SLOTS; ++slot )

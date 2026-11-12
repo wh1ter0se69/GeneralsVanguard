@@ -1,4 +1,6 @@
-# GeneralsX: L1 in the game: gx_device (the native d3d8 device) and
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# L1 in the game: gx_device (the native d3d8 device) and
 # gx_native_test. Standalone: cmake -S <this dir> -B <build> -G Ninja -DGX_D3D8_INCLUDE=<DXVK include/native>. From the game:
 # Core/GameEngineDevice/CMakeLists.txt adds it when GX_RENDER_NATIVE=ON. Render-only, outside every digested path.
 cmake_minimum_required(VERSION 3.20)
@@ -47,7 +49,7 @@ add_library(gx_device STATIC
 )
 target_include_directories(gx_device PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 if(WIN32)
-    # GeneralsX: Windows: the real SDK <windows.h> plus DirectX 8 headers - the game's
+    # Windows: the real SDK <windows.h> plus DirectX 8 headers - the game's
     # d3d8lib (min-dx8-sdk) inside the game, or -DGX_D3D8_INCLUDE=<min-dx8-sdk dir> standalone. DXVK's include/native/windows
     # shim must never be on this path: it shadows the SDK.
     if(TARGET d3d8lib)
@@ -62,7 +64,7 @@ else()
     target_include_directories(gx_device PUBLIC "${GX_D3D8_INCLUDE}" "${GX_D3D8_INCLUDE}/windows" "${GX_D3D8_INCLUDE}/directx")
 endif()
 target_include_directories(gx_device PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../Pipeline/shaders" "${CMAKE_CURRENT_SOURCE_DIR}/../Pipeline")
-# render-hud-seam-1: GxWorldPass.h, the seam's device interface, lives with the game-side headers that call it
+# GxWorldPass.h, the seam's device interface, lives with the game-side headers that call it
 target_include_directories(gx_device PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../Include/W3DDevice/GameClient")
 target_link_libraries(gx_device PUBLIC gx_record)
 set_target_properties(gx_device PROPERTIES POSITION_INDEPENDENT_CODE ON)

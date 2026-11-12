@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # GeneralsX @build felipebraz 16/02/2026 Deploy Linux build to runtime directory
 # GeneralsX: Add non-empty check to guard against stale CMake placeholder files
 
@@ -33,12 +35,12 @@ elif [[ -d "${LEGACY_RUNTIME_DIR}" ]]; then
     echo "INFO: No .big assets found; using existing legacy runtime ${LEGACY_RUNTIME_DIR}"
 fi
 
-# GeneralsX: GX_RUNTIME_DIR overrides the auto-detection above.
+# GX_RUNTIME_DIR overrides the auto-detection above.
 #
 # THE PEER THE HARNESSES RUN IS NOT THE ONE THIS SCRIPT FINDS. Every cross-platform script
 # defaults to VPS_GAME=/root/gamedata (probe-headless-crc-ab.sh:33, xplat-4platform-play.sh:129
-# and four more), while the detection above prefers ${HOME}/GeneralsX/GeneralsZH. On a test
-# host where that directory exists and holds exactly one .big, the first branch takes it and the
+# and four more), while the detection above prefers ${HOME}/GeneralsX/GeneralsZH. On the test
+# VPS that directory exists and holds exactly one .big, so the first branch takes it and the
 # deploy reports success into a directory nothing ever launches - and the run silently measures
 # the peer that was already there. That has cost this project a full round of "the fix did not
 # land".
@@ -122,7 +124,7 @@ cp -v "${SDL3_IMAGE_LIB_DIR}"/libSDL3_image.so* "${RUNTIME_DIR}/"
 echo "  Copying GameSpy library..."
 cp -v "${GAMESPY_LIB}" "${RUNTIME_DIR}/"
 
-# GeneralsX: The openal-soft this engine was built against. Never copied
+# The openal-soft this engine was built against. Never copied
 # before, so the runtime loaded the distro's libopenal.so.1 - see scripts/build/linux/lib-openal.sh.
 # run.sh's LD_LIBRARY_PATH finds it here first, and so does the $ORIGIN runpath set below when
 # patchelf is installed.
@@ -164,7 +166,7 @@ copy_ldd_deps() {
     done < <(ldd "${root}" | awk '{for (i = 1; i <= NF; ++i) { if ($i ~ /^\//) { print $i; break } }}' | sort -u)
 }
 
-# GeneralsX: Deploy FFmpeg runtime libs transitively so runtime does not depend on host SONAME layout.
+# Deploy FFmpeg runtime libs transitively so runtime does not depend on host SONAME layout.
 echo "  Copying FFmpeg runtime libraries..."
 shopt -s nullglob
 ffmpeg_roots=(
@@ -215,22 +217,9 @@ if [[ -f "${EXTRAS_WND_SRC}" ]]; then
     cp -v "${EXTRAS_WND_SRC}" "${RUNTIME_DIR}/Window/Menus/ExtrasMenu.wnd"
 fi
 
-# GeneralsX: Deploy the loose Multiplayer.ini (twelve player colours)
-# and the string table that names them. Mirrors deploy-macos-zh.sh and the iOS bundler; Windows
-# got the same thing in package-windows-share.ps1.
-#
-# THIS BEING ABSENT IS WHAT SPLIT THE FLEET. Multiplayer.ini goes through the INI parser, so it
-# is CRC'd into iniCRC -> dataID, and dataID is a refusal field: a Linux peer without it reports
-# a different dataID and every join is refused with DATA_DIFFERS. sourceID stays identical on
-# both sides, so it reads as "stale build" and redeploying engines never fixes it.
-#
-# Refuse the deploy rather than ship half of it. The .csf is NOT in dataID (SimulationId.cpp's
-# loose allow-list covers Data/Scripts/*.scb and CommandButton/CommandSet only), so a runtime
-# that got the INI but not the CSF still joins everyone and merely renders MISSING:'Color:Turquoise'
-# in the lobby - which reads as a font or localisation fault, not as a half-finished deploy.
-#
-# The paths are not parallel to ExtrasMenu.wnd above and that is not a typo: .wnd files live at
-# Window/... while INI and CSF live under Data/..., one level deeper.
+# Deploy the loose Multiplayer.ini (twelve player colours) and the string table that names them. The INI is CRC'd into
+# dataID, so a peer without it is refused with DATA_DIFFERS; the .csf is not, so without it a peer still joins but
+# shows MISSING: colour names. Refuse the deploy rather than ship half. INI and CSF live under Data/, one level deeper.
 MP_INI_SRC="${PROJECT_ROOT}/GeneralsZH/Data/INI/Multiplayer.ini"
 COLOR_CSF_SRC="${PROJECT_ROOT}/GeneralsZH/Data/English/Generals.csf"
 if [[ -f "${MP_INI_SRC}" ]]; then
@@ -241,9 +230,9 @@ if [[ -f "${MP_INI_SRC}" ]]; then
     fi
     echo "  Deploying loose player-colour data..."
     mkdir -p "${RUNTIME_DIR}/Data/INI" "${RUNTIME_DIR}/Data/English"
-    # GeneralsX: SKIP A COPY ONTO ITSELF, or the script exits 1 having
+    # SKIP A COPY ONTO ITSELF, or the script exits 1 having
     # done every real thing correctly. On a build host where RUNTIME_DIR lives INSIDE
-    # PROJECT_ROOT - ~/GeneralsX and ~/GeneralsX/GeneralsZH, say -
+    # PROJECT_ROOT - which is the VPS layout, /root/GeneralsX and /root/GeneralsX/GeneralsZH -
     # source and destination are the same inode, cp refuses with "are the same file", and
     # `set -e` kills the script on its very last step. Every caller that gated on this exit code
     # then read a fully successful deploy as a failure. `-ef` compares device+inode, so it is
@@ -260,17 +249,9 @@ if [[ -f "${MP_INI_SRC}" ]]; then
     done
 fi
 
-# GeneralsX: Data/INI/Weapon.ini (the Toxin Tractor balance change), cut
-# from this peer's own CoreINI archive by scripts/tooling/make-weapon-ini.py - never committed, it is
-# the Community Patch's file. It is in iniCRC, so it moves dataID exactly like Multiplayer.ini. A peer
-# with no CoreINI archive anywhere joins nobody anyway (reported at the end), so that alone warns; an
-# archive the recipe refuses (another Community Patch release) is fatal. Mirrors deploy-macos-zh.sh.
-# 25/09/2026: make-weapon-ini.py --root searches where this peer's engine mounts the
-# archive, $GENERALSX_PATCH_PATH and $CNC_GENERALS_ZH_PATH included, so a custom overlay or asset root
-# is not skipped (run.sh cds here, so the loose file in this folder is the one the engine reads).
-# It follows the ENGINE's order, and run.sh below changes that order: it exports the sibling
-# GeneralsXPatch as GENERALSX_PATCH_PATH when that folder exists. So export it the same way here, in a
-# subshell, or a runtime folder with both overlays gets its Weapon.ini from the one the peer never mounts.
+# Data/INI/Weapon.ini (Toxin Tractor change) is cut from this peer's CoreINI archive by make-weapon-ini.py.
+# It is in iniCRC and so moves dataID. No CoreINI archive only warns; an archive the recipe refuses is fatal.
+# run.sh exports the sibling GeneralsXPatch as GENERALSX_PATCH_PATH when it exists; export it the same way here.
 echo "  Generating Data/INI/Weapon.ini..."
 (
     GX_SIBLING_PATCH="$(cd "${RUNTIME_DIR}/.." 2>/dev/null && pwd)/GeneralsXPatch"
@@ -400,7 +381,7 @@ exec "./GeneralsXZH" "$@"
 EOF
 chmod +x "${RUNTIME_DIR}/run.sh"
 
-# GeneralsX: Report where this peer's shared archives are. A report and
+# Report where this peer's shared archives are. A report and
 # not a refusal - see the same block in deploy-macos-zh.sh for why the shipped-artifact builders
 # are fatal and this is not. Note the Linux test peer at /root/gamedata is deliberately left
 # un-migrated: it has no third-party Zero Hour install to protect, which is the only thing the
@@ -408,33 +389,10 @@ chmod +x "${RUNTIME_DIR}/run.sh"
 # shellcheck source=scripts/build/lib-overlay.sh
 source "${SCRIPT_DIR}/../lib-overlay.sh"
 
-# GeneralsX: Build this project's own overlay archives onto this peer.
-#
-# THE ONLY OPTIONAL ARCHIVE LINUX CAN ACTUALLY RECEIVE IS ONE IT CAN BUILD, and that is the whole
-# shape of the problem this closes. The community archives are third-party downloads: nothing in
-# this repository can put them on a Linux box, which is why the block below only ever REPORTED on
-# them. !GXUI.big is different - it is derived from WindowZH.big, which this runtime already has,
-# so it can be produced here rather than shipped here. That is what finally gives a .wnd change a
-# route to a Linux player.
-#
-# WHERE IT LANDS, and the choice is not arbitrary. Prefer the sibling overlay directory when this
-# peer has migrated, because run.sh exports GENERALSX_PATCH_PATH only when that directory exists;
-# otherwise put it in the runtime folder beside the archives this peer already mounts in place.
-# Exactly one copy either way. Two copies would mount twice - same bytes and the right dataID, so
-# nothing breaks, but it is the arrangement gx_overlay_where calls BOTH and it is pure waste.
-#
-# NOT FATAL, matching the rest of this block. deploy-linux-zh.sh reports and continues by design
-# (the /root/gamedata test peer is deliberately un-migrated); a peer without this archive still
-# joins everyone, because assetID is a warning field and not one SimIdCompare refuses over.
-#
-# WRITTEN FOR `set -e`, which is on from line 5, and the if/else below is deliberate rather than
-# verbose. Measured both forms rather than trusting the folklore, because the folklore is only
-# half right: a bare `[[ test ]] && assignment` at statement level does NOT exit on a false test -
-# errexit exempts every element of an AND-list but the last - yet the SAME line as the final
-# command of a function or script does exit, with status 1. So the bare form is safe exactly where
-# it sits today and unsafe the moment anyone moves it into a helper. if/else is safe in both
-# places, and it also sets GX_OVERLAY_OTHER once per branch instead of computing it and then
-# conditionally overwriting it.
+# Build this project's own overlay archive (!GXUI.big, derived from WindowZH.big) on this peer: the only optional
+# archive Linux can receive. One copy: the sibling overlay directory when this peer has migrated (run.sh exports
+# GENERALSX_PATCH_PATH only then), else the runtime folder. Not fatal: assetID is a warning field.
+# if/else, not `[[ ]] && x=`: under set -e the bare form exits 1 as a function's last command.
 GX_OVERLAY_SIBLING="$(gx_overlay_dir "${RUNTIME_DIR}")" || GX_OVERLAY_SIBLING=""
 if [[ -n "${GX_OVERLAY_SIBLING}" && -d "${GX_OVERLAY_SIBLING}" ]]; then
     GX_OVERLAY_TARGET="${GX_OVERLAY_SIBLING}"

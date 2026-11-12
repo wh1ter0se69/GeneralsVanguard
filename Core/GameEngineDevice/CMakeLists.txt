@@ -169,7 +169,7 @@ set(GAMEENGINEDEVICE_SRC
 #    Source/W3DDevice/GameClient/W3DRoadBuffer.cpp
 #    Source/W3DDevice/GameClient/W3DScene.cpp
     Source/W3DDevice/GameClient/GXRender/Scene/GxL2Check.cpp
-    # GeneralsX: WS-G Task 5 T3: the device-less wrapper model C6 replays each modelled flush through
+    # GeneralsX: the device-less wrapper model replays each modelled flush through
     Source/W3DDevice/GameClient/GXRender/Scene/GxL2Model.cpp
     Source/W3DDevice/GameClient/GXRender/Scene/GxL2ModelApply.cpp
     Source/W3DDevice/GameClient/GXRender/Scene/GxL2ModelShader.cpp
@@ -178,7 +178,7 @@ set(GAMEENGINEDEVICE_SRC
     Source/W3DDevice/GameClient/GXRender/Scene/GxL2Dry.cpp
     Source/W3DDevice/GameClient/GXRender/Scene/GxScene.cpp
     Source/W3DDevice/GameClient/W3DShaderManager.cpp
-    # GeneralsX: WS-X hybrid spike. Not digested: this file is
+    # GeneralsX: hybrid spike. Not digested: this file is
     # outside simsourcedigest_watcher.cmake's lists, so listing a render source here leaves the SimID alone.
     Include/W3DDevice/GameClient/GxInterop.h
     Source/W3DDevice/GameClient/GXRender/Interop/GxInterop.cpp
@@ -190,6 +190,9 @@ set(GAMEENGINEDEVICE_SRC
     Source/W3DDevice/GameClient/GXRender/Interop/GxDrawRun.cpp
     Include/W3DDevice/GameClient/GxDepthShot.h
     Source/W3DDevice/GameClient/GXRender/Interop/GxDepthShot.cpp
+    # The Vulkan device's driver, memory and API version for the hardware report (GameClient/GXHwReport.h) - not digested.
+    Include/W3DDevice/GameClient/GxDeviceSummary.h
+    Source/W3DDevice/GameClient/GXRender/Interop/GxDeviceSummary.cpp
 #    Source/W3DDevice/GameClient/W3DShroud.cpp
     Source/W3DDevice/GameClient/W3DSmudge.cpp
     Source/W3DDevice/GameClient/W3DSnow.cpp
@@ -249,50 +252,18 @@ if(WIN32)
         Source/Win32Device/GameClient/Win32DIKeyboard.cpp
         Source/Win32Device/GameClient/Win32Mouse.cpp
 
-        # GeneralsX: Build the Miles and Bink devices back on Windows.
-        #
-        # Both were commented out at the top of this file for the Linux port ("Disable Miles/Bink
-        # for Linux (Windows-only)"), but their consumers were never made conditional with them:
-        # Win32GameEngine::createAudioManager() still does "new MilesAudioManager" and
-        # W3DGameClient::createVideoPlayer() still does "new BinkVideoPlayer". On Windows that is
-        # 17 unresolved externals at link (LNK2001/LNK2019). Restoring them here - inside the
-        # existing if(WIN32) - is the arrangement upstream has, and leaves the Linux and macOS
-        # source list byte for byte as it was; those platforms use the OpenAL manager and the
-        # BinkVideoPlayerStub instead.
-        #
-        # Both compile at x64 now that the root CMakeLists fetches the miles-sdk-stub headers
-        # there and Dependencies/Bink supplies bink.h.
+        # Build the Miles and Bink devices on Windows. Their consumers (Win32GameEngine::createAudioManager() and
+        # W3DGameClient::createVideoPlayer()) are not conditional, so leaving them out gives 17 unresolved externals at link.
+        # Restoring them inside if(WIN32) leaves the Linux and macOS source lists unchanged: those use the OpenAL manager and
+        # BinkVideoPlayerStub. Both compile at x64 with the miles-sdk-stub headers and Dependencies/Bink's bink.h.
         Include/VideoDevice/Bink/BinkVideoPlayer.h
         Source/VideoDevice/Bink/BinkVideoPlayer.cpp
     )
 
-    # GeneralsX: ONE AUDIO BACKEND PER BINARY.
-    #
-    # Bink stays unconditional above - W3DGameClient::createVideoPlayer() constructs it on Windows
-    # regardless of the audio backend, so removing it is the 17-unresolved-externals mistake the
-    # comment above documents. Only the Miles AUDIO half is conditional.
-    #
-    # Why it has to be: with SAGE_USE_OPENAL on, :285-303 below also adds the OpenAL manager, so
-    # both backends land in one target. They declare structurally DIFFERENT types under IDENTICAL
-    # global names - MAXPROVIDERS, enum PlayingAudioType, enum PlayingWhich, struct PlayingAudio,
-    # struct ProviderInfo, struct OpenAudioFile - in
-    # Include/MilesAudioDevice/MilesAudioManager.h and
-    # Include/OpenALAudioDevice/OpenALAudioManager.h + Source/OpenALAudioDevice/OpenALAudioCache.h.
-    # That is a One Definition Rule violation across translation units. MSVC issues NO diagnostic
-    # and the linker folds one layout over the other, so it does not fail the build - it produces a
-    # binary that reads a Miles PlayingAudio through an OpenAL layout at runtime. Silent corruption
-    # is worse than a link error.
-    #
-    # De-inlining the factory so no single TU sees both headers is necessary but NOT sufficient,
-    # because the collision is cross-TU. Compiling only one backend is. The reference win64 port
-    # (references/jmarshall-win64-modern) instead renamed every colliding symbol in its OpenAL
-    # header - that is the alternative if both backends ever genuinely have to coexist.
-    #
-    # NOTE for the audio bring-up: Core/Tools/MapCacheBuilder and both WorldBuilder targets
-    # construct MilesAudioManager directly and default ON, so an OpenAL build needs
-    # RTS_BUILD_CORE_TOOLS, RTS_BUILD_ZEROHOUR_TOOLS and RTS_BUILD_GENERALS_TOOLS OFF until those
-    # three call sites are made backend-agnostic. The win64 preset sets all three, with
-    # SAGE_USE_OPENAL (25/09/2026); before that they lived only in one machine's CMakeCache.txt.
+    # ONE AUDIO BACKEND PER BINARY. Bink stays unconditional above; only the Miles AUDIO half is conditional.
+    # Both backends declare different types under IDENTICAL global names (MAXPROVIDERS, PlayingAudio, ProviderInfo...):
+    # an ODR violation MSVC does not diagnose, giving silent corruption. Core/Tools and both WorldBuilder targets
+    # build MilesAudioManager directly, so OpenAL builds need them OFF.
     if(NOT SAGE_USE_OPENAL)
         list(APPEND GAMEENGINEDEVICE_SRC
             Include/MilesAudioDevice/MilesAudioManager.h
@@ -316,7 +287,7 @@ if(NOT IS_VS6_BUILD)
 endif()
 
 add_library(corei_gameenginedevice_private INTERFACE)
-# GeneralsX: WS-X: GxInterop needs Vulkan TYPES only (VK_NO_PROTOTYPES; every entry point comes from
+# GeneralsX: GxInterop needs Vulkan TYPES only (VK_NO_PROTOTYPES; every entry point comes from
 # DXVK's own vkGetInstanceProcAddr). DXVK's Vulkan-Headers are appended LAST to the include path, so a Vulkan SDK already on it
 # (macOS) still wins for every other translation unit, and Linux/Windows trees without one get DXVK's. vulkan_core.h includes
 # vk_video/... relative to that root, so the root itself must be on the path (a macro include of the file alone fails on Linux).
@@ -382,47 +353,10 @@ if(SAGE_USE_OPENAL)
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/OpenALAudioDevice
     )
 
-    # GeneralsX: ONE AUDIO DECODER, THE SAME ONE, ON ALL FOUR PLATFORMS.
-    #
-    # dr_wav + dr_mp3 everywhere. Not "FFmpeg where it exists, dr where it does not" - that was the
-    # first cut of this and it was wrong, for a reason worth stating because it is easy to re-derive
-    # badly.
-    #
-    # getFileLengthMS is SIMULATION STATE. ScriptEngine::isSpeechComplete / isAudioComplete turn it
-    # into `getFrame() + audioLength/MSEC_PER_LOGICFRAME` and latch that, so two peers that disagree
-    # about a file's length take different script branches. Both backends derive the duration the
-    # same way, from the decoded sample count - so the decoder choice IS a simulation input.
-    #
-    # Measured 06/08/2026 by decoding all 3530 audio entries in the 25 shipped BIGs twice, once each
-    # way, and comparing decoded sample counts:
-    #
-    #   3523 / 3530 agree EXACTLY   - every WAV, both PCM (0x0001) and IMA-ADPCM (0x0011)
-    #   7 / 3530 differ             - exactly the 7 MP3s, every one by exactly 3456 samples
-    #
-    # 3456 is 3 x 1152: three MPEG granules of decoder delay that dr_mp3 trims and FFmpeg emits.
-    # At 60 Hz that is 4-5 logic frames of disagreement on Data\Audio\Tracks\*.mp3. Using the same
-    # decoder on every platform removes that by construction rather than by luck.
-    #
-    # BY LUCK is not hyperbole - it is what the tree was already relying on elsewhere.
-    # MilesAudioManager::hasMusicTrackCompleted (MilesAudioManager.cpp:1337) is a LIVE
-    # implementation returning TRUE off AIL_stream_loop_count. It agreed with the other platforms
-    # only because the 13 KB x64 Miles stub never opens a device, so findActiveMusic walks a
-    # permanently empty m_playingStreams. Accidental agreement, one stub away from divergence.
-    #
-    # THIS CHOICE IS NOT IN THE sourceID DIGEST. Core/GameEngineDevice/ is outside the watched set,
-    # so two peers built with different decoders would present identical sourceIDs and still
-    # simulate differently. That is exactly why there is no cache option here to get wrong: it is
-    # DR, unconditionally. The durable fix is to stop deriving duration from the decoder at all -
-    # parse it from the container header identically everywhere - which makes the decoder choice
-    # simulation-irrelevant. Until that lands, do not add a knob.
-    #
-    # Coverage is complete, so nothing regresses to a silent fallback: 2572 IMA-ADPCM, 951 PCM,
-    # 7 MP3, zero unhandled. This also keeps FFmpeg - and therefore vcpkg.json, which IS digested -
-    # out of the Windows build entirely. FFmpeg remains for VIDEO only.
-    #
-    # Note this replaced an `if(NOT RTS_BUILD_OPTION_FFMPEG) -> add FFmpegFile.cpp` block that
-    # could never have worked: it compiled libav-calling code without ever adding the libav
-    # include directories or link libraries.
+    # ONE AUDIO DECODER (dr_wav + dr_mp3) on all four platforms. getFileLengthMS is SIMULATION STATE: isSpeechComplete
+    # and isAudioComplete latch `getFrame() + audioLength/MSEC_PER_LOGICFRAME` from the decoded sample count. Of 3530
+    # shipped audio entries 3523 agree; the 7 MP3s differ by 3456 samples (3 x 1152 MPEG granules of decoder delay).
+    # The choice is not in the sourceID digest, so there is no option: do not add a knob.
     target_compile_definitions(corei_gameenginedevice_public INTERFACE SAGE_AUDIO_DECODER_DR)
 endif()
 
@@ -447,20 +381,10 @@ if(RTS_BUILD_OPTION_FFMPEG)
     endif()
 endif()
 
-# GeneralsX: native renderer device layer (WS-B): gx_vkctx + its
-# self-test. Render-only, outside the digested paths; OFF until the session switch (WS-J) wires a backend to it. It also
-# builds standalone in minutes: cmake -S Core/GameEngineDevice/Source/W3DDevice/GameClient/GXRender/Vk -B <dir>.
-# GeneralsX: L1 in the game: GX_RENDER_NATIVE=ON links
-# GXRender/{Vk,Res,Pipeline,Record,Device} into the game and compiles the GX_RENDERER=native session switch. OFF (default)
-# = today's binary. Not digested (outside simsourcedigest_watcher.cmake).
-# GeneralsX: the DEFAULT is ON for macOS
-# and Windows x64 MSVC - so the shipping presets macos-vulkan and win64 compile the native renderer in - and OFF for iOS and Linux
-# (ios-vulkan, linux64-deploy). Here and not in CMakePresets.json, which the SimID digest takes whole: no digested file reads
-# GX_RENDER_NATIVE, and simid-closure on a native build is the checked proof of that boundary. Compiled in is not switched on: the
-# session is classic unless Options.ini GXRenderer = native (GameClient/GXRendererKey.h). -DGX_RENDER_NATIVE=OFF still builds without.
-# The option() below says ON - what macOS and Windows x64 get (and what scripts/tooling/gx-knobs.py reads: a literal default).
-# Every other platform starts from OFF: its cache entry is seeded before option() runs, which then leaves it alone. An explicit
-# -DGX_RENDER_NATIVE=ON still builds an iOS native test arm (native-ipad), as before.
+# Native renderer (GX_RENDER_NATIVE): links GXRender/{Vk,Res,Pipeline,Record,Device} into the game and compiles the
+# GX_RENDERER=native session switch. Render-only, not digested. Default ON for macOS and Windows x64 MSVC, OFF for iOS
+# and Linux, set here and not in CMakePresets.json (the SimID digest takes it whole).
+# Compiled in is not switched on: the session is classic unless Options.ini GXRenderer = native.
 if((APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS") OR (WIN32 AND MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8))
     set(_gx_render_native_ships ON)
 else()
@@ -521,10 +445,9 @@ if(GX_RENDER_NATIVE)
             target_include_directories(${_gxt} PRIVATE "${CMAKE_SOURCE_DIR}/Core/Libraries/Source/WWVegas/WWLib")
         endif()
     endforeach()
-    # GeneralsX: MSVC's RelWithDebInfo (the shipped Windows config) is /O2 /Ob1: only
-    # functions marked inline are inlined, while clang -O2 on the Mac inlines freely. The GXRender libraries alone get /Ob2 (the last /Ob
-    # wins); game sources compile exactly as before. Measured (A38 am.1, wh1ter0se's PC, ABAB n=2+2): native per-draw main-thread
-    # CPU -5.9..-8.1% in every cross-pair; an n=3+3 confirmation is owed before any "faster" claim.
+    # MSVC's RelWithDebInfo (the shipped Windows config) is /O2 /Ob1: only functions marked inline are inlined, while clang -O2
+    # inlines freely. The GXRender libraries alone get /Ob2 (the last /Ob wins); game sources compile as before. Native per-draw
+    # main-thread CPU measured -5.9..-8.1% in every cross-pair (ABAB, n=2+2); an n=3+3 confirmation is owed before any "faster" claim.
     if(MSVC)
         foreach(_gxt gx_device gx_record gx_pipeline gx_res gx_vkctx)
             if(TARGET ${_gxt})
@@ -536,17 +459,16 @@ if(GX_RENDER_NATIVE)
     target_compile_definitions(gx_device PRIVATE GX_RENDER_NATIVE=1)
     target_link_libraries(corei_gameenginedevice_public INTERFACE gx_device)
     target_compile_definitions(corei_gameenginedevice_public INTERFACE GX_RENDER_NATIVE=1)
-    # GeneralsX: GX_STREAMLINE (default OFF; PREREG A36; rule 5a: test
-    # builds only until the lead + wh1ter0se document a licence basis): NVIDIA Streamline (DLSS SR) behind the seam, Windows x64. Headers
-    # from GX_STREAMLINE_SDK at build time; NVIDIA's DLLs are never in the tree or the zip. The define is gx_device's alone: no game
-    # source compiles differently.
+    # GX_STREAMLINE (default OFF): NVIDIA Streamline (DLSS SR) behind the seam, Windows x64, test builds only until a licence basis
+    # is documented. Headers from GX_STREAMLINE_SDK at build time; NVIDIA's DLLs are never in the tree or the zip. The define is
+    # gx_device's alone: no game source compiles differently.
     option(GX_STREAMLINE "NVIDIA Streamline / DLSS in the native renderer (Windows x64 test builds only)" OFF)
     if(GX_STREAMLINE AND WIN32)
         set(GX_STREAMLINE_TESTS OFF CACHE BOOL "" FORCE)
         add_subdirectory(Source/W3DDevice/GameClient/GXRender/Upscale)
         target_link_libraries(gx_device PRIVATE gx_streamline)
         target_compile_definitions(gx_device PRIVATE GX_STREAMLINE=1)
-        # (dlss-integrator ruling 18/10 13:0xZ): GXGraphicsSettings.cpp resolves GXUpscaler=dlss to off in a
+        # GXGraphicsSettings.cpp resolves GXUpscaler=dlss to off in a
         # build without Streamline, so it needs to know this build has it. A SOURCE property on that one file only, set once the game's
         # engine targets exist (they are made after Core is processed); no other game source compiles differently.
         function(gx_u2_streamline_define_for_settings)

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: Join-time SimID compatibility check.
+// Join-time SimID compatibility check.
 // Apple targets (macOS arm64, iOS arm64) only in this pass. Places that will need
 // work before a Windows peer can be trusted are marked "WINDOWS HOOK".
 
@@ -76,41 +76,11 @@ static UnsignedInt fnv1aU32( UnsignedInt h, UnsignedInt v )
 static const UnsignedInt FNV_SEED = 2166136261u;
 
 // ---------------------------------------------------------------------------
-// engineID - build configuration and wire geometry.
-//
-// WINDOWS HOOKS / deliberate omissions:
-//  * sizeof(WideChar) is NOT hashed. WideChar is wchar_t (Core/Libraries/Include/
-//    Lib/BaseType.h) - 4 bytes under Apple clang, 2 under MSVC - and no build flag
-//    can change that, so hashing it would make every Apple<->Windows pairing
-//    mathematically impossible with no remedy. Nothing on the lockstep or LAN wire
-//    path depends on it: LANMessage uses WideCharWindows = uint16_t.
-//  * SimulationMathCrc::calculate() is NOT hashed. It fingerprints the device's
-//    libsystem_m rather than the build (an iPadOS point update alone could break a
-//    working pairing), and it calls setFPMode() then restores with
-//    fesetenv(FE_DFL_ENV) rather than the prior environment, which would leave the
-//    FPU in a different state for postProcessLoadAll. See platformID instead.
-//  * sizeof(void*) IS hashed and will refuse a 32-bit peer. That is correct on the
-//    merits - BitFlagsIO.h does xfer->xferUser(this, sizeof(this)), the pointer not
-//    the object, under RETAIL_COMPATIBLE_CRC - but note every Windows preset in
-//    CMakePresets.json is currently 32-bit Win32, so a Windows port must be x64 to
-//    ever pair with Apple.
-//  * LOGICFRAMES_PER_SECOND IS hashed, and it is the one field here that the source
-//    digest cannot cover. It resolves to WWSyncPerSecond, which is defined in
-//    Core/Libraries/Source/WWVegas/WWLib/WWCommon.h - and WWLib is NOT a digested path
-//    (only Core/Libraries/Include and Core/Libraries/Source/WWVegas/WWMath are). So
-//    editing that one enum changes the simulation rate of every logic frame while
-//    leaving sourceID untouched, and before this line it left engineID untouched too:
-//    a 30 Hz and a 60 Hz build reported the SAME SimID, passed the join, and desynced
-//    immediately. Nothing automatic caught it and SIMID_EPOCH would have had to be
-//    bumped by hand, which the epoch comment itself says nobody should have to remember.
-//    Latent rather than live today - WWSyncPerSecond is 30 with a static_assert in
-//    WW3D2/htree.cpp:614 pinning it there, and no build option changes it - but it goes
-//    live the moment the 60 Hz simulation work is adopted, which is exactly when a
-//    silent desync would be hardest to attribute. See references/generals-online-client,
-//    where WWSyncPerSecond = 60 sits behind GENERALS_ONLINE_HIGH_FPS_SERVER.
+// engineID - build configuration and wire geometry. NOT hashed: sizeof(WideChar) (4 on Apple, 2 on MSVC) and
+// SimulationMathCrc (device libm). Hashed: sizeof(void*) (BitFlagsIO.h xfers sizeof(this)) and
+// LOGICFRAMES_PER_SECOND, which lives in undigested WWLib/WWCommon.h, so 30 Hz and 60 Hz builds would otherwise
+// desync. The lobby-wire inputs are parameters so replays can be checked against the pre-34-slot engineID.
 // ---------------------------------------------------------------------------
-// GeneralsX: the two lobby-wire inputs are parameters, so a replay can be checked against the
-// engineID this build had before 34 slots grew them (SimIdReplayLegacyEngineID). Every other input is this build's own.
 static UnsignedInt computeEngineIDWith( UnsignedInt lanMessageSize, UnsignedInt networkMessageLen )
 {
 	UnsignedInt h = FNV_SEED;
@@ -118,27 +88,10 @@ static UnsignedInt computeEngineIDWith( UnsignedInt lanMessageSize, UnsignedInt 
 	h = fnv1aU32(h, (UnsignedInt)SIMID_EPOCH);
 	h = fnv1aU32(h, SIMID_GAME_VARIANT);
 
-	// The 17 PRESERVE_* switches from GameDefines.h, in declaration order except bit 15.
-	//
-	// GeneralsX: PRESERVE_SNIPING_EMPTY_STINGER_SITES was declared at
-	// GameDefines.h:83 but never hashed here, so two peers built with different values of it
-	// computed the SAME engineID, passed the join and then diverged - the exact silent-desync
-	// failure the LOGICFRAMES_PER_SECOND note above describes. It was latent rather than live
-	// only because nothing overrides the default.
-	//
-	// It is APPENDED at bit 15 rather than inserted at its declaration position, and that is
-	// deliberate. It defaults to 0 while PRESERVE_RETAIL_SCRIPTED_CAMERA defaults to 1, so
-	// inserting it in order would move the set bit from 14 to 15 and change engineID for a
-	// configuration that is otherwise identical. SimIdCompare tests engineID BEFORE sourceID,
-	// so every peer on an older build would then be refused with ENGINE_DIFFERS - "your build
-	// options differ" - when the options are in fact the same and only the content moved. That
-	// is a misleading verdict from the one check whose entire job is naming the cause.
-	// Appending keeps engineID a function of the CONFIGURATION: it now moves only when somebody
-	// actually sets this switch, which is exactly when it should.
-	//
-	// IF YOU ADD A PRESERVE_* TO GameDefines.h, ADD ITS SIMBIT HERE IN THE SAME COMMIT, APPENDED
-	// AT THE NEXT FREE BIT. A switch that is missing from this word does not fail loudly - it
-	// produces two peers that simulate different games while reporting identical identities.
+	// The 19 PRESERVE_* switches from GameDefines.h, in declaration order except bit 15.
+	// PRESERVE_SNIPING_EMPTY_STINGER_SITES is appended, not inserted: inserting would shift the set bit of
+	// PRESERVE_RETAIL_SCRIPTED_CAMERA and move engineID for an identical configuration (false ENGINE_DIFFERS). A new
+	// PRESERVE_* needs its SIMBIT here in the same commit, at the next free bit.
 	const UnsignedInt rulesWord =
 		  SIMBIT( 0, PRESERVE_BUILDING_RESUMPTION_DELAY)
 		| SIMBIT( 1, PRESERVE_CHINOOK_PASSENGER_DUMPING)
@@ -157,26 +110,12 @@ static UnsignedInt computeEngineIDWith( UnsignedInt lanMessageSize, UnsignedInt 
 		| SIMBIT(14, PRESERVE_RETAIL_SCRIPTED_CAMERA)
 		// Out of declaration order ON PURPOSE - do not "tidy" this into position. See above.
 		| SIMBIT(15, PRESERVE_SNIPING_EMPTY_STINGER_SITES)
-		// GeneralsX: Added with PRESERVE_RETAIL_PARTICLES in the same
-		// commit, per the rule above.
-		//
-		//
-		// Bit 15 was appended BECAUSE
-		// PRESERVE_SNIPING_EMPTY_STINGER_SITES defaults to 0 (GameDefines.h:94), which keeps
-		// engineID unchanged until somebody sets the switch. PRESERVE_RETAIL_PARTICLES defaults
-		// to 1 (GameDefines.h:102), so this bit moves engineID for every default build - the
-		// opposite of what that reasoning achieves. There is no ordering tension here either:
-		// PRESERVE_RETAIL_PARTICLES is the LAST PRESERVE_ macro declared, so bit 16 already IS
-		// its declaration-order position.
-		//
-		// The engineID move is therefore real and must be shipped as a coordinated republish,
-		// where every platform moves together; it is not free. Unlike its neighbours this switch
-		// is client-side as written - `git grep -nE 'isUsingSmudge|getParticleTypeName' --
-		// '*/GameLogic/*'` returns nothing (measured 14/09/2026, with the same command run
-		// over 'isUsingSmudge|ParticleSystem' as the positive control) - so it is hashed to
-		// honour the rule, not because a desync from it has been demonstrated.
+		// Appended per the rule above. PRESERVE_RETAIL_PARTICLES defaults to 1 (GameDefines.h:102), so this bit moves
+		// engineID for every default build; it is the last PRESERVE_ macro declared, so bit 16 is its declaration position.
+		// The move must ship as a coordinated republish. The switch is client-side (nothing under GameLogic reads
+		// isUsingSmudge or getParticleTypeName); it is hashed to honour the rule, not for a demonstrated desync.
 		| SIMBIT(16, PRESERVE_RETAIL_PARTICLES)
-		// GeneralsX: Added with the nuke-missile outer-radius switches in
+		// Added with the nuke-missile outer-radius switches in
 		// the same commit, per the rule above. Both default to 0, so engineID does not move for a
 		// default build - the bits only matter once somebody sets a switch.
 		| SIMBIT(17, PRESERVE_RETAIL_NUKE_MISSILE_OUTER_RADIUS_SEARCH)
@@ -209,7 +148,7 @@ static UnsignedInt computeEngineIDWith( UnsignedInt lanMessageSize, UnsignedInt 
 #if defined(USE_DETERMINISTIC_MATH)
 	engineWord |= (1u << 10);
 #endif
-	// GeneralsX: RETAIL_COMPATIBLE_DATA, appended at the first free bit.
+	// RETAIL_COMPATIBLE_DATA, appended at the first free bit.
 	// 11 and not 7: the SIMBIT() run above stops at 6, but the WORD does not - bits 7 to 10 are
 	// taken by the four #if arms right above this line. Reusing 7 would make a release build with
 	// RETAIL_COMPATIBLE_DATA=1 hash identically to a debug build with it 0.
@@ -226,7 +165,7 @@ static UnsignedInt computeEngineIDWith( UnsignedInt lanMessageSize, UnsignedInt 
 	h = fnv1aU32(h, lanMessageSize);
 	h = fnv1aU32(h, (UnsignedInt)MAX_PACKET_SIZE);
 	h = fnv1aU32(h, networkMessageLen);
-	// GeneralsX: The wrapper wire geometry (v16 section 2): every chunk
+	// The wrapper wire geometry (v16 section 2): every chunk
 	// grew 8 bytes (wrapSeq, lowWater) and is acked only by NETCOMMANDTYPE_WRAPPERACK. A peer with the old layout would read each
 	// chunk 8 bytes short and never ack one, so the pair must refuse each other at join as ENGINE_DIFFERS instead of starting a
 	// match. sourceID moves as well (GameNetwork is digested); this makes the refusal explicit and independent of the digest.
@@ -243,9 +182,9 @@ static UnsignedInt computeEngineID( void )
 	return computeEngineIDWith( (UnsignedInt)sizeof(LANMessage), (UnsignedInt)MAX_NETWORK_MESSAGE_LEN );
 }
 
-// GeneralsX: sizeof(LANMessage) and MAX_NETWORK_MESSAGE_LEN before 34 slots (integration 5487db2f5b and
-// every 12/14-slot build back to 14/08/2026): 763 and 1100. They are lobby-wire sizes, not simulation inputs, so a replay
-// recorded with them is the same simulation engine; joins still compare the real engineID (SimIdCompare).
+// sizeof(LANMessage) and MAX_NETWORK_MESSAGE_LEN before 34 slots (every 12- or 14-slot build): 763 and 1100. They are
+// lobby-wire sizes, not simulation inputs, so a replay recorded with them is the same simulation engine; joins still
+// compare the real engineID (SimIdCompare).
 enum { GX_SIMID_PRE34_LANMESSAGE_SIZE = 763, GX_SIMID_PRE34_NETWORK_MESSAGE_LEN = RETAIL_COMPATIBLE_NETWORKING ? 1024 : 1100 };
 static_assert( (Int)sizeof(LANMessage) != GX_SIMID_PRE34_LANMESSAGE_SIZE, "the pre-34 lobby-wire engineID only means something while the wire differs" );
 
@@ -254,23 +193,10 @@ UnsignedInt SimIdReplayLegacyEngineID( void )
 	return computeEngineIDWith( (UnsignedInt)GX_SIMID_PRE34_LANMESSAGE_SIZE, (UnsignedInt)GX_SIMID_PRE34_NETWORK_MESSAGE_LEN );
 }
 
-// ---------------------------------------------------------------------------
-// parseID - tier2 WARN only.
-// INI numbers go through one parser on every platform (Common/INIScanNumber.h:
-// fast_float for floats, std::from_chars for integers), so this value is expected to
-// be identical on every peer. The probe stays as a tripwire: if a platform's parse of
-// these strings ever drifts (a fast_float version mismatch, a build that bypasses
-// INIScanNumber.h), it shows up as a named warning rather than as an unexplained
-// desync. It is a WARNING and must never become a deny.
-//
-// The per-probe catch is mandatory, not defensive style: scanReal throws
-// INI_INVALID_DATA, which INI.h defines as an enumerator of an anonymous enum, so it
-// matches neither `catch (ErrorCode ec)` nor `catch (INIException e)` in
-// GameEngine::init and would reach `catch (...)` and kill startup with "Uncaught
-// Exception during initialization." "1e-45" is deliberately absent: it is below the
-// smallest float subnormal, exactly where from_chars implementations disagree about
-// result_out_of_range.
-// ---------------------------------------------------------------------------
+// parseID - tier2 WARN only, never a deny. INI numbers use one parser on every platform (Common/INIScanNumber.h);
+// this probe is a tripwire for drift. The per-probe catch is mandatory: scanReal throws INI_INVALID_DATA, which matches
+// neither typed catch in GameEngine::init, so it would reach catch (...) and kill startup.
+// 1e-45 is absent on purpose: from_chars implementations disagree there.
 static UnsignedInt computeParseID( void )
 {
 	static const char *const probes[] = {
@@ -295,18 +221,9 @@ static UnsignedInt computeParseID( void )
 }
 
 // ---------------------------------------------------------------------------
-// platformID - tier2 WARN only. WINDOWS HOOK, and the honest replacement for the
-// SimulationMathCrc that was removed from the identity.
-//
-// macOS arm64 and iOS arm64 hash to the SAME token on purpose: same Apple
-// libsystem_m, same arm64 ABI, same compiler family, so a Mac<->iPad pairing
-// produces no warning at all. A future Windows x64 build hashes differently and
-// produces "the other machine uses a different system math library; cross-platform
-// play has not been validated" - informative, never a deny, because the philosophy
-// forbids building a wall nobody can climb. Promote it to tier1 only if
-// deterministic math is ever actually implemented and made mandatory.
-// Deliberately coarse: it must NOT include __VERSION__ or a compiler patch level,
-// or every Xcode update would produce noise.
+// platformID - tier2 WARN only. Replaces SimulationMathCrc in the identity.
+// macOS arm64 and iOS arm64 hash to the same token on purpose (same libsystem_m, ABI and compiler family). Informative,
+// never a deny. Deliberately coarse: it must not include __VERSION__ or a compiler patch level.
 // ---------------------------------------------------------------------------
 static UnsignedInt computePlatformID( void )
 {
@@ -323,84 +240,10 @@ static UnsignedInt computePlatformID( void )
 	return fnv1aU32(h, (UnsignedInt)sizeof(void *));
 }
 
-// ---------------------------------------------------------------------------
-// looseDataID - tier1. Folded into dataID rather than carried as a wire field of its
-// own, so the packet layout, MAX_LANAPI_PACKET_SIZE budget and every LAN handler are
-// untouched; SIMID_EPOCH is bumped instead, which makes an old peer refuse at engineID
-// with a named verdict rather than at dataID with a misleading "your INI files differ".
-//
-// WHY THIS EXISTS. dataID was m_iniCRC alone, and m_iniCRC covers only what went
-// through the INI parser. A .scb is a compiled script bundle, not INI, so it sat
-// entirely outside the fingerprint - and Data\Scripts\SkirmishScripts.scb is read by
-// SidesList and MultiplayerScripts.scb by GameLogic, both before frame 0, both feeding
-// the simulation directly. Two peers have already been observed reporting identical
-// engine/source/data/ordinal while simulating different games for exactly this reason:
-// one was missing SkirmishScripts.scb, and the AI diverged on frame 0. Covering these
-// turns that silent desync into a refused join, which is strictly better - a player who
-// cannot join asks why, a player who desyncs blames the netcode.
-//
-// WHAT IS DELIBERATELY NOT IN IT, and this is the load-bearing half. Anything the
-// simulation does not read must stay out, or two players whose games would have agreed
-// perfectly refuse each other over a replaced cursor. So this is NOT a scan of the data
-// directory: it is an explicit allow-list, and every future entry has to earn its place
-// the same way.
-//   * Cursors, fonts, shell art, .wnd layouts, .csf strings, sounds, shaders - all
-//     client-only. A skinned UI has no effect on the simulation and must not be a
-//     compatibility barrier.
-//   * Maps. A map is per-game, negotiated in the lobby and transferred by the map
-//     transfer path; hashing the player's whole map collection would refuse a join
-//     because someone downloaded a map nobody in the lobby is playing.
-//   * .ini in general. Already in m_iniCRC, and hashing it twice buys nothing. The
-//     CommandButton/CommandSet exception below is exactly that - an exception, because
-//     those files never reach m_iniCRC at all.
-//   * GameLOD.ini and GameLODPresets.ini. GeneralsX: written down
-//     because these were very nearly added, and the reasoning for keeping them out is not
-//     obvious. They pass the usual test for an exception - GameLODManager::init loads both
-//     with a nullptr Xfer (GameLOD.cpp:307,310 in GeneralsMD, :310,313 in Generals), so like
-//     CommandButton they never reach m_iniCRC - and two fields they carry, DebrisSkipMask and
-//     SlowDeathScale, genuinely were read by GameLogic. Hashing them would still have been the
-//     wrong fix, because the hazard was never the TABLE, it was the INDEX into it: the dynamic
-//     LOD level is chosen from the LOCAL render rate (W3DDisplay::draw calls
-//     findDynamicLODLevel(m_averageFPS) every drawn frame) and from Options.ini, which is
-//     per-device tuning and is correctly outside this fingerprint. Two peers with byte-identical
-//     GameLOD.ini therefore still select different rows. An entry here would have refused the
-//     asymmetric-file case, left the actual desync wide open, and - worst of the three -
-//     advertised the hazard as closed. It is fixed where it belongs instead: GameLOD.h pins both
-//     fields to their neutral values whenever TheRecorder->isMultiplayer(), which is EA's own
-//     guard from GameLogic.cpp:2093. The simulation can no longer read either field, so by the
-//     test at the top of this list the two files are client-only and must stay out. The full
-//     trace is in the block above GameLODManager::isDebrisSkipped().
-//   * SagePatch.ini. Per-device client tuning, already excluded from the identity for
-//     the reason recorded at the initialize() call site.
-//
-// The KEY hashed for each file is its virtual path, lowercased, with '\' folded to '/'.
-// Neither of the two obvious alternatives works:
-//   * The raw path splits across platforms. FileSystem::getFileListInDirectory merges two
-//     producers, and on Apple the local side emits '/' while the archives emit '\', so the
-//     same file fingerprints twice and never agrees with Windows. INI.cpp:273-294 records
-//     this and canonicalises to forward slash for m_iniCRC for exactly the same reason.
-//   * The BASENAME collides, which is what this used to use. Measured on the deployed macOS
-//     game dir: 24 basename collisions under Data\INI alone, and commandbutton.ini is one of
-//     them - Data\INI\CommandButton.ini and Data\INI\Default\CommandButton.ini are BOTH
-//     loaded by ControlBar::init, and a basename key silently folds them into one.
-// The path is the key only; the file is still opened by the path the enumeration returned,
-// so local-over-archive and archive mount precedence resolve exactly as openFile does.
-//
-// DISCOVERY IS IN TWO PARTS, and it has to be, because discovery and loading do not resolve
-// the same way. Enumeration can only see what getFileListInDirectory RETURNS, and on the Std
-// backend that is strictly cwd-relative (StdLocalFileSystem.cpp:302-317, no
-// s_assetFallbackPath). Opening does consult it, via fixFilenameFromWindowsPath (:78-134).
-// So the enumeration pass is followed by an explicit by-name probe pass over
-// SIMID_PROBE_FILES; see the note there for why each entry is on it. Without that pass a loose
-// file living only under the asset root is loaded into the simulation and hashed by nobody -
-// #80's threat model coming back through a second door.
-//
-// What remains, stated precisely so nobody re-derives it: the DIRECTORY half of a
-// loadFileDirectory (e.g. Data\INI\CommandButton\*.ini) is still discovered only under cwd.
-// That is not a hole, because INI::loadDirectory uses the same cwd-relative enumerator - what
-// loads and what is fingerprinted agree. Only a by-name open could disagree, and those are now
-// probed.
-// ---------------------------------------------------------------------------
+// looseDataID - tier1, folded into dataID so the packet layout is untouched. Covers files the simulation reads that
+// never enter m_iniCRC (.scb scripts, CommandButton/CommandSet INI). An explicit allow-list, not a directory scan:
+// client-only files, maps and GameLOD*.ini stay out. Key: lowercased virtual path, slash-folded. Enumeration is
+// cwd-relative, so SIMID_PROBE_FILES probes by-name loads.
 struct SimIdLooseScan
 {
 	const char *directory;
@@ -412,32 +255,10 @@ struct SimIdLooseScan
 	                                    ///< only if it equals prefix + ".ini" or begins prefix + "/".
 };
 
-// GeneralsX: TheSuperHackers/GeneralsGameCode#80
-//
-// ControlBar::init loads the command buttons and command sets with a nullptr Xfer
-// (ControlBar.cpp:1082-1086), so their bytes never enter m_iniCRC - while CommandButton's
-// WeaponSlot and MaxShotsToFire reach the simulation through GUICommandTranslator.cpp:149,151
-// and CommandXlat.cpp:1350,1352,1365,1368,1386,1388. A peer with an edited CommandButton.ini
-// therefore injects attacker-chosen integers into everyone's simulation while both tier-1
-// gates report a match. Not theoretical: !HotkeysLeikezeIndicatorsZH.big already overrides
-// Data\INI\CommandButton.ini on all three deployed peers today.
-//
-// Covered here rather than by folding the two files into the XferCRC because m_iniCRC is half
-// of dataID: routing them through the parser's CRC would invalidate every existing .rep and
-// all 143 .crc baselines. This route closes the same hole through
-// the other half of dataID and leaves replay compatibility intact.
-//
-// The prefixes mirror INI::loadFileDirectory's own semantics exactly - it loads "X.ini" AND
-// every .ini under the directory "X\" (INI.cpp:201-231) - so a mod that drops a file into
-// Data\INI\CommandButton\ is covered and the hole does not simply move one level down.
-// These are exactly the three things ControlBar::init loads, no more:
-//   ini.loadFileDirectory("Data\\INI\\Default\\CommandButton", ...)
-//   ini.loadFileDirectory("Data\\INI\\CommandButton",          ...)
-//   ini.loadFileDirectory("Data\\INI\\CommandSet",             ...)
-// There is deliberately NO "data/ini/default/commandset" entry. Nothing loads it - an earlier
-// cut allow-listed it by symmetry with CommandButton, which would have refused a join between
-// two installs differing only in a file the engine never reads. That is precisely the failure
-// the allow-list exists to prevent. Caught by a cross-model review.
+// TheSuperHackers/GeneralsGameCode#80: ControlBar::init loads command buttons and sets with a nullptr Xfer, so they
+// never enter m_iniCRC, yet WeaponSlot and MaxShotsToFire reach the simulation. Hashed here via dataID instead,
+// keeping old replays valid. Prefixes mirror INI::loadFileDirectory (X.ini plus every .ini under X\) for the three
+// things ControlBar::init loads; there is no default\commandset entry because nothing loads it.
 static const char *const SIMID_ALLOW_COMMANDBAR[] =
 {
 	"data/ini/default/commandbutton",
@@ -446,28 +267,10 @@ static const char *const SIMID_ALLOW_COMMANDBAR[] =
 	nullptr
 };
 
-// GeneralsX: TheSuperHackers/GeneralsGameCode#80 (second door)
-//
-// Every file the engine opens BY NAME rather than by enumerating a directory. These have to be
-// probed explicitly, because discovery and loading do not resolve the same way:
-//   * StdLocalFileSystem::getFileListInDirectory builds its search path from the argument with
-//     nothing but a backslash swap and NEVER consults s_assetFallbackPath (:302-317).
-//   * doesFileExist and openFile both go through fixFilenameFromWindowsPath, which DOES fall
-//     back to the asset root (:78-134).
-// So a loose file living only under the asset root is loaded into the simulation and never
-// enumerated - hashed by nobody. That is not hypothetical: the asset-root fallback was added
-// for exactly these paths (StdLocalFileSystem.cpp:40-44,468), and a missing SkirmishScripts.scb
-// is on record as having caused an AI-only frame-0 desync of 13,919 differing frames
-// (Win32LocalFileSystem.cpp:50).
-//
-// Probing by name through doesFileExist mirrors how each is actually loaded:
-//   GlobalData.cpp:1395,1406  openFile("Data\Scripts\{Skirmish,Multiplayer}Scripts.scb")
-//   ControlBar.cpp:1081-1086  INI::loadFileDirectory, whose bare "X.ini" half goes through
-//                             doesFileExist + load (INI.cpp:219-226)
-//
-// The DIRECTORY half of loadFileDirectory needs no probe and gets none: INI::loadDirectory uses
-// the very same cwd-relative enumerator, so what loads and what is fingerprinted already agree
-// there. The asymmetry is only ever on the bare by-name file.
+// TheSuperHackers/GeneralsGameCode#80 (second door): files opened BY NAME, probed explicitly.
+// getFileListInDirectory never consults s_assetFallbackPath (StdLocalFileSystem.cpp:302-317) but
+// doesFileExist/openFile do, so a loose file under the asset root is loaded yet never enumerated. Loaders:
+// GlobalData.cpp:1395,1406 (the .scb files), ControlBar.cpp:1081-1086.
 static const char *const SIMID_PROBE_FILES[] =
 {
 	"Data\\Scripts\\SkirmishScripts.scb",
@@ -485,24 +288,15 @@ static const SimIdLooseScan SIMID_LOOSE_SCANS[] =
 	// that a mod which adds a third bundle is caught rather than silently tolerated.
 	{ "Data\\Scripts\\", "*.scb", FALSE, nullptr },
 
-	// The #80 surface. subdirs=TRUE is load-bearing on the LOCAL half: ArchiveFile's
-	// enumerator recurses into subdirectories unconditionally - it threads
-	// searchSubdirectories through and never tests it (ArchiveFile.cpp:153-166) - but the
-	// local filesystem honours the flag, so with FALSE a loose Data\INI\CommandButton\x.ini
-	// on disk would be invisible while the same file inside a .big was covered.
-	//
-	// The pattern stays "*.ini" and the narrowing is done by allowPrefixes rather than by an
-	// exact filename pattern, for two measured reasons. SearchStringMatches is a plain
-	// case-SENSITIVE walk (ArchiveFile.cpp:40-70), so an exact "CommandButton.ini" pattern
-	// would depend on the case the archive happens to store - and a directory-wide "*.ini"
-	// here returns 147 files, well past SIMID_LOOSE_MAX_FILES, so filtering after the cap
-	// would silently truncate. Filtering before the push keeps the hashed set at four.
+	// The #80 surface. subdirs=TRUE matters for the local half: ArchiveFile recurses unconditionally, the local filesystem
+	// honours the flag. The pattern stays *.ini and allowPrefixes narrows it: SearchStringMatches is case-sensitive, and a
+	// directory-wide *.ini returns 147 files, past SIMID_LOOSE_MAX_FILES, so filtering after the cap would truncate.
 	{ "Data\\INI\\", "*.ini", TRUE, SIMID_ALLOW_COMMANDBAR },
 };
 
 // Distinct from any real digest: "the scan itself could not run". Two peers that both
-// fail compare equal, which is exactly the coverage that existed before this change, so
-// a broken filesystem degrades to the old behaviour rather than to a permanent refusal.
+// fail compare equal, so a broken filesystem degrades to no loose-file coverage
+// rather than to a permanent refusal.
 // One side failing while the other succeeds refuses the join, which is the safe way round.
 static const UnsignedInt SIMID_LOOSE_FAILED = 0xFFFFFFFFu;
 
@@ -588,28 +382,17 @@ static UnsignedInt computeLooseDataID( void )
 		// probes are guarantees rather than discoveries: a mod dropping 64+ files into Data\INI
 		// must be able to cost itself coverage of its own extra files, but it must never be able
 		// to push SkirmishScripts.scb out of the fingerprint. Sorting is by canonical key, so
-		// "data/scripts/..." sorts after "data/ini/...", and capping a combined set would have
-		// silently dropped exactly the two entries this pass exists to guarantee - with only a
-		// single truncated flag to show for it. Caught by a cross-model review.
+		// "data/scripts/..." sorts after "data/ini/...", and capping a combined set would
+		// silently drop exactly the two entries the probes exist to guarantee, with only a
+		// single truncated flag to show for it.
 		const bool truncated = found.size() > SIMID_LOOSE_MAX_FILES;
 		if (truncated)
 			found.resize(SIMID_LOOSE_MAX_FILES);
 
-		// Then the by-name probes the enumeration structurally cannot reach. See the note on
-		// SIMID_PROBE_FILES: discovery is cwd-relative, opening is asset-root-aware, so a loose
-		// file present only under the asset root is loaded but never enumerated.
-		//
-		// On a key the enumeration already produced, the probe REPLACES the path to open by,
-		// rather than being discarded as a duplicate. The probe string is the engine's own
-		// literal - the exact spelling GlobalData.cpp and ControlBar.cpp pass to openFile - so
-		// opening by it is the only spelling guaranteed to resolve the same file the simulation
-		// actually reads. An enumerated spelling is whatever an archive happens to store, and
-		// case matters unequally across platforms: the case-insensitive asset-root traversal in
-		// fixFilenameFromWindowsPath is behind #ifdef __linux__ (StdLocalFileSystem.cpp:86), so
-		// macOS and iOS resolve the asset root exact-case only. Keeping an archive's casing
-		// could therefore have hashed the archive copy on Apple while the loader read the loose
-		// one, and that is a cross-platform DATA_DIFFERS between identical installs. The key is
-		// unchanged either way, so this never duplicates an entry. Caught by the same review.
+		// Then the by-name probes the enumeration cannot reach (see SIMID_PROBE_FILES).
+		// On a key enumeration already produced, the probe REPLACES the path to open by: its spelling is the engine own literal
+		// passed to openFile. The case-insensitive asset-root traversal is Linux-only (StdLocalFileSystem.cpp:86), so keeping
+		// an archive casing could hash the archive copy on Apple while the loader read the loose one. The key is unchanged.
 		for (size_t p = 0; p < sizeof(SIMID_PROBE_FILES)/sizeof(SIMID_PROBE_FILES[0]); ++p)
 		{
 			const AsciiString probe(SIMID_PROBE_FILES[p]);
@@ -721,7 +504,7 @@ static SimulationId &mutableInstance( void )
 	// safe to "cannot join" rather than to "compatible".
 	try
 	{
-		// GeneralsX: Was (UnsignedInt)GitRevision. See SimulationId.h
+		// Was (UnsignedInt)GitRevision. See SimulationId.h
 		// for the three measured ways a commit count fails to order two builds. The narrowing
 		// cast is lossless: time_t is 64-bit signed on every deployed target, a 2026 timestamp
 		// is ~1.79e9, and UnsignedInt holds up to 4.29e9 - it overflows in 2106, not 2038.
@@ -747,7 +530,7 @@ static SimulationId &mutableInstance( void )
 	DEBUG_LOG(("SimID: valid=%d built=%u engine=%08X source=%08X data=%08X ordinal=%08X parse=%08X asset=%08X platform=%08X",
 		(int)id.valid, id.buildTime, id.engineID, id.sourceID, id.dataID, id.ordinalID, id.parseID, id.assetID, id.platformID));
 
-	// GeneralsX: Release-surviving SimID trace.
+	// Release-surviving SimID trace.
 	//
 	// The DEBUG_LOG above is ((void)0) in every shipping preset: DEBUG_LOGGING is only
 	// defined via ALLOW_DEBUG_UTILS (Debug.h:66-77), which needs RTS_DEBUG, and the Apple
@@ -770,7 +553,7 @@ static SimulationId &mutableInstance( void )
 	fflush(stderr);
 }
 
-// GeneralsX: Verdict names, so a refusal reads as a cause
+// Verdict names, so a refusal reads as a cause
 // rather than an integer. Kept beside SimIdCompare, which owns the precedence order.
 const char *SimIdVerdictName( SimIdVerdict v )
 {
@@ -788,7 +571,7 @@ const char *SimIdVerdictName( SimIdVerdict v )
 	return "UNKNOWN";
 }
 
-// GeneralsX: One place that prints both identities field by
+// One place that prints both identities field by
 // field and marks every one that differs, so "which field" never has to be eyeballed
 // out of two hex rows. Callers supply which side they are and who the peer is.
 void SimIdLogMismatch( const char *side, const char *peerAddr, SimIdVerdict verdict, const SimIdWire &peer )

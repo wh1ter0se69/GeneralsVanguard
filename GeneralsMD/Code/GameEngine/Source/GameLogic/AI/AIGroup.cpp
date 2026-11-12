@@ -44,6 +44,8 @@
 #include "GameClient/Line2D.h"
 
 #include "GameLogic/AI.h"
+#include "Common/Team.h"
+#include "GameLogic/GXP32AiProbe.h"
 #include "GameLogic/AIPathfind.h"
 #include "GameLogic/Locomotor.h"
 #include "GameLogic/Module/AIUpdate.h"
@@ -63,7 +65,7 @@
  * AIGroups.  It is ASSUMED that an object cannot morph from having
  * an AIUpdate module to not having one... (MSB)
 
-	NOTE: This comment has been wrong for about ten years now.  Any Object can be in an AIGroup
+	Any Object can be in an AIGroup
  */
 
 /**
@@ -169,16 +171,10 @@ Bool AIGroup::isMember( Object *obj )
 }
 
 /**
- * Add object to group.
- * Only allow AI agents into the group.
+ * Would add() accept this object?
  */
-void AIGroup::add( Object *obj )
+Bool AIGroup::gxTakesObject( Object *obj )
 {
-//	DEBUG_LOG(("***AIGROUP %x is adding Object %x (%s).", this, obj, obj->getTemplate()->getName().str()));
-	DEBUG_ASSERTCRASH(obj != nullptr, ("trying to add null obj to AIGroup"));
-	if (obj == nullptr)
-		return;
-
 	AIUpdateInterface *ai = obj->getAIUpdateInterface();
 
 	//If this object doesn't have an AIUpdateInterface, then
@@ -189,7 +185,54 @@ void AIGroup::add( Object *obj )
 	KindOfMaskType validNonAIKindofs;
 	validNonAIKindofs.set(KINDOF_STRUCTURE);
 	validNonAIKindofs.set(KINDOF_ALWAYS_SELECTABLE);
-	if( ai == nullptr && !obj->isAnyKindOf( validNonAIKindofs ) )
+	return ai != nullptr || obj->isAnyKindOf( validNonAIKindofs );
+}
+
+#if !RETAIL_COMPATIBLE_AIGROUP
+// GeneralsX: see AI::gxBuildTeamGroup
+Bool AIGroup::gxIsExactlyTeam( Team *team ) const
+{
+	std::list<Object *>::const_iterator member = m_memberList.begin();
+	UnsignedInt count = 0;
+	for( DLINK_ITERATOR<Object> iter = team->iterate_TeamMemberList(); !iter.done(); iter.advance() )
+	{
+		Object *obj = iter.cur();
+		if( obj == nullptr || !gxTakesObject( obj ) )
+			continue;
+		if( member == m_memberList.end() || *member != obj || obj->getGroup() != this )
+			return false;
+		++member;
+		++count;
+	}
+	return count > 0 && member == m_memberList.end() && count == m_memberListSize && Num_Refs() == count;
+}
+
+void AIGroup::gxReissue()
+{
+#if defined(GX_TEST_INSTRUMENTS)
+	if( gxP32Break() != GX_P32_BREAK_GROUP )	// the fail arm: the id counter stops following the base
+#endif
+	m_id = TheAI->getNextGroupID();
+	m_speed = 0.0f;
+	m_dirty = true;
+	deleteInstance(m_groundPath);
+	m_groundPath = nullptr;
+	m_lastRequestedIDList.clear();
+}
+#endif
+
+/**
+ * Add object to group.
+ * Only allow AI agents into the group.
+ */
+void AIGroup::add( Object *obj )
+{
+//	DEBUG_LOG(("***AIGROUP %x is adding Object %x (%s).", this, obj, obj->getTemplate()->getName().str()));
+	DEBUG_ASSERTCRASH(obj != nullptr, ("trying to add null obj to AIGroup"));
+	if (obj == nullptr)
+		return;
+
+	if( !gxTakesObject( obj ) )
 	{
 		return;
 	}
@@ -569,16 +612,10 @@ void AIGroup::computeIndividualDestination( Coord3D *dest, const Coord3D *groupD
 
 static const Int PATH_DIAMETER_IN_CELLS = 6;
 
-// GeneralsX: A BIG GROUP'S COLUMN RAN OFF BEHIND THE CLICK.
-// friend_moveInfantryToPos and friend_moveVehicleToPos park the k-th unit of a column k ranks BEHIND the goal
-// (dest -= factor * offset * endVector), and a column holds a fifth of the infantry (a third of the vehicles). Retail
-// groups are a few dozen units, so the tail stops a few hundred units back; wh1ter0se's admin-spawned armies (05/10, "I kinda
-// broke it with that many units") put it 2,200 back at 500 infantry and 4,400 back at 1,000 - past the map edge, clamped
-// onto it - so an order back the way the army came sent most of it AWAY from the click: measured 05/10 on Twin Ridges,
-// 465 of 500 and 966 of 1000 infantry ended further from the target than they started. A column now folds after
-// gxColumnRanks ranks: the next ranks start again at the front, one block of columns further to the side, right then
-// left, so the army ends as a block about as deep as it is wide. Integers only, so every peer folds alike. A group whose
-// columns hold at most 20 ranks (100 infantry, 60 vehicles) keeps exactly the destinations it had: block 0 is retail.
+// A column folds after gxColumnRanks ranks: unit k parks k ranks behind the goal, so a huge group's tail ran off-map
+// and orders back the way it came sent the army away from the click. Later ranks restart at the front, one block of
+// columns aside, right then left. Integers only, so every peer folds alike. Columns of up to 20 ranks (100 infantry,
+// 60 vehicles) keep their retail destinations.
 static Int gxColumnRanks( Int unitsToPath )
 {
 	Int ranks = 20;
@@ -2005,8 +2042,8 @@ void AIGroup::groupTightenToPosition( const Coord3D *pos, Bool addWaypoint, Comm
         Coord3D heliOffs = *pos;
         getHelicopterOffset( heliOffs, heliIdx++ );
 #if !RETAIL_COMPATIBLE_CRC
-        // GeneralsX: the source becomes CMD_FROM_AI here, so mark a player's order: where the Chinook TAKES it, its leave-the-supply-
-        // centre latch is cleared (batch-0958 r1, pf-supply-r5; AIUpdateInterface::gxTakePlayerGroupOrder)
+        // the source becomes CMD_FROM_AI here, so mark a player's order: where the Chinook TAKES it, its leave-the-supply-
+        // centre latch is cleared (AIUpdateInterface::gxTakePlayerGroupOrder)
         ai->gxSetPlayerGroupOrder(cmdSource == CMD_FROM_PLAYER);
         ai->aiTightenToPosition( &heliOffs, CMD_FROM_AI );//NEW
         ai->gxSetPlayerGroupOrder(FALSE);

@@ -30,7 +30,7 @@
 class Drawable;	//forward reference
 
 // ShadowManager -------------------------------------------------------------
-// GeneralsX: S7 PREREG A41 M3: TEST-ONLY GX_SHADOW_DEBUG_COLOR=AARRGGBB (hex) replaces the map's
+// GeneralsX: TEST-ONLY GX_SHADOW_DEBUG_COLOR=AARRGGBB (hex) replaces the map's
 // shadow colour for BOTH shadow systems (2003's darkening quad and the shadow map read getShadowColor), so a picture run's shadowed
 // pixels are exactly black in both and their masks compare geometry. Unset (always, outside a measurement) = the colour as given.
 UnsignedInt W3DShadowDebugColor(UnsignedInt color);

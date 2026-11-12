@@ -1,28 +1,25 @@
-// GeneralsX: the look governor (S14)
-//
-//
-// WHAT. A per-peer, render-only controller. Every look feature registers a few quality STEPS (step 0 = full quality). Once
-// per window the governor reads what the last frames cost and, when the frame time is over the player's target, lowers ONE
-// step of the knob that relieves the measured limit and costs the least to the eye; when there is headroom again it raises
-// the last lowered knob back, slowly, and backs off a knob whose raise put the frame time straight back over. Nothing
-// flickers: a change needs a streak of windows, a minimum hold since the last change, and a raise that fails doubles that
-// knob's wait.
-//
-// THE LIMIT, measured not guessed. Per drawn frame: the interval since the previous drawn frame, the busy part of it (the
-// interval minus the frame limiter's hold, FramePacer::getTotalHoldNs), the main thread's CPU inside the draw and the wall
-// time it waits inside Present ([GXGFX]'s `pres`: the whole downstream - DXVK's translation and submit threads, MoltenVK's
-// encode, the GPU). Over budget with a large Present wait = the downstream (GPU side) limits; with a small one = the main
-// thread (draw CPU and the logic tick it shares the loop with) limits. GPU-side knobs are cut for the first, CPU-side for the
-// second; a knob that relieves both is eligible for either.
-//
-// RENDER-ONLY. This header is pure logic with no engine include. The knobs it drives are read at render-side sites only
-// (ParticleSys's count limit, the heat-smudge flag, the terrain cloud pass, the stencil-shadow screen-size rule), all of which
-// retail already lets differ per peer (each player's own Options detail), and none of them writes TheGlobalData: the user's
-// settings, which the Options screen saves, are never touched. Core/GameEngine/Include/GameClient is outside the SimID digest.
-// It must stay that way: never include this from Common/, GameLogic/ or GameNetwork/.
-//
-// OFF COSTS NOTHING. g_gxGovEff.active is false unless the governor (or a forced test step) is on, and every read-site helper
-// returns the caller's own value then.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Look governor: a per-peer, render-only controller. Look features register quality STEPS (0 = full); over the
+// frame-time target it lowers ONE step of the knob that relieves the measured limit (Present wait large = GPU,
+// small = main thread). Changes need a streak of windows and a hold. It never writes TheGlobalData. Outside the
+// SimID digest: never include from Common/, GameLogic/ or GameNetwork/.
 
 #pragma once
 
@@ -61,10 +58,11 @@ struct GxGovKnobDef
 	int impact[ GXGOV_MAX_STEPS ];	// impact[0] unused
 };
 
-// Lowering order this table gives (ties go to the earlier knob): CPU-bound shadow 1, particles 1, fxlight 1, shadow 2, particles 2,
-// fxlight 2, shadow 3, particles 3; GPU-bound shadow 1, particles 1, heat, fxlight 1, shadow 2, particles 2, cloud, fxlight 2, shadow 3,
-// particles 3, then ground 2 (the stock ground: it takes back the whole look wh1ter0se approved 14/10) last of all; ground 1 comes after
-// fxlight 1 on GPU-bound. fxlight and ground move only while the player has them on (setAvailable).
+// Lowering order this table gives (ties go to the earlier knob): CPU-bound shadow 1, particles 1, fxlight 1,
+// shadow 2, particles 2, fxlight 2, shadow 3, particles 3; GPU-bound shadow 1, particles 1, heat, fxlight 1,
+// shadow 2, particles 2, cloud, fxlight 2, shadow 3, particles 3, then ground 2 (the stock ground: it takes back
+// the whole look) last of all; ground 1 comes after fxlight 1 on GPU-bound. fxlight and ground move only while
+// the player has them on (setAvailable).
 static const GxGovKnobDef kGxGovKnobs[ GXK_N ] = {
 	{ "shadow", GXGOV_BOTH, 4, { 0, 1, 4, 7 } },
 	{ "part",   GXGOV_BOTH, 4, { 0, 2, 5, 8 } },
@@ -173,7 +171,7 @@ inline GxGovConfig gxGovDefaultConfig( int targetFps )
 	return c;
 }
 
-// GeneralsX: ("yes all green" to the look set): the governor is ON by default. Options.ini
+// ("yes all green" to the look set): the governor is ON by default. Options.ini
 // GXLookGovernor = no turns it off; an absent key reads as this value (W3DDisplay.cpp gxGovInitOnce, its only reader).
 static const bool kGxGovKeyDefault = true;
 

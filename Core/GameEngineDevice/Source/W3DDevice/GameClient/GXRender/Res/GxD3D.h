@@ -1,6 +1,24 @@
-// GeneralsX: WS-C GXRES v0: the D3D8 numbers the resource API speaks.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GXRES: the D3D8 numbers the resource API speaks.
 //
-// The L1 device layer, rw1-I's gxcap replayer and the tests drive GXRES with the values the game passes to d3d8 (formats,
+// The L1 device layer, the gxcap replayer and the tests drive GXRES with the values the game passes to d3d8 (formats,
 // pools, usage and lock flags), so the library needs no D3D8 header. gx_res_test's "d3d-values" arm static_asserts every
 // value below against the headers the game is built with.
 #pragma once

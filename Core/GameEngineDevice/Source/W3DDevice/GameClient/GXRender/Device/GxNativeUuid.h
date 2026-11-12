@@ -1,4 +1,22 @@
-// GeneralsX: __uuidof for the d3d8 interfaces the native device answers QueryInterface for. DXVK's
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// __uuidof for the d3d8 interfaces the native device answers QueryInterface for. DXVK's
 // native d3d8.h declares the IIDs (DEFINE_GUID, d3d8.h:90-123) but no __uuidof helpers; these are the same values. Included only by
 // the device's own .cpp files (an explicit specialization must not meet another one for the same type).
 #pragma once
@@ -16,7 +34,7 @@ struct __declspec(uuid("B4211CFA-51B9-4A9F-AB78-DB99B2BB678E")) IDirect3DBaseTex
 struct __declspec(uuid("E4CDD575-2866-4F01-B12E-7EECE1EC9358")) IDirect3DTexture8;
 #else
 #ifdef GX_RENDER_NATIVE
-// rw3-K 11/10/2026: inside the game <d3d8.h> comes through the game's CompatLib windows.h, whose IUnknown has no __uuidof helper
+// Inside the game <d3d8.h> comes through the game's CompatLib windows.h, whose IUnknown has no __uuidof helper
 // (the link failed: undefined GUID __uuidof_helper<IUnknown>()). DXVK's own windows_base.h, used by the standalone build, has it.
 DECLARE_UUIDOF_HELPER(IUnknown,               0x00000000,0x0000,0x0000,0xC0,0x00,0x00,0x00,0x00,0x00,0x00,0x46)
 #endif

@@ -1,3 +1,5 @@
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # SagePatch — cross-platform QoL extras for GeneralsX.
 #
 # Layout: shared C++ in src/common/, platform-specific implementations in

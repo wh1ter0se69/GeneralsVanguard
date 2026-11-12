@@ -1,18 +1,24 @@
-// GeneralsX: WS-F1: GxD3D8Translate - D3D8 device calls -> GxPacketWriter packets (the L1
-// d3d8 -> key / state builder, first used by the capture replay).
-//
-// It holds the D3D8 device state a fixed-function draw reads (render states, stage states, transforms, lights, material,
-// viewport, the FVF, streams, indices, textures, the render target) and turns each Draw* into ONE GxDrawPacket:
-//  * the pipeline key from the FVF (DXVK's FVF -> declaration order), the blend state (D3DBLEND_BOTH* fix-up; on a target
-//    without alpha DST_ALPHA -> ONE and INV_DST_ALPHA -> ZERO, as DXVK's alpha swizzle), the write mask, the topology class,
-//    fill and shade mode and the EFFECTIVE attachments; the pipeline itself from
-//    GxPipelineCache::getFF (rw2-D's specialised-or-generic FF ubershader);
-//  * dynamic state as DXVK binds it: the viewport flipped (y + height, -height) with the +0.5 correctness offset and the
-//    MinZ bias, scissor = the viewport (D3D8 has no scissor test), cull CW -> FRONT / CCW -> BACK with front = CLOCKWISE,
-//    depth, stencil (one face), D3D8 ZBIAS x -0.000005 x the depth format's r;
-//  * the FF blocks + spec block from GxPackFF.
-// What it cannot draw it REFUSES per draw with a named reason (programmable vertex/pixel shaders = WS-E, vertex blend, user
-// clip planes, cube/volume textures, triangle fans on a device without them...): the replay counts those as UNDRAWABLE.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GxD3D8Translate - D3D8 device calls -> GxPacketWriter packets (the d3d8 -> key / state builder used by the
+// capture replay). Holds the D3D8 state a fixed-function draw reads; each Draw* becomes ONE GxDrawPacket.
+// What it cannot draw it REFUSES per draw with a named reason; the replay counts those as UNDRAWABLE.
 // Values are D3D8's numbers; no D3D8 header is needed.
 #pragma once
 
@@ -43,21 +49,21 @@ struct GxD3D8Target
 struct GxTranslateStats
 {
 	uint64_t draws = 0, drawn = 0, refused = 0, clears = 0;
-	uint64_t custom = 0;                     // drawn through a WS-E custom pipeline (also counted in `generic`)
+	uint64_t custom = 0;                     // drawn through a custom pipeline (also counted in `generic`)
 	uint64_t customBuilds = 0;               // custom pipelines built on the caller (setBuildCustomOnMiss)
 	uint64_t specialised = 0, generic = 0;   // which FF pipeline drew
 	uint64_t castOnly = 0;                   // S7: cast-only draws handed to the writer's capture (never drawn)
 	uint64_t castOnlyDropped = 0;            // S7 A44: draws under CAST_ONLY that are not casters (no CAST, or no z test + z write): neither
 	                                         // drawn nor captured - castOnly + castOnlyDropped = the draws issued under CAST_ONLY
-	uint64_t castOnlySolid = 0;              // S7 A61: cast-only captures that carry SOLID (sorted CAST_SHADOW casters): <= castOnly
-	// S7 P2 (PREREG A2/A3): receiver draws per composition class - exact (opaque, alpha / constant blends), additive (dest x ONE),
+	uint64_t castOnlySolid = 0;              // cast-only captures that carry SOLID (sorted CAST_SHADOW casters): <= castOnly
+	// Receiver draws per composition class - exact (opaque, alpha / constant blends), additive (dest x ONE),
 	// nonlinear (a SRCCOLOR / INVSRCCOLOR / DESTALPHA-family factor), modulate (never darkened: dest already is), alphaSkip (blended
 	// or A2C: alpha kept)
 	uint64_t rcvExact = 0, rcvAdditive = 0, rcvNonlinear = 0, rcvModulate = 0, rcvAlphaSkip = 0;
 	std::map<std::string, uint64_t> refusedWhy;
 	std::map<std::string, uint64_t> passLabels;
 	std::map<std::string, uint64_t> drawClasses;   // drawn draws by (pre-transformed, blend, depth test, depth write)
-	// rw3-T cut 3b (dirty-pack): FF draws that reused the last GxPackFF output (no input of it changed) / that packed; of the reuses,
+	// Dirty-pack: FF draws that reused the last GxPackFF output (no input of it changed) / that packed; of the reuses,
 	// those whose world matrix alone had changed (WorldView + NormalMatrix refreshed by GxPackFFWorld); in check mode
 	// (GX_TR_PACK_CHECK=1, setPackCheck) every reuse is re-packed and byte-compared, and a difference is counted (must stay 0)
 	uint64_t packReused = 0, packed = 0, packWorld = 0, packChecks = 0, packCheckMismatches = 0;
@@ -73,7 +79,7 @@ struct GxTranslateDebug
 {
 	bool a2cIgnoreBlend = false;      // (A108): the blend guard skipped - a BLENDED alpha-tested draw gets A2C (a2c-derive's X-)
 	bool a2cSpecBitOff = false;       // (A108): the key gets A2C but the spec copy lacks bit 3 (no ramp: a2c-consistent's X-)
-	bool smBitsIgnoreBlend = false;   // S7 P2: applyRgb set on EVERY receiver (a modulate pass darkened twice: sm-bits must catch it)
+	bool smBitsIgnoreBlend = false;   // applyRgb set on EVERY receiver (a modulate pass darkened twice: sm-bits must catch it)
 	bool smOwnMaskOff = false;        // S7 A41: the own-light words written with the look mask OFF (the pack-check must catch it: A40 T1)
 	bool smOwnNoCaster = false;       // S7 A41: a clamped caster captured with its plain World (sm-ownlight's X- must catch it)
 	bool smOwnNoReceiver = false;     // S7 A41: a clamped instance's receiver never gets bit 3 (it looks the map up unscaled)
@@ -103,7 +109,7 @@ struct GxTranslateDebug
 	bool packWorldStale = false;      // a world-matrix change leaves the cached WorldView / NormalMatrix as they were (cut 3b)
 	bool packOverlayInCache = false;  // a custom ps's c0-c7 overlay is written into the cached PS block, not a copy (cut 3b)
 	bool packVsOverlayInCache = false; // a custom vs's c0-c95 overlay is written into the cached VS block, not a copy (cut 3b)
-	// cut 3b owner review P3: four more setters that would miss their pack invalidation
+	// four more setters that would miss their pack invalidation
 	bool packKeepsOnLight = false;    // SetLight does not invalidate the cached pack
 	bool packKeepsOnViewport = false; // SetViewport does not invalidate the cached pack
 	bool packTableShort = false;      // A25 plant: RS_TEXTUREFACTOR left out of the pack-input table (a GxPackFF input that keeps the pack)
@@ -157,17 +163,17 @@ public:
 	void resetStates();
 
 	void renderState(uint32_t state, uint32_t value);
-	// S7 (PREREG A1/A23): the shadow-map tags for the draws that follow (GxShadowCasters.h kShadowTag*); the
-	// device sets them through IGxShadowMap::SetShadowTags, only on change. 0 = no S7 effect on any packet.
+	// The shadow-map tags for the draws that follow (GxShadowCasters.h kShadowTag*); the
+	// device sets them through IGxShadowMap::SetShadowTags, only on change. 0 = no shadow-map effect on any packet.
 	void shadowTags(uint32_t tags) { m_shadowTags = tags; }
 	uint32_t shadowTags() const { return m_shadowTags; }
-	// S7 A41 (PREREG A41/A42, integrator A40 T2/T3): a clamped instance's own light for the draws that follow (IGxShadowMap::SetOwnLight,
+	// A clamped instance's own light for the draws that follow (IGxShadowMap::SetOwnLight,
 	// on change only; 0 = none). packed = mu's float bits | z0's float bits << 32. Its CAST captures take World x S (z' = z0 + mu (z - z0))
 	// - in the shadow capture record only, never the recorded draw - and, with the look mask on, its receivers get DrawBits bit 3 and the
 	// PS block's OwnScale / OwnZ0.
 	void shadowOwn(uint64_t packed) { m_shadowOwn = packed; }
 	uint64_t shadowOwn() const { return m_shadowOwn; }
-	// S7 P2: the device's look mask has bit 0 (the receiver family is loaded): every draw then carries DrawBits in its PS block. Off
+	// The device's look mask has bit 0 (the receiver family is loaded): every draw then carries DrawBits in its PS block. Off
 	// (the default, key off) = the word is never written and stays 0.
 	void setReceivers(bool on) { m_receivers = on; }
 	// (A108): the session's alpha-to-coverage - GXAlphaToCoverage on AND the device loaded the a2c shader family
@@ -184,7 +190,7 @@ public:
 	void viewport(const GxD3D8Viewport& vp);
 	void vertexShader(uint32_t handle, bool programmable);   // an FVF, or a CreateVertexShader handle
 	void pixelShader(uint32_t handle);
-	// WS-E (rw2-E, measurement branch): programmable shaders are drawn only when the catalogue ports their exact bytecode
+	// Programmable shaders are drawn only when the catalogue ports their exact bytecode
 	// (and, for a vs, its declaration); anything else is refused per draw with the catalogue's reason. Constants: c0-c95.
 	void createVertexShader(uint32_t handle, const uint32_t* decl, size_t declCount, const uint32_t* tokens, size_t count);
 	void createPixelShader(uint32_t handle, const uint32_t* tokens, size_t count);
@@ -192,14 +198,14 @@ public:
 	void deleteVertexShader(uint32_t handle);
 	void deletePixelShader(uint32_t handle);
 	void vsConstants(uint32_t first, uint32_t count, const float* data);
-	// DXVK's d3d9.samplerAnisotropy (the shipped dxvk.conf: 16; 11/10: the native renderer honours the player's classic
+	// DXVK's d3d9.samplerAnisotropy (the shipped dxvk.conf: 16; the native renderer honours the player's classic
 	// setting, read once): every sampler with a mip filter whose min filter is above POINT gets this anisotropy whatever its
 	// MAXANISOTROPY (d3d9_device.cpp:7194-7202; GxSamplers keeps the mip-filter condition). -1 = no override (DXVK's default).
 	void setAnisotropyOverride(int32_t n);
 	void psConstants(uint32_t first, uint32_t count, const float* data);   // c0-c7: a custom ps reads them from the PS block's stages
 	const float* testVsConst(uint32_t r) const { return m_vsConst[r]; }   // TEST-ONLY (A23-B arm cs-constants)
 	const float* testPsConst(uint32_t r) const { return m_psConst[r]; }
-	// TEST-ONLY (rw3-X-3 cs-ff-payload): the light SetLight / LightEnable defined at this index (null = none)
+	// TEST-ONLY (cs-ff-payload): the light SetLight / LightEnable defined at this index (null = none)
 	const GxD3D8Light* testLight(uint32_t i) const { const auto it = m_lights.find(i); return it == m_lights.end() ? nullptr : &it->second; }
 	// TEST-ONLY (A23-B shader-payload arms): the catalogue verdict a created shader resolved to (255 = no such handle)
 	uint8_t testVsVerdict(uint32_t h) const { const auto it = m_vsProg.find(h); return it == m_vsProg.end() ? 255 : uint8_t(it->second.r.verdict); }
@@ -221,7 +227,7 @@ public:
 	bool drawIndexedUP(uint32_t primType, uint32_t minIndex, uint32_t numVertices, uint32_t primCount, const void* indices,
 		bool index32, const void* vertices, uint32_t stride);
 
-	// drawClasses is rebuilt from per-draw class counters when the stats are read (rw3-T cut 3a: no string or map work per draw)
+	// drawClasses is rebuilt from per-draw class counters when the stats are read (no string or map work per draw)
 	const GxTranslateStats& stats() const;
 	// Tests: called with every packet right before GxPacketWriter::draw (null = none, the product).
 	void setObserver(void (*fn)(const GxDrawPacket&, void*), void* user) { m_observe = fn; m_observeUser = user; }
@@ -233,7 +239,7 @@ public:
 	// last draw packed (a draw that reuses the cached pack leaves them as the pack that made it: no light input changed since).
 	const GxD3D8FFState& state() const { return m_ff; }
 	// The device's production custom-pipeline miss path: a custom key nobody built is built on the
-	// caller, counted in stats().customBuilds. Off = rw2-E's rule (a counted miss that draws nothing).
+	// caller, counted in stats().customBuilds. Off = a counted miss that draws nothing.
 	void setBuildCustomOnMiss(bool on);
 	const GxD3D8Target& colorTarget() const { return m_color; }
 	// An attachment of the writer's current pass (the last one begun here). A whole-target clear waits in that pass as its load op
@@ -265,7 +271,7 @@ private:
 	float m_ownWorld[16] = {};   // S7 A41: World x S for a clamped caster's capture (the packet points at it; the recorded draw keeps m_ff.world)
 	float m_castOwnMu = 0.f;     // S7 A79: the mu castWorld() applied (0 exactly when it returned m_ff.world) - the packet's castOwnMu
 	const float* castWorld();    // S7 A41: m_ff.world, or World x S into m_ownWorld while an own light is set
-	bool m_receivers = false;    // S7 P2
+	bool m_receivers = false;
 	bool m_a2c = false;          // (A108)
 	std::map<uint32_t, GxD3D8Light> m_lights;   // every light index SetLight / LightEnable has defined
 	uint32_t m_lightSlots[8];                    // DXVK's enabledLightIndices: a light index or kNoLight
@@ -294,9 +300,9 @@ private:
 	uint64_t m_drawClassCount[32] = {};   // drawn draws by class index (16 positionT, 8 blend, 4 ztest, 2 zwrite with ztest, 1 rt-texture)
 	GxTranslateDebug m_debug;
 	bool m_buildCustomOnMiss = false;
-	// cut 3b (dirty-pack, conditions): GxPackFF's last output and the per-draw derived inputs it was packed with. Valid
+	// Dirty-pack: GxPackFF's last output and the per-draw derived inputs it was packed with. Valid
 	// until a setter changes a byte GxPackFF reads (m_ff, the lights, the enable slots) - when in doubt a setter invalidates; the
-	// derived inputs emit() writes into m_ff each draw are compared instead. L1 only: rw3-G's instanced path packs from a copy and
+	// derived inputs emit() writes into m_ff each draw are compared instead. L1 only: the instanced path packs from a copy and
 	// neither reads nor writes this.
 	struct PackCache
 	{

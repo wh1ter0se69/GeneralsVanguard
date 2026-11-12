@@ -1,30 +1,25 @@
-// GeneralsX: The render interpolation phase (graphics research r1g7-01).
-//
-// One alpha in [0,1] per client update: where the displayed world sits between the previous logic
-// frame (0) and the current one (1). Consumers draw lerp(previous, current, alpha) on render-local
-// copies only, so the world is shown up to one tick late and moves at the display's rate instead of
-// stepping at the tick rate. wh1ter0se approved that latency on 28/09/2026 (about 7 ms mean at 144 Hz).
-//
-// RENDER-ONLY. It reads a clock and public getters, and nothing it computes reaches the simulation.
-// It has no engine includes, so scripts/test/audit/bench/logic_phase.cpp tests this exact code.
-//
-// Two sources, because a tick lands differently in the two loops:
-//   * Lockstep (TheNetwork). Network::timeForNewFrame releases ticks on a wall-clock grid, and a tick
-//     can run in any 480 Hz betweenDraws poll. The grid is private digested state, so it is estimated
-//     from tick-START stamps (GameClient::setFrame, of the update that produced the frame shown) as
-//     their minimum-latency envelope: a tick can be late against the grid, never early.
-//     alpha = (now - grid) / T.
-//   * Single player and replays. canUpdateRegularGameLogic ticks right after a draw, so a stamp says
-//     nothing there. The phase is its accumulator's own leftover, in ticks (the caller reads it; a
-//     mirror of it started out of step with the real one).
-// Both are blended to EXACTLY 1.0f while every draw gets a tick (render <= logic): a 60 Hz display on
-// a 60 Hz build shows today's picture and pays no latency. Hysteresis keeps one late network tick
-// from dropping out of that.
-//
-// Rejected sources, so nobody re-derives them: WW3D's fractional sync reads ~0 on every tick draw, a
-// permanent one-tick lag with no smoothing (research r1g7-02, and TSH #2055's own abandoned attempt).
-// TSH's FramePacer::getLogicFramePhase (#2709) and #2598's accumulator getter live in digested files
-// (r1g7-03), and #2598's is frozen in lockstep.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Render interpolation phase: one alpha in [0,1] per client update, where the displayed world sits between the
+// previous (0) and current (1) logic frame; consumers draw lerp(previous, current, alpha) on render-local copies.
+// RENDER-ONLY, no engine includes (scripts/test/audit/bench/logic_phase.cpp tests it). Lockstep: the digested
+// tick grid is estimated from tick-START stamps. Single player and replays: the accumulator's leftover.
 
 #pragma once
 

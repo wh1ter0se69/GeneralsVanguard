@@ -1,6 +1,6 @@
 /*
 **	Command & Conquer Generals Zero Hour(tm)
-**	Copyright 2026 TheSuperHackers
+**	Copyright 2026 GeneralsX contributors
 **
 **	This program is free software: you can redistribute it and/or modify
 **	it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ class WorkingDirectory
 {
 public:
 	static Bool setStartupWorkingDirectory();
-	// GeneralsX: Windows only. See the note in the .cpp - on the macOS
+	// Windows only. See the note in the .cpp - on the macOS
 	// bundle the executable does not live beside the data root, so this would be wrong there.
 	static Bool setExecutableWorkingDirectory();
 	// Relative paths are resolved from the current working directory.

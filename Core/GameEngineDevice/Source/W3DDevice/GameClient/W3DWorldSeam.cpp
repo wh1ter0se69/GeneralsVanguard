@@ -1,4 +1,22 @@
-// GeneralsX: THE WORLD/HUD SEAM - see W3DWorldSeam.h and
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// THE WORLD/HUD SEAM - see W3DWorldSeam.h and
 // (mechanics), §3 (what follows the smaller target), §5 (IGxWorldPass), §7 (exactness).
 
 #include "Lib/BaseType.h"
@@ -105,7 +123,7 @@ namespace
 		W3DWorldSeam::release();
 	}
 
-	// R-SL2 (render-integration-5's ruling 13/10; the numbers dlss-streamline-1's, from NVIDIA / AMD / Intel's guides): the world's
+	// The numbers are from NVIDIA / AMD / Intel's guides: the world's
 	// textures at a reduced render scale take log2(render / output) of mip LOD bias, one stop more for the temporal upscalers that
 	// rebuild detail from history (not XeSS: Intel's guide stops at log2); none for bilinear, none at 100%.
 	float worldLodBias(Int up, int renderW, int outputW)
@@ -118,7 +136,7 @@ namespace
 
 	// Every stage through the wrapper's cached setter (a float in the DWORD). The game never sets MIPMAPLODBIAS otherwise
 	// (dx8wrapper.cpp:5884 is commented out), so every stage holds the device default 0 outside the world pass. On MoltenVK the
-	// native device clamps it to 0 (no samplerMipLodBias, GxSamplers.cpp:45-46; residual R29).
+	// native device clamps it to 0 (no samplerMipLodBias, GxSamplers.cpp:45-46).
 	void setLodBias(float bias)
 	{
 		DWORD v;
@@ -136,7 +154,7 @@ namespace
 		return m;
 	}
 
-	// The seam's one sharpener (dlss-integrator's ruling 13/10) - test arms, read once: GX_SEAM_RCAS=off never runs it (the A/B's
+	// The seam's one sharpener - test arms, read once: GX_SEAM_RCAS=off never runs it (the A/B's
 	// other arm), =always runs it even after a backend that sharpens itself (proves the pass on a device with no such backend).
 	char rcasMode()
 	{
@@ -291,7 +309,7 @@ namespace
 
 	// One axis of the composite: output pixels o0..o1 show source texels s0..s1, the first pixel centre on the first texel centre:
 	// pixel o0 + m samples s0 + 1/2 + m S/O. The world is drawn with D3D9's half-pixel convention in RENDER pixels, so the plain
-	// centre-to-centre mapping put a scaled world 0.5 (O/S - 1) output px right and down of native (measured 13/10: bilinear 67%
+	// centre-to-centre mapping put a scaled world 0.5 (O/S - 1) output px right and down of native (bilinear 67%
 	// +0.19..+0.28 px, predicted +0.247); this one cancels it and is the same mapping at 1:1.
 	// The sample is clamped to the centre of the last texel on a source edge INSIDE the texture (CLAMP_TO_EDGE does it at the
 	// texture's own edge): those pixels form a strip with a constant coordinate, the edge texel replicated, so no texel outside the
@@ -378,7 +396,7 @@ namespace
 					tri[n++] = v;
 			}
 		dev->DrawPrimitiveUP(D3DPT_TRIANGLELIST, n / 3, tri, sizeof(BV));
-		DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+		DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 
 		restoreState(dev, st);
 	}
@@ -654,7 +672,7 @@ void W3DWorldSeam::pop()
 		}
 	}
 
-	// /P2-6: an unresolved world (stale or unwritten colour) or a target still bound as the world is
+	// an unresolved world (stale or unwritten colour) or a target still bound as the world is
 	// never sampled or drawn on; the seam goes OFF, this frame's world stays Begin_Render's clear
 	const bool restored = restoreTarget(dev);
 	if (FAILED(resolved) || !restored)

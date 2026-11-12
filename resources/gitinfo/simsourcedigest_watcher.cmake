@@ -1,3 +1,5 @@
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # simsourcedigest_watcher.cmake
 #
 # GeneralsX:
@@ -62,7 +64,7 @@ endif()
 # ---------------------------------------------------------------------------
 # NO CLOSING PARENTHESIS INSIDE THE SIMDIGEST_PATHS_* LISTS BELOW, comments included: scripts/tooling/tsh-adoption.py,
 # scripts/test/stress-option-refusal-test.sh and tools/relay/test-perf.js read them with a regex that ends the list at
-# the first one, so every path after it silently drops out of their view (02/10/2026: twelve CMakeLists.txt did).
+# the first one, so every path after it silently drops out of their view.
 set(SIMDIGEST_CODE_EXT_REGEX "\\.(c|cc|cpp|cxx|h|hh|hpp|inl)$")
 set(SIMDIGEST_BUILD_EXT_REGEX "\\.(cmake|json|in|ini|py|txt)$")
 
@@ -77,7 +79,7 @@ set(SIMDIGEST_PATHS_CODE_SHARED
     # live: Lib/BaseType.h REAL_TO_INT and the Lib/trig.h Sqrt gateway.
     Core/Libraries/Include
     Core/Libraries/Source/WWVegas/WWMath
-    # GeneralsX: device and client files whose code the SIMULATION
+    # device and client files whose code the SIMULATION
     # reads, digested whole because they are small or rarely edited - every -headless peer runs them too, through
     # W3DGameLogic. Hot render files with only a few such functions are on the SIMDIGEST_PATHS_REGION_* lists below.
     # Terrain: the map parse - heights, cliff bits, boundaries, the MapObject list, time of day, terrain types for
@@ -135,8 +137,8 @@ set(SIMDIGEST_PATHS_CODE_SHARED
     # decide WHICH tree and animation the pose code finds, the strings, vectors, pools and file factory, and the stringex
     # and STLUtils helpers Common calls. WWSaveLoad registers the digested WWMath curves. Compression unpacks map chunks.
     # Dependencies/Utility and the string_compat files are the shims every digested file compiles against: stricmp,
-    # _strlwr, the endian swaps, and itoa, which on 06/08/2026 was a cross-platform desync of its own. 17 + 3 + 2 + 5
-    # commits in 07-10/2026: cheap. Found by a one-level closure of every whole-digested object - DWARF line rows for
+    # _strlwr, the endian swaps, and itoa, which has caused a cross-platform desync. Found by a one-level closure of
+    # every whole-digested object - DWARF line rows for
     # inlined code, undefined symbols for calls. The rest of that closure is a named ceiling in SIMDIGEST_PATHS_REGION_*.
     Core/Libraries/Source/WWVegas/WWLib
     Core/Libraries/Source/WWVegas/WWSaveLoad
@@ -234,7 +236,7 @@ set(SIMDIGEST_PATHS_BUILD
     CMakePresets.json
     vcpkg.json
     vcpkg-lock.json
-    # GeneralsX: The CMakeLists.txt on every path to the digested sources, Cd-31. They choose
+    # The CMakeLists.txt on every path to the digested sources, Cd-31. They choose
     # WHICH files compile - Core/GameEngine/CMakeLists.txt comments out the Core copies the games replace - and set
     # definitions, so a source-list edit changed the simulation without moving the digest. A file pathspec matches that
     # file alone, and both digests take every entry: a Generals list edit moves ZH too, the safe direction.
@@ -250,7 +252,7 @@ set(SIMDIGEST_PATHS_BUILD
     Generals/CMakeLists.txt
     Generals/Code/CMakeLists.txt
     Generals/Code/GameEngine/CMakeLists.txt
-    # GeneralsX: the recipes of the WW3D2 and WWLib targets whose pose and loader code is digested.
+    # the recipes of the WW3D2 and WWLib targets whose pose and loader code is digested.
     Core/Libraries/Source/WWVegas/WW3D2/CMakeLists.txt
     Core/Libraries/Source/WWVegas/WWLib/CMakeLists.txt
     GeneralsMD/Code/Libraries/CMakeLists.txt
@@ -273,7 +275,7 @@ set(SIMDIGEST_PATHS_CODE_ZH
     GeneralsMD/Code/GameEngine/Source/Common
     GeneralsMD/Code/GameEngine/Source/GameLogic
     GeneralsMD/Code/GameEngine/Source/GameNetwork
-    # GeneralsX: this game's sim-facing device files, see SHARED.
+    # this game's sim-facing device files, see SHARED.
     GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/GameLogic/W3DTerrainLogic.cpp
     GeneralsMD/Code/GameEngineDevice/Include/W3DDevice/GameLogic/W3DTerrainLogic.h
     GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/GameLogic/W3DGameLogic.cpp
@@ -322,7 +324,7 @@ set(SIMDIGEST_PATHS_CODE_ZH
     GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/GameLogic/W3DGhostObject.cpp
     # the device GameClient whole - its factories pick the terrain visual, the in-game UI that owns the
     # command dictionaries and the display that owns the asset manager, and its init, reset, update and time of
-    # day forward to the regioned GameClient. Two commits since 07/2026, both files.
+    # day forward to the regioned GameClient.
     GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DGameClient.cpp
     GeneralsMD/Code/GameEngineDevice/Include/W3DDevice/GameClient/W3DGameClient.h
     # this game's copies of the model-content render-object classes, see SHARED.
@@ -354,7 +356,7 @@ set(SIMDIGEST_PATHS_CODE_G
     Generals/Code/GameEngine/Source/Common
     Generals/Code/GameEngine/Source/GameLogic
     Generals/Code/GameEngine/Source/GameNetwork
-    # GeneralsX: this game's sim-facing device files, see SHARED.
+    # this game's sim-facing device files, see SHARED.
     Generals/Code/GameEngineDevice/Source/W3DDevice/GameLogic/W3DTerrainLogic.cpp
     Generals/Code/GameEngineDevice/Include/W3DDevice/GameLogic/W3DTerrainLogic.h
     Generals/Code/GameEngineDevice/Source/W3DDevice/GameLogic/W3DGameLogic.cpp
@@ -403,7 +405,7 @@ set(SIMDIGEST_PATHS_CODE_G
     Generals/Code/GameEngineDevice/Source/W3DDevice/GameLogic/W3DGhostObject.cpp
     # the device GameClient whole - its factories pick the terrain visual, the in-game UI that owns the
     # command dictionaries and the display that owns the asset manager, and its init, reset, update and time of
-    # day forward to the regioned GameClient. Two commits since 07/2026, both files.
+    # day forward to the regioned GameClient.
     Generals/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DGameClient.cpp
     Generals/Code/GameEngineDevice/Include/W3DDevice/GameClient/W3DGameClient.h
     # this game's copies of the model-content render-object classes, see SHARED.
@@ -428,21 +430,14 @@ set(SIMDIGEST_PATHS_CODE_G
     Generals/Code/GameEngineDevice/Include/Win32Device/Common/Win32GameEngine.h
 )
 
-# GeneralsX: HOT render files with a few functions the simulation
-# reads. Only the text from a line containing GX-SIMID-BEGIN up to the next line containing GX-SIMID-END is hashed, so a
-# rendering edit elsewhere in the file stays client-only (whole, these files would have turned 189 client-only commits
-# of 07-10/2026 into four-platform ships). A region is a comment pair around whole functions - mark every function the
-# simulation calls AND the file-local helpers they call. Fails closed: a listed file without a region, an unbalanced
-# or nested marker, or a marker in a code file no list names stops the build.
-# Not digested on purpose: audio length and music-finished - only the SPEECH/AUDIO/MUSIC script conditions read them,
-# and Determinism-1 classifies those client-local; and the GameEngineDevice CMakeLists.txt, which add render files
-# weekly and set no codegen flag - a swap of WHICH copy of a listed file compiles there needs a list edit here anyway.
-# THE BOUNDARY IS A CHECKED RULE: the digested code must be CLOSED - everything it
-# reaches (inlined code, calls and globals, pointers in its tables, overrides of its virtuals) is digested here, or
-# named in resources/gitinfo/simdigest_exclusions.txt with the reason the simulation does not read it. Check it with
-#   scripts/build/simid-closure.py <a -g build dir>
-# after changing these lists or adding code the simulation calls; a GAP it prints is a file to digest or an entry to
-# justify. It reads a build's objects, so it is run by hand before a promote, not by this script.
+# HOT render files with a few functions the simulation
+# reads. Only the text from a line containing GX-SIMID-BEGIN up to the next line containing GX-SIMID-END is hashed.
+# A region wraps whole functions the simulation calls plus their local helpers. Fails closed: a listed file without a
+# region, an unbalanced or nested marker, or a marker in a code file no list names stops the build.
+# The boundary is a checked rule: the digested code must be CLOSED - everything it reaches (inlined code, calls and
+# globals, pointers in its tables, overrides of its virtuals) is digested here or named in
+# resources/gitinfo/simdigest_exclusions.txt with its reason. Run scripts/build/simid-closure.py <a -g build dir> after
+# changing these lists OR adding code the simulation calls; a GAP it prints is a file to digest or an entry to justify.
 set(SIMDIGEST_PATHS_REGION_SHARED
     Core/GameEngineDevice/Source/W3DDevice/GameClient/BaseHeightMap.cpp
     Core/GameEngineDevice/Source/W3DDevice/GameClient/HeightMap.cpp
@@ -474,14 +469,14 @@ set(SIMDIGEST_PATHS_REGION_G
     Generals/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DInGameUI.cpp
 )
 
-# GeneralsX: the guard asked for: what each region file's
-# markers MUST hold - the simulation-facing definitions found by the 02-03/10 call-graph search. "<file>|<Class::fn>" is a
+# the guard asked for: what each region file's
+# markers MUST hold - the simulation-facing definitions found by the call-graph search. "<file>|<Class::fn>" is a
 # definition, every overload; "<file>|=<text>" a literal, no semicolon - CMake would split the entry there. Checked by
 # SimDigestCheckRegionFunctions on every build.
 set(SIMDIGEST_REGION_FUNCTIONS
-    # the constants region code uses (#1), the control bar's lifecycle in the in-game UI and the
-    # forwarders that reach it (#2), the map-path resolver, the scan's hand-off of the path and the two statements that record
-    # it (#3); and the in-game UI's and the map cache's globals, as r17's rule asks
+    # the constants region code uses, the control bar's lifecycle in the in-game UI and the
+    # forwarders that reach it, the map-path resolver, the scan's hand-off of the path and the two statements that record
+    # it; and the in-game UI's and the map cache's globals
     "Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DModelDraw.cpp|=enum INIReadFlagsType"
     "Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DModelDraw.cpp|=enum ParseCondStateType"
     "Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DModelDraw.cpp|=enum AnimParseType"
@@ -526,7 +521,7 @@ set(SIMDIGEST_REGION_FUNCTIONS
     "Generals/Code/GameEngine/Source/GameClient/Drawable.cpp|=Drawable::s_anyModelDirty = TRUE"
     "Generals/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DDisplay.cpp|=W3DAssetManager *W3DDisplay::m_assetManager = nullptr"
     "Generals/Code/Libraries/Source/WWVegas/WW3D2/ww3d.cpp|=WW3D::MungeSortOnLoad = false"
-    # (r15 open list): the client lifecycle that creates, resets and steps what the simulation reads - the
+    # the client lifecycle that creates, resets and steps what the simulation reads - the
     # display (asset manager), in-game UI (command dictionaries), challenge filter and terrain visual; the drawable
     # teardown and list root; the ghost-object and shroud-status refresh; the terrain visual update (water grid); time
     # of day (the NIGHT model condition); the map binding, reset and LOD swap of the terrain render object; the bridge
@@ -1203,7 +1198,7 @@ function(Main)
         ComputeSimSourceDigest(SIM_SOURCE_DIGEST_ZEROHOUR _zh_code _zh_regions)
         ComputeSimSourceDigest(SIM_SOURCE_DIGEST_GENERALS _g_code _g_regions)
         message(STATUS "SimID source digest: ZH=0x${SIM_SOURCE_DIGEST_ZEROHOUR} G=0x${SIM_SOURCE_DIGEST_GENERALS}")
-        # GeneralsX: How many dirty files each digest folded in (the overlay above), so
+        # How many dirty files each digest folded in (the overlay above), so
         # scripts/build/simid-digest.sh reports dirt from the watcher's own path lists instead of a copy of them that
         # drifts (the CMakeLists.txt added to SIMDIGEST_PATHS_BUILD were missing from the copy).
         message(STATUS "SimID dirty overlay: ZH=${SIM_SOURCE_DIGEST_ZEROHOUR_DIRTY} G=${SIM_SOURCE_DIGEST_GENERALS_DIRTY}")

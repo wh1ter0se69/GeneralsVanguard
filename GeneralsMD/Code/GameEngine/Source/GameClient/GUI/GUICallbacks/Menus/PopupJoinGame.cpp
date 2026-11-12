@@ -66,6 +66,11 @@
 #include "GameNetwork/GameSpy/PeerThread.h"
 #include "GameNetwork/GameSpyOverlay.h"
 #include "GameNetwork/LANAPICallbacks.h"	// TheLAN, LANAPI, LANGameInfo
+#include "GameClient/Shell.h"
+#include "GameClient/GadgetListBox.h"
+#include "GameClient/GXChatLine.h"			// GXLobbyLANAPI::OnChat: stamp, room slot, emote name
+#include "GameClient/GXLobbyCommands.h"		// GXLobbyLANAPI::OnChat: role decoration, separator, stamp
+#include "GameClient/LanguageFilter.h"
 
 
 //-----------------------------------------------------------------------------
@@ -82,7 +87,7 @@ static GameWindow *textEntryGamePassword = nullptr;
 // prompt has to be able to rewrite this field AFTER the layout is up - a second refusal reuses an
 // already-open overlay, and GameSpyOpenOverlay does not re-run runInit in that case.
 static GameWindow *staticTextGameName = nullptr;
-// GeneralsX: (cross-model review) The caption to the LEFT of that field.
+// GeneralsX: The caption to the LEFT of that field.
 //
 // It is a plain static carrying TEXT = "GUI:GameName", which the English CSF renders as
 // "Game Name:" - so anything but a game name written into StaticTextGameName is read by the player
@@ -94,46 +99,10 @@ static GameWindow *staticTextGameNameCaption = nullptr;
 
 static void joinGame( AsciiString password );
 
-//-----------------------------------------------------------------------------
-// GeneralsX: LAN / relay lobby password prompt.
-//
-// THE LAYOUT IS STOCK AND ALREADY SHIPS. Menus/PopupJoinGame.wnd is inside WindowZH.big and
-// carries the controls this needs - ParentJoinPopUp, TextEntryGamePassword, StaticTextGameName,
-// ButtonCancel and two unnamed captions - because it is what GameSpy used for the same question.
-// Nothing here adds, edits or overrides a .wnd. That is not a stylistic preference: there is no
-// delivery path for custom UI archives today (the confirm-password field added on 16/08 lives in a
-// !GXUI.big that exists on one machine), so a layout change would work for the author and reach
-// nobody. Everything this file needs to differ from the authored layout - the mask, the entry
-// limits, the caption and the field's width - is therefore set on the live windows instead, which
-// is per-instance and is undone for free when the overlay is destroyed and recreated.
-//
-// There is no OK button in the layout and none is invented. EA's own idiom is Enter to submit,
-// which arrives as GEM_EDIT_DONE, and Cancel or ESC to abandon.
-//
-// THE TYPED PASSWORD IS NEVER LOGGED, ECHOED OR PERSISTED BY THIS FILE. It goes to
-// LANAPI::applyLobbyCommand - the same public entry point /password has used since 08/08, and the
-// only place in the engine that binds one - and the local echo that call returns is discarded.
-// The box is masked, and it is cleared on submit, on cancel and on open.
-//
-// WHAT THIS POPUP IS ALLOWED TO SAY, and why it is one short line.
-//
-// The prompt reports exactly one outcome: the host said the password was wrong. Every other way a
-// join can end - gone, timed out, full, wrong build - is handed back to LANAPI::OnGameJoin, which
-// already has a fixed-size modal and much better copy for each of them, including the SimID build
-// comparison and the LAN:SimIdTimeoutHint that is the only thing telling a player they are on the
-// wrong build. Swallowing those into a generic line was tried and reverted; see OnGameJoin.
-//
-// It has to be SHORT because the field it lands in is 224x24 at the 800x600 authoring resolution
-// and W3DStaticText.cpp word-wraps at size.x-10 then hard-clips to the box (:94, :112-115). Window
-// rects scale linearly with resolution while adjustFontSize's Classic factor is capped at 2.0
-// (GlobalLanguage.cpp:283-287), so 800x600 is the tightest case - and the point size is not fixed
-// either, because the field renders through HEADERTEMPLATE "LabelRegular": stock English
-// HeaderTemplate.ini sets that to Arial 10, and the ControlBarPro archives many players have
-// installed raise it to 12 or 14. Measured against Arial at the 14-point worst case,
-// "Could not join. Check the password and try again." is ~427 px against a 214 px wrap width -
-// two lines in a box that clips after one. So the copy is kept to a couple of words AND the field
-// is widened over the caption before anything is written into it.
-//-----------------------------------------------------------------------------
+// LAN / relay lobby password prompt. PopupJoinGame.wnd is stock; nothing here edits a .wnd, so mask, entry limits,
+// caption and field width are set on the live windows. No OK button: Enter submits, Cancel or ESC abandons.
+// The password is never logged, echoed or persisted here: it goes to LANAPI::applyLobbyCommand, the local echo
+// is discarded, and the box is cleared on submit, cancel and open.
 
 /// TRUE while this popup is serving a LAN/relay join rather than a GameSpy staging room.
 static Bool s_lanMode = FALSE;
@@ -157,19 +126,9 @@ static Bool          s_retryDirect = FALSE;
 static UnicodeString s_retryGameName;
 static UnsignedInt   s_retryIP     = 0;
 
-// GeneralsX: (cross-model review) A password typed HERE is borrowed, not
-// adopted.
-//
-// applyLobbyCommand is the only public way to bind a join password, and it deliberately does three
-// things at once: m_joinPassword, setHostPassword, and the process-global s_carriedLobbyPassword
-// that a freshly constructed LANAPI reads back. That is right for somebody who typed /password -
-// the verb is documented as applying to the next game you host - but it is wrong for this box.
-// Somebody answering a prompt to get into a friend's lobby has not asked to password-protect their
-// own next game, and would have no idea they had.
-//
-// So: remember whether the player already had one, and hand it back the moment this join has been
-// answered one way or the other. Only when it was ours to begin with - a password the player set
-// themselves is theirs, and this must not delete it.
+// A password typed HERE is borrowed, not adopted: applyLobbyCommand also sets setHostPassword and the global
+// s_carriedLobbyPassword, which is wrong for a prompt answered to enter a friend's lobby.
+// So remember whether the player already had one and hand it back once this join is answered, only if it was ours.
 static Bool s_lanPwBorrowed = FALSE;
 /// TRUE between submitting a password and the join answering, so a second RET_NEEDS_PASSWORD can be
 /// told from the first one. See OnGameJoin.
@@ -241,26 +200,9 @@ static void lanPromptApply( void )
 			// The two screens ask about the same secret and must not disagree about showing it.
 			pwEntry->secretText = TRUE;
 
-			// GeneralsX: THE BOX MUST ACCEPT WHAT A HOST CAN SET.
-			//
-			// The shipped .wnd authors this field MAXLEN 10, ALPHANUMERICALONLY 1, ASCIIONLY 1 -
-			// and the accept test is `charPos < maxTextLen-1`, so that is NINE alphanumeric ASCII
-			// characters. The LAN host's own password row is built by
-			// LanGameOptionsMenu::lanPasswordRowCreate through CodeGuiTextEntry with maxTextLen 32
-			// and aSCIIOnly/alphaNumericalOnly both left FALSE by its memset - so a host can set,
-			// and its UI invites, a 31-character password with spaces and symbols in it.
-			//
-			// Without this the prompt is a trap on every such lobby: the correct password cannot be
-			// typed, so it reads as "Wrong password" forever with Cancel as the only exit. It would
-			// also be a NARROWING, because the thing this popup replaces - /password in the chat
-			// box - goes through RequestChat with no length or character limit at all.
-			//
-			// 32 rather than more for the same reason the host row stops there: applyLobbyCommand
-			// strlcpy's into s_carriedLobbyPassword[65] (LANAPI.cpp:63, :1372), and stopping short
-			// of that means what the player typed is what gets bound, always.
-			//
-			// LAN only. The GameSpy path's 10/alphanumeric matches PopupHostGame's own GameSpy
-			// password box exactly, so those two agree already and are left alone.
+			// The box must accept what a host can set. The stock .wnd limits it to 9 alphanumeric ASCII characters while
+			// the LAN host's password row allows 31 with symbols, so the right password could not be typed.
+			// 32 matches the host row (s_carriedLobbyPassword is [65]). LAN only: GameSpy keeps its 10-character limit.
 			pwEntry->maxTextLen        = 32;
 			pwEntry->alphaNumericalOnly = FALSE;
 			pwEntry->aSCIIOnly          = FALSE;
@@ -271,19 +213,9 @@ static void lanPromptApply( void )
 	{
 		if( s_lanRefused )
 		{
-			// GeneralsX: (cross-model review) Take the row over before
-			// writing a status into it.
-			//
-			// The caption to the left says "Game Name:", so a status left beside it reads as the
-			// name of the game. Blank the caption and grow the field left onto the space it
-			// occupied: one row, one sentence, nothing contradicting it. Done from code and never
-			// in the .wnd - there is no delivery path for a UI archive, so a layout edit would
-			// work here and reach nobody.
-			//
-			// Idempotent. After the first pass the field's left edge already equals the caption's,
-			// so recomputing gives the same rect - which matters because a refusal arriving while
-			// the prompt is still up re-shows the SAME layout instance (GameSpyOpenOverlay only
-			// re-runs runInit when it has to create one).
+			// Take the row over before writing a status into it: the caption on its left says "Game Name:".
+			// Blank the caption and grow the field left onto its space, from code, since UI archives have no delivery path.
+			// Idempotent: the field's left edge equals the caption's after the first pass.
 			if( staticTextGameNameCaption != nullptr )
 			{
 				GadgetStaticTextSetText( staticTextGameNameCaption, UnicodeString::TheEmptyString );
@@ -300,14 +232,7 @@ static void lanPromptApply( void )
 				}
 			}
 
-			// A refusal here means one thing and says one thing: RET_BAD_PASSWORD, which is the
-			// host telling THIS client the password was wrong. Naming it discloses nothing the
-			// player did not already have - handleJoinDeny only delivers a deny addressed to us
-			// while m_pendingAction is ACT_JOIN (LANAPIhandlers.cpp:985-987), so the prompt can
-			// only be on screen because that host answered us by name. A lobby that is not there
-			// never opens this prompt at all; it times out into the base's message box exactly as
-			// it did before this feature existed. Every other outcome is reported by
-			// LANAPI::OnGameJoin rather than here.
+			// A refusal here means one thing and says one thing: RET_BAD_PASSWORD, the host telling THIS client the password was wrong. Naming it discloses nothing the player did not have: handleJoinDeny only delivers a deny addressed to us while m_pendingAction is ACT_JOIN, so the prompt is only on screen because that host answered us by name. Every other outcome is reported by LANAPI::OnGameJoin rather than here.
 			GadgetStaticTextSetText( staticTextGameName,
 				TheGameText->FETCH_OR_SUBSTITUTE( "LAN:JoinBadPassword", L"Wrong password" ) );
 		}
@@ -344,7 +269,7 @@ static void lanPromptClose( void )
 
 	// Off the modal stack NOW, not whenever the deferred winDestroy gets round to it. The retry
 	// that follows can put a message box up, and a message box under a still-modal popup dims the
-	// screen and never draws - that exact trap cost a session on 16/08. Since TheSuperHackers
+	// screen and never draws. Since TheSuperHackers
 	// PR #3224 winUnsetModal unlinks the window from anywhere in the stack and returns
 	// WIN_ERR_GENERAL_FAILURE with no side effect when the window is not on it at all, so
 	// winDestroy's own later unset finds nothing and this cannot double-pop.
@@ -444,24 +369,9 @@ static Bool lanPromptOpen( Bool refused, LANGameInfo *theGame )
 //-------------------------------------------------------------------------------------------------
 static void lanPromptSubmit( const UnicodeString &typed )
 {
-	// GeneralsX: (cross-model review) TRIMMED, and the emptiness test is on
-	// the trimmed value. The comment this replaces said the opposite and was wrong twice.
-	//
-	// It claimed trimming would break parity with the host, "which binds its password exactly as
-	// typed, spaces included". No host does. applyLobbyCommand runs
-	// `rest.nextToken(&verb); verb.toLower(); rest.trim();` before binding (LANAPI.cpp:1360-1364),
-	// and every way of setting a lobby password - the host row in LanGameOptionsMenu, relayHostGame
-	// in WOLLobbyMenu, a typed /password - goes through that one call. A password with an outer
-	// space cannot be SET, so refusing to send one is parity, not a divergence from it.
-	//
-	// And it claimed the divergence was harmless. It was not, and it is now load-bearing: this
-	// prompt clears alphaNumericalOnly on the entry box (see lanPromptApply) so that a joiner can
-	// type the spaces and symbols a host's own 32-character row allows - which means whitespace
-	// really does arrive here now. An untrimmed whitespace-only string builds "/password " with an
-	// empty operand, and that is applyLobbyCommand's documented CLEAR: it wipes m_joinPassword, the
-	// host-side verifier and the carried global. Worse, isHostingWithPassword() reads TRUE in
-	// exactly that case, so s_lanPwBorrowed stays FALSE and lanPromptRelease will never put it
-	// back - the player's own host password destroyed, silently, with no restore path.
+	// Trimmed, and the emptiness test is on the trimmed value. applyLobbyCommand trims before binding (LANAPI.cpp).
+	// This prompt allows whitespace, and an untrimmed whitespace-only entry builds "/password " with no operand,
+	// which is the documented CLEAR and would silently wipe the player's own host password.
 	UnicodeString entered = typed;
 	entered.trim();
 
@@ -470,15 +380,7 @@ static void lanPromptSubmit( const UnicodeString &typed )
 	if( entered.isEmpty() )
 		return;
 
-	// GeneralsX: (cross-model review) A lobby that is not there any more is
-	// reported as a lobby that is not there, not as a bad password.
-	//
-	// These two branches used to re-show the prompt saying the password was wrong, which is untrue
-	// and leaves the only exit as Cancel. Nothing is disclosed by being honest: the prompt is only
-	// on screen because this host answered US (see lanPromptApply), and RET_GAME_GONE is what the
-	// base would have reported for the same join without the prompt in the way. Routed through
-	// OnGameJoin rather than formatted here so it picks up the whole existing failure dialog -
-	// including the borrowed-password hand-back on the way past.
+	// A lobby that is not there any more is reported as a lobby that is not there, not as a bad password. Nothing is disclosed by being honest: the prompt is only on screen because this host answered US (see lanPromptApply), and RET_GAME_GONE is what the base would report for the same join without the prompt. Routed through OnGameJoin rather than formatted here so it picks up the whole existing failure dialog, including the borrowed-password hand-back on the way past.
 	LANGameInfo *game = nullptr;
 	if( TheLAN == nullptr || !s_retryValid )
 	{
@@ -556,6 +458,24 @@ static void lanPromptSubmit( const UnicodeString &typed )
 }
 
 //-------------------------------------------------------------------------------------------------
+// GeneralsX @feature Chat lines on the LAN screens: the LAN lobby, a game setup room and the score screen.
+//
+// LANAPI::OnChat draws them, and it lives in the simulation source digest, so the lines are drawn
+// here instead (GXLobbyLANAPI::OnChat below). What changes against it:
+//   * every said line carries the local time, in the OS's own 12/24-hour form (GXLobbyTimestamp);
+//   * one line shape and one set of colours with the Online lobby: a gray time column, then "[Name]: text"
+//     in white, "[@Name]: text" in crimson for a relay-proven admin, "[+Name]" in purple for a moderator.
+//     The role is the relay's roster letter for the room slot the relay stamped on the datagram - never
+//     the name or the chat type the sender wrote;
+//   * there are no emotes: an older client's emote is drawn as an ordinary line, filtered like any
+//     other (the base drew emotes unfiltered);
+//   * a notice carries "[S]" (this client) or "[L]" (the room), in gray, as in the Online lobby.
+//-------------------------------------------------------------------------------------------------
+
+/// How often a game setup room re-asks the relay who is in it, for the roles on its chat lines.
+static const UnsignedInt GX_CHAT_ROSTER_REFRESH_MS = 4000;
+
+//-------------------------------------------------------------------------------------------------
 /** LANAPI with the password prompt wired in. See the note on GXCreateLobbyLANAPI in
 	* GUICallbacks.h for why this is a subclass and not a hook in LANAPI itself. */
 //-------------------------------------------------------------------------------------------------
@@ -563,32 +483,128 @@ class GXLobbyLANAPI : public LANAPI
 {
 public:
 
-	/// GeneralsX: EVERY LOBBY TRANSPORT IS BORN IDENTIFIED.
+	GXLobbyLANAPI() : m_gxRosterAskedMs( 0 ) {}
+
+	/// The relay's role for whoever holds `ip`'s slot in our room. A player when there is no relay,
+	/// no roster yet, or the address is not in our room.
+	GXAssertRole gxRelayRoleOf( UnsignedInt ip )
+	{
+		const UnsignedInt slot = gxChatRosterSlotFor( ip, m_localIP );
+		if( slot == 0 )
+			return GX_ROLE_PLAYER;
+		UnsignedInt slots[MAX_SLOTS];
+		const Int n = getLobbyRoster( slots, MAX_SLOTS );
+		for( Int i = 0; i < n; ++i )
+		{
+			if( slots[i] == slot )
+				return GXLobbyRoleFromCode( getLobbyRosterRole( i ) );
+		}
+		return GX_ROLE_PLAYER;
+	}
+
+	/// Keep the game room's roster fresh while a game is being set up and on the score screen after it, so
+	/// a chat line's role is known before it is said and a role revoked during the match is gone there too.
+	/// Every member asks, the host included: a listed host's transport asks only on
+	/// its 30 s tag tick, and a /private host not at all.
 	///
-	/// A signed-in player was identified to the relay on ONE screen: the Online lobby handed the
-	/// assertion over on entry (WOLLobbyMenu relayDeclareIdentity). Every other path that reaches a
-	/// relay room builds a NEW LANAPI and a new Transport - a browser join (relayJoinSelectedGame), a
-	/// Direct Connect join and SetUpOnlineLobbyLAN each `delete TheLAN` first - and a fresh Transport
-	/// starts with an empty m_relayIdentity. So a player who JOINED somebody else's game was an
-	/// unidentified member in that room for the whole game - and a relay that requires sign-in drops
-	/// an unidentified member.
-	///
-	///
-	/// HERE, rather than at each of those call sites, because they are the callers that keep being
-	/// added - this is the one door they all go through (GXCreateLobbyLANAPI, then init()). The base
-	/// class is untouched on purpose: LANAPI.{h,cpp} are inside the simulation source digest, and
-	/// HeadlessLANAPI must NOT pick this up - a harness peer has no sign-in to declare.
-	///
-	/// AFTER LANAPI::init(), never before: init() binds the transport and sends the registration, and
-	/// the relay silently discards an identity from an endpoint it has not filed as a member. From here
-	/// the transport repeats it after every registration keepalive by itself (Transport.cpp
-	/// sendRelayRegistration -> resendRelayIdentity).
-	///
-	/// A SIGNED-OUT PLAYER IS NOT RE-IDENTIFIED BY THIS. getVerifiedAssertionText() is "" once
-	/// clearVerifiedIdentity() has run, and sendRelayIdentity("") on a transport that holds nothing
-	/// declares nothing and settles no clear - so a sign-out still wins, and the clear it owes keeps
-	/// riding this new transport's keepalives (GXRelayIdentityWire.h). It is a no-op for a LAN player,
-	/// an offline player and anyone without an account.
+	/// The host's advertised ping is timed from whichever roster request is outstanding
+	/// (Transport::requestRelayRoster), so these requests are timed samples too. One sent while the
+	/// tag tick's is still unanswered voids that one sample; the next, 4 s later, is timed again.
+	virtual void update() override
+	{
+		LANAPI::update();
+#if defined(GX_TEST_INSTRUMENTS)
+		// GX_TEST_LAN_CREATE_REFUSE=1 (test builds only): once, in the LAN lobby, the refusal a busy create
+		// gets, so LANAPI::OnGameCreate's rows can be seen landing in the two-column chat box without a
+		// second machine racing a join.
+		static Bool s_createRefused = FALSE;
+		if( !s_createRefused && m_inLobby && listboxChatWindow != nullptr && getenv( "GX_TEST_LAN_CREATE_REFUSE" ) != nullptr )
+		{
+			s_createRefused = TRUE;
+			OnGameCreate( RET_BUSY );
+		}
+#endif
+		if( m_inLobby || m_currentGame == nullptr )
+			return;
+		if( m_currentGame->isGameInProgress() && !TheShell->isShellActive() )
+			return;		// the match itself: nothing reads the roster until the score screen (OnChat's test)
+		const UnsignedInt now = timeGetTime();
+		if( m_gxRosterAskedMs != 0 && now - m_gxRosterAskedMs < GX_CHAT_ROSTER_REFRESH_MS )
+			return;
+		m_gxRosterAskedMs = now;
+		requestLobbyRoster();
+	}
+
+	/// No emotes: a "/me" line that got past the screen's guard (only a "//me" escape does) is said as
+	/// typed, a normal line, rather than turned into an emote by LANAPI::RequestPlayerChat.
+	virtual void RequestPlayerChat( UnicodeString message ) override
+	{
+		if( message.startsWithNoCase( L"/me" ) )
+		{
+			RequestChat( message, LANCHAT_NORMAL );
+			return;
+		}
+		LANAPI::RequestPlayerChat( message );
+	}
+
+	virtual void OnChat( UnicodeString player, UnsignedInt ip, UnicodeString message, ChatType format ) override
+	{
+		GameWindow *chatWindow = nullptr;
+		if( m_inLobby )
+			chatWindow = listboxChatWindow;
+		else if( m_currentGame && m_currentGame->isGameInProgress() && TheShell->isShellActive() )
+			chatWindow = listboxChatWindowScoreScreen;
+		else if( m_currentGame && !m_currentGame->isGameInProgress() )
+			chatWindow = listboxChatWindowLanGame;
+		if( chatWindow == nullptr )
+			return;
+
+		if( format == LANCHAT_LOG )
+		{
+			UnicodeString logged( L"[LOG] " );
+			logged.concat( message );
+			GXChatBoxAdd( chatWindow, UnicodeString::TheEmptyString, logged, GameMakeColor( 255, 255, 0, 255 ) );	// yellow, as before
+			return;
+		}
+
+		// A notice: "[S]" when this client raised it (ip 0 is one raised without an address: a failed map
+		// transfer, the admin check), "[L]" when the host sent it (its start-policy lines). The chat type
+		// is the sender's own claim, so a "system" line from anybody else is drawn as their words.
+		if( format == LANCHAT_SYSTEM )
+		{
+			const Bool local = ( ip == 0 || ip == m_localIP );
+			const Bool fromHost = !m_inLobby && m_currentGame != nullptr && ip == m_currentGame->getIP( 0 );
+			if( local || fromHost )
+			{
+				GXChatBoxAdd( chatWindow, local ? UnicodeString( L"[S]" ) : UnicodeString( L"[L]" ), message, GXChatMutedColor() );
+				return;
+			}
+		}
+
+		// Everything else is somebody talking. An emote from an older client is an ordinary line:
+		// there are no emotes any more.
+		if( TheLanguageFilter != nullptr )
+			TheLanguageFilter->filterLine( message );
+
+		const GXAssertRole role = gxRelayRoleOf( ip );
+		GXChatBoxAdd( chatWindow, UnicodeString::TheEmptyString, GXLobbySaid( GXLobbyDecorateName( player, role ), message ),
+			GXLobbyRoleTextColor( role, GXChatPlayerColor() ) );
+	}
+
+	/// The base writes its refusal lines ("game exists", "busy"...) into the LAN lobby's chat box without
+	/// a column, which in a two-column box is the time column; they are moved into the text column.
+	virtual void OnGameCreate( ReturnType ret ) override
+	{
+		const Bool lobby = m_inLobby;
+		LANAPI::OnGameCreate( ret );
+		if( lobby && listboxChatWindow != nullptr )
+			GXChatBoxAdopt( listboxChatWindow );
+	}
+
+	/// Every lobby transport is born identified: a new Transport starts with an empty m_relayIdentity, and the
+	/// relay keys sanctions on the account.
+	/// Here because it is the one door they all use (LANAPI is in the digest); HeadlessLANAPI must not pick this up.
+	/// After LANAPI::init(): the relay discards an identity from an endpoint not yet filed as a member.
 	virtual void init() override
 	{
 		LANAPI::init();
@@ -643,25 +659,15 @@ public:
 			return;
 		}
 
-		// GeneralsX: (cross-model review, second pass) RET_GAME_GONE and
-		// RET_TIMEOUT are reported verbatim. A previous revision flattened them into the prompt's
-		// refusal line while a submitted password was outstanding; that was wrong twice over.
-		//
-		// It protected nothing. handleJoinDeny only delivers a deny that is addressed to us while
-		// m_pendingAction is ACT_JOIN (LANAPIhandlers.cpp:985-987), so this prompt can only be open
-		// because the host answered THIS client by name - the lobby's existence is disclosed by the
-		// host, before any of this code runs, and the joiner clicked the row in the browser to get
-		// here. Flattening added no secrecy.
-		//
-		// And it destroyed two diagnoses that matter. A host that quits between the prompt and the
-		// retry, or a lost datagram on a bad link, told the player "check the password" forever
-		// with no exit but Cancel. Worse, RET_TIMEOUT is the code LANAPICallbacks.cpp:903-910
-		// appends LAN:SimIdTimeoutHint to, precisely because an incompatible peer usually presents
-		// as a timeout - so the build-mismatch hint was swallowed on exactly the path a password
-		// game is most likely to retry on.
+		// RET_GAME_GONE and RET_TIMEOUT are reported verbatim, not flattened into the prompt's refusal line: that would
+		// hide a host that quit or a lost datagram ("check the password" forever). RET_TIMEOUT is where
+		// LANAPICallbacks.cpp appends LAN:SimIdTimeoutHint, since an incompatible peer usually presents as a timeout.
 		lanPromptRelease();
 		LANAPI::OnGameJoin( ret, theGame );
 	}
+
+private:
+	UnsignedInt m_gxRosterAskedMs;	///< when update() last asked the relay for the room roster; 0 = not yet
 };
 
 LANAPI *GXCreateLobbyLANAPI( void )
@@ -817,24 +823,9 @@ WindowMsgHandledType PopupJoinGameSystem( GameWindow *window, UnsignedInt msg, W
     //---------------------------------------------------------------------------------------------
 		case GWM_DESTROY:
 		{
-			// GeneralsX: (cross-model review) The one teardown path this file
-			// does not own.
-			//
-			// lanPromptRelease runs on ESC, on Cancel and on every OnGameJoin that is not a
-			// password refusal - but Shell.cpp calls GameSpyCloseAllOverlays on every shell push
-			// and pop, and that destroys the popup without either of those running. A prompt torn
-			// down that way would leave s_lanPwBorrowed TRUE forever, and since applyLobbyCommand
-			// also wrote setHostPassword and the process-global s_carriedLobbyPassword that a
-			// freshly constructed LANAPI reads back (LANAPI.cpp:1370-1372, :215), the player's
-			// NEXT hosted game would silently demand the password they typed to get into somebody
-			// else's lobby.
-			//
-			// Keyed on window identity, NOT on s_lanMode. GWM_DESTROY is dispatched from
-			// processDestroyList (GameWindowManager.cpp:118), i.e. deferred - so on the retry path
-			// the OLD popup's destroy message can arrive AFTER the new one has been created and
-			// s_lanMode set TRUE again. Comparing against the live parentPopup makes this fire
-			// exactly once, for the instance nobody else cleaned up: lanPromptClose has already
-			// nulled parentPopup on the paths it owns, and points it at the new popup on a retry.
+			// The one teardown path this file does not own: Shell.cpp calls GameSpyCloseAllOverlays on every push and pop,
+			// destroying the popup without lanPromptRelease; the join password would then leak into the next hosted game.
+			// Keyed on window identity, not s_lanMode: GWM_DESTROY is deferred and can arrive after the retry popup exists.
 			if( window == parentPopup )
 			{
 				lanPromptRelease();

@@ -1,23 +1,26 @@
-// GeneralsX: the relay's registration secret, for the LOBBY PRESENCE socket.
-//
-// The relay mints a secret on the first claim of a (room, id) and hands it back with
-// "GXAUTH <room> <id> <secret> [caps]"; a registration from a DIFFERENT endpoint for that id is refused
-// unless it presents it as a fourth word (tools/relay/relay.js, AUTH_TAG and RECLAIM_GRACE_MS). The game
-// socket has done this since 08/08/2026 (Transport::captureRelayAuth / buildRelayRegistration). The
-// presence socket never did, so a player whose public address changed was refused on every keepalive
-// and - because each refusal extends the retired binding - stayed out of the shared lobby for as long as
-// the client kept asking. Silently: the relay sends nothing back on a refusal.
-//
-// A MIRROR OF TRANSPORT'S LOGIC, NOT A CALL INTO IT. Transport.cpp/.h are inside the simulation digest
-// (resources/gitinfo/simsourcedigest_watcher.cmake); exposing a helper from there moves the digest, and a
-// moved digest refuses every peer on the previous build. This header is under GameClient, which is not
-// digested - the same trade GXLobbyPresence.cpp's GX_PEER_TAG note makes.
-//
-// PURE, so scripts/test/lobby-presence-auth-test.cpp can drive the real parser and composer.
-//
-// Trade-off: the RAW secret, like Transport - not the relay's hmac1 proof. It rides every 5 s keepalive in
-// cleartext, so an on-path observer can capture it; the GXIDN assertion on the same socket already has
-// that exposure. Upgrade path: both sockets move to hmac1 together (relay.js PROOF_CTR_BYTES).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The relay's registration secret for the LOBBY PRESENCE socket: minted on the first claim of a (room, id), sent as
+// "GXAUTH <room> <id> <secret> [caps]"; a registration from a DIFFERENT endpoint needs it as a fourth word.
+// Without it a player whose public address changed is refused silently and stays out of the shared lobby.
+// A MIRROR of Transport's logic, not a call into it: Transport.cpp/.h are in the simulation digest.
+// Trade-off: the RAW secret rides every 5 s keepalive in cleartext (as in Transport), not the relay's hmac1 proof.
 #pragma once
 
 #include <stddef.h>
@@ -32,7 +35,7 @@ enum
 	GX_RELAY_SECRET_BUF = GX_RELAY_SECRET_LEN + 1
 };
 
-// GeneralsX: The word that says this client can read a relay id past .14. relay.js
+// The word that says this client can read a relay id past .14. relay.js
 // SEATS_WORD has the argument: a 0.9.69 client overruns its lobby tables on such an id and nothing on the wire names it, so an id past
 // .14 goes only to clients that say so, in rooms where everybody did.
 static const char GX_RELAY_SEATS_WORD[] = "seats34";
@@ -42,20 +45,11 @@ enum
 	GX_RELAY_SEATS_UNANSWERED = 4					///< ...and they have to have been sent
 };
 
-/// Whether this client says the word. Apart from the clock and the socket so a test can drive it; Transport holds the one copy.
-///
-/// DARK UNTIL THE RELAY SPEAKS, like the secret: a relay that predates the word REFUSES a GXRLY carrying it. So `said` starts false, and
-/// a relay that never declares it never sees it. GXCAPS rides every accepted registration, which makes it a heartbeat: a relay rolled
-/// back under a running client refuses the word and answers nothing, and the silence takes it off the line again.
-///
-/// EVERY SEAT, .15 AND ABOVE INCLUDED (caps34 r1). Going silent costs nothing on a relay that reads the word: it refuses the plain
-/// registration past .14 and answers GXCAPS, and the word is back on the next keepalive. Keeping it would strand the seat for good on
-/// a relay that does not read it, which refuses the word and never says anything again.
-///
-/// SILENCE IS UNANSWERED REGISTRATIONS, NOT TIME. A map load blocks the loop for longer than the window, sending nothing and reading
-/// nothing, and judged by the clock alone that read as a dead relay. Measured on a real binary paused for 30 s beside a .20: the
-/// next registration went out plain, the lobby seat had lapsed, and the relay refused it for the 5 s until GXCAPS brought the word
-/// back. Counted, the same pause costs nothing. The game port was never in it: the relay holds that seat through a match load.
+/// Whether this client says the word; kept apart from the clock and socket so a test can drive it.
+/// DARK UNTIL THE RELAY SPEAKS: a relay that predates the word REFUSES a GXRLY carrying it, so `said` starts false.
+/// GXCAPS on every accepted registration is a heartbeat: a rolled-back relay answers nothing, which drops the word.
+/// Applies to every seat, .15 and above included: going silent costs nothing on a relay that reads the word.
+/// Silence is counted in unanswered registrations, not time: a map load blocks the loop and read as a dead relay.
 struct GXRelaySeats
 {
 	bool said;			///< the relay in use has told us it reads the word
@@ -156,7 +150,7 @@ inline int gxRelayRegistrationLine( char *out, size_t size, const char *room, un
 	return len;
 }
 
-/// GeneralsX: "GXLIST", or "GXLIST seats34" when `seats34` says so. A relay
+/// "GXLIST", or "GXLIST seats34" when `seats34` says so. A relay
 /// that reads the word cuts a plain GXLIST to what a 0.9.69 browser can hold (no host past .14, at most 14 slots, see relay.js SEATS_WORD),
 /// so a 32-seat game shows its real count only to a list asked for with the word. The same rule as GXRLY and GXROOM decides `seats34`: only
 /// a relay that has said it reads the word is sent it, because an older one does not answer the marked form. Returns the length, or 0 if it
@@ -197,7 +191,7 @@ inline bool gxRelayAuthTake( const char *rest, const char *room, unsigned id, ch
 	return true;
 }
 
-/// GeneralsX: Does a GXAUTH `rest` ("<room> <id> <secret> [caps...]") carry the
+/// Does a GXAUTH `rest` ("<room> <id> <secret> [caps...]") carry the
 /// capability word `cap`, AFTER the three fields gxRelayAuthTake reads? Whole-word compare, never a
 /// substring, so "gxm10" is not "gxm1" - and nothing in the first three fields can count, so a room or a
 /// secret that happens to spell the word proves nothing. relay.js sends "hmac1 gxm1" (AUTH_CAPS, GXM1_CAP).

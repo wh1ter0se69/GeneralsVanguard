@@ -227,13 +227,13 @@ void LoadScreen::update( Int percent )
 	}
 }
 
-// GeneralsX: A2: GX_WARM_SHOT=1 saves one screenshot at the load's end - of the held screen with its
+// GeneralsX: GX_WARM_SHOT=1 saves one screenshot at the load's end - of the held screen with its
 // message, or of a load that did not hold (no message). The proof shots. Unset: one cached getenv, nothing else. Off
 // on a -headless peer, which never creates the device takeScreenShot reads (as gxShotCaptureOn).
 // The screenshot reads back buffer 0 after a present, and DXVK ROTATES the back buffers at every present
-// (D3D9SwapChainEx::Present, m_backBuffers[i]->Swap): buffer 0 is then one drawn one or two presents earlier. The first
-// iPad shot (IT2, 01/10) showed the screen from BEFORE the message for that reason (had said so; declined
-// then, wrongly). So three more barrier passes first - at most three buffers rotate (two back buffers plus the front
+// (D3D9SwapChainEx::Present, m_backBuffers[i]->Swap): buffer 0 is then one drawn one or two presents earlier. An iPad
+// shot taken without more presents showed the screen from BEFORE the message for that reason.
+// So three more barrier passes first - at most three buffers rotate (two back buffers plus the front
 // one) - each drawing what the shot is to show. Test runs only: it lengthens a load by three draws.
 static void gxWarmShot( LoadScreen *screen, Bool message )
 {
@@ -246,11 +246,11 @@ static void gxWarmShot( LoadScreen *screen, Bool message )
 	fprintf(stderr, "[GXWARM] shot message=%d\n", message);
 }
 
-// GeneralsX: A2:
+// GeneralsX:
 // one left-aligned line in the screen's top-left corner, in the face and size of the render-fps/
 // clock readout InGameUI draws there (Tahoma bold, its size, resolution-adjusted), white with a black border, one row below that
 // readout. Not a .wnd text's font: the multiplayer screens' features font is so large the line ran into the general's
-// name under it (rc-check RD3, 02/10). Nothing drawn behind it (defaultVisual FALSE, as MainMenu.cpp's credit label).
+// name under it. Nothing drawn behind it (defaultVisual FALSE, as MainMenu.cpp's credit label).
 // Hidden until a hold shows it; a child of the screen, so it goes with it.
 static GameWindow *gxWarmTextTopLeft( GameWindow *screen )
 {
@@ -262,7 +262,7 @@ static GameWindow *gxWarmTextTopLeft( GameWindow *screen )
 	Int screenW, screenH;
 	screen->winGetSize(&screenW, &screenH);
 	// The readout's own size (8 when the readout is off), capped at 24 as InGameUI caps it, so a player who enlarged the
-	// readout still gets the line one of its rows below it, not over it (review P3, 02/10).
+	// readout still gets the line one of its rows below it, not over it.
 	Int pointSize = (TheGlobalData != nullptr && TheGlobalData->m_renderFpsFontSize > 0) ? TheGlobalData->m_renderFpsFontSize : 8;
 	if (pointSize > 24)
 		pointSize = 24;
@@ -323,7 +323,7 @@ void LoadScreen::waitForPipelineWarmup()
 			m_gxWarmText->winHide(FALSE);
 		}
 		// Not "first launch ... happens once": macOS rebuilds its pipelines from the cache on every start, so a later
-		// launch holds ~1.5 s too and shows this line (rc-check-1002b, Mini, 02/10).
+		// launch holds ~1.5 s too and shows this line.
 		if (messageMs >= 0)
 			gxWarmProgress(m_gxWarmText, pendingAtEntry, pending);
 		update(101);
@@ -1404,8 +1404,7 @@ void ShellGameLoadScreen::init( GameInfo *game )
 	GadgetProgressBarSetProgress(m_progressBar, 0 );
 	m_progressBar->winHide(TRUE);
 
-	// GeneralsX A2: the startup screen, so with the shell map on this is where a first launch holds (2.8 s on the Mini,
-	// MB1 01/10) - and on macOS every launch (rc-check-1002b, 02/10).
+	// GeneralsX: the startup screen, so with the shell map on this is where a first launch holds, and on macOS every launch.
 	m_gxWarmText = gxWarmTextTopLeft( m_loadScreen );
 
 	if(m_loadScreen && firstLoad && TheGameLODManager && TheGameLODManager->didMemPass())
@@ -1592,24 +1591,10 @@ void MultiPlayerLoadScreen::init( GameInfo *game )
 		teamWin[i] = nullptr;
 	}
 
-	// GeneralsX: BUILD THE ROWS THE .WND DOES NOT AUTHOR.
-	//
-	// MultiplayerLoadScreen.wnd authors ProgressLoad0..7, StaticTextPlayer0..7, StaticTextSide0..7,
-	// StaticTextTeam0..7 and ButtonMapStartPosition0..7 - verified by extracting it from
-	// WindowZH.big and listing the indices on each column. MAX_SLOTS is 12, so four rows never
-	// existed and the load screen showed eight of twelve players.
-	//
-	// The guard further down - which skips an occupied slot whose row is null - STAYS. It is what
-	// stopped this crashing, and it stays correct if a builder is never registered or a column is
-	// dropped from a future .wnd. It is a safety net, not the mechanism; a guard that hides a
-	// missing row looks exactly like a fix, which is precisely how these rows stayed invisible
-	// after the crash was fixed.
-	//
-	// LoadScreenEnsureRows is a null check when no builder is registered, so the Generals twin -
-	// which has no CodeGui and registers nothing - behaves exactly as it does today.
-	// GeneralsX: Created, NOT fitted (TRUE): LoadScreenSplitRows below places them once the
-	// number of filled rows is known - the authored eight as EA laid them out, more as two groups that stay inside the
-	// frame. Fitting all MAX_SLOTS into the band here ran 34 rows off the bottom of the screen.
+	// Build the rows the .wnd does not author: MultiplayerLoadScreen.wnd has player rows 0..7, but MAX_SLOTS is larger.
+	// The null-row guard below stays as a safety net if no builder is registered or a column is dropped.
+	// A null check without a builder, so the Generals twin is unchanged. TRUE = created, not fitted:
+	// LoadScreenSplitRows places them once the filled-row count is known; fitting every slot ran off-screen.
 	LoadScreenEnsureRows( m_loadScreen, "MultiplayerLoadScreen.wnd:ProgressLoad%d",           MAX_SLOTS, TRUE );
 	LoadScreenEnsureRows( m_loadScreen, "MultiplayerLoadScreen.wnd:StaticTextPlayer%d",       MAX_SLOTS, TRUE );
 	LoadScreenEnsureRows( m_loadScreen, "MultiplayerLoadScreen.wnd:StaticTextSide%d",         MAX_SLOTS, TRUE );
@@ -1655,29 +1640,10 @@ void MultiPlayerLoadScreen::init( GameInfo *game )
 		if (!slot || !slot->isOccupied())
 			continue;
 
-		// GeneralsX: THE OCCUPIED BRANCH HAD THE SAME NULL ROW AS THE TAIL.
-		//
-		// The guard below the loop already covers rows netSlot..MAX_SLOTS-1. It did not cover THIS
-		// branch, which indexes the widget arrays by netSlot - the count of OCCUPIED slots - and
-		// dereferences m_progressBars/m_playerNames/m_playerSide with no check at all.
-		// MultiplayerLoadScreen.wnd authors ProgressLoad0..7 and StaticTextPlayer0..7 (verified by
-		// extracting it from WindowZH.big), so with nine or more occupied slots netSlot reaches 8,
-		// winGetWindowFromId returns null, and winSetEnabledImage writes through it.
-		//
-		// isOccupied() is human OR AI, so one human plus nine AI is enough - which is exactly a
-		// twelve-slot lobby filled with AI, the thing MAX_SLOTS 8 -> 12 was raised to allow.
-		// Reproduced on both platforms at the same three frames, writing to address 0xb8:
-		//   winSetEnabledImage <- MultiPlayerLoadScreen::init <- GameLogic::tryStartNewGame
-		//
-		// SKIP the slot rather than null-check fifteen dereferences, and do NOT advance netSlot:
-		// there is no row here to consume, so the next occupied slot must not be pushed further
-		// out of range. m_playerLookup[i] therefore stays -1 (set at construction), and update()
-		// already returns early on -1 - so a player with no row simply shows no progress bar
-		// instead of taking the process down.
-		//
-		// Cloning the missing rows the way the lobby does would be better, and is deliberately NOT
-		// done here: CodeGuiRowsEnsure lives in GeneralsMD and this file is Core, shared with the
-		// Generals build, which must not grow #if gates for it.
+		// The occupied branch needs the same null-row guard as the tail: it indexes the widget arrays by netSlot (the occupied
+		// count) and the .wnd authors rows 0..7, so nine or more occupied slots (human or AI) reached a null window.
+		// Skip the slot and do NOT advance netSlot: there is no row to consume. m_playerLookup[i] stays -1, which update()
+		// already ignores, so that player simply shows no progress bar.
 		if (m_progressBars[netSlot] == nullptr || m_playerNames[netSlot] == nullptr ||
 				m_playerSide[netSlot] == nullptr)
 			continue;
@@ -1718,21 +1684,10 @@ void MultiPlayerLoadScreen::init( GameInfo *game )
 		netSlot++;
 	}
 
-	// GeneralsX: SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
-	//
-	// MultiplayerLoadScreen.wnd and GameSpyLoadScreen.wnd author rows 0..7 - read out of
-	// WindowZH.big. MAX_SLOTS became 12, so winGetWindowFromId returns null for 8..11
-	// (GameWindowManager.cpp:719) and this tail loop dereferenced it unguarded. It runs from
-	// netSlot, the number of OCCUPIED slots, so the fewer players there are the more of it
-	// executes: hosting alone means netSlot == 1 and the loop reaches i == 8 every single time.
-	// That is "crashes when loading into a match in the lobby, alone", exactly as reported.
-	// Note the asymmetry this replaces - teamWin[netSlot] was already null-checked a dozen
-	// lines above, in the occupied branch. Only the tail was left bare.
-	//
-	// WHY NO TEST CAUGHT IT: -headless installs GameWindowManagerDummy (GameClient.cpp:367),
-	// whose winGetWindowFromId override returns m_windowList rather than null "because callers
-	// expect this to be non-null" (GameWindowManager.cpp:4214-4223). Every headless 12-slot
-	// soak was structurally incapable of reaching this fault.
+	// Slots past the authored rows have no .wnd control: the load-screen .wnd files author rows 0..7,
+	// so winGetWindowFromId returns null for the extra slots and this tail loop must check it. It runs from
+	// netSlot (the OCCUPIED count), so hosting alone reaches i == 8 every time.
+	// -headless uses GameWindowManagerDummy, whose winGetWindowFromId never returns null, so headless soaks miss this.
 	for(i = netSlot; i < MAX_SLOTS; ++i)
 	{
 		if (m_progressBars[i]) m_progressBars[i]->winHide(TRUE);
@@ -1828,18 +1783,10 @@ void MultiPlayerLoadScreen::update( Int percent )
 {
 	gxTestLoadStall(percent);
 
-	// GeneralsX: Keep delivering the host's Game Start while it loads and
-	// waits in startNewGame's progress barrier. The start's 5-copy burst fires only from
-	// LANAPI::update, which the engine pumps once per main-loop iteration - and this whole load,
-	// barrier (PROGRESS_COMPLETE_TIMEOUT = 60 s) and fade is ONE iteration. A peer that lost both
-	// immediate copies was therefore reached only after the barrier timed out, ~62 s later, into a
-	// match that had started without it. Every barrier pass comes through here (updateLoadProgress
-	// (101)), on both engines and headless.
-	//
-	// resendPendingGameStart is the one doFileTransfer already uses for the same blocked-host shape:
-	// host only (a no-op on joiners), the stored message verbatim so the nonce makes it inert at any
-	// peer that already ran this start, and self-throttled to one datagram per 2 s. It cannot outlive
-	// the start: this screen is deleted as the barrier releases, and nothing calls it after.
+	// Keep delivering the host's Game Start during the load barrier: the 5-copy burst fires only from LANAPI::update,
+	// once per main-loop iteration, and load, barrier (PROGRESS_COMPLETE_TIMEOUT = 60 s) and fade are one iteration,
+	// so a peer that lost both copies would wait out the timeout. resendPendingGameStart: host only, stored message
+	// verbatim (the nonce makes it inert at peers that ran the start), one datagram per 2 s at most.
 	if (TheLAN != nullptr && TheGameLogic->isInLanGame())
 		TheLAN->resendPendingGameStart();
 
@@ -2112,7 +2059,7 @@ GameSlot *lSlot = game->getSlot(game->getLocalSlotNum());
 		if (!isPreorder)
 			preorderImg = nullptr;
 		const Image *rankImg = LookupSmallRankImage(favSide, rankPoints);
-		// GeneralsX @bugfix: these two lines indexed the widget arrays with the raw slot
+		// GeneralsX: these two lines indexed the widget arrays with the raw slot
 		// index 'i', while every other widget populated in this loop uses the compacted
 		// 'netSlot' - including the isAI() block below, which hides m_playerRank[netSlot]
 		// and m_playerOfficerMedal[netSlot]. With a gap in the slot list (an empty/closed
@@ -2217,21 +2164,10 @@ GameSlot *lSlot = game->getSlot(game->getLocalSlotNum());
 		netSlot++;
 	}
 
-	// GeneralsX: SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
-	//
-	// MultiplayerLoadScreen.wnd and GameSpyLoadScreen.wnd author rows 0..7 - read out of
-	// WindowZH.big. MAX_SLOTS became 12, so winGetWindowFromId returns null for 8..11
-	// (GameWindowManager.cpp:719) and this tail loop dereferenced it unguarded. It runs from
-	// netSlot, the number of OCCUPIED slots, so the fewer players there are the more of it
-	// executes: hosting alone means netSlot == 1 and the loop reaches i == 8 every single time.
-	// That is "crashes when loading into a match in the lobby, alone", exactly as reported.
-	// Note the asymmetry this replaces - teamWin[netSlot] was already null-checked a dozen
-	// lines above, in the occupied branch. Only the tail was left bare.
-	//
-	// WHY NO TEST CAUGHT IT: -headless installs GameWindowManagerDummy (GameClient.cpp:367),
-	// whose winGetWindowFromId override returns m_windowList rather than null "because callers
-	// expect this to be non-null" (GameWindowManager.cpp:4214-4223). Every headless 12-slot
-	// soak was structurally incapable of reaching this fault.
+	// Slots past the authored rows have no .wnd control: the load-screen .wnd files author rows 0..7,
+	// so winGetWindowFromId returns null for the extra slots and this tail loop must check it. It runs from
+	// netSlot (the OCCUPIED count), so hosting alone reaches i == 8 every time.
+	// -headless uses GameWindowManagerDummy, whose winGetWindowFromId never returns null, so headless soaks miss this.
 	for(i = netSlot; i < MAX_SLOTS; ++i)
 	{
 		if (m_playerWin[i]) m_playerWin[i]->winHide(TRUE);
@@ -2346,19 +2282,10 @@ void MapTransferLoadScreen::init( GameInfo *game )
 	m_loadScreen->winHide(FALSE);
 	m_loadScreen->winBringToTop();
 
-	// GeneralsX: Stop drawing the world behind the transfer screen, as every
-	// other load screen already does (GameLogic::startNewGame, ScoreScreen set the same flag).
-	//
-	// This is the one load-type screen that can come up while a GAME_SHELL game is still loaded: the
-	// LAN delivery run keeps the shell map alive so the room survives the transfer (LANAPICallbacks.cpp,
-	// clearGameData moved after it), and doFileTransfer calls update() - a full TheDisplay->draw() -
-	// in an unthrottled loop. With m_loadScreenRender FALSE that draw ran drawViews(), rendering the
-	// whole shell map every iteration underneath this layout, which is how the shell map could reach
-	// the screen during a transfer at all (owner report: it shows in the bottom-right). With it TRUE
-	// W3DDisplay::draw repaints only the windows (W3DInGameUI::draw -> winRepaint) and the mouse, so
-	// the room below and this layout still draw. The old value is put back in the destructor: a
-	// delivery run returns to the room, which needs the scene drawn again.
-	// GX_XFER_UNGATED=1 skips the gate: the red arm of the rendered A/B, from the same binary.
+	// Stop drawing the world behind the transfer screen, as every other load screen does. It can come up while a GAME_SHELL
+	// game is still loaded, and doFileTransfer calls update() in an unthrottled loop, so with m_loadScreenRender FALSE each
+	// iteration rendered the whole shell map underneath. The old value is restored in the destructor.
+	// GX_XFER_UNGATED=1 skips the gate: the red arm of the rendered A/B.
 	static const Bool s_ungated = (getenv("GX_XFER_UNGATED") != nullptr);
 	m_prevLoadScreenRender = TheGlobalData->m_loadScreenRender;
 	if (!s_ungated)
@@ -2440,21 +2367,10 @@ void MapTransferLoadScreen::init( GameInfo *game )
 		netSlot++;
 	}
 
-	// GeneralsX: SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
-	//
-	// MultiplayerLoadScreen.wnd and GameSpyLoadScreen.wnd author rows 0..7 - read out of
-	// WindowZH.big. MAX_SLOTS became 12, so winGetWindowFromId returns null for 8..11
-	// (GameWindowManager.cpp:719) and this tail loop dereferenced it unguarded. It runs from
-	// netSlot, the number of OCCUPIED slots, so the fewer players there are the more of it
-	// executes: hosting alone means netSlot == 1 and the loop reaches i == 8 every single time.
-	// That is "crashes when loading into a match in the lobby, alone", exactly as reported.
-	// Note the asymmetry this replaces - teamWin[netSlot] was already null-checked a dozen
-	// lines above, in the occupied branch. Only the tail was left bare.
-	//
-	// WHY NO TEST CAUGHT IT: -headless installs GameWindowManagerDummy (GameClient.cpp:367),
-	// whose winGetWindowFromId override returns m_windowList rather than null "because callers
-	// expect this to be non-null" (GameWindowManager.cpp:4214-4223). Every headless 12-slot
-	// soak was structurally incapable of reaching this fault.
+	// Slots past the authored rows have no .wnd control: the load-screen .wnd files author rows 0..7,
+	// so winGetWindowFromId returns null for the extra slots and this tail loop must check it. It runs from
+	// netSlot (the OCCUPIED count), so hosting alone reaches i == 8 every time.
+	// -headless uses GameWindowManagerDummy, whose winGetWindowFromId never returns null, so headless soaks miss this.
 	for(i = netSlot; i < MAX_SLOTS; ++i)
 	{
 		if (m_progressBars[i]) m_progressBars[i]->winHide(TRUE);

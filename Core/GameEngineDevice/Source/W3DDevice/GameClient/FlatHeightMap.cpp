@@ -88,7 +88,7 @@
 #include "W3DDevice/GameClient/W3DCustomScene.h"
 
 #include "Common/UnitTimings.h" //Contains the DO_UNIT_TIMINGS define jba.
-#include "GameClient/GXWaterRA3.h"	// GeneralsX @feature RA3 water: the shore tiles' tint pass, late in Render
+#include "GameClient/GXWaterRA3.h"	// GeneralsX: RA3 water: the shore tiles' tint pass, late in Render
 
 
 FlatHeightMapRenderObjClass *TheFlatHeightMap = nullptr;

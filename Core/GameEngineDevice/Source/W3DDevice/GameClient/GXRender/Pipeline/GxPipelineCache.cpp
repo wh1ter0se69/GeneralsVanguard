@@ -1,3 +1,21 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 // GxPipelineCache.cpp - see GxPipelineCache.h and
 #include "GxPipelineCache.h"
 #include "GxCustomCatalog.h"
@@ -454,11 +472,11 @@ VkPipeline GxPipelineCache::createPipeline(const GxPipelineKey& key, const GxFFS
 	ri.depthAttachmentFormat = s.depthFormat == VK_FORMAT_S8_UINT ? VK_FORMAT_UNDEFINED : VkFormat(s.depthFormat);
 	ri.stencilAttachmentFormat = hasStencil(s.depthFormat) ? VkFormat(s.depthFormat) : VK_FORMAT_UNDEFINED;
 
-	// WS-E: a GxShaderCustom key swaps in the catalogue's modules for the stages it names (see GxCustomShaders).
+	// A GxShaderCustom key swaps in the catalogue's modules for the stages it names (see GxCustomShaders).
 	const bool customKey = key.shader.kind == GxShaderCustom;
 	const uint8_t csPs = customKey ? key.shader.reserved[1] : 0;
 	VkShaderModule vsMod = m_shaders.vs, fsMod = s.flatShading ? m_shaders.fsFlat : m_shaders.fs;
-	// (A108; the integrator's ruling after): the a2c family serves an alphaToCoverage = 1 key and
+	// The a2c family serves an alphaToCoverage = 1 key and
 	// nothing else - a plain key keeps today's module (in an A2C session too), so turning A2C off leaves every draw on today's pipelines
 	bool a2cMod = s.alphaToCoverage && m_shaders.fsA2c && m_shaders.fsFlatA2c;
 	if (g_gxPipeTestMutants.a2cModuleSwapOne && !customKey && !s.alphaToCoverage && m_shaders.fsA2c) {   // TEST-ONLY: one plain key swapped
@@ -660,9 +678,9 @@ size_t GxPipelineCache::prebuild(const GxDrawPart* parts, size_t partCount, cons
 		}
 	}
 	const size_t recordedCount = candidates.size() - partCount * configCount;
-	// ((1) a): only a twin that is a NEW candidate (not a census or recorded key, not already built or
+	// Only a twin that is a NEW candidate (not a census or recorded key, not already built or
 	// failed, not a twin of another recorded A2C key) joins the closure; it is COUNTED only when the claim below really queues it (
-	// a2c-code-r8 #4: a caller's get() may be compiling it - in flight, so not queued here)
+	// a caller's get() may be compiling it - in flight, so not queued here)
 	const size_t plainBegin = candidates.size();
 	for (const GxPipelineKey& t : plainTwins) {
 		bool dup = contains(t);
@@ -921,7 +939,7 @@ VkPipeline GxPipelineCache::get(const GxPipelineKey& key, uint32_t frame) {
 	if (found)
 		return hit;
 	if (k.shader.kind == GxShaderCustom) {
-		// A custom (WS-E) program has no generic stand-in: drawing the FF ubershader instead would be wrong pixels. Its
+		// A custom program has no generic stand-in: drawing the FF ubershader instead would be wrong pixels. Its
 		// pipelines must be prebuilt from its own census entries; a miss here is counted and draws nothing.
 		uint32_t n;
 		{

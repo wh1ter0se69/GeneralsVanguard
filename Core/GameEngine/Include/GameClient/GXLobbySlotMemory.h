@@ -1,4 +1,22 @@
-// GeneralsX: What a LAN host's lobby remembers between rooms, as a pure model: no engine types, so
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// What a LAN host's lobby remembers between rooms, as a pure model: no engine types, so
 // scripts/test/lobby-slot-memory-test.cpp can drive it. LanGameOptionsMenu.cpp owns the engine half and says why this exists.
 //
 // fit() is the part that matters. What it is handed comes from a text file, written for a map that may not be the one

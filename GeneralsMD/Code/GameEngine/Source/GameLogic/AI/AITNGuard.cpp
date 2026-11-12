@@ -45,8 +45,8 @@
 #include "GameLogic/AI.h"
 #include "GameLogic/AIPathfind.h"
 #include "GameLogic/AITNGuard.h"
-#include "GameLogic/AIPlayer.h"	// GeneralsX 22/10/2026 ai-wh1ter0se-econ T: gxAirWatchRadius
-#if defined(GX_TEST_INSTRUMENTS)	// GeneralsX 23/10/2026 ai-wh1ter0se-econ T: a guard's pop / turn / hide, for the box readers (tools/box/mech.py)
+#include "GameLogic/AIPlayer.h"	// gxAirWatchRadius
+#if defined(GX_TEST_INSTRUMENTS)	// a guard pop / turn / hide log line, for test readers
 #include <cstdarg>
 #include "GameLogic/GameLogic.h"	// TheGameLogic, read by the helper below
 // GeneralsX: t2-cheap: ONE write per [GXTAA] line - the same bytes the old fprintf + fprintf + fputc wrote
@@ -84,9 +84,9 @@ static Bool gxAirWatchOn(const Player *p)
 {
 	return p && p->getAIPlayer() && p->getAIPlayer()->gxAirWatchRadius() > 0;
 }
-// GeneralsX 27/10/2026 ai-pro-rules-2 T2: with the owner's ACTING watch on, an aircraft
-// is attacked from the tunnels only by the watch's assignments - every other way a guard picks a target (team target, the tunnel's
-// attacker, the network nemesis, its own scan, retaliation) skips aircraft
+// With the owner's ACTING watch on, an aircraft is attacked from the tunnels only by the watch's assignments:
+// every other way a guard picks a target (team target, tunnel attacker, network nemesis, own scan, retaliation)
+// skips aircraft.
 static Bool gxAirByAssignmentOnly(const Object *guard, const Object *target)
 {
 	return target != nullptr && target->isKindOf(KINDOF_AIRCRAFT) && guard != nullptr && gxAirWatchOn(guard->getControllingPlayer());
@@ -94,8 +94,8 @@ static Bool gxAirByAssignmentOnly(const Object *guard, const Object *target)
 #include "GameLogic/Module/AIUpdate.h"
 #include "GameLogic/Module/BodyModule.h"
 #include "GameLogic/Module/CollideModule.h"
-#include "GameLogic/Module/PhysicsUpdate.h"	// GeneralsX 23/10/2026 ai-wh1ter0se-econ T: PhysicsBehavior::getVelocity
-#include "GameLogic/GXHookTimer.h"	// GeneralsX 22/10/2026 ai-wh1ter0se-econ: [GXHOOK] CPU timer (test-instruments builds)
+#include "GameLogic/Module/PhysicsUpdate.h"	// PhysicsBehavior::getVelocity
+#include "GameLogic/GXHookTimer.h"	// [GXHOOK] CPU timer (test-instruments builds)
 GX_HOOK_STATS_EXTERN(gxTunnelAAHook);	// AISkirmishPlayer.cpp: arm T's one per-tick sum (the watch + these guard-side checks)
 #include "Common/TunnelTracker.h"
 #include "GameLogic/Object.h"
@@ -105,7 +105,7 @@ GX_HOOK_STATS_EXTERN(gxTunnelAAHook);	// AISkirmishPlayer.cpp: arm T's one per-t
 const Real CLOSE_ENOUGH = (25.0f);
 
 
-static Bool gxAirReturningGuard(const Object *owner);	// GeneralsX 27/10/2026 ai-pro-rules-2 T2 (below)
+static Bool gxAirReturningGuard(const Object *owner);	// defined below
 
 static Bool hasAttackedMeAndICanReturnFire( State *thisState, void* /*userData*/ )
 {
@@ -115,7 +115,7 @@ static Bool hasAttackedMeAndICanReturnFire( State *thisState, void* /*userData*/
 	if (!(obj && bmi)) {
 		return FALSE;
 	}
-	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: an AA guard the air watch is bringing back in does not stop to retaliate
+	// an AA guard the air watch is bringing back in does not stop to retaliate
 	if (gxAirReturningGuard(obj)) {
 		return FALSE;
 	}
@@ -128,7 +128,7 @@ static Bool hasAttackedMeAndICanReturnFire( State *thisState, void* /*userData*/
 	Object *target = TheGameLogic->findObjectByID(bmi->getClearableLastAttacker());
 	bmi->clearLastAttacker();
 	if (gxAirByAssignmentOnly(obj, target)) {
-		return FALSE;	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: no retaliation at an aircraft
+		return FALSE;	// no retaliation at an aircraft
 	}
 
 	// We use the clearable last attacker because we should continue attacking the guy. But if he
@@ -242,14 +242,12 @@ AITNGuardMachine::~AITNGuardMachine()
 }
 
 //--------------------------------------------------------------------------------------
-// GeneralsX: ai-wh1ter0se-econ T: with the owner's air watch on, an AIRCRAFT
-// network nemesis is taken only by a guard that can attack it - the test the damaged-tunnel path of lookForInnerTarget already makes - so
-// a Scorpion stays in (or keeps going in) for a MiG. Watch off, or any other nemesis: stock (taken).
-// GeneralsX 23/10/2026 ai-wh1ter0se-econ T: is a watched plane ENGAGEABLE by this guard - within its weapon range + 50, or within 250 more and
-// closing on it? ONE rule for popping out, turning back while returning, and giving up (inner and retaliation states): with separate
-// rules a guard that the return state turned back for an out-of-reach plane was given up at once by the inner state, every frame
-// (smoke A-T-7: 32,728 turn lines) - it never hid. Stateless, comparisons only.
-Bool gxAirEngageable(const Object *guard, const Object *plane)	// GeneralsX 27/10/2026 T2: shared with the air watch (AITNGuard.h)
+// With the owner's air watch on, an AIRCRAFT network nemesis is taken only by a guard that can attack it, so a
+// Scorpion stays in for a MiG. Watch off, or any other nemesis: stock.
+// Is a watched plane ENGAGEABLE by this guard: within weapon range + 50, or within 250 more and closing on it?
+// One rule for popping out, turning back and giving up; separate rules made the inner state give up every frame
+// on a plane the return state had turned back for. Stateless, comparisons only.
+Bool gxAirEngageable(const Object *guard, const Object *plane)	// shared with the air watch (AITNGuard.h)
 {
 	const Real reach = guard->getLargestWeaponRange() + 50.0f;
 	// a guard INSIDE the network deploys through the exit nearest the plane (AITNGuardIdleState picks it after lookForInnerTarget), so its
@@ -289,10 +287,9 @@ Bool gxAirEngageable(const Object *guard, const Object *plane)	// GeneralsX 27/1
 	return v != nullptr && (v->x * dx + v->y * dy) > 0.0f;
 }
 
-// GeneralsX: ai-pro-rules-2 T2: with the owner's ACTING air
-// watch on, a guard never takes an aircraft as its nemesis by itself - every shot at an aircraft from the tunnels is an assignment of
-// the watch (AISkirmishPlayer::gxTunnelAirWatch: an explicit attack order on one plane, back in once it is gone). T's own rule (an
-// aircraft taken only by a guard that can engage it) is what this replaces. Watch off or T0, or any other nemesis: stock (taken).
+// With the owner's ACTING air watch on, a guard never takes an aircraft as its nemesis by itself: every shot at an
+// aircraft from the tunnels is an assignment of the watch (AISkirmishPlayer::gxTunnelAirWatch).
+// Watch off, or any other nemesis: stock (taken).
 static Bool gxGuardTakesNemesis(const Object *owner, const Player *ownerPlayer, Object *nemesis)
 {
 	const AIPlayer *aip = ownerPlayer ? ownerPlayer->getAIPlayer() : nullptr;
@@ -302,7 +299,7 @@ static Bool gxGuardTakesNemesis(const Object *owner, const Player *ownerPlayer, 
 	return FALSE;
 }
 
-// GeneralsX 27/10/2026 ai-pro-rules-2 T2: a guard the air watch is bringing back in after its aircraft (AIPlayer::gxAirReturning)
+// a guard the air watch is bringing back in after its aircraft (AIPlayer::gxAirReturning)
 static Bool gxAirReturningGuard(const Object *owner)
 {
 	const Player *p = owner ? owner->getControllingPlayer() : nullptr;
@@ -310,7 +307,7 @@ static Bool gxAirReturningGuard(const Object *owner)
 	return aip != nullptr && aip->gxAirWatchRadius() > 0 && aip->gxAirReturning(owner->getID());
 }
 
-Object *gxTunnelNearest(Player *ownerPlayer, const Coord3D *pos)	// GeneralsX 27/10/2026 T2: findBestTunnel for the air watch
+Object *gxTunnelNearest(Player *ownerPlayer, const Coord3D *pos)	// findBestTunnel for the air watch
 {
 	return findBestTunnel(ownerPlayer, pos);
 }
@@ -324,7 +321,7 @@ Bool AITNGuardMachine::lookForInnerTarget()
 	if (owner->getTeam()->getPrototype()->getTemplateInfo()->m_attackCommonTarget)
 	{
 		teamVictim = owner->getTeam()->getTeamTargetObject();
-		if (teamVictim && !gxAirByAssignmentOnly(owner, teamVictim))	// GeneralsX 27/10/2026 T2
+		if (teamVictim && !gxAirByAssignmentOnly(owner, teamVictim))	// aircraft: watch assignments only
 		{
 			setNemesisID(teamVictim->getID());
 			return true;	// Transitions to AITNGuardInnerState.
@@ -353,7 +350,7 @@ Bool AITNGuardMachine::lookForInnerTarget()
 			// Check for attacking.
 			if (currentTunnel->getAI()) {
 				Object *victim = currentTunnel->getAI()->getGoalObject();
-				if (owner->getRelationship(victim) == ENEMIES && !gxAirByAssignmentOnly(owner, victim)) {	// GeneralsX 27/10/2026 T2
+				if (owner->getRelationship(victim) == ENEMIES && !gxAirByAssignmentOnly(owner, victim)) {	// aircraft: watch assignments only
 					setNemesisID(victim->getID());
 					return true;
 				}
@@ -374,7 +371,7 @@ Bool AITNGuardMachine::lookForInnerTarget()
 
 						if( attacker )
 						{
-							if (owner->getRelationship(attacker) != ENEMIES || gxAirByAssignmentOnly(owner, attacker)) {	// GeneralsX 27/10/2026 T2
+							if (owner->getRelationship(attacker) != ENEMIES || gxAirByAssignmentOnly(owner, attacker)) {	// aircraft: watch assignments only
 								continue;
 							}
 							CanAttackResult result = getOwner()->getAbleToAttackSpecificObject(ATTACK_TUNNEL_NETWORK_GUARD, attacker, CMD_FROM_AI);
@@ -518,9 +515,8 @@ StateReturnType AITNGuardInnerState::update()
 	}
 
 	Object* owner = getMachineOwner();
-	// GeneralsX: ai-wh1ter0se-econ T (7, "hide back instantly"): with the owner's air watch on, a guard
-	// whose nemesis is an aircraft it cannot engage (gxAirEngageable - the rule the return state turns back by) gives up at once - a
-	// stateless test each update (nothing to save) - and the Return state takes it back into the nearest tunnel.
+	// With the owner's air watch on, a guard whose nemesis is an aircraft it cannot engage (gxAirEngageable) gives up
+	// at once, a stateless test each update, and the Return state takes it back into the nearest tunnel.
 	if (nemesis && nemesis->isKindOf(KINDOF_AIRCRAFT) && gxAirWatchOn(ownerPlayer))
 	{
 		GX_HOOK_TIMER_ON(gxTunnelAAHook);
@@ -529,7 +525,7 @@ StateReturnType AITNGuardInnerState::update()
 	}
 	// killed him.
 	Object *teamVictim = owner->getTeam()->getTeamTargetObject();
-	if (gxAirByAssignmentOnly(owner, teamVictim))	// GeneralsX 27/10/2026 ai-pro-rules-2 T2
+	if (gxAirByAssignmentOnly(owner, teamVictim))	// aircraft: watch assignments only
 		teamVictim = nullptr;
 	if (nemesis == nullptr)
 	{
@@ -543,7 +539,7 @@ StateReturnType AITNGuardInnerState::update()
 		// Check tunnel.
 		if (tunnels) {
 			nemesis = tunnels->getCurNemesis();
-			if (gxAirByAssignmentOnly(owner, nemesis))	// GeneralsX 27/10/2026 ai-pro-rules-2 T2
+			if (gxAirByAssignmentOnly(owner, nemesis))	// aircraft: watch assignments only
 				nemesis = nullptr;
 			if (nemesis) {
 				getGuardMachine()->setNemesisID(nemesis->getID());
@@ -555,10 +551,10 @@ StateReturnType AITNGuardInnerState::update()
 		if (m_scanForEnemy) {
 			m_scanForEnemy = false; // we just do 1 scan.
 			nemesis = TunnelNetworkScan(owner);
-			if (gxAirByAssignmentOnly(owner, nemesis))	// GeneralsX 27/10/2026 ai-pro-rules-2 T2
+			if (gxAirByAssignmentOnly(owner, nemesis))	// aircraft: watch assignments only
 				nemesis = nullptr;
 			if (nemesis) {
-				// GeneralsX @bugfix m_attackState is only ever built by onEnter(), and this state can be
+				// GeneralsX: m_attackState is only ever built by onEnter(), and this state can be
 				// resident with a null one (see the guard at the end of this function), so resetting it
 				// here could dereference null. Build the sub-state when it is missing instead of
 				// resetting it, which leaves the re-target below working on a valid object either way.
@@ -583,7 +579,7 @@ StateReturnType AITNGuardInnerState::update()
 		}
 	}
 
-	// GeneralsX @bugfix m_attackState is only created by onEnter(), which bails out early when the
+	// GeneralsX: m_attackState is only created by onEnter(), which bails out early when the
 	// nemesis ID no longer resolves to a live object. loadPostProcess() calls onEnter() and throws the
 	// return value away, so unlike a normal state entry - where STATE_SUCCESS would immediately
 	// transition us out - the machine can sit in AI_TN_GUARD_INNER after a load with no sub-state at
@@ -644,7 +640,7 @@ void AITNGuardOuterState::xfer( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 void AITNGuardOuterState::loadPostProcess()
 {
-	// GeneralsX @bugfix A stray 'AITNGuardOuterState' sat here, which made the next line
+	// GeneralsX: A stray 'AITNGuardOuterState' sat here, which made the next line
 	// parse as a declaration — 'AITNGuardOuterState onEnter();' — rather than a call. The
 	// state was therefore never re-entered after loading a save, so guarding
 	// units abandoned their guard orders on load.
@@ -672,9 +668,8 @@ StateReturnType AITNGuardOuterState::onEnter()
 		DEBUG_LOG(("Unexpected null nemesis in AITNGuardOuterState."));
 		return STATE_SUCCESS;
 	}
-	// GeneralsX: ai-wh1ter0se-econ T (7, "hide back instantly"): with the owner's air watch on, an
-	// aircraft is never chased outside - the inner state gave it up because it left weapon range, and both of the inner state's exits
-	// lead here (this pursued it again with a fresh chase timer). On to the crate check and the Return state.
+	// With the owner's air watch on, an aircraft is never chased outside: the inner state gave it up because it left
+	// weapon range, and both of its exits lead here. On to the crate check and the Return state.
 	if (nemesis->isKindOf(KINDOF_AIRCRAFT) && getMachineOwner()->getControllingPlayer()
 		&& getMachineOwner()->getControllingPlayer()->getAIPlayer()
 		&& getMachineOwner()->getControllingPlayer()->getAIPlayer()->gxAirWatchRadius() > 0)
@@ -706,7 +701,7 @@ StateReturnType AITNGuardOuterState::update()
 			DEBUG_LOG(("AITNGuardOuterState::update has no attack state and no nemesis."));
 			return STATE_SUCCESS;
 		}
-		// GeneralsX 22/10/2026 ai-wh1ter0se-econ T: the onEnter rule above
+		// the onEnter rule above
 		if (nemesis->isKindOf(KINDOF_AIRCRAFT) && owner->getControllingPlayer() && owner->getControllingPlayer()->getAIPlayer()
 			&& owner->getControllingPlayer()->getAIPlayer()->gxAirWatchRadius() > 0)
 			return STATE_SUCCESS;
@@ -738,7 +733,7 @@ StateReturnType AITNGuardOuterState::update()
 			&& owner->getTeam()->getPrototype()->getTemplateInfo()->m_attackCommonTarget)
 		{
 			teamVictim = owner->getTeam()->getTeamTargetObject();
-			if (teamVictim && !gxAirByAssignmentOnly(owner, teamVictim))	// GeneralsX 27/10/2026 T2
+			if (teamVictim && !gxAirByAssignmentOnly(owner, teamVictim))	// aircraft: watch assignments only
 			{
 				goalObj = teamVictim;
 			}
@@ -803,8 +798,8 @@ StateReturnType AITNGuardReturnState::onEnter()
 		// we are already inside our tunnel.  Return success. jba [8/24/2003]
 		return STATE_SUCCESS;
 	}
-	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: an AA guard the air watch is bringing back in goes straight in
-	// - no team target, no nemesis turns it round (update below); once inside it is an ordinary guard again
+	// an AA guard the air watch is bringing back in goes straight in: no team target or nemesis turns it round
+	// (see update); once inside it is an ordinary guard again
 	if (getMachineOwner()->getTeam() && !gxAirReturningGuard(getMachineOwner())) {
 		Object *teamVictim = getMachineOwner()->getTeam()->getTeamTargetObject();
 		if (teamVictim && !gxAirByAssignmentOnly(getMachineOwner(), teamVictim))	{
@@ -820,8 +815,8 @@ StateReturnType AITNGuardReturnState::onEnter()
 	// Find tunnel network to enter.
 	// Scan my tunnels.
 	Object *bestTunnel = findBestTunnel(getMachineOwner()->getControllingPlayer(), getMachineOwner()->getPosition());
-	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: an AA guard coming back from its aircraft never fails into the
-	// inner (attack) state - a failed entry goes to the idle state, whose next scan sends it back here
+	// an AA guard coming back from its aircraft never fails into the inner (attack) state; a failed entry goes to
+	// the idle state, whose next scan sends it back here
 	const Bool gxBack = gxAirReturningGuard(getMachineOwner());
 	if (bestTunnel==nullptr) return gxBack ? STATE_SUCCESS : STATE_FAILURE;
 
@@ -836,7 +831,7 @@ StateReturnType AITNGuardReturnState::onEnter()
 StateReturnType AITNGuardReturnState::update()
 {
 	Player *ownerPlayer = getMachineOwner()->getControllingPlayer();
-	const Bool gxBack = gxAirReturningGuard(getMachineOwner());	// GeneralsX 27/10/2026 T2: straight in (onEnter)
+	const Bool gxBack = gxAirReturningGuard(getMachineOwner());	// straight in (onEnter)
 	if (getMachineOwner()->getTeam() && !gxBack) {
 		Object *teamVictim = getMachineOwner()->getTeam()->getTeamTargetObject();
 		if (teamVictim && !gxAirByAssignmentOnly(getMachineOwner(), teamVictim))	{
@@ -852,8 +847,8 @@ StateReturnType AITNGuardReturnState::update()
 
 	if (tunnels && !gxBack) {
 		Object *nemesis = tunnels->getCurNemesis();
-		// GeneralsX 22/10/2026 ai-wh1ter0se-econ T: a guard that cannot attack the watch's aircraft keeps going in (a
-		// Scorpion on its way back was turned round again and again while a plane passed)
+		// a guard that cannot attack the watch's aircraft keeps going in instead of being turned round again and
+		// again while a plane passes
 		if (nemesis && gxGuardTakesNemesis(getMachineOwner(), ownerPlayer, nemesis)) {
 			if (nemesis->isKindOf(KINDOF_AIRCRAFT) && gxAirWatchOn(ownerPlayer))
 				GX_TAA_LOG("p=%d ev=turn unit=%u plane=%u", (Int)ownerPlayer->getPlayerIndex(), (unsigned)getMachineOwner()->getID(),
@@ -867,8 +862,8 @@ StateReturnType AITNGuardReturnState::update()
 		}
 	}
 
-	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: an AA guard coming back from its aircraft whose destination tunnel
-	// was captured or lost picks the best own tunnel again, instead of AIEnterState's attack on a hostile container
+	// an AA guard coming back from its aircraft whose destination tunnel was captured or lost picks the best own
+	// tunnel again, instead of AIEnterState's attack on a hostile container
 	if (gxBack)
 	{
 		const Object *goal = getMachineGoalObject();
@@ -949,8 +944,8 @@ StateReturnType AITNGuardIdleState::update()
 #endif
 	Object *owner = getMachineOwner();
 	AIUpdateInterface *ai = owner->getAIUpdateInterface();
-	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: an AA guard the air watch is bringing back in, left outside by a
-	// failed entry (its tunnel gone or full), goes back to the Return state at once - no target scan, no crate detour
+	// an AA guard the air watch is bringing back in, left outside by a failed entry (its tunnel gone or full), goes
+	// back to the Return state at once: no target scan, no crate detour
 	if (gxAirReturningGuard(owner) && !owner->getContainedBy() && findBestTunnel(owner->getControllingPlayer(), owner->getPosition()))
 		return STATE_FAILURE;	// go to AITNGuardReturnState, & enter a tunnel.
 	// Check to see if we have created a crate we need to pick up.
@@ -1118,8 +1113,8 @@ StateReturnType AITNGuardAttackAggressorState::update()
 		}
 		if (tunnels) tunnels->updateNemesis(nemesis);
 	}
-	// GeneralsX 23/10/2026 ai-wh1ter0se-econ T: the inner state's air give-up here too - a guard hit by a strafing plane retaliates through this
-	// state, which chased it for the full guardChaseUnitFrames after the watch had cleared it. Stateless, per update.
+	// the inner state's air give-up applies here too: a guard hit by a strafing plane retaliates through this state,
+	// which would chase for the full guardChaseUnitFrames after the watch cleared it. Stateless, per update.
 	{
 		Object *owner = getMachineOwner();
 		Object *target = m_attackState->getMachineGoalObject();

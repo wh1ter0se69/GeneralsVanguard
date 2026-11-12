@@ -1,12 +1,30 @@
-// GeneralsX: L2 data contract, reference rules (WS-G0).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// L2 data contract, reference rules.
 //
 // Which classic mesh-renderer draws the L2 scene renderer may take over in the HYBRID (L2 drawing inside DXVK's device at
 // the original DX8MeshRendererClass::Flush points), and the bin key / per-instance split for the ones it takes. Header-only
-// and engine-free on purpose: WS-G fills these structs from the classic objects at flush time (DX8TextureCategoryClass,
+// and engine-free on purpose: the L2 scene renderer fills these structs from the classic objects at flush time (DX8TextureCategoryClass,
 // PolyRenderTaskClass's MeshClass, the flush site and pass state); scripts/test/l2-binkey-test.cpp drives it on hand-made
 // states. Nothing here is compiled into the game yet, and nothing the simulation reads is touched.
 //
-// The section numbers (§) are 's. Every rule names the classic line it mirrors (base render/integration
+// The section numbers (§) are this contract's. Every rule names the classic line it mirrors (base
 // 92a850536). GX_L2_MUTANT=<n> plants one defect per number, for the test's fail arms (l2-binkey-test.sh).
 #pragma once
 
@@ -42,7 +60,7 @@ enum FlushSite : uint8_t {
 	SITE_TRANSLUCENT,		// :2948 flushTranslucentObjects (alpha-overridden objects that need no triangle sort)
 	SITE_STATIC_SORT,		// static_sort_list.cpp:94
 	SITE_PROJ_SHADOW,		// W3DProjectedShadow.cpp:1524 - inside DoShadows (W3DScene.cpp:1076), BEFORE the main flush: with
-							// shadow decals on it drains the scene's queued base passes (rw1-G census, Mini G2: ~1967 tasks/frame)
+							// shadow decals on it drains the scene's queued base passes (~1967 tasks/frame)
 };
 
 inline bool siteClaimable(FlushSite s)
@@ -73,7 +91,7 @@ struct PassCtx {
 // Reset makes every slot UNKNOWN), followed through every wrapper write, untouched by
 // Invalidate_Cached_Render_States (which only empties the wrapper's cache, dx8wrapper.cpp:1654-1670), made UNKNOWN by an
 // audited raw writer behind the wrapper. NOT "the cache shadow is not the 0x12345678 sentinel": a slot nobody writes
-// (NORMALIZENORMALS on an unscaled frame, CLIPPLANEENABLE always) keeps the sentinel forever (rw1-G, 10/10).
+// (NORMALIZENORMALS on an unscaled frame, CLIPPLANEENABLE always) keeps the sentinel forever.
 struct FlushCtx {
 	FlushSite site = SITE_MAIN_OPAQUE;
 	PassCtx pass;
@@ -84,17 +102,17 @@ struct FlushCtx {
 };
 
 // The EFFECTIVE depth/blend/colour/stencil state of the run, decoded from the device-truth table (E2) after the replay (§3.4) - never
-// from the wrapper's RenderStates cache (sentinels, H10), and never
+// from the wrapper's RenderStates cache (sentinels), and never
 // from the ShaderClass bits: ShaderClass::Apply leaves raw writes standing when the bits match its cache (shader.cpp:424), e.g.
-// the shroud pass's ZFUNC EQUAL (W3DShaderManager.cpp:1304) or an RGB-only COLORWRITEENABLE (FlatHeightMap.cpp:539) - review
-// contract r2 #3. The bits stay the key.
+// the shroud pass's ZFUNC EQUAL (W3DShaderManager.cpp:1304) or an RGB-only COLORWRITEENABLE (FlatHeightMap.cpp:539).
+// The bits stay the key.
 struct ShaderDesc {
 	uint32_t bits = 0;			// ShaderClass bits, the key
 	bool blendOff = true;		// ALPHABLENDENABLE FALSE, or src ONE / dst ZERO
 	bool zEnable = true;		// ZENABLE
 	bool depthWrite = true;		// ZWRITEENABLE
 	bool depthCmpLess = true;	// ZFUNC LESS or LESSEQUAL
-	bool colorWrite = true;		// COLORWRITEENABLE writes red, green and blue - RGB or RGBA (r9: the terrain leaves RGB standing, §3.3)
+	bool colorWrite = true;		// COLORWRITEENABLE writes red, green and blue - RGB or RGBA (the terrain leaves RGB standing, §3.3)
 	uint8_t colorMask = 0xF;	// COLORWRITEENABLE & 0xF: in the key, and two draws with different masks never reorder where they overlap
 	bool stencilProfileOk = true;	// stencil off, or ALWAYS / KEEP on z-fail / REPLACE (every claimable site's profile, §3.3)
 };
@@ -139,7 +157,7 @@ struct TaskState {
 	bool onlyVisibleTask = true;			// the mesh has exactly ONE visible task this flush - one pass AND one category (§2 E8):
 											// a mesh's polygons can sit in several categories of one pass (dx8renderer.cpp:1248,
 											// mesh.cpp:747), so anything less lets an opaque part be taken while a blended or
-											// later-refused part stays classic (contract r6 #2)
+											// later-refused part stays classic
 	bool vbOverflow = false;				// skins only: Base_Vertex_Offset == VERTEX_BUFFER_OVERFLOW
 	Aabb bounds = {};						// world-space, conservative
 };
@@ -164,8 +182,8 @@ enum Reason : uint8_t {
 
 // §2: may L2 draw this task, judged alone. STATIC rules first (E1, E3, E5-E9: properties of the task, the category and the
 // flush), then the DRAW-TIME ones (E2, E4: the effective state at the task's own draw) - so the census names the cause, not the
-// symptom: an alpha-override task draws with the alpha shader (dx8renderer.cpp:1936), which E4 would report as R_BLENDED
-// (rw1-G, 10/10). Claimable or not does not depend on the order; the first failing reason does.
+// symptom: an alpha-override task draws with the alpha shader (dx8renderer.cpp:1936), which E4 would report as R_BLENDED.
+// Claimable or not does not depend on the order; the first failing reason does.
 inline Reason classifyTask(const FlushCtx &f, const CatState &c, const TaskState &t, const Policy &p)
 {
 	// E1
@@ -175,7 +193,7 @@ inline Reason classifyTask(const FlushCtx &f, const CatState &c, const TaskState
 	if (f.pass.debugSwitches) return R_DEBUG;
 	if (f.pass.forceMultiply) return R_FORCE_MULTIPLY;
 #if GX_L2_MUTANT == 17
-	if (!f.staticStateKnown) return R_STATE_UNKNOWN;	// r4's order: a draw-time rule before the static ones
+	if (!f.staticStateKnown) return R_STATE_UNKNOWN;	// a draw-time rule before the static ones
 #endif
 	// E3
 	if (t.staticSortLevel) return R_STATIC_SORT;
@@ -224,14 +242,14 @@ inline Reason classifyTask(const FlushCtx &f, const CatState &c, const TaskState
 	return OK;
 }
 
-// A task whose applied state depends on the task drawn before it (H1: the lazily re-applied material, dx8wrapper.cpp:3650;
-// H4). Census only since r1: the boundary replay (§3.4) leaves such a classic neighbour the history it had.
+// A task whose applied state depends on the task drawn before it (the lazily re-applied material, dx8wrapper.cpp:3650).
+// Census only: the boundary replay (§3.4) leaves such a classic neighbour the history it had.
 inline bool historySensitive(const TaskState &t)
 {
 	return t.alphaOverride != 1.0f || t.materialOverride;
 }
 
-// §1.3 the world matrix the classic code sends for this task (dx8renderer.cpp:1846-1890): a recipe, evaluated by WS-G with
+// §1.3 the world matrix the classic code sends for this task (dx8renderer.cpp:1846-1890): a recipe, evaluated by the L2 renderer with
 // the engine's own Matrix3D::Obj_Look_At so the bits are the classic ones.
 enum WorldMode : uint8_t { WORLD_TRANSFORM, WORLD_IDENTITY, WORLD_LOOKAT };
 struct WorldRecipe {
@@ -247,7 +265,7 @@ inline WorldRecipe resolveWorld(const TaskState &t, const FlushCtx &f)
 {
 	WorldRecipe r;
 	// :1847 identity starts as the mesh's own flag; the billboard branches compute a look-at matrix but leave the flag
-	// alone, so a billboard whose transform is identity is still sent Set_World_Identity (:1883) - review contract r1 #1
+	// alone, so a billboard whose transform is identity is still sent Set_World_Identity (:1883)
 	r.setIdentity = t.transformIdentity;
 	// the classic if / else-if order: ALIGNED, then ORIENTED, then SKIN
 #if GX_L2_MUTANT == 2
@@ -259,7 +277,7 @@ inline WorldRecipe resolveWorld(const TaskState &t, const FlushCtx &f)
 		const Vec3 z = zVector(f.camera);
 		r.t = Vec3{ r.p.x + z.x, r.p.y + z.y, r.p.z + z.z };	// mesh_position + camera_z_vector (:1859)
 #if GX_L2_MUTANT == 9
-		r.setIdentity = false;	// r0's defect
+		r.setIdentity = false;
 #endif
 	} else if (t.oriented) {
 		r.mode = WORLD_LOOKAT;
@@ -294,13 +312,13 @@ struct BinKey {
 	uint32_t shaderBits = 0;
 	uint64_t effectiveState = 0;
 	bool normalizeNormals = false;	// D3DRS_NORMALIZENORMALS TRUE when Get_ObjectScale() != 1 (:1894)
-	uint8_t colorMask = 0xF;		// r9: the pipeline draws with the effective colour write mask; a bin never mixes masks
+	uint8_t colorMask = 0xF;		// the pipeline draws with the effective colour write mask; a bin never mixes masks
 	uint8_t lightCount = 0;			// DXVK's FF VS key carries the light count (d3d9_fixed_function.h:128); the TYPE is
 									// selected at run time (d3d9_fixed_function.cpp:1287-1326), so it is instance data
 	bool skinPath = false;
 	const void *polyRenderer = nullptr;	// one instanced draw = one index range
 	const void *skinMesh = nullptr;		// skins: each instance has its own deformed range (dx8renderer.cpp:1424), so a skin
-										// bin holds one mesh - phase 1b draws skins one task per draw (contract r1 #2)
+										// bin holds one mesh - phase 1b draws skins one task per draw
 
 	bool operator==(const BinKey &o) const
 	{
@@ -360,7 +378,7 @@ inline BinKey binKey(const CatState &c, const TaskState &t)
 inline bool tieCapable(const TaskState &a, const TaskState &b, float eps)
 {
 	// a billboard's copied bounds were built from its own transform, but it is drawn with Obj_Look_At (dx8renderer.cpp:1859),
-	// so an off-centre model sphere can leave them; never reorder one (contract r2 #4; none in G2, rw1-G census)
+	// so an off-centre model sphere can leave them; never reorder one
 #if GX_L2_MUTANT != 14
 	if (a.aligned || a.oriented || b.aligned || b.oriented) return true;
 #endif
@@ -386,7 +404,7 @@ struct Bin {
 };
 
 // §3.3 instancing without a forbidden reorder: draws arrive in classic order; a draw may join an earlier bin of its key only
-// if it would not overtake a tie-capable draw, or a draw with another colour write mask (r9 - conservatively, as a ClaimedDraw carries
+// if it would not overtake a tie-capable draw, or a draw with another colour write mask (conservatively, as a ClaimedDraw carries
 // no screen rectangle), already placed in a later bin. The emission order is the bins' order, each
 // bin's members in classic order (Vulkan rasterises instances in order).
 // Trade-off: O(draws x bins) bounding-box tests; a grid over the bounds when a flush's claimed count makes it show up.
@@ -418,14 +436,14 @@ inline std::vector<Bin> planBins(const std::vector<ClaimedDraw> &in, const Polic
 }
 
 // §3.3 / §4.3 C3: the WHOLE emitted sequence of a flush - classic draws at their places, every packet's draws where the packet
-// runs - checked against the classic order (contract r1 #6: packets checked one by one can still invert a pair that
+// runs - checked against the classic order (packets checked one by one can still invert a pair that
 // sits in two different packets). Every pair whose emitted order is the reverse of the classic order must commute.
 struct SeqDraw {
 	TaskState task;
 	bool claimed = false;
 	bool sensitive = false;		// blends, writes no depth, other depth func or colour mask (fails E4) - decals, procedural passes
 	bool biased = false;		// a nonzero ZBIAS / depth bias (Render_Decal_Meshes, dx8renderer.cpp:2254): its depth is not its geometry's
-	uint8_t colorMask = 0xF;	// COLORWRITEENABLE & 0xF (r9): with different masks the channel one draw leaves alone keeps an order-dependent value
+	uint8_t colorMask = 0xF;	// COLORWRITEENABLE & 0xF: with different masks the channel one draw leaves alone keeps an order-dependent value
 	float screen[4] = {};		// conservative screen rectangle x0 y0 x1 y1 at the flush camera, +1 px guard
 };
 
@@ -435,7 +453,7 @@ inline bool screenOverlap(const SeqDraw &a, const SeqDraw &b)
 }
 
 // Lemma (§3.3): two opaque depth-writing LEQUAL/LESS draws with the SAME colour write mask commute except on an exact depth tie; a
-// sensitive or biased draw, or a pair with different masks (r9: destination alpha, read later by the soft water edge), commutes with
+// sensitive or biased draw, or a pair with different masks (destination alpha, read later by the soft water edge), commutes with
 // another draw only where they cover no common pixel.
 inline bool commutes(const SeqDraw &a, const SeqDraw &b, float eps)
 {
@@ -459,8 +477,8 @@ inline bool commutes(const SeqDraw &a, const SeqDraw &b, float eps)
 }
 
 // classicOrder[i] = the flush's draws in classic order; emitted = indices into it in emission order, which must be a
-// permutation: every draw exactly once. Returns -1 if it is not (a missing, duplicated or out-of-range draw - contract
-// r2 #6), else the number of non-commuting pairs the emission inverts (0 = the emission is CLASSIC-equivalent).
+// permutation: every draw exactly once. Returns -1 if it is not (a missing, duplicated or out-of-range draw),
+// else the number of non-commuting pairs the emission inverts (0 = the emission is CLASSIC-equivalent).
 // Trade-off: O(n^2) pairs - a check-mode tool; sort by screen tiles if a flush's draw count makes it slow.
 inline int validateEmission(const std::vector<SeqDraw> &classicOrder, const std::vector<int> &emitted, float eps)
 {
@@ -478,7 +496,7 @@ inline int validateEmission(const std::vector<SeqDraw> &classicOrder, const std:
 		for (int j = i + 1; j < (int)classicOrder.size(); ++j) {
 			if (pos[i] < pos[j]) continue;
 #if GX_L2_MUTANT == 12
-			if (classicOrder[i].claimed && classicOrder[j].claimed) continue;	// r0's per-packet view
+			if (classicOrder[i].claimed && classicOrder[j].claimed) continue;
 #endif
 			if (!commutes(classicOrder[i], classicOrder[j], eps)) ++bad;
 		}

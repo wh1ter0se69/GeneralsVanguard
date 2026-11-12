@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# GeneralsX: Data/Scripts/SkirmishScripts.scb: the retail skirmish-AI script file plus
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Data/Scripts/SkirmishScripts.scb: the retail skirmish-AI script file plus
 # GeneralsX's AI edits. A RECIPE, NOT A COPY (same rule as make-weapon-ini.py and build-overlay-generated.py: the
 # retail bytes are EA's and this repository is public, so they are read from the player's/packager's own copy and
 # the edit ships as code).
@@ -40,8 +42,10 @@
 #  8. Laser General plants beside the warehouse (C-laser-power, LASER_POWER, after every step but USA_SD): the Laser General's two Hard "7+ Power
 #     Plants" scripts also call AI_PLAYER_BUILD_SUPPLY_CENTER(Lazr_AmericaPowerPlant), because the arc they call runs out and only
 #     Laser's tanks draw power, so a capped supply disables its whole tank army (laser_power_step below).
-# 10. USA Search and Destroy (D-usa-search-destroy, USA_SD, the last step): the four USA generals' "USA Use Battle Plans" is Easy + Normal now, and a Hard
-#     copy asks for Search and Destroy instead of Hold the Line, checked every frame (usa_sd_step below). + 06/11, pro rows 35, 907, 1342.
+# 10. USA Search and Destroy (D-usa-search-destroy, USA_SD, after LASER_POWER): the four USA generals' "USA Use Battle Plans" is Easy + Normal now, and a Hard
+#     copy asks for Search and Destroy instead of Hold the Line, checked every frame (usa_sd_step below).
+# 11. USA credit gates (USA_GENOME, default ON, after USA_SD): America's 25 Hard build-script credit thresholds x1.4, the tested arm V-USA-01
+#     byte for byte (usa_genome below).
 #  4. Nearby expansion (C-ai-economy-4, EXPAND_NEARBY, a FIXUP_STEPS entry): the 12 Hard "Base Expand Start - H" scripts
 #     ask for a source holding >= EXPAND_MIN instead of 25000, so a Hard AI expands to the piles near its base instead of
 #     only ever picking a neighbour's or the centre's dock (unsafe). Normal/Easy byte-identical ([CRC] 224/224, both maps).
@@ -55,10 +59,10 @@ import argparse, hashlib, os, re, struct, sys, tempfile, types
 HERE = os.path.dirname(os.path.abspath(__file__))
 RETAIL_MEMBER = "Data/Scripts/SkirmishScripts.scb"
 SOURCE_SHA256 = "8f93862b751f289b052206b87170cc840044cb66660fbf6ae30d5782c1d73776"
-BASE_SHA256 = "cc302b0941cc009d950d82e60e863c2833d50ca50feede99fd0e4f6f062b7be4"     # the recipe's own output - the rule bank compiles over it; USA_SD (the last step; off = USA_SD_OFF_SHA256); before it: T2C on integration 6afae411ea (06/11/2026): TUNNEL_AA (T2, on R) then LASER_POWER (fix S, the last step); off = LASER_POWER_OFF_SHA256 (db81fa2f, T2C's package: TUNNEL_AA on all four GLA generals, Laser off); both off = TUNNEL_AA_OFF_SHA256 (14d03e02, the 0.9.68-0.9.69 package = R: FACE_FRONT on; TUNNEL_AA off with Laser on = 990834a2, integration 6afae411ea's package); FACE_FRONT off too = FACE_FRONT_OFF_SHA256 (14414fcd, the 0.9.67 package); with the China package NO_SPEND + NUKE_GENOME (without: 752d52a6, 0.9.64-0.9.66; without SW_FIRE_READY too: cf4a7600, 0.9.60-0.9.63; without EXPAND_NO_DEFENCE too: 67eb7669, 0.9.54-0.9.59)
-OUTPUT_SHA256 = "cc302b0941cc009d950d82e60e863c2833d50ca50feede99fd0e4f6f062b7be4"   # = BASE_SHA256 (no promoted ruleset); T2: merge of T2 with the rule bank, t2-fix 01/11/2026; db81fa2f after the bank ENGINE (t2-fix-2: AI_PLAYER_TUNNEL_AIR_WATCH moved 345 -> 348 behind the three GX_RULE actions; was d0e6d8ce, the registered T2-ALL); C-laser-power on top of it, 06/11/2026
+BASE_SHA256 = "78c0cd5e4ae1100c1d0e194bb8a1d7175bcf7ea2082d3490eeab54e96a386554"     # the recipe's own output; the rule bank compiles over it
+OUTPUT_SHA256 = "78c0cd5e4ae1100c1d0e194bb8a1d7175bcf7ea2082d3490eeab54e96a386554"   # = BASE_SHA256 (no promoted ruleset)
 # OUTPUT_SHA256 pins what --out / --root / every packager writes: BASE + rulebank/shipped_ruleset.json once a tuned ruleset is promoted
-# (plan 4.4 step 2: then OUTPUT_SHA256 and dataID move, BASE_SHA256 does not). Without that file the two are equal.
+# (then OUTPUT_SHA256 and dataID move, BASE_SHA256 does not). Without that file the two are equal.
 SHIPPED_RULESET = os.path.join(HERE, "rulebank", "shipped_ruleset.json")
 OUTPUTS = [RETAIL_MEMBER]
 RETAIL_BACKUP = ".retail"   # <target>.retail: the pristine source, kept when a deploy overwrites the retail file in place
@@ -203,8 +207,8 @@ def easy_plus(scb):
 
 
 PROD = re.compile(r'(WarFactory|Barracks|Airfield|ArmsDealer)$')
-# GeneralsX: China Tank + China Nuke without the spend patch (box week J2, 19/10: the recipe-step
-# ablation, ai/bw/j2). Each step was taken out for one general at a time (that general's list + owned teams from
+# China Tank + China Nuke without the spend patch (the recipe-step
+# ablation). Each step was taken out for one general at a time (that general's list + owned teams from
 # the recipe without the step, everything else stock) and played 1v1 against stock: only two removals helped, both of the
 # spend patch, both China (Tank +3.7 points, Holm 0.016; Nuke +8.4, Holm 1e-9). NO_SPEND names those ScriptList owners: spend_patch
 # leaves their scripts and the teams they own as the earlier steps left them. Its donors still come from the whole file, so
@@ -341,18 +345,10 @@ def spend_patch(scb, no_spend=None):
     return added, tech, waves
 
 
-# GeneralsX: Four retail launch bugs park Hard attack teams at home for the whole match.
-# Every Hard wave team leaves base through a team script that fires on the attack
-# pulse while the team is inside its own base; these teams could not:
-#  1. plain China "China Attack Sequence Back" tests TEAM_OUTSIDE_AREA_ENTIRELY(MyOuterPerimeter); every other copy (the three
-#     China generals') tests TEAM_INSIDE_AREA_PARTIALLY -> its wave-4 Tanks/Artillery/Air B and wave-5 Artillery B never left.
-#  2. "China Behavior: Dragon Tank Attack" exists only in the Infantry General's list; plain/Tank/Nuke China's "5TH Wave Tanks B"
-#     name it as their attack hook (a missing hook never runs).
-#  3. "GLA Behavior: Bomb Truck Center/Flank/Back" exist only in plain GLA's list; the Demolition/Toxin/Stealth "5TH Wave Bomb
-#     Truck C/F/B" teams name them (the "GLA Bomb Truck Attack *" sequences they call are in every GLA list).
-#  4. "GLA Behavior: Immediate Attack Center " (trailing space) exists only in plain GLA's list; the three GLA generals'
-#     "5W Rebel for Demo C" OnCreate names it, and their own copy has no trailing space.
-# Only Hard teams reach the touched scripts (proof: hard-only.py); Normal plays byte-identical ([CRC] 359/359).
+# Retail launch bugs park Hard attack teams at home: plain China's "China Attack Sequence Back" tests
+# TEAM_OUTSIDE_AREA_ENTIRELY (others test TEAM_INSIDE_AREA_PARTIALLY); "China Behavior: Dragon Tank Attack" and
+# the GLA Bomb Truck / "Immediate Attack Center " (trailing space) behaviors exist only in one general's list.
+# Only Hard teams reach the touched scripts; Normal is byte-identical.
 LAUNCH_FIX_OWNERS = ['', 'SkirmishAmerica', 'SkirmishChina', 'SkirmishGLA', 'SkirmishAmericaAirForceGeneral',
                      'SkirmishAmericaLaserGeneral', 'SkirmishAmericaSuperWeaponGeneral', 'SkirmishChinaTankGeneral',
                      'SkirmishChinaNukeGeneral', 'SkirmishChinaInfantryGeneral', 'SkirmishGLADemolitionGeneral',
@@ -405,7 +401,7 @@ def launch_fixes(scb):
     return edits
 
 
-# GeneralsX: A Hard AI never expands to the supplies near its base on 12-seat maps.
+# A Hard AI never expands to the supplies near its base on 12-seat maps.
 # "<Side> Base Expand Start - H" asks SUPPLY_SOURCE_SAFE(25000) and builds with
 # AI_PLAYER_BUILD_SUPPLY_CENTER(.., 25000). AIPlayer::findSupplyCenter takes the CLOSEST unserved source holding >= that cash
 # and halves the amount only when NO source qualifies; the caller then tests just that one source (isLocationSafe). Crater
@@ -451,8 +447,8 @@ def expand_nearby(scb):
 # INSIDE the map's CombatZone (any owner), and only then TEAM_HUNT_WITH_COMMAND_BUTTON(capture), which takes the nearest
 # capturable building from where the team stands. On a big map every AI's team walks to the same middle first, so the
 # front seats keep the middle oils and the back corners fall late to whoever survives the walk (6v6 Twin Ridges, measured
-# with probe/ai-map-economy: corners at 9.7-17 min, 7 of 12 AIs holding no oil at 20 min; ai-overhaul measured the same
-# collapse on Cauldron 29/09). Dropping the walk leaves the hunt, which starts at the team's base: each AI takes the oil
+# with probe/ai-map-economy: corners at 9.7-17 min, 7 of 12 AIs holding no oil at 20 min; the same
+# collapse on Cauldron). Dropping the walk leaves the hunt, which starts at the team's base: each AI takes the oil
 # nearest it first. Only those 13 actions go (12 lists + GLA's inactive '... Orders C'); every other CombatZone use stays.
 CAPTURE_HOME = True                       # capture_home below; False = the recipe without it (pin e5db3eca)
 CAPTURE_RX = r'^(USA|China|GLA) Tech Building Capture Orders( C)?$'
@@ -479,11 +475,11 @@ def capture_home(scb):
 
 
 
-# No defence at the dock (C-ai-supply-fix, 06/10/2026). Each Hard "Base Expand Start - H"
+# No defence at the dock. Each Hard "Base Expand Start - H"
 # script is re-armed every 150 s while SUPPLY_SOURCE_SAFE and, besides the supply centre, calls AI_PLAYER_BUILD_SUPPLY_CENTER with a
 # DEFENCE template (Patriot / Gattling / Stinger). AIPlayer::buildBySupplies puts a non-cash-generator beside m_curWarehouseID (the last
-# source a centre was asked for), so every re-arm drops another defence into the same ~400 wu square: measured 9-10 Patriots per AI at
-# 15 min on Twin Ridges (ai/supply-ignore/FINDING). The six-script "Base Expansion Base Defense" chain keeps its capped defences.
+# source a centre was asked for), so every re-arm drops another defence into the same ~400 wu square (9-10 Patriots per AI at
+# 15 min on Twin Ridges). The six-script "Base Expansion Base Defense" chain keeps its capped defences.
 EXPAND_NO_DEFENCE = True                  # expand_no_defence below; False = the recipe without it (pin 67eb7669)
 DEFENCE_RX = r'(PatriotBattery|GattlingCannon|StingerSite)$'
 
@@ -506,13 +502,11 @@ def expand_no_defence(scb):
     return len(removed)
 
 
-# Superweapons fire when ready (B-scud-fire, 13/10/2026). Every Hard
-# superweapon script pair ("... Fire ... - H" fires, then hands over to "... AI - H", which re-arms it) ANDs SKIRMISH_SPECIAL_POWER_READY
-# with FLAG(_LAUNCH_ATTACK, true). That flag is the AI's attack-wave pulse: up for ~2 frames every 30-45 s, so a ready SCUD Storm,
-# Particle Cannon or Neutron Missile sat at 0:00 for up to ~40 s before it fired (measured on 0.9.62 and 0.9.63 alike: ai/scud-fire
-# ). Easy/Normal fire the moment the weapon is ready, and so does the Superweapon General's cannon on every difficulty.
-# This drops the flag condition from those 22 scripts, so the Hard pair works as the Normal pair does; the general powers keep their
-# wave sync (an air strike or a paradrop that lands with the army is the point of it).
+# Superweapons fire when ready. Every Hard superweapon script pair ("... Fire ... - H" fires, then hands over to "... AI - H",
+# which re-arms it) ANDs SKIRMISH_SPECIAL_POWER_READY with FLAG(_LAUNCH_ATTACK, true). That flag is the AI's attack-wave pulse,
+# up for ~2 frames every 30-45 s, so a ready SCUD Storm, Particle Cannon or Neutron Missile waited up to ~40 s before firing.
+# Easy/Normal fire the moment the weapon is ready, as does the Superweapon General's cannon on every difficulty.
+# This drops the flag condition from those 22 scripts; the general powers keep their wave sync (an air strike or paradrop that lands with the army).
 SW_FIRE_READY = True                      # sw_fire_ready below; False = the recipe without it (pin cf4a7600, 0.9.60-0.9.63)
 SW_POWERS = ('SuperweaponScudStorm', 'SuperweaponParticleUplinkCannon', 'SuperweaponNeutronMissile')
 SW_SCRIPTS = {'GLA Fire SCUD Storm - H': 4, 'GLA Fire SCUD Storm AI - H': 4, 'USA Fire Particle Cannon H': 3, 'USA Particle Cannon AI H': 3,
@@ -546,17 +540,10 @@ def sw_fire_ready(scb):
     return len(removed)
 
 
-# GeneralsX: China Nuke's W-NUK-12 genome (box week J4, 20-21/10, ai/bw/j4). A registered
-# grid of single-gene moves and three forge champions' genomes, built on China Nuke's NO_SPEND scripts by the forge's pack builder
-# (forge_pack.py BUILDER 'forge-pack-5'), screened, then re-played on 12 held-out maps: variant 12 (the Air Force
-# champion's three moves) won +9.6 points 1v1 vs stock (435 better / 182 worse of 2,640 pairs, sign p 4e-25, better on 10 of 12
-# maps) and mirror games still end. Its genes: PLAYER_HAS_CREDITS gates of the Hard base-building scripts x1.435, the _ESCALATION
-# threshold of the Hard defence-building ones x0.898, unit counts of the Hard 4TH/5TH wave teams x1.161 (each value
-# max(0, round(v x k)), counts at least 1). On the pinned retail input the builder's rules reach exactly the 16 values below, so
-# they are written out: China Nuke saves up longer before its high-money builds, air field, defences and speaker towers, starts
-# its 2nd / extra gattling / extra bunker defences a little earlier, and lets four late wave teams recruit one more unit. Every
-# script is Hard-only and in China Nuke's list; every team is China Nuke's (nuke_genome asserts both, each old value, and the
-# exact bytes of China Nuke's list + teams it starts from and ends with: the genome was built and played on those bytes only).
+# China Nuke genome (Hard only): PLAYER_HAS_CREDITS gates of the base-building scripts x1.435, the _ESCALATION
+# threshold of the defence-building ones x0.898, unit counts of the 4TH/5TH wave teams x1.161 (counts >= 1).
+# On the pinned retail input these reach exactly the 16 values below; nuke_genome asserts the scripts and teams
+# are China Nuke's and Hard-only, and that its list and teams start and end with the expected bytes.
 NUKE_GENOME = True                        # nuke_genome below; False = China Nuke plays its NO_SPEND scripts as they are (PACKAGE_ARMS A-SP-NUK)
 NUKE_OWNER = 'SkirmishChinaNukeGeneral'
 NUKE_GENES = {'PLAYER_HAS_CREDITS': 1.435, 'COUNTER': 0.898, 'team': 1.161}   # the selftest checks every row below against them
@@ -657,7 +644,7 @@ def nuke_genome(scb, no_spend=None):
     return edits
 
 
-# GeneralsX: ai-wh1ter0se-econ opt-in steps: an engine behaviour that is OFF
+# Economy opt-in steps: an engine behaviour that is OFF
 # until a player's scripts call its action - so a stock .scb plays as before, and a FOCAL box arm turns it on for ONE general (generals=).
 # Each adds, per chosen general list, one group "<group>" holding one Hard-only one-shot script whose condition is CONDITION_TRUE and
 # whose single action is the new engine action (its int read from Scripts.h at run time); nothing else in the file changes.
@@ -751,7 +738,7 @@ def opt_in_selftest(base, out, group, script_name_, action, generals=None):
         assert script_flags(g.kids[0])[0] == [1, 1, 0, 0, 1, 0]
     print("  %s: +1 Hard one-shot script in %d lists, nothing else (on: %s)" % (group, len(want), sha256(out)))
 
-# GeneralsX: ai-wh1ter0se-econ R:
+# Economy step R:
 # every Hard general calls AI_PLAYER_FACE_FRONT once - its barracks / war factory / arms dealer doors face
 # its base front, its base defences face out. Engine-gated by the action (a stock .scb never calls it).
 FACE_FRONT = True                         # False = the 0.9.67 package (FACE_FRONT_OFF_SHA256)
@@ -759,7 +746,7 @@ FACE_FRONT_OFF_SHA256 = "14414fcd6ea7c84496fc7d74a43228c41c0f228988a135e613e3529
 FACE_FRONT_ARGS = ('GX Face Front', 'GX Face Front', 'AI_PLAYER_FACE_FRONT', ['SIDE'], ['<This Player>'])
 
 
-# GeneralsX: ai-wh1ter0se-econ: a small editor for the arms' recipe steps (U, T): calls built from stock donors (their
+# A small editor for the arms' recipe steps (U, T): calls built from stock donors (their
 # ints checked against Scripts.h) or from NEW engine names, scripts with explicitly set header flags, one appended group per list, and
 # team dicts copied from a donor team of the same owner with the arm's keys set. Same shape as gla_dozer_steal's helpers.
 def gx_engine_enum(name):
@@ -931,17 +918,10 @@ def gx_arm_selftest(base, out, owners, label):
     print("  %s: +1 group in %d lists, +%d team bytes, +%d chunk names, nothing else (on: %s)" % (
         label, len(want), len(tb) - len(ta), len(b.toc) - len(a.toc), sha256(out)))
 
-# GeneralsX: ai-wh1ter0se-econ T.
-#
-# Per GLA general (Hard only):
-#  * "GX Tunnel AA Watch <side>" (one-shot): AI_PLAYER_TUNNEL_AIR_WATCH(700) - the engine names incoming aircraft as the tunnels' nemesis;
-#  * team "GLA Tunnel AA <side>" = 4 Quad Cannons + 2 Tunnel Defenders (RPG) on the STOCK team path: production condition "GX Tunnel AA
-#    Cond <side>" = own tunnel network AND the current enemy owns an airfield ('GX AA Threats'), priority 500, at most 1, not recruitable,
-#    team-common-target off; on creation it guards in the tunnel network (TEAM_GUARD_IN_TUNNEL_NETWORK). 6 of the network's 10 places;
-#  * the general's two STOCK tunnel-guard teams (Hard 3W and 5W, on-create "GLA Behavior: Guard Tunnel", 10 units each) become 1 Quad
-#    Cannon + 1 Tunnel Defender each, so 6 + 2 + 2 = 10 always fits the whole network (TunnelTracker::isValidContainerFor refuses a unit
-#    when it is full: an airfield built after the stock team left the AA team outside).:
-#    4 without an enemy airfield, up to 10 with one; every one of them can fire at aircraft.
+# Per GLA general (Hard only): "GX Tunnel AA Watch <side>" names incoming aircraft as the tunnels' nemesis, and team
+# "GLA Tunnel AA <side>" (4 Quad Cannons + 2 Tunnel Defenders, built while the enemy owns an airfield) guards it.
+# The two stock tunnel-guard teams shrink to 1 Quad Cannon + 1 Tunnel Defender each, so 6 + 2 + 2 = 10 always fits
+# (TunnelTracker::isValidContainerFor refuses a unit when full).
 TUNNEL_AA = True                           # False = the 0.9.68 package (TUNNEL_AA_OFF_SHA256 = R on all twelve generals)
 TUNNEL_AA_OFF_SHA256 = "14d03e02a70e4f6c02eaa30b2b3735929b4a673e21cc52ec28efa9f35c96620d"
 TUNNEL_SIDES = [('SkirmishGLA', ''), ('SkirmishGLADemolitionGeneral', 'Demo_'), ('SkirmishGLAToxinGeneral', 'Chem_'),
@@ -1033,11 +1013,11 @@ def tunnel_resize_selftest(base, resized, owners):
     return n
 
 
-# GeneralsX 27/10/2026 ai-pro-rules-2 T2: the engine now gates the team itself (built only while a
+# The engine gates the team itself (built only while a
 # HOSTILE player - any of them, also in FFA - owns an airfield, reinforced only while that or an aircraft seen in the last 180 s holds,
 # released when neither does: AIPlayer::gxAirTeamAllowed / AISkirmishPlayer::gxAirLifetime), so the production condition keeps only "own
-# tunnel network" (the old "<This Player's Enemy> owns a 'GX AA Threats' airfield" saw the current enemy only). watch=False is the
-# ablation arm T0: the same team and recipe with the air watch's radius NEGATIVE = observe only (the engine logs what T would see and
+# tunnel network". watch=False is the
+# ablation arm: the same team and recipe with the air watch's radius NEGATIVE = observe only (the engine logs what it would see and
 # assigns nothing) - the two arms differ in that one INT.
 TUNNEL_AA_WATCH = True                     # False = T0 (the selftest checks it differs from T only in the radius' sign)
 
@@ -1074,15 +1054,15 @@ def tunnel_aa(scb, generals=None, watch=None):
         changed += 1
     return changed
 
-# GeneralsX @bugfix C-laser-power 04/11/2026: Crusader and Paladin are the
+# Crusader and Paladin are the
 # only units in the game that draw power, so a Laser General under power disables its whole tank army, and the tanks cannot leave a door or
 # go and fight, so the AI has no way to lower the load. A plant is forced only into an empty build-list slot (Laser has 6), and past that the
 # only source is "USA 7+ Power Plants Flank/Front - H", whose SKIRMISH_BUILD_STRUCTURE_* walks an arc shared with base defences that runs out
 # for good (AISkirmishPlayer.cpp, `angle > PI/3`). spend_patch clones factories with money and no plant. So those two scripts keep their arc
 # call and also ask for a plant beside the warehouse, the action spend_patch's rungs use: same conditions, same 40 s toggle, Laser list only.
 # The other generals have no unit that draws power (210 seats measured, handback section 3), so this stays Laser's.
-LASER_POWER = True                        # False = T2C's package, TUNNEL_AA on (LASER_POWER_OFF_SHA256); with TUNNEL_AA off too = 14d03e02, 0.9.68-0.9.69
-LASER_POWER_OFF_SHA256 = "db81fa2f2be4f4b7c831cbc375853a8fced1af2ba5d5460df5150f80079d462d"   # T2C on 6afae411ea, 06/11/2026: Laser is the last step, so its off pin is T2C's output (was 14d03e02 before T2C)
+LASER_POWER = True                        # False = the package without it, TUNNEL_AA on (LASER_POWER_OFF_SHA256); with TUNNEL_AA off too = 14d03e02, 0.9.68-0.9.69
+LASER_POWER_OFF_SHA256 = "db81fa2f2be4f4b7c831cbc375853a8fced1af2ba5d5460df5150f80079d462d"   # Laser is the last step, so its off pin is the output of the steps before it
 LASER_POWER_OWNER = 'SkirmishAmericaLaserGeneral'
 LASER_POWER_PLANT = 'Lazr_AmericaPowerPlant'
 LASER_POWER_SCRIPTS = ('USA 7+ Power Plants Flank - H', 'USA 7+ Power Plants Front - H')
@@ -1220,6 +1200,120 @@ def usa_sd_selftest(base, out):
     print("  usa_sd: %s split Easy + Normal / Hard + re-arm in %d USA lists, every other byte unchanged (on: %s)" % (USA_SD_STOCK, len(hard), sha256(out)))
 
 
+# USA credit gates (USA_GENOME, default ON): arm V-USA-01, one forge gene on America's list alone. Every PLAYER_HAS_CREDITS threshold in
+# America's Hard-only "USA Base Building - Hard" and "USA Build Conditions - Hard" scripts x1.4 (max(0, round(v x 1.4))), so the Hard USA AI
+# keeps more money back before each new building and spends it on units first. On the pinned input that rule reaches exactly the 25 values
+# below, 8 of them in spend_patch's own clones (the RICH1-4 ladder, the DX1/DX2 dozers), so the step runs last, on the shipped bytes:
+# usa_genome asserts each script is Hard-only, each old value, and the exact bytes of America's list + teams before and after.
+# Measured 1v1 vs stock Hard, $10k, 10 held-out maps: +6.0 points, USA-vs-USA games end as often as before; at $200k no gain (-1.4, inside
+# the -5 margin). On, the output is USA_GENOME_ON_SHA256 (off: USA_GENOME_OFF_SHA256), and dataID follows it.
+USA_GENOME = True                         # True = USA_GENOME_ON_SHA256; False = USA_SD's package (USA_GENOME_OFF_SHA256)
+USA_GENOME_OFF_SHA256 = "cc302b0941cc009d950d82e60e863c2833d50ca50feede99fd0e4f6f062b7be4"
+USA_GENOME_ON_SHA256 = "78c0cd5e4ae1100c1d0e194bb8a1d7175bcf7ea2082d3490eeab54e96a386554"   # the V-USA-01 file, byte for byte
+USA_OWNER = 'SkirmishAmerica'
+USA_GENE = 1.4                            # the selftest checks every row below against it
+USA_GROUPS = ('USA Base Building - Hard', 'USA Build Conditions - Hard')
+USA_SCRIPT_EDITS = [      # (script, old PLAYER_HAS_CREDITS, new)
+    ('USA Dozer - High Money Build Condition', 20000, 28000), ('USA Dozer - High Money Build Condition 2', 40000, 56000),
+    ('USA Dozer - High Money Build Condition 2 DX1', 50000, 70000), ('USA Dozer - High Money Build Condition 2 DX2', 80000, 112000),
+    ('USA High Money Barracks - H', 30000, 42000), ('USA War Factory 2 - H', 6000, 8400), ('USA High Money War Factory 2 - H', 30000, 42000),
+    ('USA Air Field - H', 2500, 3500), ('USA Build Inner Pat - H', 1200, 1680), ('USA Build 1st Defense - H', 1200, 1680),
+    ('USA Build 2nd Defense - H', 1200, 1680), ('USA Build More Pat Defenses - H', 8000, 11200), ('USA Build More FB Defenses - H', 6000, 8400),
+    ('USA Barracks RICH1 AmericaBarracks', 15000, 21000), ('USA Barracks RICH2 AmericaBarracks', 30000, 42000),
+    ('USA Barracks RICH3 AmericaBarracks', 50000, 70000), ('USA Barracks RICH4 AmericaBarracks', 80000, 112000),
+    ('USA War Factory RICH1 AmericaWarFactory', 15000, 21000), ('USA War Factory RICH2 AmericaWarFactory', 30000, 42000),
+    ('USA War Factory RICH3 AmericaWarFactory', 50000, 70000), ('USA War Factory RICH4 AmericaWarFactory', 80000, 112000),
+    ('USA Air Field RICH1 AmericaAirfield', 15000, 21000), ('USA Air Field RICH2 AmericaAirfield', 30000, 42000),
+    ('USA Air Field RICH3 AmericaAirfield', 50000, 70000), ('USA Air Field RICH4 AmericaAirfield', 80000, 112000),
+]
+USA_PARTS_SHA256 = ('710b74850c140a87c18d7d49e9c09216b6ecda4929571c77088d51abb878189e',   # owner_bytes before (= USA_GENOME_OFF_SHA256's)
+                    '66fbd27384b38e0b560e3a9c9cc51a345da0bb2025d288c81a18b533633e4613')   # and after (= V-USA-01's)
+
+
+def usa_genome(scb):
+    """V-USA-01: USA_SCRIPT_EDITS, each applied exactly once to the value it expects. Returns the edits (25)."""
+    assert sha256(owner_bytes(scb, USA_OWNER)) == USA_PARTS_SHA256[0], \
+        'usa_genome: America\'s list + teams are not the bytes V-USA-01 was built on: %s' % sha256(owner_bytes(scb, USA_OWNER))
+    li = LAUNCH_FIX_OWNERS.index(USA_OWNER)
+    scripts = {}
+    for l, grp, nodes, i, sn in walk_scripts(scb):
+        if l == li:
+            assert script_name(sn) not in scripts, 'usa_genome: two %r in America\'s list' % script_name(sn)
+            scripts[script_name(sn)] = sn
+    for name, old, new in USA_SCRIPT_EDITS:
+        sn = scripts[name]
+        assert script_flags(sn)[0][2:5] == [0, 0, 1], 'usa_genome: %r is not Hard-only' % name
+        hits = []
+        for c in (c for o in sn.kids if o.name == 'OrCondition' for c in o.kids):
+            typ, key, ps = parse_call(scb, c.raw)
+            ints = [j for j, p in enumerate(ps) if PTYPES[p[0]] == 'INT']
+            if scb.byid.get(key >> 8) == 'PLAYER_HAS_CREDITS' and len(ints) == 1 and ps[ints[0]][1] == old:
+                hits.append((c, typ, key, ps, ints[0]))
+        assert len(hits) == 1, 'usa_genome: %d PLAYER_HAS_CREDITS(%d) in %r' % (len(hits), old, name)
+        c, typ, key, ps, j = hits[0]
+        ps[j] = (ps[j][0], new, ps[j][2], ps[j][3]); c.raw = enc_call(typ, key, ps)
+    assert sha256(owner_bytes(scb, USA_OWNER)) == USA_PARTS_SHA256[1], 'usa_genome: the result is not V-USA-01\'s America'
+    return len(USA_SCRIPT_EDITS)
+
+
+def usa_genome_selftest(data, base, out):
+    """base = the output with the step off, out = with it on. Outside America's list every byte is base's (teams included); inside it
+    only the INT of the 25 PLAYER_HAS_CREDITS rows moved, each = round(old x USA_GENE), each in a USA_GROUPS script. Fail arms: a wrong
+    gene, a row off by one and a stale row refuse; the step on bytes it was not built on refuses; one flipped byte is not the ON pin."""
+    assert sha256(base) == USA_GENOME_OFF_SHA256 and sha256(out) == USA_GENOME_ON_SHA256, (sha256(base), sha256(out))
+    a, b = SCB(base), SCB(out)
+    assert a.toc == b.toc and [(k.name, k.ver, a._w([k])) for k in a.root if k.name != 'PlayerScriptsList'] == \
+        [(k.name, k.ver, b._w([k])) for k in b.root if k.name != 'PlayerScriptsList'], 'usa_genome changed a chunk outside the script lists'
+    li = LAUNCH_FIX_OWNERS.index(USA_OWNER)
+    la, lb = [[k for k in s.root if k.name == 'PlayerScriptsList'][0].kids for s in (a, b)]
+    assert len(la) == len(lb) and all((a._w([x]) != b._w([y])) == (i == li) for i, (x, y) in enumerate(zip(la, lb))), 'usa_genome: a list'
+    edits = []
+
+    def cmp(na, nb, script, group):
+        assert len(na) == len(nb), "usa_genome added or removed a node in %r" % script
+        for p, q in zip(na, nb):
+            assert (p.name, p.ver, p.prefix) == (q.name, q.ver, q.prefix), "usa_genome changed a header or the order"
+            s = script_name(p) if p.name == 'Script' else script
+            g = astr(p.prefix, 0)[0] if p.name == 'ScriptGroup' else group
+            if p.kids is not None:
+                cmp(p.kids, q.kids, s, g)
+            elif p.raw != q.raw:
+                (t0, k0, a0), (t1, k1, a1) = parse_call(a, p.raw), parse_call(b, q.raw)
+                ch = [j for j in range(len(a0)) if a0[j] != a1[j]]
+                assert p.name == 'Condition' and (t0, k0, len(a0)) == (t1, k1, len(a1)) and len(ch) == 1 and PTYPES[a0[ch[0]][0]] == 'INT' \
+                    and a1[ch[0]][2:] == a0[ch[0]][2:] and a.byid.get(k0 >> 8) == 'PLAYER_HAS_CREDITS' and g in USA_GROUPS, "usa_genome leaf in %r" % s
+                edits.append((s, a0[ch[0]][1], a1[ch[0]][1]))
+    cmp([la[li]], [lb[li]], None, None)
+    assert sorted(edits) == sorted(USA_SCRIPT_EDITS) and len(set(e[0] for e in edits)) == len(edits) == 25, "America's list differs by %r" % edits
+    assert all(new == max(0, int(round(old * USA_GENE))) for _n, old, new in USA_SCRIPT_EDITS), 'a row is not round(old x USA_GENE)'
+
+    def refused(rows):
+        global USA_SCRIPT_EDITS
+        keep = USA_SCRIPT_EDITS
+        try:
+            USA_SCRIPT_EDITS = rows
+            generate(data, usa=True)
+            return 'applied'
+        except AssertionError as e:
+            return 'refused' if 'usa_genome' in str(e) else str(e)
+        finally:
+            USA_SCRIPT_EDITS = keep
+    gene13 = refused([(n, old, int(round(old * 1.3))) for n, old, _new in USA_SCRIPT_EDITS])            # the wrong gene
+    one_off = refused([r if r[0] != 'USA Air Field - H' else r[:2] + (r[2] + 1,) for r in USA_SCRIPT_EDITS])   # a new value off by one
+    stale = refused([r if r[0] != 'USA Air Field - H' else (r[0], r[1] + 1, r[2]) for r in USA_SCRIPT_EDITS])  # an old value it cannot find
+    assert gene13 == one_off == stale == 'refused', (gene13, one_off, stale)
+    try:
+        usa_genome(SCB(out))                                                         # bytes it was not built on: its own output
+    except AssertionError as e:
+        assert 'not the bytes V-USA-01 was built on' in str(e), e
+    else:
+        raise AssertionError("usa_genome ran on bytes it was not built on")
+    flipped = bytearray(out); flipped[len(flipped) // 2] ^= 1
+    assert sha256(bytes(flipped)) != USA_GENOME_ON_SHA256
+    print("  usa_genome: 25 PLAYER_HAS_CREDITS x%s in America's Hard build scripts, every other byte unchanged (on: %s); refused: the gene"
+          " x1.3, a row off by one, a stale row, a second application" % (USA_GENE, sha256(out)))
+
+
 # SEAM: extra (scb) -> int steps, run after easy_plus and before spend_patch (spend_patch touches none of their scripts).
 # The "False = ... (pin X)" pins in the step switches above are historical: each was the output when that step was the newest, so
 # it needs every LATER step and the China package off too (NO_SPEND = (), NUKE_GENOME = False; the selftest rebuilds 67eb7669 and
@@ -1229,9 +1323,9 @@ FIXUP_STEPS = ([launch_fixes] if LAUNCH_FIXES else []) + ([expand_nearby] if EXP
     ([capture_home] if CAPTURE_HOME else []) + ([expand_no_defence] if EXPAND_NO_DEFENCE else []) + \
     ([sw_fire_ready] if SW_FIRE_READY else [])
 
-def generate(source_bytes, no_spend=None, genome=None, focal=None, taa_focal=None, taa_watch=None, sd_button=None):
+def generate(source_bytes, no_spend=None, genome=None, focal=None, taa_focal=None, taa_watch=None, sd_button=None, usa=None):
     """retail bytes -> GeneralsX bytes. Every step is checked; a source that is not the pinned release never gets here.
-    no_spend / genome override NO_SPEND / NUKE_GENOME (the selftest builds every PACKAGE_ARMS arm with them)."""
+    no_spend / genome override NO_SPEND / NUKE_GENOME (the selftest builds every PACKAGE_ARMS arm with them); usa overrides USA_GENOME."""
     no_spend = NO_SPEND if no_spend is None else no_spend
     scb = SCB(source_bytes)
     assert scb.write() == source_bytes, 'round-trip failed on the source'
@@ -1249,7 +1343,9 @@ def generate(source_bytes, no_spend=None, genome=None, focal=None, taa_focal=Non
     if LASER_POWER:
         laser_power_step(scb)                  # USA Laser's list only; TUNNEL_AA touches GLA lists and the toc
     if USA_SD:
-        usa_sd_step(scb, sd_button)            # the last step; sd_button = USA_SD_HOLD is the inert A/B arm
+        usa_sd_step(scb, sd_button)            # sd_button = USA_SD_HOLD is the inert A/B arm
+    if USA_GENOME if usa is None else usa:
+        usa_genome(scb)                        # the last step: it was built on the bytes every step above writes
     out = scb.write()
     assert SCB(out).write() == out, 'round-trip failed on the output'
     return out, (ez, added, tech, waves)
@@ -1475,13 +1571,13 @@ def selftest():
         if sha256(data) != SOURCE_SHA256:
             print("selftest: %s is not the pinned retail release - skipped generation" % p)
             return
-        # GeneralsX 22/10/2026: every check below is about the 0.9.67 package (FACE_FRONT and TUNNEL_AA off); the opt-in steps are checked
-        # against it at the end (opt_in_selftest; the tunnel step against the 0.9.68 package = FACE_FRONT on), and the pin covers whichever
+        # Every check below is about the package with FACE_FRONT and TUNNEL_AA off; the opt-in steps are checked
+        # against it at the end (opt_in_selftest), and the pin covers whichever
         # the switches ship
-        global FACE_FRONT, TUNNEL_AA, LASER_POWER, USA_SD
+        global FACE_FRONT, TUNNEL_AA, LASER_POWER, USA_SD, USA_GENOME
         ff_on, taa_on = FACE_FRONT, TUNNEL_AA
-        lp_on, sd_on = LASER_POWER, USA_SD
-        LASER_POWER = USA_SD = False   # restored at the end of selftest: every check down to them is about the package from before the steps
+        lp_on, sd_on, ug_on = LASER_POWER, USA_SD, USA_GENOME
+        LASER_POWER = USA_SD = USA_GENOME = False   # restored at the end of selftest: every check down to them is about the package from before the steps
         try:
             FACE_FRONT, TUNNEL_AA = True, False
             ff_out, _ = generate(data)
@@ -1678,18 +1774,26 @@ def selftest():
             lp_out = generate(data)[0]
             assert lp_out == generate(data)[0], "laser_power step not deterministic"
             assert sha256(lp_out) == USA_SD_OFF_SHA256, "laser output pin: %s" % sha256(lp_out)
-            laser_power_selftest(shipped, lp_out)   # T2C on 6afae411ea: Laser's base is the shipped package without it (TUNNEL_AA on), not ff_out
+            laser_power_selftest(shipped, lp_out)   # Laser's base is the shipped package without it (TUNNEL_AA on), not ff_out
         # the USA plan step, the last one: against the package without it
         sd_base = generate(data)[0]
         USA_SD = sd_on
         if sd_on:
             sd_out = generate(data)[0]
             assert sd_out == generate(data)[0], "usa_sd step not deterministic"
-            assert sha256(sd_out) == BASE_SHA256, "output pin: %s" % sha256(sd_out)
+            assert sha256(sd_out) == USA_GENOME_OFF_SHA256, "usa_sd output pin: %s" % sha256(sd_out)
             usa_sd_selftest(sd_base, sd_out)
             sd_inert = generate(data, sd_button=USA_SD_HOLD)[0]
             assert sd_inert != sd_out and len(sd_out) - len(sd_inert) == 4 * (len(USA_SD_BUTTON) - len(USA_SD_HOLD)), 'usa_sd inert arm: more than the button differs'
             print("  usa_sd inert arm (Hard copy keeps Hold the Line): %s" % sha256(sd_inert))
+            # the USA credit gates, the last step: on and off against the package without them, then the switch as it ships
+            ug_out = generate(data, usa=True)[0]
+            assert ug_out == generate(data, usa=True)[0], "usa_genome step not deterministic"
+            usa_genome_selftest(data, sd_out, ug_out)
+        USA_GENOME = ug_on
+        shipped = generate(data)[0]
+        assert sha256(shipped) == BASE_SHA256, "output pin: %s" % sha256(shipped)
+        assert (sha256(shipped) == USA_GENOME_ON_SHA256) == (ug_on and sd_on), "USA_GENOME does not match the generated output"
     print("selftest OK")
 
 

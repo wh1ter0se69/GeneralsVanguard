@@ -1,6 +1,24 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 // FILE: GXReplayDiag.cpp /////////////////////////////////////////////////////////////////////////
 //
-// GeneralsX: See GXReplayDiag.h, and GXReplayDiagFormat.h for the bytes and why they are where they are.
+// See GXReplayDiag.h, and GXReplayDiagFormat.h for the bytes and why they are where they are.
 //
 // PRIVACY IS AN ALLOW-LIST. Players share replays and this repo is public, so nothing here reads a host name, an IP, a user
 // name, an install path, a machine id, a serial or a MAC address. Options.ini holds addresses (IPAddress, RelayAddress,
@@ -12,6 +30,7 @@
 
 #include "GameClient/GXReplayDiag.h"
 #include "GameClient/GXReplayDiagFormat.h"
+#include "GameClient/GXHwReport.h"
 #include "GameClient/GXPerfReport.h"	// gxPerfMonoNs, gxPerfRestartWindow
 #include "GameClient/Display.h"
 #include "GameClient/GXGraphicsSettings.h"
@@ -112,7 +131,7 @@ GxTelLevel readLevel( OptionPreferences &prefs )
 		return GX_TEL_OFF;
 	if( sameWord( it->second.str(), "full" ) )
 		return GX_TEL_FULL;
-	return GX_TEL_PERF;	// "perf", and anything else: the default (lead ruling 05/11: phase 1 records perf)
+	return GX_TEL_PERF;	// "perf", and anything else: the default (phase 1 records perf)
 }
 
 int readShareOk( OptionPreferences &prefs )
@@ -467,9 +486,56 @@ void gxReplayDiagDrawSpan( long long ns )
 		s_drawMaxNs = ns;
 }
 
+// The hardware report's facts (GameClient/GXHwReport.h): the device layer's, its extras, the display and the build. Linux's distro
+// stands in for the bare kernel name and number, which say less about the machine.
+static GXReplayDiagDeviceFn s_hwExtras = NULL;
+static GXHwPutFn s_hwPut = NULL;
+
+static void hwPut( const char *key, const char *value )
+{
+	if( strcmp( key, "os.distro" ) == 0 )
+	{
+		char os[ 64 ];
+		snprintf( os, sizeof( os ), "Linux %s", value );
+		s_hwPut( "os.name", os );
+	}
+	else if( strcmp( key, "os.distro_version" ) == 0 )
+		s_hwPut( "os.version", value );
+	else
+		s_hwPut( key, value );
+}
+
+static void gxReplayDiagHwFacts( GXHwPutFn put )
+{
+	s_hwPut = put;
+	if( s_deviceFacts != NULL )
+		s_deviceFacts( hwPut );
+	if( s_hwExtras != NULL )
+		s_hwExtras( hwPut );
+	char buf[ 32 ];
+	if( TheDisplay != NULL )
+	{
+		snprintf( buf, sizeof( buf ), "%dx%d", (int)TheDisplay->getWidth(), (int)TheDisplay->getHeight() );
+		put( "gfx.res", buf );
+		put( "gfx.windowed", TheDisplay->getWindowed() ? "1" : "0" );
+	}
+	if( TheGameEngine != NULL )
+	{
+		snprintf( buf, sizeof( buf ), "%d", TheGameEngine->getDisplayRefreshRate() );
+		put( "gfx.refresh_hz", buf );
+	}
+	put( "gx.version", GitTag[ 0 ] != '\0' ? GitTag : GitShortSHA1 );
+}
+
 void gxReplayDiagSetDeviceFacts( GXReplayDiagDeviceFn fn )
 {
 	s_deviceFacts = fn;
+	gxHwSetFactsProvider( fn != NULL ? gxReplayDiagHwFacts : NULL );
+}
+
+void gxReplayDiagSetHwExtras( GXReplayDiagDeviceFn fn )
+{
+	s_hwExtras = fn;
 }
 
 void gxReplayDiagRecordingStarted( void )
@@ -487,7 +553,7 @@ void gxReplayDiagRecordingStarted( void )
 	s_testRedGate = red != NULL && strcmp( red, "1" ) == 0;
 #endif
 	if( s_level == GX_TEL_OFF )
-		return;	// off means off: not even the settings snapshot (lead ruling 05/11)
+		return;	// off means off: not even the settings snapshot
 	s_recStartNs = (long long)gxPerfMonoNs();
 	gxTelPerfInit( s_tel, takeTicks, s_recStartNs );
 	gxTelPerfAway( s_tel, s_away );

@@ -1,27 +1,26 @@
-// GeneralsX: WS-C GXRES v0: vertex and index buffers with D3D8 lock semantics.
-//
-// STATIC (MANAGED, or DEFAULT without D3DUSAGE_DYNAMIC): a device-local VkBuffer plus a host shadow of its bytes (DXVK keeps
-// the same copy for these pools). Lock returns the shadow, so a partial write keeps the bytes it did not touch; Unlock
-// snapshots the locked range into staging and queues the copy, carried by the next submission's recordPending().
-//
-// DYNAMIC (DEFAULT + D3DUSAGE_DYNAMIC): a pool of host-visible slices owned by the buffer (DXVK renames the same way):
-//   DISCARD        -> a slice whose last use has completed (or a new one): earlier draws keep the old bytes;
-//   NOOVERWRITE    -> the current slice, no wait (the caller promises not to touch bytes a pending draw reads);
-//   neither        -> D3D would wait for the GPU; if the current slice is still in flight it is renamed AND its bytes copied
-//                     (counted: GxStats::plainLocksOnDynamic - the census expects none in the game);
-//   both           -> NOOVERWRITE (DXVK LockBuffer).
-// Slices are NOT taken from the shared staging ring: a dynamic buffer that is discarded only "on change" (the bib and bridge
-// buffers, CENSUS §5) would pin a FIFO ring for minutes.
-//
-// bind(useValue) returns what to draw from now and records that submission useValue reads it. It is the ONLY way to the
-// VkBuffer, so it also stamps the touch (GxResources::recordPendingFront): any reference of a static buffer by a frame's
-// commands - drawn, copied from, filled - goes through it.
-//
-// A23-B (v8.1 §3.6): the native device may split a buffer between its FRONT end
-// (the caller: locks, the shadow, slice choice and growth) and its worker (bind, uploads). lock()/unlock() are today's whole
-// bodies (direct: no worker, or an S body with the worker idle - they keep both current slices equal); lockFront()/unlockFront()
-// are the front halves, execUpload()/execRename() the worker's. Slices are identified by POINTER everywhere: each is a
-// separately allocated record, appended and never moved.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GXRES vertex and index buffers with D3D8 lock semantics. STATIC: a device-local VkBuffer plus a host
+// shadow; Unlock queues the copy. DYNAMIC: a pool of host-visible slices (not the shared staging ring, which
+// a rarely-discarded buffer would pin). DISCARD takes a completed or new slice, NOOVERWRITE the current one; a plain
+// lock on an in-flight slice renames it AND copies its bytes. bind(useValue) is the only way to the VkBuffer: it
+// records the reading submission and stamps the touch recordPendingFront uses. Slices are identified by pointer.
 #pragma once
 #include "GxResources.h"
 #include <atomic>

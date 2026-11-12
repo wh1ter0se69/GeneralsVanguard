@@ -1,4 +1,22 @@
-// GeneralsX: WS-C GXRES v0: 2D textures and standalone surfaces (see GxTexture.h).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GXRES: 2D textures and standalone surfaces (see GxTexture.h).
 #include "GxTexture.h"
 #include "GxD3D.h"
 #include "GxDecode.h"
@@ -36,7 +54,7 @@ bool GxTexture::init(GxResources& res, const TextureDesc& desc, std::string* why
 		m_decoded = !attach && res.formats().decodes(desc.format);
 		if (!m_decoded && !res.formats().supports(desc.format, attach))
 			return fail(std::string(m_format->name) + " is not supported for this usage on this device");
-		// D3D8's CreateTexture fails above MaxTextureWidth/Height; the loader then picks a smaller top level (rw2-C).
+		// D3D8's CreateTexture fails above MaxTextureWidth/Height; the loader then picks a smaller top level.
 		if (desc.width > res.formats().maxDim() || desc.height > res.formats().maxDim())
 			return fail(std::to_string(desc.width) + "x" + std::to_string(desc.height) + " exceeds the device's " +
 				std::to_string(res.formats().maxDim()) + " texture limit");

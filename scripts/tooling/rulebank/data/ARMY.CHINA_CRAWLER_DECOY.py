@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule ARMY.CHINA_CRAWLER_DECOY: China Tank puts a Troop Crawler in
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule ARMY.CHINA_CRAWLER_DECOY: China Tank puts a Troop Crawler in
 # its tank waves to soak the first enemy shots. Stock Tank Hard's 2nd- and 3rd-wave Battlemaster teams ("2ND Wave Tanks", "3RD Wave
 # Tanks F/C": 0-5 Battlemasters, slots 2 and 3 empty) never field a Crawler. Here each gains [Troop Crawler, crawler_n, crawler_n] in
 # slot 2. The Crawler needs only the Tank War Factory (INIZH), which the team's Battlemasters need anyway. Team counts only: no

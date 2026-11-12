@@ -581,23 +581,8 @@ void IMEManager::init()
 	m_disabled = 0;
 	m_candidateWindow = TheWindowManager->winCreateFromScript( "IMECandidateWindow.wnd");
 
-	// GeneralsX: THE DEREFERENCE WAS ABOVE ITS OWN NULL CHECK.
-	//
-	// winSetStatus was called on the result and only THEN did `if (m_candidateWindow)` ask whether
-	// there was a result - so whenever winCreateFromScript returns null this is a guaranteed null
-	// dereference during GameClient::init, i.e. an engine that dies before it can say why.
-	//
-	// Not theoretical. Observed on Windows twice tonight, at
-	//   winSetStatus <- IMEManager::init <- GameClient::init <- GameEngine::init <- WinMain
-	// with rcx=0, and it takes down the SHIPPED binary identically - confirmed with a control arm
-	// that ran the owner's own working exe through the same path. It is the reason the engine
-	// cannot be run under any name other than generalszh.exe on that box, which in turn is why the
-	// renamed-exe probe pattern that works on macOS (scripts/test/probe-dataid.sh) has no Windows
-	// equivalent. Fixing it restores that whole class of measurement.
-	//
-	// The status bit is set INSIDE the guard now rather than being dropped: it is what the original
-	// line intended, and the window is hidden immediately below anyway, so ordering against
-	// winHide does not matter.
+	// GeneralsX: null-check before use. winCreateFromScript can return null, and winSetStatus ran on the result before
+	// `if (m_candidateWindow)`, a null dereference during GameClient::init. The status bit is now set inside the guard.
 	if ( m_candidateWindow )
 	{
 		m_candidateWindow->winSetStatus(WIN_STATUS_ABOVE);
@@ -747,21 +732,10 @@ Bool IMEManager::serviceIMEMessage(	void *windowsHandle, UnsignedInt message,	In
 				DEBUG_LOG(("IMM: WM_CHAR - '%hc'0x%04x", wchar, wchar ));
 				#endif
 
-				// GeneralsX: Forward the OS's character repeats; drop only a
-				// repeated Enter.
-				//
-				// 07/08/2026 dropped EVERY WM_CHAR with lParam bit 30 (previous key state) set, on the
-				// premise that GadgetTextEntry also types the engine's own repeats, which arrive as
-				// GWM_CHAR. It does not: its GWM_CHAR handler knows only Backspace and navigation keys,
-				// and a printable character reaches a text field solely as GWM_IME_CHAR from here. That
-				// change therefore removed the only repeat source characters have, and a held letter
-				// typed once. Measured on the Windows box: 'a' held 2 s produced 47 WM_CHARs (46 of
-				// them repeats) and 25 engine repeats, and the field gained ONE character.
-				//
-				// Backspace is not affected either way: it is below 32, never forwarded here, and
-				// repeats only through Keyboard::checkKeyRepeat. A held Enter still must not repeat -
-				// it would submit the line again and again - and SDL3GameEngine synthesises Return
-				// only on a non-repeat key-down, so this matches the other three platforms.
+				// Forward the OS's character repeats; drop only a repeated Enter (it would resubmit the line).
+				// A printable character reaches a text field only as GWM_IME_CHAR from here (GadgetTextEntry's GWM_CHAR handles only
+				// Backspace and navigation), so dropping repeats made a held letter type once. SDL3GameEngine synthesises Return only
+				// on a non-repeat key-down, so this matches the other platforms.
 				const Bool isAutoRepeat = (lParam & (1L << 30)) != 0;
 
 				if ( m_window && (wchar >= 32 || (wchar == VK_RETURN && !isAutoRepeat)) )

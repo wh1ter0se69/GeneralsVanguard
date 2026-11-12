@@ -573,41 +573,16 @@ void PopulateInGameDiplomacyPopup()
 					}
 				}
 
-				// GeneralsX: PING PER PLAYER, on the screen the player
-				// already opens with TAB. Kept identical to the Zero Hour twin
-				// (GeneralsMD/.../Diplomacy.cpp) - the engine half of this feature is in Core and
-				// compiles into BOTH games, so letting only one of them render it would leave the
-				// Generals side with the wire traffic and none of the benefit.
-				//
-				// Appended to the status cell rather than given its own column because
-				// Diplomacy.wnd authors no ping column and this side has no CodeGui helper at all,
-				// so a new column would mean placing widgets at coordinates chosen blind. Reusing
-				// an authored cell needs no .wnd edit and therefore no dataID move.
-				//
-				// A DASH IS NOT A ZERO: -1 is the honest "I do not know" and covers an AI or empty
-				// slot, a router that has not published yet, a lost report, and a peer that went
-				// quiet and aged out.
+				// GeneralsX: per-player ping, matching the Zero Hour twin (the engine half in Core compiles into both games).
+				// Appended to the status cell: Diplomacy.wnd has no ping column, and reusing a cell needs no .wnd edit or dataID move.
+				// -1 means unknown (AI or empty slot, no report yet, lost report, aged-out peer) and shows as a dash, never 0.
 				if (TheNetwork != nullptr && slot->isHuman())
 				{
 					Int pingMs = TheNetwork->getPeerPingMs(slotNum);
 
-					// GeneralsX: THE ROUTER'S ROW READ "--ms" FOR EVERY
-					// PLAYER, including the router itself. Ported from the Zero Hour twin, where
-					// both halves of this were found; leaving the base game behind is how the two
-					// engines drift into behaving differently for the same reason.
-					//
-					// This column means "round trip to the packet router", and the router has no
-					// round trip to itself: publishLatencyReport leaves the router's own slot at 0,
-					// and 0 is the "no figure" sentinel throughout that path. So the host saw a dash
-					// for itself, and every client saw a dash for the host.
-					//
-					// Neither is a missing measurement. If you ARE the host, your latency to the
-					// host is zero by definition. If you are a client, you have already measured
-					// that leg - it is your own row - and the wire is the same in both directions,
-					// so your own figure is the honest one to show against the host.
-					//
-					// A confident 0 is earned only in the first case. Every other zero in this
-					// readout still renders as a dash, because it means "not known".
+					// GeneralsX: ported from the Zero Hour twin. The column is the round trip to the packet router, and
+					// publishLatencyReport leaves the router's own slot at 0, the "no figure" sentinel. A host's latency to itself
+					// is 0 by definition, and a client's own row is its measured leg to the host. Every other zero shows a dash.
 					if (pingMs < 0)
 					{
 						const Int routerSlot = TheNetwork->getPacketRouterSlot();

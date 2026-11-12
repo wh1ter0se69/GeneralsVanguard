@@ -1,4 +1,4 @@
-// GxFFState.cpp - D3D8 fixed-function state -> the ubershader's blocks (WS-D week 2).
+// GxFFState.cpp - D3D8 fixed-function state -> the ubershader's blocks.
 //
 // Adapted from DXVK 3.0 (zlib, Copyright (c) 2017 Philip Rebohle and DXVK contributors; see shaders/SOURCE.txt):
 // D3D9DeviceEx::UpdateFixedFunctionVS / UpdateFixedFunctionPS / UpdateFog / ComputeWNearFar / BindAlphaTestState /
@@ -107,7 +107,7 @@ void GxD3D8FFDefaults(GxD3D8FFState* s) {
 
 // The only VS-block fields the world matrix reaches (GxPackFF reads s.world nowhere else): WorldView and its inverse, with DXVK
 // 2.6's arithmetic (GxDxvkMath.h's pinned contraction lives inside the dxm functions). GxPackFF calls this; so does the translator's
-// dirty-pack when the world is the only input that changed since its last pack (rw3-T cut 3b).
+// dirty-pack when the world is the only input that changed since its last pack.
 void GxPackFFWorld(const GxD3D8FFState& s, GxFFVsBlock* vs) {
 	const dxm::Matrix4 view = dxm::loadD3D(s.view), world = dxm::loadD3D(s.world);
 	const dxm::Matrix4 worldView = view * world;
@@ -140,7 +140,7 @@ bool GxPackFF(const GxD3D8FFState& s, GxFFVsBlock* vs, GxFFPsBlock* ps, GxFFSpec
 	// The cut follows DXVK 2.6 - the classic path players get today (references/fbraz3-dxvk d3d9_device.cpp:8079-8113): a stage
 	// with no texture ends the chain only when one of its COLOUR args reads TEXTURE (2.6's ArgsMask, where the bump ops count
 	// args 1+2); DXVK 3.0 also cut on alpha args and op-implied texture reads, which changes an untextured stage left on D3D's
-	// default ALPHAARG1 = TEXTURE (rw2-D adversarial review P3-6). Such a stage stays and reads the texture as (0,0,0,1).
+	// default ALPHAARG1 = TEXTURE. Such a stage stays and reads the texture as (0,0,0,1).
 	uint32_t active = 0;
 	for (uint32_t i = 0; i < 8; i++) {
 		const uint32_t* t = s.tss[i];
@@ -293,7 +293,7 @@ bool GxPackFF(const GxD3D8FFState& s, GxFFVsBlock* vs, GxFFPsBlock* ps, GxFFSpec
 	// ---- VS block (run-time values: never part of the key)
 	// WorldView, its inverse and the view-space lights come from DXVK 2.6's own arithmetic over the D3DMATRIX bytes
 	// (GxDxvkMath.h, d3d9_device.cpp UpdateFixedFunctionVS + D3D9Light): every rounding difference here is a pixel difference
-	// against the classic path (rw3-P: the generic product/cofactor inverse used before rounded differently)
+	// against the classic path (the generic product/cofactor inverse rounds differently)
 	GxPackFFWorld(s, vs);
 	const dxm::Matrix4 view = dxm::loadD3D(s.view);
 	dxm::store(dxm::transpose(dxm::inverse(view)), vs->InverseView);

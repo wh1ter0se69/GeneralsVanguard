@@ -478,15 +478,11 @@ void DeployStyleAIUpdate::xfer( Xfer *xfer )
 		xfer->xferUser(&m_state, sizeof(m_state));
 		xfer->xferUnsignedInt(&m_frameToWaitForDeploy);
 #if GX_LOGIC_60HZ
-		// GeneralsX: update() and setMyState() count frame / 2 (Generals Online's legacy frames) since
-		// 17ebfdb98, but a version-4 record holds either clock: whole 60 Hz frames (every 60 Hz save before that commit) or,
-		// from the builds between it and version 5 (05/10/2026, never released), legacy frames already. A whole-frame
-		// deadline loaded raw waited about twice its remaining time plus the whole elapsed match, and a reverse deploy wrapped
-		// it (p1-go-fire); halving a legacy one ended its wait at once.
-		// GameLogic::xfer restored the saved frame before any object loads, so the two are told apart by range: a legacy
-		// deadline is at most one pack or unpack time past frame / 2, a whole-frame one at least the frame itself. Only a
-		// save from a match's first two such times can fit both; it is read as legacy, and its wait then ends late by at
-		// most that long. 0 still means "no deadline".
+		// GeneralsX: update() and setMyState() count frame / 2 (Generals Online legacy frames), but a version-4 record holds either
+		// clock: whole 60 Hz frames or legacy frames. A whole-frame deadline loaded raw waited about twice its remaining time;
+		// halving a legacy one ended its wait at once. GameLogic::xfer restores the saved frame before any object loads, so they are
+		// told apart by range: a legacy deadline is at most one pack or unpack time past frame / 2, a whole-frame one at least frame.
+		// A save from a match first two such times fits both and is read as legacy, ending its wait late by at most that long.
 		if( version < 5 && m_frameToWaitForDeploy != 0 )
 		{
 			const UnsignedInt legacyNow = TheGameLogic->getFrame() / 2;

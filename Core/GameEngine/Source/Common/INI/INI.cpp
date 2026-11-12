@@ -189,11 +189,11 @@ INI::INI()
 // GeneralsX: Mods that ship a whole Data\INI\CommandSet.ini / CommandButton.ini.
 // The Community Patch blanks those two monolithic files (0 bytes) and ships the same definitions as
 // Data\INI\CommandSet\*.ini / Data\INI\CommandButton\*.ini, and loadFileDirectory loads the file AND
-// the directory. A retail-style mod's non-empty monolith therefore defined every set twice and the game
-// died at startup with a duplicate-definition error (AtlasMod, measured on 0.9.58). In retail the mod's
+// the directory. A retail-style mod's non-empty monolith therefore defines every set twice and the game
+// dies at startup with a duplicate-definition error. In retail the mod's
 // file is the whole definition, so when a LOOSE file or a -mod archive supplies a non-empty monolith
 // the patch's split directory for that family is not loaded. Stock and patch archives never trigger
-// this, so a vanilla install loads exactly the same files as before.
+// this, so a vanilla install is unaffected.
 static Bool modProvidesMonolithicIni(const AsciiString &iniFile)
 {
 	FileInfo info;
@@ -308,28 +308,10 @@ UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer 
 	dirName.concat('\\');
 	TheFileSystem->getFileListInDirectory(dirName, "*.ini", rawList, subdirs);
 
-	// GeneralsX: Canonicalise separators before the CRC sees this list.
-	//
-	// FileSystem::getFileListInDirectory merges two producers into one set: the local filesystem
-	// and the archives. On Apple the local side emits '/' while archives emit '\', and the set is
-	// std::set<AsciiString, less_than_nocase> - which folds case but NOT separators. So '/' (0x2F)
-	// and '\' (0x5C) sort differently AND compare unequal, which costs us twice:
-	//   * ORDER: the two sort into different positions, and the loops below feed xferCRC in exactly
-	//     set order, so m_iniCRC depends on which platform built the list.
-	//   * SET: a loose override that also exists inside a .big is ONE entry on Windows and TWO on
-	//     Apple, so the file is parsed twice on Apple and the CRCs can never agree.
-	// Both make dataID platform-dependent, and SimIdCompare denies on dataID - so an identical
-	// install would be refused a join with no remedy the user could apply.
-	//
-	// Normalising to FORWARD slash is the only workable direction: the archive lookup already
-	// tokenises on "\\/" (ArchiveFileSystem.cpp:319-320), Win32 accepts '/' in paths, and Apple's
-	// local filesystem cannot accept '\'. It is a 1:1 substitution, so every length is unchanged
-	// and the `(*it).str() + dirName.getLength()` prefix arithmetic below still lands correctly.
-	//
-	// Deliberately done HERE and not at the FileSystem::getFileListInDirectory merge point, even
-	// though that is the single place both producers meet: other consumers of that call parse the
-	// separator out of the returned strings by hand - ReplayMenu.cpp:287 does reverseFind('\\') -
-	// and would get NULL on Windows. The CRC is the only caller that needs cross-platform identity.
+	// Canonicalise separators before the CRC sees this list. getFileListInDirectory merges local files (Apple emits
+	// slash) and archives (backslash) into a set that folds case but not separators, so order and entry count differ
+	// per platform and so would m_iniCRC (hence dataID). Forward slash is the only form Apple accepts; the
+	// substitution is 1:1. Not done at the merge point: ReplayMenu.cpp:287 parses the backslash.
 	FilenameList filenameList;
 	for (FilenameList::const_iterator raw = rawList.begin(); raw != rawList.end(); ++raw)
 	{
@@ -389,23 +371,9 @@ void INI::prepFile( AsciiString filename, INILoadType loadType )
 	}
 
 	// open the file
-	// GeneralsX: WINDOWS HOOK for the SimID data identity.
-	// PROVABLY A NO-OP ON APPLE: File::BINARY is 0x40 (file.h) and LocalFile::open
-	// selects fopen mode "rb" instead of "r" (LocalFile.cpp, `mode = binary ? "rb" : "r"`),
-	// and on POSIX those are the same call - so the existing macOS/iOS m_iniCRC, and
-	// therefore the retail checkpoints 0xA1E7F8E6 (GeneralsMD GameEngine.cpp:581) and
-	// 0x6209AF6E (:660) in Zero Hour and 0x2E876341 (Generals GameEngine.cpp:501) /
-	// 0xD9A74E13 (:538) in Generals, plus the verifyNameKeyID calls behind them, are
-	// bit-for-bit preserved. Archive-backed files are unaffected either way:
-	// FileSystem::openFile passes a hardcoded access of 0 to TheArchiveFileSystem->openFile.
-	// On MSVC this stops text mode collapsing CRLF and stops readEntireAndClose below
-	// short-reading relative to m_readBufferUsed = file->size(), which would walk the
-	// parse loop off the end of the heap buffer.
-	//
-	// STILL UNSOLVED FOR WINDOWS: the INI file LIST is not canonicalised, so identical
-	// INI content still produces a different m_iniCRC on Windows than on Apple. See the
-	// windows-hook note for FileSystem::getFileListInDirectory - that fix moves the
-	// macOS CRC and must land together with re-deriving all four retail checkpoints.
+	// Windows hook for the SimID data identity: File::BINARY selects fopen mode rb, the same call as r on POSIX, so the
+	// macOS/iOS m_iniCRC is unchanged; on MSVC it stops text mode collapsing CRLF. Still open: the INI file LIST is not
+	// canonicalised, so m_iniCRC differs between Windows and Apple; fixing it must re-derive the retail checkpoints.
 	File* file = TheFileSystem->openFile(filename.str(), File::READ | File::BINARY);
 	if( file == nullptr )
 	{
@@ -526,17 +494,10 @@ UnsignedInt INI::load( AsciiString filename, INILoadType loadType, Xfer *pXfer )
 			{
 				const BlockParse *block = findBlockParse(token);
 				INIBlockParse parse = block != nullptr ? block->parse : nullptr;
-				// GeneralsX: A MAP'S RULES MAY ONLY CONTAIN WHAT THE NEXT GAME CAN UNDO. A map.ini / solo.ini
-				// (the only INI_LOAD_CREATE_OVERRIDES load, GameLogic::loadMapINI) can name any block in this table, and every block
-				// writes a store that outlives the match; a store that is not put back at reset leaves this process playing the
-				// next game by different rules than a fresh peer. mapRules marks the
-				// blocks whose store is put back (snapshot / Overridable / retire - each store's reset()), or whose leftover is only
-				// how captions, images and water LOOK (InGameUI, Language, MappedImage: used by real maps). The rest - none of them in
-				// any of the 431 retail and community map.ini / solo.ini files scanned 10/10 - is refused here, so the start takes
-				// the damaged-map refusal on every peer (all of them loaded the same sidecars), instead of changing later games.
-				// Only where a start CAN be refused (setMapRulesOnly, GameLogic::loadMapINI): a shell map or a campaign mission has no
-				// setup screen to go back to - the refusal path rethrows there - and loads such a block as before.
-				//
+				// A map rules file may only contain what the next game can undo. A map.ini / solo.ini (the only
+				// INI_LOAD_CREATE_OVERRIDES load, GameLogic::loadMapINI) can name any block, and every block writes a store
+				// that outlives the match. mapRules marks blocks whose store is reset or only affects looks; the rest is
+				// refused on every peer. Only where a start can be refused (setMapRulesOnly).
 				if (block != nullptr && !block->mapRules && m_mapRulesOnly && getLoadType() == INI_LOAD_CREATE_OVERRIDES)
 				{
 					char buff[1024];
@@ -1897,12 +1858,10 @@ void INI::parseDurationUnsignedInt( INI *ini, void * /*instance*/, void *store, 
 {
 	UnsignedInt val = scanUnsignedInt(ini->getNextToken());
 #if GX_LOGIC_60HZ
-	// GeneralsX: Round UP on the RETAIL 30 Hz grid, then scale. Rounding on the
-	// 60 Hz grid made every value that is not a multiple of 33.3 ms shorter than retail: 250 ms is
-	// 8 retail frames (266.7 ms) but was 15 frames (250 ms) here. BaseFps/MSEC_PER_SECOND is the same
-	// float 0.03f retail multiplies by. Scaled unsigned rather than through GX_FRAMES30 (Int): retail
-	// ReturnToBaseIdleTime = 999999900 is 3.0e7 frames and GX_FRAMES30 overflows at 3.6e7.
-	// (05/10/2026: the timers that decide when a shot happens now use parseDurationUnsignedIntGO instead.)
+	// Round UP on the retail 30 Hz grid, then scale. Rounding on the 60 Hz grid made values that are not a multiple of
+	// 33.3 ms shorter than retail (250 ms is 8 retail frames, but was 15 frames here). Scaled unsigned rather than through
+	// GX_FRAMES30 (Int): retail ReturnToBaseIdleTime = 999999900 is 3.0e7 frames and GX_FRAMES30 overflows at 3.6e7.
+	// Shot timers use parseDurationUnsignedIntGO instead.
 	const UnsignedInt frames30 = (UnsignedInt)ceilf((Real)val * ((Real)BaseFps / (Real)MSEC_PER_SECOND));
 	*(UnsignedInt *)store = frames30 * (UnsignedInt)(LOGICFRAMES_PER_SECOND / BaseFps);
 #else

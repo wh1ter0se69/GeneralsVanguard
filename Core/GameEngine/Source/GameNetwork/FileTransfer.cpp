@@ -49,7 +49,7 @@ static Bool doFileTransfer( AsciiString filename, MapTransferLoadScreen *ls, Rel
 
 	if (mask)
 	{
-		// GeneralsX @debug /08/2026 GX_MAPDBG: A1 measurement probes for the post-transfer
+		// GeneralsX: GX_MAPDBG: measurement probes for the post-transfer
 		// lobby bounce. fprintf(stderr) so they survive release builds; env-gated so they cost one
 		// branch when off.
 		static const Bool s_mapDbg = (getenv("GX_MAPDBG") != NULL);
@@ -65,17 +65,9 @@ static Bool doFileTransfer( AsciiString filename, MapTransferLoadScreen *ls, Rel
 
 		ls->setCurrentFilename(filename);
 		UnsignedInt startTime = timeGetTime();
-		// GeneralsX: One minute, was two. Owner's call, 2026-08-10: a stalled
-		// transfer is the failure mode people actually hit, and two minutes of "Preparing..." before
-		// anything is said is long enough that it reads as a hang rather than as a timeout. Halving it
-		// costs nothing on a working transfer - a real map is tens to a couple of hundred KB over a
-		// unicast path and completes in seconds - and returns everyone to the lobby twice as fast when
-		// it is not going to work.
-		//
-		// This is the SAME constant on every platform because it lives in shared Core/, so host and
-		// joiner agree on the deadline by construction. It is also what the "Abort in M:SS" countdown
-		// on the transfer screen renders (ls->processTimeout below), so the number a player sees and
-		// the number that fires are the same one.
+		// One minute. A stalled transfer is the failure people hit, and a real map completes in seconds.
+		// The constant lives in shared Core/, so host and joiner agree on the deadline; it is also what the
+		// Abort in M:SS countdown on the transfer screen renders (ls->processTimeout below).
 		const Int timeoutPeriod = 1*60*1000;
 		ls->processTimeout(timeoutPeriod/1000);
 
@@ -115,11 +107,11 @@ static Bool doFileTransfer( AsciiString filename, MapTransferLoadScreen *ls, Rel
 
 		while (!fileTransferDone)
 		{
-			// GeneralsX: The delivery window used to be the one place a lost
-			// MSG_GAME_START had no further chance to arrive: this loop blocks inside OnGameStart,
+			// GeneralsX: The delivery window is the one place a lost
+			// MSG_GAME_START has no further chance to arrive: this loop blocks inside OnGameStart,
 			// LANAPI::update never runs, and a joiner that missed both immediate copies has no
-			// TheNetwork - so the host spent the whole timeout sending unackable chunks into a
-			// void (round-2 run 6). Re-emit the stored start from here; it is nonce-idempotent,
+			// TheNetwork - so the host would spend the whole timeout sending unackable chunks into a
+			// void. Re-emit the stored start from here; it is nonce-idempotent,
 			// self-throttled to one datagram per 2 s, and a no-op on non-hosts.
 			if (TheLAN)
 				TheLAN->resendPendingGameStart();
@@ -134,11 +126,10 @@ static Bool doFileTransfer( AsciiString filename, MapTransferLoadScreen *ls, Rel
 			fileTransferDone = TRUE;
 			fileTransferPercent = 100;
 
-			// GeneralsX: A peer that could not write the file now says so
+			// GeneralsX: A peer that could not write the file says so
 			// (GX_FILE_PROGRESS_FAILED, networkutil.h) instead of reporting a flat 100. Give up on it
 			// at once rather than spinning out the remaining timeout: the peer is not going to
-			// succeed, and two more minutes of "Recieving" in front of a failure that has already
-			// happened is the same dishonesty this fix exists to remove, just slower.
+			// succeed.
 			Bool transferFailed = FALSE;
 
 			for (i=1; i<MAX_SLOTS; ++i)
@@ -233,13 +224,9 @@ static Bool doFileTransfer( AsciiString filename, MapTransferLoadScreen *ls, Rel
 //-------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------
 
-// GeneralsX: These helpers were backslash-only, so on POSIX - where a
-// map path is '/home/.../maps/foo/foo.map' - GetBasePathFromPath found no separator and returned
-// empty, and every joined sidecar path came out as garbage like '\map.ini' or
-// '\/full/path/foo.tga'. Measured live 2026-08-10 (Linux relay harness, GX_MAPDBG): the joiner
-// polled that garbage against the announced transfer forever, timed out after 60 s, and bounced
-// back to the lobby - while the bytes had landed. The host-side variant even shipped the garbage
-// on the wire as a bogus "portable" name that the receiver's normalization then refused.
+// These helpers were backslash-only, so on POSIX (a map path like /home/.../maps/foo/foo.map) GetBasePathFromPath found no
+// separator and returned empty, and joined sidecar paths came out as garbage; the transfer then never completed and
+// the host could announce a bogus portable name that receivers refuse.
 // Recognise both separators, and join with the separator the input path actually uses.
 static const char* findLastSeparatorIn( const AsciiString& path )
 {
@@ -476,12 +463,12 @@ Bool DoAnyMapTransfers(GameInfo *game, Bool keepShellUp)
 	if (!mask)
 		return TRUE;
 
-	// GeneralsX: M1 step 2b. AN OFFICIAL MAP IS NEVER SENT: its files live
+	// GeneralsX: AN OFFICIAL MAP IS NEVER SENT: its files live
 	// in the game's own archives and Maps folder, sendFileAnnounce opens loose local files only, and a host must not write
 	// into another install's game folder. The setup screens refuse to start a lobby where a human lacks one
-	// (GUI:PlayerNoMap) - and since 2b a slot also lacks it when its map.ini/solo.ini differ from the host's although the
+	// (GUI:PlayerNoMap) - and a slot also lacks it when its map.ini/solo.ini differ from the host's although the
 	// .map matches (a loose override of a stock map's file, say). A start that got here anyway (an accepted slot, a
-	// headless host, a slot that changed under a countdown) announced nothing on the host while every joiner waited out a
+	// headless host, a slot that changed under a countdown) would announce nothing on the host while every joiner waited out a
 	// whole transfer timeout, and then each peer left the room. Refuse here instead, at once and on every peer (each one
 	// reads the same slot list): those peers' rules differ, so the match would desync, and no transfer can repair it.
 	// The same test the setup screens use: the official flag when this machine knows the map, else the user-map folder.

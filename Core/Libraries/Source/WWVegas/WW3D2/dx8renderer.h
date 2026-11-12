@@ -97,7 +97,7 @@ extern bool GxCollectSinkArmed;
 inline GxCollectSink *GxCollect_Sink() { return GxCollectSinkArmed ? GxCollectActiveSink : nullptr; }
 void GxCollect_Replay(const GxCollectRec &r);	// main thread, sink null; TASK..DECAL only
 
-// GeneralsX: WS-G ("L2", §3 WS-G): the classic draw
+// GeneralsX: the classic draw
 // list - what one DX8MeshRendererClass::Flush is about to draw, as one entry per base-pass render task, deformed skin,
 // procedural material pass, decal mesh and delayed material pass, IN FLUSH'S ORDER (rigid containers by pass and visible
 // category, their material passes; skins batch by batch as the 65535-vertex dynamic VB fills; decals; delayed passes).
@@ -117,10 +117,10 @@ struct GxClassicDraw
 	int batch;						// skin containers: the dynamic-VB batch (0, 1, ...); else 0
 };
 extern void (*GxL2FlushHook)(bool end);
-// GeneralsX: WS-G Task 5 T3: the call log's close point - once per Flush, right after its two null-buffer
+// GeneralsX: the call log's close point - once per Flush, right after its two null-buffer
 // setters (after FLUSH_END); null unless GX_L2_MODEL=1 installs it.
 extern void (*GxL2FlushClosedHook)();
-// GeneralsX: WS-G S1 seat: asked once per task the category loop draws, right
+// GeneralsX: the seat: asked once per task the category loop draws, right
 // after its list entry; true = the seat drew this task inside its claimed run (PREPARE -> GxDrawRun::Draw_Run -> CARRY-OUT, at the
 // run's first task) and the loop only unlinks it. Null unless GameEngineDevice's GXRender/Scene installs it (GX_L2_DRAWRUN=1, not in
 // check mode).
@@ -157,8 +157,7 @@ struct GxMotionHooks
 };
 extern GxMotionHooks *GxMotion;
 
-// GeneralsX: S7 GPU sun shadow map (
-// A7/A8, PLAN Task 5): the shadow-map caster tag's hooks, a SIBLING of GxMotion (the motion bridge is untouched). The ZH glue
+// GeneralsX: GPU sun shadow map: the shadow-map caster tag's hooks, a SIBLING of GxMotion (the motion bridge is untouched). The ZH glue
 // (W3DShadowMap.cpp) installs them only while GXShadowMap is on and the frame's pass is active; null (the default, always on the
 // classic path and key off) = no call. meshBegin decides per non-skin, non-sorted mesh task whether its draws are casters (pass 0
 // only: a multi-pass material must not cast twice) and sets the device's CAST tag on CHANGE; containerEnd clears it at the end of
@@ -200,7 +199,7 @@ public:
 	void									Add_Render_Task(DX8PolygonRendererClass * p_renderer,MeshClass * p_mesh);
 
 	void									Render();
-	void									Gx_List_Tasks(std::vector<GxClassicDraw> &out, const void *skin_batches, int batch);	// WS-G, dx8renderer.cpp
+	void									Gx_List_Tasks(std::vector<GxClassicDraw> &out, const void *skin_batches, int batch);	// dx8renderer.cpp
 	bool									Anything_To_Render() { return (render_task_head != nullptr); }
 	void									Clear_Render_List();
 
@@ -272,7 +271,7 @@ protected:
 	bool Any_Delayed_Passes_To_Render()	{ return AnyDelayedPassesToRender; }
 
 	void Render_Procedural_Material_Passes();
-	void Gx_List_Mat_Passes(std::vector<GxClassicDraw> &out, const void *skin_batches, int batch);	// WS-G
+	void Gx_List_Mat_Passes(std::vector<GxClassicDraw> &out, const void *skin_batches, int batch);
 
 	DX8TextureCategoryClass* Find_Matching_Texture_Category(
 		TextureClass* texture,
@@ -292,7 +291,7 @@ public:
 
 	static unsigned Define_FVF(MeshModelClass* mmc,bool enable_lighting);
 	bool Is_Sorting() const { return sorting; }
-	virtual bool Is_Skin() const { return false; }	// WS-G (GXRender/Scene): the L2 contract's skin-container test
+	virtual bool Is_Skin() const { return false; }	// GXRender/Scene: the L2 contract's skin-container test
 
 	void Change_Polygon_Renderer_Texture(
 		DX8PolygonRendererList& polygon_renderer_list,
@@ -310,7 +309,7 @@ public:
 	void Remove_Texture_Category(DX8TextureCategoryClass* tex_category);
 
 	virtual void Render()=0;
-	virtual void Gx_List_Pending(std::vector<GxClassicDraw> &out)=0;	// WS-G: what Render() would draw, in its order
+	virtual void Gx_List_Pending(std::vector<GxClassicDraw> &out)=0;	// what Render() would draw, in its order
 	virtual void Add_Mesh(MeshModelClass* mmc)=0;
 	virtual void Log(bool only_visible)=0;
 	virtual bool Check_If_Mesh_Fits(MeshModelClass* mmc)=0;
@@ -355,7 +354,7 @@ public:
 
 	virtual void Render() override;	// Generic render function
 	virtual void Gx_List_Pending(std::vector<GxClassicDraw> &out) override;
-	void Gx_List_Delayed(std::vector<GxClassicDraw> &out);	// WS-G: what Render_Delayed_Procedural_Material_Passes would draw
+	void Gx_List_Delayed(std::vector<GxClassicDraw> &out);	// what Render_Delayed_Procedural_Material_Passes would draw
 
 	/*
 	** This method adds a material pass which must be rendered after all of the other rendering is complete.
@@ -432,8 +431,8 @@ public:
 	void						Shutdown();
 
 	void						Flush();
-	void						Gx_List_Pending(std::vector<GxClassicDraw> &out);	// WS-G: the classic draw list of the next Flush (GxClassicDraw above)
-	// GeneralsX: WS-X hybrid spike: called inside Flush at the two points where native L2 work
+	void						Gx_List_Pending(std::vector<GxClassicDraw> &out);	// the classic draw list of the next Flush (GxClassicDraw above)
+	// GeneralsX: called inside Flush at the two points where native L2 work
 	// would execute without reordering the flush's categories - after the rigid lists (native rigid draws replace those,
 	// ahead of the classic skins and decals) and after the delayed procedural passes - with the classic draws that segment
 	// made. Null (the default) costs one test per boundary.

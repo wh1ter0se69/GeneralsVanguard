@@ -590,16 +590,9 @@ SaveResult GameState::saveGame( AsciiString filename, UnicodeString desc,
 	m_gameInfo.description = desc;
 
 	// open the save file
-	// GeneralsX: Write the save to a temporary file and put it in place of the save only once it
-	// is complete. Opening the real path truncated it before the first block was written, so a save that failed halfway
-	// (a full disk, a block error) left a truncated file where the player's earlier save in that slot had been, and the
-	// list then silently dropped it (sweep c153-02).
-	// The temporary sits next to the save (same folder, same volume, whatever links the player made: one rename puts it
-	// in place) and swaps ".sav" for ".tmp", so its path is no longer than the save's. It is only ever
-	// CREATED (openNew): an existing file under that name - a leftover, or the map a crafted save extracted as an alias
-	// of it, which this very save reads back - is never truncated; the next of ten names is tried instead.
-	// Trade-off: ten names, so ten leftovers from saves killed mid-write make this slot unsavable (SC_UNABLE_TO_OPEN_FILE);
-	// delete stale ".tm?" files in the save list's scan if that ever happens.
+	// GeneralsX: save to a temporary file and rename it into place once complete; opening the real path truncated it first.
+	// The temporary (.tmp, then .tm1 to .tm9) beside the .sav is only created, never truncated: if a name exists the next
+	// is tried, so ten leftovers make the slot unsavable (SC_UNABLE_TO_OPEN_FILE).
 	AsciiString tmpBase = filepath;
 	if( tmpBase.endsWithNoCase( ".sav" ) )
 		tmpBase.truncateBy( 4 );
@@ -940,27 +933,9 @@ static const char* findLastPathSeparatorInRangeInclusive(const char* start, cons
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: Portable map paths are NOT separator-portable, and the map
-// cache key is a raw string compare, so the two have to be brought into the same shape here.
-//
-// MapCache keys are whatever the enumerator returned, which is platform-native throughout:
-// StdLocalFileSystem hands back std::filesystem paths (all '/'), Win32LocalFileSystem builds
-// originalDirectory + currentDirectory + name (all '\'). GameInfo::setMapCRC then looks the map up
-// with std::map::find on the string portableMapPathToRealMapPath produced. Two separators leak into
-// that string on POSIX and each is enough on its own to miss:
-//
-//   * the join was a hard-coded "\\" - so macOS built ".../maps\name/name.map" against a stored
-//     ".../maps/name/name.map", differing by exactly ONE character;
-//   * the TAIL comes from the portable path, which crosses the wire un-normalised
-//     (realMapPathToPortableMapPath only lowercases). A Windows host therefore hands a macOS
-//     joiner "name\name.map", so fixing the join alone would still leave a backslash in the tail.
-//
-// The result was that a transferred map was unfindable on macOS/Linux/iPadOS while Windows - where
-// every separator is a backslash already - matched fine. Built-in maps were never affected because
-// the archive enumerator also emits backslashes on every platform.
-//
-// File access itself always worked: StdLocalFileSystem::fixFilenameFromWindowsPath replaces
-// separators on the way in. Only the cache lookup, which compares raw strings, could see this.
+// GeneralsX: map cache keys are platform-native (/ on POSIX, backslash on Win32) and compared as raw strings.
+// On POSIX the join was a hard-coded backslash, and the tail comes from the portable path, which crosses the wire
+// un-normalised, so the lookup missed. File access is unaffected (StdLocalFileSystem::fixFilenameFromWindowsPath).
 static AsciiString toPlatformPathSeparators(const AsciiString& in)
 {
 #ifdef _WIN32
@@ -978,23 +953,9 @@ static AsciiString toPlatformPathSeparators(const AsciiString& in)
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: Make the PORTABLE path actually portable.
-//
-// A portable map path goes ON THE WIRE and is CRC'd on both sides: LANAPI::RequestHasMap CRCs it
-// into MapStatus.mapCRC, and LANAPI::handleHasMap recomputes it locally and SILENTLY RETURNS on a
-// mismatch (LANAPIhandlers.cpp). So if two peers derive different strings for the same map, the
-// host never learns the joiner lacks it, the transfer mask stays empty, no file is ever sent, and
-// the joiner sits until its two-minute timeout and reports "Unable to transfer the map".
-//
-// getMapLeafAndDirName preserves whatever separators its INPUT had, and the input is the local real
-// path - so the portable string inherited the local platform's separator. Windows produced
-// "userdata\maps\foo\foo.map" and POSIX "userdata\maps\foo/foo.map" for the same map. Measured
-// end to end 2026-08-10: a Windows host and a macOS joiner, host started the match alone having
-// sent nothing while the joiner was simultaneously printing "You do not have the map".
-//
-// The PORTABLE_* prefixes are already backslash-shaped ("UserData\\Maps\\"), so backslash is the
-// canonical portable separator; forcing it here makes the string identical on every platform and
-// costs nothing, since portableMapPathToRealMapPath converts back on the way in.
+// GeneralsX: the portable map path goes on the wire and is CRC-checked on both sides; LANAPI::handleHasMap silently
+// returns on a mapCRC mismatch, so no transfer would start. getMapLeafAndDirName keeps its input separators, so
+// backslash is forced as the canonical one (PORTABLE_* prefixes use it); portableMapPathToRealMapPath converts back.
 static AsciiString toPortablePathSeparators(const AsciiString& in)
 {
 	std::string s(in.str());

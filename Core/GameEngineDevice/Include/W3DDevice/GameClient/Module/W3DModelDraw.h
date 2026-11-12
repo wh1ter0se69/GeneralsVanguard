@@ -195,7 +195,13 @@ struct ModelConditionInfo
 #endif
 		}
 
+#if RTS_ZEROHOUR
+		Bool setMuzzleFlashHidden(RenderObjClass *fullObject, Bool hide) const;	///< GeneralsX: D8: TRUE when the hidden bit changed (the clip cache must re-apply)
+#else
+#line 198	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 		void setMuzzleFlashHidden(RenderObjClass *fullObject, Bool hide) const;
+#endif
+#line 199	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 	};
 	typedef std::vector<WeaponBarrelInfo>	WeaponBarrelInfoVec;
 
@@ -520,6 +526,26 @@ private:
 	Bool													m_pauseAnimation;
 	Int														m_animationMode;
 
+#if RTS_ZEROHOUR
+// GeneralsX: The clip-status skip is Zero Hour only; RTS_GENERALS keeps the retail clip path exactly.
+//
+	// GeneralsX: What updateProjectileClipStatus last applied, per weapon slot. Client state:
+	// never saved, and the simulation reads none of it.
+	struct ProjectileClipApplied
+	{
+		const RenderObjClass*			renderObject;
+		const ModelConditionInfo*	state;
+		UnsignedInt								showCount;
+		UnsignedInt								maxCount;
+		UnsignedInt								generation;
+		Bool											valid;
+	};
+	ProjectileClipApplied					m_projectileClipApplied[WEAPONSLOT_COUNT];
+	UnsignedInt										m_subObjectHideGeneration;				///< moved by every other writer of the sub-object hidden bits
+	Bool													m_applyingProjectileClip;					///< the clip update's own re-apply does not count as another writer
+	void noteSubObjectHideChange() { if (!m_applyingProjectileClip) ++m_subObjectHideGeneration; }
+
+#endif
 	void adjustAnimation(const ModelConditionInfo* prevState, Real prevAnimFraction);
 	Real getCurrentAnimFraction() const;
 	void applyCorrectModelStateAnimation();

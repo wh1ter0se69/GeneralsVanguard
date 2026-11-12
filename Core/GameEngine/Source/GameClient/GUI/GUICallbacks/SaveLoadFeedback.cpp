@@ -1,6 +1,6 @@
 /*
 **	Command & Conquer Generals Zero Hour(tm)
-**	Copyright 2026 TheSuperHackers
+**	Copyright 2026 GeneralsX contributors
 **
 **	This program is free software: you can redistribute it and/or modify
 **	it under the terms of the GNU General Public License as published by
@@ -50,22 +50,10 @@ static UnicodeString getUnicodeSavePath( const AsciiString &filename )
 	return path;
 }
 
-// ------------------------------------------------------------------------------------------------
-// GeneralsX: Which GeneralsX build wrote a save: a trailer after SG_EOF.
-//
-// Layout, appended once the save is complete: identity bytes, u16 little-endian length, "GXBUILD1".
+// Build identity trailer after SG_EOF: identity bytes, u16 little-endian length, "GXBUILD1".
 // Identity is the full commit (GitSHA1), plus '~' for a build with uncommitted changes.
-//
-// Why AFTER SG_EOF: every loader stops at that token (GameState::xferSaveData) or earlier
-// (getSaveGameInfoFromFile stops at the first block, the pre-check below at CHUNK_GameStateMap), so the
-// trailer is invisible to retail and to every older GeneralsX - a new save still loads there. It
-// travels with the file when a save is copied between machines, which is exactly the cross-build case;
-// a sidecar file would not. And it cannot go stale: any build that rewrites the save rewrites the whole
-// file, so an older build's rewrite simply has no trailer and reads as "unknown build" - a warning, as
-// the owner asked for saves with no identity. A chunk registered with GameState would load just as well
-// everywhere, but registering one means editing GameState.cpp, which moves the SimID digest.
-// Written from presentSaveResult, the one place every save route reports through.
-// ------------------------------------------------------------------------------------------------
+// It goes after SG_EOF, which every loader stops at, so older builds still load the save; a rewrite by one drops it.
+// A chunk registered with GameState would edit GameState.cpp and move the SimID digest.
 static const char s_trailerMagic[8] = { 'G','X','B','U','I','L','D','1' };
 enum { TRAILER_FIXED = 2 + 8 };
 
@@ -114,7 +102,7 @@ static AsciiString shortIdentity( const AsciiString &id )
 	return s;
 }
 
-// GeneralsX: Returns whether the trailer is on disk: a save without one is now refused on load
+// Returns whether the trailer is on disk: a save without one is now refused on load
 // (it reads as a retail save), so a failed append must not be reported as "saved".
 static Bool appendBuildTrailer( const AsciiString &filename )
 {
@@ -193,7 +181,7 @@ void presentLoadResult( SaveCode result, const AsciiString &filename )
 		fprintf( stderr, "[SAVELOAD] loaded '%s'\n", filename.str() );
 	else
 	{
-		// GeneralsX: A failed load leaves GameLogic's loading flags set.
+		// A failed load leaves GameLogic's loading flags set.
 		// GameStateMap::xfer sets m_loadingSave and startNewGame sets m_loadingMap, and only a load that
 		// SUCCEEDS clears them - so a throw anywhere after (a LAN/online save refused by the load screen,
 		// a newer GameStateMap version, a truncated map) left them TRUE for the rest of the process. The
@@ -222,39 +210,11 @@ void presentLoadResult( SaveCode result, const AsciiString &filename )
 	}
 }
 
-// ------------------------------------------------------------------------------------------------
-// GeneralsX: Read what a save says about itself, before anything is torn down.
-//
-// One pass over the block list with plain stdio - never XferLoad, whose skip() seeks BACKWARDS on a
-// negative size - collecting what the gate below needs:
-//   * the game mode (CHUNK_GameStateMap: version byte, save map, pristine map, Int mode (v2+)): a save
-//     made during a LAN or online match was a SIGSEGV on load, not an error - GameStateMap::xfer restores
-//     GAME_LAN/GAME_INTERNET, no network session supplies TheGameInfo, and the multiplayer load screen
-//     dereferenced the null game;
-//   * the save file type (CHUNK_GameState: version byte, Int SaveFileType (v2+));
-//   * the identity trailer, accepted only where SG_EOF ends exactly that many bytes before end of file;
-//   * `crash`: the loads MEASURED to crash or hang, each found by loading a mutated real save with -loadsave
-//     (scripts/test/save-compat-test.sh has the fixtures and the red arms):
-//       - (not any more) a skirmish save written with a different MAX_SLOTS: SkirmishGameInfo::xfer used to
-//         read this build's MAX_SLOTS slots whatever the file held, and misread everything after them. Since
-//         the observer seats (MAX_SLOTS 12 -> 14) it reads exactly the slots the save holds, so an older count
-//         loads - every 12-slot save included - and is no longer stopped here. A save whose local slot a
-//         build drops is stopped by MultiPlayerLoadScreen's local-slot guard.
-//       - the radar naming an object the load will not create - measured with an object template this
-//         build does not have (removed or renamed in the build that saved it): GameLogic::xfer skips those
-//         objects, RadarObject::xfer then throws with the half-built entry already linked, and the teardown
-//         after the caught throw dereferences its null object in Radar::deleteList. SIGSEGV, 6 of 9
-//         templates tried; the other 3 failed to load without crashing. So a missing template is a crash
-//         only where the radar names one of its objects: the objects are read and matched to the radar.
-//       - a negative size on a block this build does not know: the loader skips unknown blocks by their
-//         size, and XferLoad::skip seeks BACKWARDS on a negative one - by exactly the token and size it
-//         just read, it re-reads the same block for ever. Hang.
-// GameState.cpp, GameStateMap.cpp, GameInfo.cpp and Radar.cpp are simulation source, so reading the save
-// here rather than fixing the readers there keeps the SimID digest where it is.
-// Trade-off: a layout change INSIDE a block (a field added without a version bump) can still fault in the
-// middle of the load - measured once, in Player::becomingTeamMember on a garbage battle-plan value. No
-// pre-read can see that short of the real parse; the "another build" warning is what covers it.
-// ------------------------------------------------------------------------------------------------
+// Pre-scan of a save: game mode, file type, identity trailer, and `crash` for loads measured to crash or hang.
+// Plain stdio, never XferLoad: its skip() seeks backwards on a negative block size and re-reads it forever.
+// Crashes: a LAN/online save (no session supplies TheGameInfo); a radar naming an object template this build lacks;
+// an unknown block with a negative size (the hang above).
+// A layout change inside a block without a version bump can still fault mid-load; the build warning covers it.
 struct SaveScan
 {
 	SaveScan() : opened( FALSE ), mode( GAME_NONE ), fileType( -1 ), hasIdentity( FALSE ), objectsRead( FALSE ) { crash[0] = pristineMap[0] = '\0'; }
@@ -552,7 +512,7 @@ static const char *leafName( const AsciiString &filename )
 	return leaf;
 }
 
-// GeneralsX: "If a load WOULD crash, catch it, PREVENT the crash, say it would
+// "If a load WOULD crash, catch it, PREVENT the crash, say it would
 // have crashed, and ask to send the crash log" (owner, decision #7). Nothing that would fault has run;
 // the crash log goes through the engine's own writer (GXCrashLog, wired by the ZH main loop) into
 // CrashLogs/, where the launcher's consent card offers to send it. The upload itself stays off until the
@@ -564,10 +524,8 @@ static void reportPreventedCrash( const AsciiString &filename, const char *cause
 	scanSave( filename, &scan );	// for the build that made it; cheap, and the file is still there
 	const AsciiString made = scan.hasIdentity ? shortIdentity( scan.identity ) : AsciiString( "unknown" );
 	const AsciiString mine = shortIdentity( thisBuildIdentity() );
-	// GeneralsX: NO FILE NAME in the crash log. The player names the
-	// save, and a name like "wh1ter0se-MacBook base" is personal data in a report that may be uploaded. The
-	// stderr line below keeps it: stderr stays on this machine. The ingest Worker and the launcher also
-	// strip it from logs written before this change.
+	// NO FILE NAME in the crash log: the player names the save, which can be personal data in a report that may be uploaded.
+	// The stderr line below keeps it: stderr stays on this machine.
 	char reason[512];
 	snprintf( reason, sizeof( reason ), "prevented crash loading a save: %s (save build %s, this build %s)",
 		cause, made.str(), mine.str() );
@@ -704,8 +662,8 @@ Bool gateSaveLoad( const AsciiString &filename, GameWinMsgBoxFunc retry )
 		return FALSE;
 
 	const AsciiString mine = thisBuildIdentity();
-	// GeneralsX: A save with no build trailer is a retail save or one from a very old
-	// GeneralsX. Measured on the published 0.9.58 (Mini) with two real retail Zero Hour saves: both are well-formed
+	// A save with no build trailer is a retail save or one from a very old
+	// GeneralsX. Two real retail Zero Hour saves are well-formed
 	// block by block but the loader reads another layout (RETAIL_COMPATIBLE_XFER_SAVE is 0), fails with an xfer READ
 	// error far past the end of the file, and -loadsave then closes the game. A Yes button there only closed the game
 	// with no reason, so the box now says so and offers no Yes. Saves that DO name a build keep their Yes/No.
@@ -746,7 +704,7 @@ Bool gateSaveLoad( const AsciiString &filename, GameWinMsgBoxFunc retry )
 	return TRUE;
 }
 
-// GeneralsX: Do not write the save the gate would refuse: it would sit
+// Do not write the save the gate would refuse: it would sit
 // in the list unloadable here, and a build without that check still crashes on it.
 Bool refuseNetworkMatchSave()
 {

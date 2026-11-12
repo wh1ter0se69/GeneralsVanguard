@@ -1,4 +1,22 @@
-// GeneralsX: AI RULE BANK rule 1, PROBE (GXRule_Probe.h): issues nothing, changes nothing - it counts its ticks,
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// AI RULE BANK rule 1, PROBE (GXRule_Probe.h): issues nothing, changes nothing - it counts its ticks,
 // reads the sense layer once per tick and saves its count, so "PROBE on" vs its NO_OP control (per-frame CRC identical) proves the bank
 // path is free, and the save/load fixture can see its state survive a load. Test-instruments builds add the red arms and fixtures:
 //   GX_RULE_PROBE_RED=1                  the first tick orders this player's lowest-id own unit to move (N2's red arm: must DIFFER)

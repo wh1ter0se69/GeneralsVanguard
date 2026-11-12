@@ -407,7 +407,7 @@ StateReturnType AITNGuardInnerState::update()
 			m_scanForEnemy = false; // we just do 1 scan.
 			nemesis = TunnelNetworkScan(owner);
 			if (nemesis) {
-				// GeneralsX @bugfix m_attackState is only ever built by onEnter(), and this state can be
+				// GeneralsX: m_attackState is only ever built by onEnter(), and this state can be
 				// resident with a null one (see the guard at the end of this function), so resetting it
 				// here could dereference null. Build the sub-state when it is missing instead of
 				// resetting it, which leaves the re-target below working on a valid object either way.
@@ -432,7 +432,7 @@ StateReturnType AITNGuardInnerState::update()
 		}
 	}
 
-	// GeneralsX @bugfix m_attackState is only created by onEnter(), which bails out early when the
+	// GeneralsX: m_attackState is only created by onEnter(), which bails out early when the
 	// nemesis ID no longer resolves to a live object. loadPostProcess() calls onEnter() and throws the
 	// return value away, so unlike a normal state entry - where STATE_SUCCESS would immediately
 	// transition us out - the machine can sit in AI_TN_GUARD_INNER after a load with no sub-state at

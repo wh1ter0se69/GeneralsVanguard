@@ -1,43 +1,25 @@
-// GeneralsX: each player's RESOLVED faction on GXSTAT.
-//
-//
-//   GXSTAT <room> <memberIp> sq= mid= f= [rs=] p<slot>=<cells> ... fa<slot>=<faction> ...
-//
-//     <faction>  the Player's own PlayerTemplate name less "Faction" ("ChinaTankGeneral") - the SAME word
-//                GXSLOT's seats carry (GXRelaySlotsWire.h, gxRelaySeatWord), so the panel names both with one
-//                table. Read off the Player, which is built from the slot's template AFTER a Random pick has
-//                resolved, so it is what the player actually plays as from the first sample of the match.
-//
-//   ... co<slot>=<colour>.<rgb> ...
-//
-//     <colour>   the player's colour's TooltipName less "Color:" ("SkyBlue") - the SAME word a GXSLOT seat carries.
-//                GeneralsX: THE WORD, NOT ONLY THE INDEX.
-//                The nine cells' colour is an index into THIS client's Multiplayer.ini, and the panel can only read an
-//                index against the stock order - so a mod that reorders the colours had a Random seat confidently named
-//                in the wrong one. The word is the colour's own name, whatever position a mod put it in.
-//     <rgb>      that colour's RGBColor as six lowercase hex digits ("32d7e6"), from this client's Multiplayer.ini.
-//                GeneralsX: AND WHAT IT LOOKS LIKE.
-//                A mod may keep a colour's name and change its RGB, and the panel - which can only paint the stock
-//                palette (its CSP has no style-src) - drew the stock swatch for it. With the RGB it draws the swatch
-//                only when it IS the stock one, and says "modded colour" otherwise. ONE TOKEN, so a colour's name
-//                never arrives without the RGB that verifies it; no RGB, no token.
-//
-// KEYS, NOT A TENTH CELL, and that is the compatibility argument, not style. relay.js parseStatReport drops a
-// p<slot> group whose cell count is not exactly nine, and a report with no group left is refused WHOLE - so a
-// tenth cell would have cost every GXSTAT a client sends to any relay deployed before this, money and colour
-// included. An unknown key is skipped by that same parser ("unknown key: ignored"), so an old relay reads the
-// nine cells it always read and ignores these; a new relay reads both. Either may be deployed first.
-//
-// A NAME THAT IS NOT A PLAIN WORD, OR ONE THAT DOES NOT FIT, IS LEFT OFF - never cut, and the line's own cells
-// are never touched: the base line is composed first by GXRelayStatsWire.h, and these are appended only while
-// the whole stays under GX_STAT_LINE_MAX, the ceiling every deployed relay enforces. A left-off faction is an
-// unknown one to the panel, which is true.
-//
-// NOT IN THE DIGEST: Core/GameEngine/Include/GameClient is not a digested root, and the two digested headers
-// included below are only read. Changing GXRelayStatsWire.h itself would have moved the sourceID - which is
-// why the faction is appended here instead of being a field of its composer.
-//
-// PURE, so scripts/test/relay-stats-wire-test.cpp drives it and tools/relay/test-perf.js parses its bytes.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Each player's RESOLVED faction on GXSTAT: fa<slot>=<faction> (PlayerTemplate name less "Faction") and
+// co<slot>=<colour>.<rgb> (TooltipName less "Color:", six hex digits from this client's Multiplayer.ini).
+// KEYS, NOT A TENTH CELL: parseStatReport (relay.js) drops a group whose cells are not nine; unknown keys are ignored.
+// A name that does not fit under GX_STAT_LINE_MAX is left off whole, never cut. Not in the simulation digest.
 #pragma once
 
 #include "GameNetwork/GXRelayStatsWire.h"	// GX_STAT_SLOT_MAX, GX_STAT_LINE_MAX
@@ -90,67 +72,24 @@ inline int gxStatAppendFactions( char *line, size_t cap, int len, size_t lineMax
 	return len;
 }
 
-// ------------------------------------------------------------------------------------------------
-// GeneralsX: THE MATCH RECORD SAYS WHAT THE MATCH WAS.
-//
-//
-//   GXEND ... r<slot>=... sb=1
-//
-//     sb=1   the match is a SANDBOX - GameInfo::getStartVerdict: no human held a player seat, or every player was on
-//            one side - counted in nobody's stats, ranking or win-loss. Present only when true. ON GXEND ITSELF, so
-//            the outcomes and the flag that says they count for nothing travel in one datagram. An older relay skips
-//            the key (parseEndReport reads sq/mid/ef/rs/r<n> only) and records the rows exactly as before. Never
-//            left off for room: 771 + 5 is under every deployed relay's 800, and a GXEND that cannot carry it is
-//            refused whole - an unmarked sandbox result is worse than none.
-//
-//   GXSEAT <room> <memberIp> sq= mid= ef= du=<seconds> [rs=] [sb=1] [mp=<map>] s<slot>=<seat> ...
-//
-//     One per reporter per match, right after its GXEND, with the next sq; the same mid and ef pair the two.
-//     du     game time, ef / logic frames per second.
-//     mp     the map file's leaf name less ".map", percent-encoded outside [A-Za-z0-9_.-]; left off past 64 BYTES
-//            DECODED (GX_SEAT_MAP_MAX), never cut. GeneralsX: THE BOUND
-//            IS THE NAME, NOT ITS ENCODING: relay.js GX_SEAT_MAP_RE takes 1..64 units (a plain byte or one %XX) and
-//            shared/event.mjs GX_MAP_MAX 64 decoded characters, so "past 64 encoded" dropped names every layer after
-//            this one records - 22 spaces encode to 66. The encoded form runs to 3 x 64 = 192, and the fullest stock
-//            lineup still fits beside it (relay-stats-wire-test MR15: 1072 of 1100). The map goes on BEFORE the
-//            seats (owner: the map must be recorded), so only a lineup that could not fit anyway loses a seat.
-//     <seat> GXSLOT's own token for that slot (gxComposeRelaySeats), resolved at the end - the army actually played
-//            (after Random), the colour it played in, its 1-based team, and for a human or an observer its relay
-//            member id: <k>:<army>:<team>:<colour>[:<id>], k = H | O | E | M | B. Every occupied slot once,
-//            observers included; open and closed slots never. A seat that would take the line past
-//            GX_SEAT_LINE_MAX is left off whole, never cut, and counted.
-//
-//     n<slot> GeneralsX: the name a human or an
-//            observer had in the lobby, UTF-8, percent-encoded outside [A-Za-z0-9_.-] like mp. AFTER every seat, so a
-//            seat is never lost for a name; a name that does not fit, or is over GX_SEAT_PLAYER_MAX bytes, is left off
-//            whole, never cut. Only the in-game name reaches it: the lobby already shows every one of them to every
-//            player in the room. An older relay skips the key (parseSeatReport reads s<n> and the five facts only).
-//
-//     AN OLDER RELAY: GXSEAT carries no GXR1 routing header, so it is never forwarded, and it matches none of the
-//     lobby port's parsers, so it falls off the end of that chain - nothing recorded, nothing broadcast.
-// ------------------------------------------------------------------------------------------------
+// GXEND carries sb=1 for a SANDBOX match (no human held a seat, or one side only); older relays skip it.
+// sb=1 is never left off for room: an unmarked sandbox result is worse than none.
+// GXSEAT <room> <memberIp> sq= mid= ef= du= [rs=] [sb=1] [mp=] s<slot>=<seat>: one per reporter, right after its GXEND.
+// <seat> = <k>:<army>:<team>:<colour>[:<id>], k = H|O|E|M|B; mp and n<slot> are percent-encoded, bounded decoded.
+// What does not fit GX_SEAT_LINE_MAX is left off whole, never cut. GXSEAT has no GXR1 header: never forwarded.
 enum
 {
-	GX_SEAT_LINE_MAX = 3072,	///< GeneralsX scale32 06/11/2026: was 1100 (MAX_UDP_PAYLOAD_SIZE); GXSEAT seats alone are 2866 B at 34 seats
+	GX_SEAT_LINE_MAX = 3072,	///< GXSEAT seats alone are 2866 B at 34 seats
 	GX_SEAT_MAP_MAX = 64,		///< DECODED bytes: relay.js GX_SEAT_MAP_RE, shared/event.mjs GX_MAP_MAX
 	GX_SEAT_MAP_KEY_MAX = 4 + 3 * GX_SEAT_MAP_MAX,	///< " mp=" and every byte as %XX
 	GX_SEAT_PLAYER_MAX = 36,		///< DECODED bytes: g_lanPlayerNameLength (12) characters at up to 3 UTF-8 bytes each
 	GX_SEAT_PLAYER_KEY_MAX = 5 + 3 * GX_SEAT_PLAYER_MAX	///< " n13=" and every byte as %XX
 };
 
-// ------------------------------------------------------------------------------------------------
-// GeneralsX: THE CEILINGS ARE THE RELAY'S, NOT THE CLIENT'S.
-//
-// scale32 raised GX_STAT_LINE_MAX / GX_SEAT_LINE_MAX / GX_END_LINE_MAX to what a seats34 relay accepts (2560 / 3072 /
-// 2048) for EVERY relay, but a relay that never said seats34 - 0.9.69's, any rollback, an older relay after a failover -
-// refuses a GXSTAT or GXSEAT over 1100 B and a GXEND over 800 B WHOLE (d3b2dafab5 relay.js GX_STAT_MAX_LINE :4896,
-// GX_SEAT_MAX_LINE :5295, GX_END_MAX_LINE :5098). Measured on such a relay: 14 Cyrillic names made a 1875 B GXSEAT and a
-// late game's factions a 1210 B GXSTAT, both lost, where the 0.9.69 client sent 1035 / 1088 by leaving names and
-// factions off. So a line is composed under the ceilings of the relay it goes to RIGHT NOW: the wide ones only when that
-// relay's latest GXCAPS said seats34 (GXLobbyPresence::relaySaidSeats34), the 0.9.69 ones otherwise. Over a ceiling the
-// line degrades exactly as the 0.9.69 client's did (names, factions, seats left off whole and counted; a GXSTAT or GXEND
-// that cannot fit is refused whole), never a line the relay refuses. Each composer refuses a line of `ceiling` bytes or
-// more, as that client's did.
+// THE CEILINGS ARE THE RELAY'S. A relay that never said seats34 refuses a GXSTAT or GXSEAT over 1100 B
+// and a GXEND over 800 B WHOLE, so lines are composed under the ceilings of the relay in use RIGHT NOW: the wide ones
+// (2560 / 3072 / 2048) only when its latest GXCAPS said seats34 (GXLobbyPresence::relaySaidSeats34).
+// Over a ceiling a line degrades (names, factions, seats left off whole); a GXSTAT or GXEND that cannot fit is refused.
 enum
 {
 	GX_STAT_LINE_MAX_PLAIN = 1100,	///< relay.js GX_STAT_MAX_LINE on a relay that never said seats34
@@ -176,25 +115,10 @@ inline GXRelayWireCeilings gxRelayWireCeilings( bool seats34 )
 	return c;
 }
 
-// ------------------------------------------------------------------------------------------------
-// GeneralsX: A PLAYER WHO QUITS LOST, AND LEFT.
-//
-//   GXEND ... r<slot>=x:...     x is LEFT: the wire's third outcome since 22/09/2026 (relay.js GX_END_OUTCOME x -> 2,
-//                               shared/event.mjs oc 0..2, D1 match_result.outcome 2). It now means "left before the end,
-//                               a LOSS", whatever his side did after - so every relay, collector and ingest already
-//                               deployed records it, and nothing new crosses the wire.
-//
-//   Who is left, on every peer alike:
-//     - he TOOK HIMSELF OUT while alive and before the end: GameLogic::onSelfDestruct, the order every quit path sends
-//       (Esc > Exit Game, quit to desktop, Surrender, the disconnect screen's Quit, a kick) and the one a peer that
-//       vanished is sent by the survivors (Network::processDestroyPlayerCommand). It executes at the same frame on
-//       every peer, so every stayer latches it identically (GXPerfReport.cpp gxStatNoteSelfDestruct);
-//     - or a HUMAN whose lobby slot says he left (lastFrameInGame, set by ConnectionManager::disconnectPlayer) before
-//       the end frame - one already beaten who then left.
-//   ONLY THE STAYERS SAY IT, in their full end-of-match GXEND; the quitter's own client sends nothing (it has no end
-//   frame). A teardown that ends the match for everyone - a desync's end timer - leaves no end frame on any peer, so
-//   nobody reports and nobody is marked.
-// ------------------------------------------------------------------------------------------------
+// A PLAYER WHO QUITS LOST, AND LEFT: GXEND r<slot>=x:... is the third outcome (relay.js GX_END_OUTCOME x -> 2), a LOSS.
+// Left = quit while alive before the end (GameLogic::onSelfDestruct: quit, kick, vanished peer; same frame on every
+// peer), or a human whose slot says he left (lastFrameInGame) before the end.
+// ONLY THE STAYERS SAY IT; a teardown that ends the match for everyone leaves no end frame, so nobody is marked.
 
 /// GXEND's outcome letter for one player. LEFT FIRST: victory is the ALLIANCE's and latched for a quitter too
 /// (VictoryConditions::markAllianceVictorious marks defeated allies), so a quitter on the winning team would read 'w'.

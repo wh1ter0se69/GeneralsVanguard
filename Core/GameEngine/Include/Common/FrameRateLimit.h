@@ -31,45 +31,19 @@ public:
 	Real wait(UnsignedInt maxFps, UnsignedInt pollFps = 0, Bool (*poll)() = nullptr, UnsignedInt maxDebtPeriods = 1); ///< maxDebtPeriods: how far behind the grid may run before it is forgiven (FramePacer fast forward)
 	void reset(); ///< Move the timing anchor AND the deadline grid to now, discarding any time elapsed since the last call to wait.
 
-	// GeneralsX: How long the limiter has spent limiting, cumulatively,
-	// as opposed to how long iterations took. Needed because "my own limiter held me" and "I am
-	// blocked on a peer's input" are different problems with different fixes, and nothing in the
-	// engine could tell them apart. wait()'s return value cannot: it is the same number whether
-	// the frame was slow or the limiter slept.
-	//
-	// Deliberately a CUMULATIVE TOTAL that a reader baselines and diffs, rather than a "last hold"
-	// the reader adds up. Callers of wait() and readers of this do not run at the same rate in
-	// either direction:
-	//   * the loading transition in GameLogic::startNewGame() drives the pacer in its own loop
-	//     without going through GameClient::update(), so several holds can land between two
-	//     reads - a last-value reader silently drops all but the final one;
-	//   * HeadlessMatch::run() calls TheGameEngine->update() directly and never reaches
-	//     TheFramePacer->update() at all, so a reader can sample hundreds of times a second while
-	//     wait() never runs - a last-value reader re-counts one stale hold forever.
-	// A monotonic total with a per-window delta is immune to both.
-	//
-	// Nanoseconds in Int64, not seconds in Real: Real is 32-bit float, and a match accumulating
-	// tens of thousands of ~33 ms holds would lose the small addend to rounding long before it
-	// ended.
+	// Cumulative nanoseconds the limiter has spent holding; wait() cannot tell a held frame from a slow one.
+	// A monotonic total that a reader baselines and diffs, because wait() callers and readers run at different
+	// rates (the loading loop in startNewGame; HeadlessMatch::run never reaches the pacer).
+	// Int64 ns: a 32-bit Real would round small addends away over a long match.
 	Int64 getTotalHoldNs() const { return m_totalHoldNs; } ///< Cumulative ns spent sleeping/spinning inside wait(). Never decreases; unchanged when uncapped.
 
 private:
 	Int64 m_freq;
 	Int64 m_start;
 
-	// GeneralsX: The deadline this frame is being paced to, on an absolute
-	// grid advanced by exactly one period per call - NOT re-derived from m_start.
-	//
-	// m_start is the tick wait() last EXITED at, so pacing from it makes every period independently
-	// >= the target: sleep granularity and long frames both push a period over, and nothing ever
-	// pulls one back under. The error is one-sided and the delivered rate can only sit below the
-	// requested cap. Network::timeForNewFrame() has carried its debt on an absolute grid since the
-	// beginning (Network.cpp, m_nextFrameTime += frameDelay); this did not, and that asymmetry is
-	// the whole undershoot.
-	//
-	// Kept as a separate member rather than replacing m_start, because the two answer different
-	// questions and wait() needs both: m_start gives the caller the real frame period it returns,
-	// m_deadline gives the limiter the target it must not drift from.
+	// Deadline this frame is paced to, on an absolute grid advanced one period per call, not re-derived from m_start.
+	// Pacing from m_start (when wait() last exited) makes every period at least the target; the rate only undershoots.
+	// m_start still gives the caller the real frame period.
 	Int64 m_deadline;
 
 	Int64 m_totalHoldNs;

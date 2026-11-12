@@ -144,13 +144,10 @@ void FrameMetrics::processLatencyResponse(UnsignedInt frame, Int fromSlot) {
 	Int latencyListIndex = frame % TheGlobalData->m_networkLatencyHistoryLength;
 	const Real seconds = (Real)timeDiff / (Real)1000; // convert to seconds from milliseconds.
 
-	// THE MEAN'S RING IS DELIBERATELY LEFT SHARED AND UNPARTITIONED. On the router this line is
-	// reached once per peer per frame (only for our own FRAMEINFOs since 23/09/2026 - see
-	// ConnectionManager::processAckStage1) and every peer writes this same slot, so the value that
-	// survives is the last ack to arrive - i.e. it tracks the WORST leg. That is exactly what
-	// run-ahead sizing wants (ConnectionManager::updateRunAhead) and it is what the [GXROUTE] note
-	// already documents as the meaning of local_ms. Partitioning it would quietly re-size the
-	// run-ahead window, which is a pacing change wearing a display change's clothes.
+	// The mean ring is deliberately left shared and unpartitioned. On the router this line is reached once per peer per
+	// frame (only for our own FRAMEINFOs, see ConnectionManager::processAckStage1) and every peer writes this same slot,
+	// so the surviving value is the last ack to arrive and tracks the WORST leg. That is what run-ahead sizing wants
+	// (ConnectionManager::updateRunAhead) and what [GXROUTE] documents as local_ms. Partitioning it would resize run-ahead.
 	m_latencyList[latencyListIndex] = seconds;
 
 	// GeneralsX: The same sample, filed under the peer that produced it.
@@ -189,103 +186,10 @@ Real FrameMetrics::getAverageLatency() {
 	return m_averageLatency;
 }
 
-// ---------------------------------------------------------------------------
-// THE DISPLAY REDUCTION. Read the history before changing it: this one small function has been the
-// site of four separate defects, and three of the fixes are still load-bearing here.
-//
-//   2026-08-04  It read ConnectionManager::getMaximumLatency(), which is assigned for the local slot
-//               only inside updateRunAhead, which only the packet router runs. On every client the
-//               array stayed zero and the HUD showed a confident green 0 ms all match. FIX: read a
-//               value every peer actually measures. STILL LOAD-BEARING - see the note below on why
-//               this change is not a swap back to getMaximumLatency().
-//   2026-08-10  It reduced with the MEAN. Each sample is the true round trip PLUS a uniform slice of
-//               one poll interval, because doRecv runs once per engine tick, so the mean converges
-//               on true + poll/2 - a slow-rendering box showed a high ping that was really its own
-//               frame time. FIX: reduce with the MINIMUM, which converges on the true round trip
-//               (the lobby path hit this and fixed it the same way - Transport.cpp,
-//               requestRelayIdentity stopwatch note). STILL LOAD-BEARING, now applied per peer.
-//   2026-08-11  The ring is seeded with 0.2 s at init, and the only writer of a real sample is
-//               processLatencyResponse. In a solo lobby no ack ever arrives, every slot stayed 0.2
-//               forever, and the readout presented an INIT CONSTANT as a rock-stable 200 ms in the
-//               amber band. FIX: a flag saying whether a real sample has ever landed, and a negative
-//               return when none has. STILL LOAD-BEARING, now per peer.
-//   2026-08-12  This one. Wrong about WHICH PEER rather than about what the number meant.
-//
-// The lesson common to the first three: a latency display must be able to say "I do not know". The
-// fourth adds a second one - it must also be able to say WHO.
-// ---------------------------------------------------------------------------
-//
-// GeneralsX: FOURTH DEFECT IN THIS ONE READOUT, and the first that was
-// wrong about WHICH PEER rather than about what the number meant.
-//
-// Measured live 2026-08-12: a 3-peer match showed 13 ms on the HUD while the relay was forwarding
-// 9038 packets / 1.46 MB for that room with dropped 0, unrouted 0, reply-dropped 0, and a relayed
-// peer costs 62-78 ms RTT. Both readings are only consistent if the lobby was MIXED - one peer
-// direct, at least one relayed - and the readout was showing the fastest one.
-//
-// WHY IT SHOWED THE FASTEST, exactly. On the packet router, sendLocalCommand's router branch
-// (ConnectionManager.cpp:2106-2115) fans the per-frame FRAMEINFO out to EVERY connection
-// individually. Every peer acks it, and every one of those acks arrives here for the same frame, so
-// every peer writes the SAME slot `frame % m_networkLatencyHistoryLength` in one shared ring, with
-// no record of who wrote it. Reducing that mixture with the minimum does not return "the best
-// estimate of my round trip"; it returns THE FASTEST PEER, and it does so almost deterministically
-// rather than occasionally:
-//
-//   at 58 tps and the default history length of 10, a slot is refreshed every 10 frames = 172 ms,
-//   and the 10 slots are staggered uniformly across that window because slot = frame % 10. Within
-//   one slot's cycle the fast peer's ack lands at 13 ms and the slow peer's at 70 ms, so the slot
-//   holds the fast value for 57 of every 172 ms. Uniform stagger means 3 or 4 of the 10 slots are
-//   inside that band at any instant - never zero. The minimum was 13 ms on every single frame.
-//
-// So the number the player watched was the one peer that was fine. Under lockstep, no peer executes
-// frame N until EVERY peer's input for N has arrived, so the peer that binds the match is the WORST
-// one - the readout was showing the least informative value available, and a badly connected peer
-// stayed invisible until the resend counter climbed.
-//
-// WHY WORST, and not best/worst as a pair or a per-peer list. The readout answers one question -
-// "is the network hurting this match, and who" - and under lockstep only the worst peer can hurt it.
-// A pair spends twice the HUD width to add a number that is by construction not binding, and it
-// degrades badly on a non-router peer where both halves are the same measurement. A per-peer list
-// cannot be honest here at all: a non-router peer measures exactly one leg (see below), so six of
-// its seven rows would be blank, which reads as a broken HUD rather than as missing data.
-//
-// THE MINIMUM SURVIVES, WHERE IT WAS ALWAYS MEANT TO APPLY - inside one peer's ring. Each sample is
-// the true round trip to that peer PLUS a uniform slice of one poll interval, because doRecv runs
-// once per engine tick; the minimum of N samples is the one where the reply landed just before a
-// tick, so it converges on the true round trip while the mean converges on true + poll/2. That fix
-// (10/08/2026) was correct and is untouched. What changed is that it now reduces samples that are
-// all from the SAME destination, which is the only thing it was ever a valid reduction over.
-//
-// WHAT EACH ROLE CAN HONESTLY CLAIM - this is the part that must not be overstated:
-//
-//   * On the PACKET ROUTER every peer's leg is measured here, so the return really is the lobby's
-//     worst leg, and worstSlotOut really does name the peer hurting the match.
-//   * On a NON-ROUTER peer, sendLocalCommand's else branch sends the FRAMEINFO to the router's
-//     connection ALONE, so exactly one ring is ever written and the return is d(me, router) with
-//     worstSlotOut naming the router. That is the truth about the only thing that peer measures.
-//     It is NOT a lobby-wide claim, and the HUD must therefore print the peer's name beside the
-//     number rather than a bare figure that invites the lobby-wide reading.
-//   * NOBODY knows d(i, j) between two non-router peers, and nothing on the wire carries the
-//     router's row back out. Making a client's readout lobby-wide needs a wire change, and the one
-//     to make is already specified in electPacketRouter's note ("THE SMALLEST WIRE CHANGE...") -
-//     widen NetRunAheadMetricsCommandMsg. Deliberately not done here: it is a protocol change on a
-//     digest-bearing path and it is a different piece of work from fixing this reduction.
-//
-// This is why the swap is NOT `getMaximumLatency()`. That one is assigned for the local slot only
-// inside updateRunAhead, which only the router runs, so on a client it stays zero and a HUD renders
-// a confident green 0 ms - the exact defect of 2026-08-04. This function is fed by an ack every peer
-// sends, so it is populated on every peer, and where it is not populated it says so.
-//
-// THE MEAN DELIBERATELY KEEPS ITS SEED AND ITS SHARED RING. m_averageLatency feeds run-ahead sizing
-// (ConnectionManager.cpp:1853) and rides the wire in RunAheadMetrics, where a pessimistic value is
-// correct and a sentinel would be actively harmful. Only the human-facing reduction learns about
-// "no sample yet"; the pacing arithmetic is untouched.
-//
-// The caller already does the right thing with a negative: Network.cpp's getDisplayLatencyMs maps
-// any non-positive to -1, and InGameUI maps that to NETWORK_LATENCY_NO_SAMPLE and prints "--ms".
-// GeneralsX: One peer's leg, extracted so the per-player scoreboard and
-// the single-figure HUD reduce the SAME samples by the SAME rule. getWorstPeerLatency below is now
-// a maximum over this, which is what stops the two readouts from ever disagreeing about a peer.
+// The display reduction. Each peer ring is reduced with the MINIMUM: a sample is the true round trip plus a slice of
+// one poll interval (doRecv runs once per tick), so the mean reads true + poll/2. The result is the WORST peer, since
+// under lockstep only the worst leg binds. No sample yet returns a negative. m_averageLatency keeps its seed and
+// shared ring: it feeds run-ahead sizing and RunAheadMetrics. getPeerLatency is one peer leg.
 Real FrameMetrics::getPeerLatency(Int slot) {
 	if ((slot < 0) || (slot >= MAX_SLOTS)) {
 		return -1.0f;
@@ -342,7 +246,7 @@ Real FrameMetrics::getWorstPeerLatency(Int &worstSlotOut) {
 		return -1.0f;	// no peer has a live measurement; say so rather than invent one
 	}
 
-	// GeneralsX: (cross-model review) Floor at 1 ms. A reply inside one
+	// GeneralsX: Floor at 1 ms. A reply inside one
 	// timeGetTime() millisecond stores a genuine 0.0 sample - routine on loopback and fast LAN -
 	// and the display accessor maps non-positive to "no measurement", so the FASTEST links would
 	// blank the readout. Sub-millisecond shown as 1 ms is honest; a blank is not.

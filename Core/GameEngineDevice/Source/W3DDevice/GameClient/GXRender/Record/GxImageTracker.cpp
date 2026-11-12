@@ -1,4 +1,22 @@
-// GeneralsX: WS-F1: image barriers for the pass graph (see GxImageTracker.h).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// WS-F1: image barriers for the pass graph (see GxImageTracker.h).
 #include "GxImageTracker.h"
 
 #include "GxResources.h"
@@ -176,7 +194,6 @@ void GxImageTracker::forget(const Res::GxImage* img)
 {
 	m_states.erase(img);
 	// a queued barrier must not outlive the image: a never-submitted image can be destroyed (its handle freed) before flush()
-	//
 	if (img != nullptr)
 		m_barriers.erase(std::remove_if(m_barriers.begin(), m_barriers.end(),
 			[img](const VkImageMemoryBarrier2& b) { return b.image == img->image; }), m_barriers.end());

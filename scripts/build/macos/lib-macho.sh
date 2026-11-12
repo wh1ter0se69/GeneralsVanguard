@@ -1,72 +1,13 @@
 #!/bin/bash
-# GeneralsX: Make a staged Mach-O bundle resolve its dylibs from itself.
-#
-# WHY THIS EXISTS. Every macOS and iOS artifact this repo has ever published carried LC_RPATH
-# entries pointing into the BUILD MACHINE'S HOME DIRECTORY:
-#
-#   path /Users/<builder>/Developer/GeneralsX-work/build/macos-vulkan/_deps/sdl3_image-build
-#   path /Users/<builder>/Developer/GeneralsX-work/build/macos-vulkan/_deps/sdl3-build
-#   path /Users/<builder>/Developer/GeneralsX-work/build/macos-vulkan
-#   path /Users/<builder>/Developer/GeneralsX-work/build/macos-vulkan/_deps/openal_soft-build
-#
-# Two harms, and the first one hid the second for months.
-#
-#  1. THE BINARY ONLY WORKED THROUGH ITS WRAPPER. Contents/MacOS/run.sh exports DYLD_LIBRARY_PATH
-#     at the bundle's own lib dir, and dyld searches DYLD_LIBRARY_PATH BEFORE the path recorded in
-#     the load command - for absolute install names as well as @rpath ones. So the wrapper masked
-#     every unresolvable path in the bundle. Anything that exec'd Contents/Resources/bin/GeneralsXZH
-#     directly - a script, a debugger, a future launcher - aborted at dyld with
-#     "Library not loaded: @rpath/libSDL3_image.0.dylib". A player on another Mac hit exactly that.
-#     The wrapper was load-bearing and nothing said so.
-#
-#  2. IT LEAKED A USERNAME AND A DIRECTORY LAYOUT into a public artifact, in every release.
-#
-# WHY PACKAGING TIME AND NOT CMake. INSTALL_RPATH/BUILD_WITH_INSTALL_RPATH would fix our own
-# executable, and nothing else: SDL3 and SDL3_image are FetchContent subprojects with their own
-# link settings, and the ~25 Homebrew dylibs collect_external_dylibs() copies in are not built by
-# us at all - they arrive carrying /opt/homebrew/... absolute LC_LOAD_DYLIB entries that no CMake
-# variable of ours can touch. A relink over the STAGED TREE fixes every Mach-O in the bundle
-# regardless of who produced it, in one place. It also keeps the change out of
-# SIMDIGEST_PATHS_BUILD - cmake/, triplets/, CMakePresets.json and vcpkg*.json are digested, so a
-# CMake-side fix would move sourceID and force an atomic four-platform ship for a packaging bug.
-#
-# WHAT IS NOT CHANGED: the wrapper. It keeps working exactly as before. It simply stops being the
-# only thing that works.
-#
-# Usage as a library:   source scripts/build/macos/lib-macho.sh
-# Usage as a check:     scripts/build/macos/lib-macho.sh <path/to/Whatever.app>
-#                       exit 0 = portable, 1 = carries a path off the machine that built it.
+# Make a staged Mach-O bundle resolve its dylibs from itself: strip absolute LC_RPATHs, rewrite deps to @rpath/<leaf>.
+# Otherwise it works only via run.sh's DYLD_LIBRARY_PATH, direct execs die at dyld, and a username leaks.
+# Done at packaging time, not in CMake (cmake/ and the presets are digested).
+# Run directly on an .app it only checks: exit 0 = portable, 1 = carries a path off the machine that built it.
 
-# --- readers -------------------------------------------------------------------------------
-# otool -L marks DEPENDENCY lines with a leading TAB and architecture headers without one. That
-# tab is the only reliable discriminator: on a fat file (the Vulkan SDK ships fat) the second
-# architecture's header is "<path> (architecture arm64):", whose first field is an absolute path
-# and reads exactly like a dependency to a naive `awk '{print $1}'`. An earlier pass of this work
-# reported libvulkan.dylib and libMoltenVK.dylib as carrying absolute deps for that reason; they
-# do not. Filter on the tab, not on the line number.
-#
-# THE READERS FAIL CLOSED. Each captures otool's output first and returns non-zero if otool did,
-# because the gate reads "no load commands" as "nothing wrong". Piping otool straight into a filter
-# dropped its status: a missing otool (every Linux runner - release.yml runs verify-bundle-overlay.sh
-# on ubuntu-latest) or a Mach-O otool cannot parse (it exits 1) came back empty, and the gate printed
-# OK over a bundle it had never read. Callers must capture into a variable and check the status;
-# a `< <(reader)` or `for x in $(reader)` discards it again. Likewise a `done <<< "${x}"` loop whose
-# silence would read as success is followed by `|| return 1`: bash 3.2 (/bin/bash) backs a
-# here-string with a temp file, and when it cannot create one (full disk, unwritable /var/tmp and
-# /tmp) the loop runs zero times and exits non-zero - which, unchecked, is a relink that changed
-# nothing and a gate with nothing to report. (gx_macho_resolve's needs no check: its only success
-# path is inside the loop.) The gate's file list is captured the same way, because find skips a
-# directory it cannot read, says so on stderr and exits 1 - and its Mach-Os were never judged.
-#
-# ONE SLICE AT A TIME, WHEN ASKED. The optional <arch> reads that architecture alone. Without it
-# every slice of a universal file is merged, which is what the relink wants (install_name_tool edits
-# all slices at once) and what the gate must NOT use: dyld loads exactly one slice, so a merged view
-# let an x86_64 slice's LC_RPATH answer for an arm64 slice that had none.
-#
-# AND THEY KEEP WHITESPACE. Paths are printed one per line, whole: otool prints an LC_RPATH as
-# "path <p> (offset N)" and a dependency as "<TAB><p> (compatibility version ...)", and <p> may
-# contain spaces (a checkout under "My Projects"). Splitting on fields cut them at the first space,
-# so the relink tried to -delete_rpath a path that does not exist and aborted the package.
+# --- readers ---
+# otool -L marks dependency lines with a leading TAB; filter on it (a fat file's slice header starts with a path).
+# The readers FAIL CLOSED: they return non-zero when otool does, so callers must capture output and check status.
+# Optional <arch> reads one slice, else all slices merge. Paths print whole, one per line (they may contain spaces).
 
 gx_macho_is() {
     [[ -f "$1" && ! -L "$1" ]] || return 1
@@ -96,7 +37,7 @@ gx_macho_id() {
     printf '%s\n' "${out}" | awk '!/:$/ && NF && !n++'
 }
 
-# GeneralsX: One Vulkan loader build under both of its names.
+# One Vulkan loader build under both of its names.
 #
 # The game binary links @rpath/libvulkan.1.dylib, so SDL3 takes that loader (its RTLD_DEFAULT probe
 # finds it already loaded). DXVK dlopens libvulkan.dylib, and DXVK's SDL3 WSI hands its VkInstance to
@@ -105,7 +46,6 @@ gx_macho_id() {
 # then failed with "Permission denied" behind `2>/dev/null || true`. So 0.9.61 and 0.9.62 shipped
 # Homebrew 1.4.357.0 for SDL next to LunarG SDK 1.4.357.1 for DXVK. That works only while the two
 # loaders agree on the layout of an instance (the same release today). Measured:
-#
 
 # gx_macho_uuids <file> - one "<arch> <LC_UUID>" line per slice; fails closed on a slice without one.
 gx_macho_uuids() {
@@ -184,23 +124,10 @@ gx_macho_dep_is_system() {
     [[ "$1" == /usr/lib/* || "$1" == /System/Library/* ]]
 }
 
-# --- the relink ----------------------------------------------------------------------------
-# gx_macho_relink <lib_dir> <exe_rpath> <executable> [executable...]
-#
-#   lib_dir    directory holding the staged dylibs (Contents/Resources/lib, or Frameworks)
-#   exe_rpath  what the executables should carry to reach it (@loader_path/../lib,
-#              @executable_path/Frameworks)
-#
-# For every Mach-O under lib_dir and every named executable:
-#   * every ABSOLUTE LC_RPATH is deleted (that is the defect)
-#   * one relative LC_RPATH is added, pointing at lib_dir from that file's own location
-#   * LC_ID_DYLIB keeps its soname but loses its directory: @rpath/<leaf>
-#   * every LC_LOAD_DYLIB whose leaf name is staged in lib_dir becomes @rpath/<leaf>
-#
-# Deps whose leaf is NOT staged are left alone: rewriting those to @rpath would turn a library
-# that currently resolves into one that cannot. gx_macho_assert_portable() then reports them,
-# which is the correct outcome - an unstaged non-system dep is a bundle that is broken for a
-# player, not a bundle we should quietly relabel.
+# --- the relink ---
+# gx_macho_relink <lib_dir> <exe_rpath> <executable>... - exe_rpath is how the executables reach lib_dir.
+# For each Mach-O: drop absolute LC_RPATHs, add one relative one, set LC_ID_DYLIB and staged LC_LOAD_DYLIBs to
+# @rpath/<leaf>. Deps not staged are left alone; gx_macho_assert_portable() reports them.
 gx_macho_relink() {
     local lib_dir="$1" exe_rpath="$2"
     shift 2
@@ -281,17 +208,8 @@ gx_macho_relink() {
             touched=1
         fi
 
-        # RE-SIGN, AD HOC. Not optional on Apple Silicon and not cosmetic: every arm64 Mach-O
-        # carries a signature (the linker ad-hoc signs ours, Homebrew ad-hoc signs its own), and
-        # install_name_tool invalidates it rather than repairing it - it says so, on stderr, once
-        # per file. A bundle relinked without this step passes every otool check and then dies
-        # with SIGKILL (exit 137) the moment it is exec'd, which is a WORSE failure than the one
-        # being fixed: no message, no dyld line, nothing to search for. Measured 23/09/2026 -
-        # relinked without re-signing, the clean-environment exec returned 137 with no output.
-        #
-        # `-s -` is ad hoc, which is exactly what these files already had; no identity is invented
-        # and none is required. Callers that sign with a real identity afterwards (the iOS
-        # packager) simply overwrite this.
+        # Re-sign ad hoc: install_name_tool invalidates arm64 signatures, and an unsigned relinked bundle dies with SIGKILL
+        # (exit 137) on exec. Callers that sign with a real identity afterwards (the iOS packager) overwrite it.
         if [[ ${touched} -eq 1 ]]; then
             if ! err="$(codesign --force --sign - --timestamp=none "${target}" 2>&1)"; then
                 echo "ERROR: could not ad-hoc re-sign ${target} after relinking" >&2
@@ -333,33 +251,10 @@ gx_macho_relink() {
     return 0
 }
 
-# --- resolution, without loading anything ----------------------------------------------------
-# gx_macho_resolve <file> <dep> <executable_dir> <arch>  -> prints the path dyld would open for that
-# slice of <file>, or nothing.
-#
-# WHY THIS IS DONE BY HAND AND NOT BY RUNNING THE BINARY. Executing GeneralsXZH to see whether
-# dyld is happy opens a window on whatever Mac is running the check, which on 23/09/2026 put a
-# modal over the owner's live match. It is also unnecessary: @rpath resolution is a documented,
-# purely static substitution, so the same question is answered by reading the load commands.
-# `dyld_info -linked_dylibs` prints the raw install names but does not resolve them, so the
-# substitution is done here.
-#
-# dyld consults the rpaths of the whole loading chain; this checks the loading image's own, which
-# is the stricter rule and the one a self-contained bundle must satisfy anyway - a library that
-# only resolves because some *other* image in the bundle happened to carry the right rpath is a
-# bundle that breaks the moment the load order changes.
-#
-# A candidate counts only if dyld would LOAD it: a regular file (symlinks followed) whose <arch>
-# slice is an MH_DYLIB. Mere existence passed a zero-byte file, a directory, or an x86_64-only dylib
-# under an arm64 executable; `lipo -verify_arch` then passed any Mach-O with that slice - a static
-# archive, an object, a bundle, an executable. dyld refuses each ("cannot link against bundle",
-# "unloadable mach-o file type 1"): it moves on to the next rpath, and aborts (exit 134) when none
-# is left - both measured 23/09/2026. This does the same.
-# otool -hv prints "magic cputype cpusubtype caps filetype ..." per slice, so $5 is the filetype;
-# an archive's members are printed as if they were the file, hence the "Archive :" refusal. No
-# output (no such slice, unreadable file, otool missing) is a refusal too.
-# Trade-off: exact slice match. An arm64e or x86_64h loader that dyld lets fall back to a plain
-# arm64/x86_64 dylib is refused here; teach this the fallback if the bundle ever ships one.
+# --- resolution, without loading anything ---
+# gx_macho_resolve <file> <dep> <executable_dir> <arch> - print the path dyld would open for that slice, or nothing.
+# Static: reads load commands and the loading image's own rpaths. A candidate must be a regular file with a DYLIB slice.
+# Trade-off: exact slice match; an arm64e or x86_64h loader that dyld lets fall back to a plain slice is refused.
 _gx_macho_loadable() {
     [[ -f "$1" && -r "$1" ]] && otool -arch "$2" -hv "$1" 2>/dev/null \
         | awk '/^Archive :/ { exit 1 } $5 == "DYLIB" { d = 1 } END { exit !d }'
@@ -398,22 +293,10 @@ _gx_macho_flag() {
     bad=1
 }
 
-# --- the gate ------------------------------------------------------------------------------
-# gx_macho_assert_portable <root> [label] [executable_dir]
-#
-# Reports EVERY offending file, then returns once, so one run tells you everything that is wrong.
-# Run it against the finished artifact, not against the staging tree it came from.
-#
-# Two properties, and the second is the one that makes this a proof rather than a spot check:
-#   * no LC_RPATH / LC_ID_DYLIB / LC_LOAD_DYLIB names a path outside the bundle
-#   * every non-system dependency RESOLVES, to a loadable Mach-O inside the bundle
-# The first alone would pass a bundle whose rpaths were stripped and whose libraries were then
-# unreachable - which is exactly the regression this change could introduce.
-#
-# Both are judged PER ARCHITECTURE SLICE. A universal file is several images sharing a file and
-# dyld loads one of them; a slice-merged read let an x86_64 slice's rpath resolve an arm64 slice's
-# dependencies. The relink cannot repair slices that disagree (install_name_tool edits all slices
-# at once), so this is where such a file is refused.
+# --- the gate ---
+# gx_macho_assert_portable <root> [label] [executable_dir] - reports EVERY offending file; run on the finished artifact.
+# No LC_RPATH / LC_ID_DYLIB / LC_LOAD_DYLIB may name a path outside the bundle, and every non-system dependency must
+# resolve to a loadable Mach-O inside it. Judged per architecture slice, since dyld loads one.
 gx_macho_assert_portable() {
     local root="$1" label="${2:-$1}" exe_dir="${3:-$1}"
     local bad=0 seen=0 f dep rp shown own_id resolved rpaths deps canon_root c archs arch slice files

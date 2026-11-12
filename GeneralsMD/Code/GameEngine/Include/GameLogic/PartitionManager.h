@@ -404,6 +404,7 @@ private:
 	CellAndObjectIntersection		*m_coiArray;							///< The array of COIs
 	Int64												m_doneFlag;							///< GeneralsX: 64-bit (gcoIterFlag never wraps; a skipped cell leaves old flags)
 	Int													m_ownerTag;							///< GeneralsX: the owner tag its COIs are counted under in their cells
+	Bool												m_gxMissile;						///< GeneralsX: its COIs are counted in PartitionManager::m_cellMissileCount
 	Coord3D											m_fillPos;						///< GeneralsX: the Object's position when its cells were last filled (updateCellsTouched)
 	DirtyStatus									m_dirtyStatus;
 	ObjectShroudStatus					m_shroudedness[MAX_PLAYER_COUNT];
@@ -584,6 +585,9 @@ public:
 	/// Object's controlling player changed: Object::setOrRestoreTeam and TeamPrototype call friend_updateOwnerTag to recount.
 	Int friend_getOwnerTag() const { return m_ownerTag; }
 	void friend_updateOwnerTag();
+	/// GeneralsX: a BALLISTIC_MISSILE or SMALL_MISSILE Object, its COIs counted in
+	/// PartitionManager::m_cellMissileCount. Set once in attachToObject, before any COI is in use: KindOf is the template's.
+	Bool friend_isMissile() const { return m_gxMissile; }
 	/// GeneralsX: for visitObjectsNearToFar's stale-cell check (PartitionManager only)
 	PartitionData *friend_getNextDirty() const { return m_nextDirty; }
 	CellAndObjectIntersection *friend_getCoi(Int i) { return &m_coiArray[i]; }
@@ -654,6 +658,12 @@ public:
 	object whose cells are stale this frame (it moved since the last PartitionManager::update) is asked about by its
 	current centre distance (mayStillMatter); the walk then continues until that object's cells have been visited.
 */
+#ifdef GX_TEST_INSTRUMENTS
+/// GeneralsX TEST-ONLY checker counters (never in a shipped build)
+struct GXRw1Stats { UnsignedInt calls, stopped, rings, dirtyWalked; };
+extern GXRw1Stats TheGXRw1Stats;
+#endif
+
 class PartitionRingVisitor
 {
 public:
@@ -1314,13 +1324,18 @@ private:
 	Int							m_cellCountY;			///< number of cells, y
 	Int							m_totalCellCount;	///< x * y
 	PartitionCell*	m_cells;					///< array of cells
-	// GeneralsX: per cell (same index as m_cells): the owner tags of the objects whose COIs are
-	// in it (bit 1 << tag, see PARTITION_OWNER_NONE), and per cell and tag how many COIs carry it (32-bit: 16 wrapped at
-	// 65,536 stacked objects). Beside the cells, not in PartitionCell: a guard scan reads one mask
-	// for each of ~14,000 cells, so a dense array is what makes skipping a cell cheap, and PartitionCell keeps its size for
-	// the shroud and everything else that walks cells (fps-profile-2: counts inside the cell cost more than they saved).
+	// Per cell (same index as m_cells): the owner tags of the objects whose COIs are in it (bit 1 << tag, see PARTITION_OWNER_NONE),
+	// and per cell and tag how many COIs carry it (32-bit: 16 wrapped at 65,536 stacked objects). Kept beside the cells, not in
+	// PartitionCell: a guard scan reads one mask for each of ~14,000 cells, so a dense array makes skipping cheap, and PartitionCell keeps its size.
 	PartitionOwnerMask*		m_cellOwnerMask;
 	UnsignedInt*		m_cellOwnerCount;	///< [cell index * PARTITION_OWNER_TAGS + tag]
+	// GeneralsX: per cell (same index as m_cells): how many COIs of missiles
+	// (PartitionData::friend_isMissile) are in it, and in all cells, so iterateMissilesInRange skips every cell holding none.
+	// The same per block of 8 x 8 cells (row-major, m_missileBlockCountX wide), so a scan with none near reads a few blocks.
+	UnsignedInt*		m_cellMissileCount;
+	UnsignedInt			m_missileCoiCount;
+	UnsignedInt*		m_blockMissileCount;
+	Int							m_missileBlockCountX;
 	PartitionData*	m_dirtyModules;
 	Bool						m_updatedSinceLastReset;	///< Used to force a return of OBJECTSHROUD_INVALID before update has been called.
 
@@ -1333,6 +1348,9 @@ private:
 	// 2 * m_cellCountX - 1 wide): where getClosestObjects' ring walk meets that offset (its index in m_radiusVec read ring by
 	// ring), or -1 when no ring holds it. iterateObjectsInRangePure orders its objects by it.
 	std::vector<Int>	m_walkRank;
+	// GeneralsX: per ring: the largest |x| or |y| of any offset in it or a smaller
+	// ring, so the rings up to r lie in the square of that half-width around the centre cell (iterateMissilesInRange)
+	std::vector<Int>	m_ringReach;
 #endif
 	// GeneralsX: the largest bounding circle radius any Object has had when its cells were
 	// filled (PartitionData::updateCellsTouched) since the last reset. Only ever grows, so it bounds every object in the
@@ -1473,6 +1491,16 @@ public:
 	/// iterator's insertion order (not sorted), ring by ring, stopping early once the visitor says nothing else can matter.
 	void visitObjectsNearToFar(const Object *obj, Real maxDist, DistanceCalculationType dc, PartitionFilter **filters,
 		PartitionRingVisitor *visitor);
+
+	/// GeneralsX: getClosestObject for a guard area scan, ending the ring walk once no object left can be
+	/// inside the area. Only for filters that include the area test with no side effect before it. See the definition.
+	Object *getClosestObjectInArea(
+		const Coord3D *pos,
+		Real maxDist,
+		DistanceCalculationType dc,
+		PartitionFilter **filters,
+		const PolygonTrigger *area
+	);
 	/// GeneralsX: PartitionData::updateCellsTouched reports each object's bounding radius (see m_maxObjectRadius)
 	void friend_noteObjectRadius(Real r) { if (r > m_maxObjectRadius) m_maxObjectRadius = r; }
 	void friend_noteDrift(Real d) { if (d > m_maxDrift) m_maxDrift = d; }	///< see m_maxDrift
@@ -1525,6 +1553,14 @@ public:
 		PartitionFilter **filters = nullptr,
 		IterOrderType order = ITER_FASTEST
 	);
+
+	/**
+		GeneralsX: every BALLISTIC_MISSILE and SMALL_MISSILE Object (PartitionData::
+		friend_isMissile) that iterateObjectsInRange(pos, maxDist, dc) returns, in its order; other objects may be left out, so the
+		caller still tests each object's KindOf. It is that ring walk skipping the cells that hold no missile COI
+		(m_cellMissileCount): a missile is never first met in such a cell, so each one is reached where the full walk reaches it.
+	*/
+	SimpleObjectIterator *iterateMissilesInRange(const Coord3D *pos, Real maxDist, DistanceCalculationType dc);
 
 	/**
 		GeneralsX: the iterator iterateObjectsInRange(obj, ...) returns, same objects in the same
@@ -1585,6 +1621,9 @@ public:
 	/// GeneralsX: intended only for CellAndObjectIntersection and PartitionData - a COI with this owner tag joined / left the cell
 	void friend_addCellOwner(const PartitionCell *cell, Int tag);
 	void friend_removeCellOwner(const PartitionCell *cell, Int tag);
+	/// GeneralsX: intended only for CellAndObjectIntersection - a missile's COI joined / left the cell (m_cellMissileCount)
+	void friend_addCellMissile(const PartitionCell *cell);
+	void friend_removeCellMissile(const PartitionCell *cell);
 
 	Bool isInListDirtyModules(PartitionData* o) const
 	{

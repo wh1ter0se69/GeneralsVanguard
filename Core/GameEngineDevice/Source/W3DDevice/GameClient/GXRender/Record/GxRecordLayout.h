@@ -1,13 +1,25 @@
-// GeneralsX: WS-F1: the ONE pipeline layout every fixed-function pipeline (generic and
-// specialised, WS-D) and every GxPacketWriter draw uses. The contract with rw2-D (agreed 11/10/2026):
-//   set 0 = { b0 UNIFORM_BUFFER_DYNAMIC: the FF VS block (vertex), b1 UNIFORM_BUFFER_DYNAMIC: the FF PS block (fragment) }
-//   set 1 = { b0..b7 COMBINED_IMAGE_SAMPLER 2D: texture stages 0..7 (fragment) }
-//   push constants [0, 128) VERTEX|FRAGMENT = the FF spec block, pushed on EVERY FF draw (a specialised pipeline ignores it).
-// One layout for all, so switching generic <-> specialised never rebinds anything.
-// S7 (A20 c / A36 item 3): with look-feature bit 0 the layout gains
-//   set 2 = THE look frame set { b0 COMBINED_IMAGE_SAMPLER: the shadow atlas through an IMMUTABLE compare sampler (LESS_OR_EQUAL, LINEAR,
-//   clamp), b1 COMBINED_IMAGE_SAMPLER: the same atlas through an immutable NEAREST sampler, b2 UNIFORM_BUFFER_DYNAMIC: GxLookFrameUbo }
-//   (fragment stage). Later readers append b3+; there is no set 3. Without the bit the layout is exactly today's.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The ONE pipeline layout every fixed-function pipeline and every GxPacketWriter draw uses.
+//   set 0 = { b0, b1 UNIFORM_BUFFER_DYNAMIC: FF VS block, FF PS block }; set 1 = { b0..b7 sampler 2D }
+//   push constants [0, 128) = the FF spec block, pushed on EVERY FF draw.
+// With look-feature bit 0 it gains set 2 (shadow atlas + GxLookFrameUbo).
 #pragma once
 
 #include "VkCommon.h"

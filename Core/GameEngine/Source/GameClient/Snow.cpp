@@ -55,19 +55,10 @@ void SnowManager::updateIniSettings()
 {
 	Real *dst=m_startingHeights;
 	//initialize a table of random starting positions for each particle.
-	// GeneralsX: The Weather block's snow values come from any INI, a map's map.ini included,
-	// and this runs as soon as one is parsed, snow on or not. A box below 1 divided by zero in the modulus below on every
-	// peer that loaded the map, one past Int's range made the conversion undefined, and W3DSnow turns density and the
-	// frequency scales into Int emitter counts, Int cube extents (camera position x density, camera up to 100000) and
-	// Fast_Sin phases. The limits keep all of those inside Int: density positive (0.001 if not) and at most 100, the
-	// cube's particle count (emitters across, squared) below 2^31, frequency scales within +-100. Shipped and community
-	// maps use boxes of 50-400, densities of 0.1-4 and frequency scales of 0-3.2, far inside them.
-	// GeneralsX: Fitting Int was not enough: W3DSnow walks every emitter of the box around the
-	// camera each frame, clipped only by the visible terrain box widened by SnowAmplitude, so a box inside the view (or any
-	// box with a large amplitude) costs (emitters across)^2 particles a frame - 1.6 billion for a 400 box at density 100,
-	// a client freeze that stalls the lockstep match. The box is thinned to at most 1,024
-	// emitters across (~1M particles). The heaviest real map is 400 across (box 100 x density 4; 167 Weather blocks in the
-	// shipped INIs and 1,222 community maps), so every real map keeps its spacing.
+	// Snow values come from any INI (a map's included) and this runs on parse, snow on or not. A box below 1 divided
+	// by zero here; limits keep values inside Int (density 0.001..100, frequency scales within +-100).
+	// Emitters across are thinned to at most 1,024 (~1M particles): W3DSnow walks them all each frame. The heaviest
+	// real map is 400 across, so real maps keep their spacing.
 	const Real kMaxBoxSize = 100000.0f, kMinDensity = 0.001f, kMaxDensity = 100.0f, kMaxEmittersAcross = 1024.0f;
 	const Real kMaxFrequencyScale = 100.0f;
 	Real boxSize = TheWeatherSetting->m_snowBoxDimensions;

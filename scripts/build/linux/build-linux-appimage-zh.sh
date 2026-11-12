@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# GeneralsX: Build a portable AppImage package for GeneralsXZH on Linux.
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Build a portable AppImage package for GeneralsXZH on Linux.
 # Usage:
 #   ./scripts/build/linux/build-linux-appimage-zh.sh [preset]
 set -euo pipefail
@@ -11,7 +13,7 @@ BUILD_DIR="${PROJECT_ROOT}/build/${PRESET}"
 APPIMAGE_ROOT="${PROJECT_ROOT}/build/appimage"
 APPDIR="${APPIMAGE_ROOT}/GeneralsXZH.AppDir"
 OUTPUT_APPIMAGE="${PROJECT_ROOT}/build/GeneralsXZH-${PRESET}-x86_64.AppImage"
-# GeneralsX: Pin appimagetool to immutable upstream release and enforce checksum validation.
+# Pin appimagetool to immutable upstream release and enforce checksum validation.
 APPIMAGETOOL_VERSION="${APPIMAGETOOL_VERSION:-1.9.1}"
 APPIMAGETOOL_URL="${APPIMAGETOOL_URL:-https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-x86_64.AppImage}"
 APPIMAGETOOL_SHA256="${APPIMAGETOOL_SHA256:-ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0}"
@@ -54,7 +56,7 @@ copy_ldd_deps() {
 
     while IFS= read -r dep; do
         case "${dep}" in
-            # GeneralsX: Exclude glibc loader/runtime files across common Linux layouts to preserve AppImage portability.
+            # Exclude glibc loader/runtime files across common Linux layouts to preserve AppImage portability.
             linux-vdso.so.1 | \
             /lib64/ld-linux* | /lib/*/ld-linux* | /usr/lib/*/ld-linux* | /usr/lib64/ld-linux* | \
             /lib/*/libc.so.* | /lib64/libc.so.* | /usr/lib/*/libc.so.* | /usr/lib64/libc.so.* | \
@@ -159,7 +161,7 @@ copy_optional_libs "${SDL3_LIB_DIR}" "libSDL3.so*"
 copy_optional_libs "${SDL3_IMAGE_LIB_DIR}" "libSDL3_image.so*"
 copy_optional_libs "${OPENAL_LIB_DIR}" "libopenal.so*"
 
-# GeneralsX: Bundle FFmpeg SONAME-compatible libs to avoid host version mismatch (e.g. Ubuntu 25.10).
+# Bundle FFmpeg SONAME-compatible libs to avoid host version mismatch (e.g. Ubuntu 25.10).
 copy_codec_dep "libavcodec.so*"
 copy_codec_dep "libavformat.so*"
 copy_codec_dep "libavutil.so*"
@@ -368,7 +370,7 @@ cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/512x512/apps/GeneralsXZH.png
 if command -v appimagetool >/dev/null 2>&1 && [[ -z "${CI:-}" ]]; then
     APPIMAGETOOL_BIN="$(command -v appimagetool)"
 else
-    # GeneralsX: Use pinned appimagetool artifact with mandatory SHA-256 verification for reproducible packaging.
+    # Use pinned appimagetool artifact with mandatory SHA-256 verification for reproducible packaging.
     APPIMAGETOOL_BIN="${APPIMAGE_ROOT}/appimagetool.AppImage"
     mkdir -p "${APPIMAGE_ROOT}"
     if [[ ! -f "${APPIMAGETOOL_BIN}" ]]; then

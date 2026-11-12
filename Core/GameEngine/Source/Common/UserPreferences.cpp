@@ -175,18 +175,10 @@ Bool UserPreferences::load(AsciiString fname)
 			AsciiString key, val;
 			line.nextToken(&key, "=");
 
-			// GeneralsX @bugfix: nextToken() leaves the remainder starting at the '='
-			// separator ONLY when it actually found one. On a line with no '=' (a blank
-			// line, a hand-added comment, a file truncated mid-write, or the tail chunk
-			// of a >LINE_LEN line that fgets split), it consumes the whole string and
-			// leaves 'line' empty. AsciiString::str() then returns the address of a
-			// one-byte static NUL, so the old unconditional "line.str() + 1" handed
-			// operator= a pointer one byte PAST that static and strlen() ran off it -
-			// an out-of-bounds read whose length, and therefore whether it faults or
-			// silently injects a garbage preference value, depends on whatever the
-			// linker placed next. Skip the line instead; with no '=' there is no
-			// key/value pair to store, which is what the key/val emptiness test below
-			// was already doing for the malformed lines it happened to catch.
+			// nextToken() leaves the remainder starting at the = separator only when it found one. With no = (blank line,
+			// truncated write, or the tail chunk of a >LINE_LEN line) it consumes the whole string and leaves line empty,
+			// and AsciiString::str() is then a one-byte static NUL, so line.str() + 1 would read past it. Skip the line:
+			// there is no key/value pair to store.
 			if (line.isEmpty())
 				continue;
 

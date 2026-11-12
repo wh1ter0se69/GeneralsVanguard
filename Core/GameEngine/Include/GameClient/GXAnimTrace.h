@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: Cb-06a: the client animations' motion trace and its test triggers, for a rendered
+// Cb-06a: the client animations' motion trace and its test triggers, for a rendered
 // A/B at several fps caps. Both are off unless their variable is set, and then only print or trigger client state.
 //
 //   GX_ANIMTRACE=1   [GXANIM] lines: the camera lock's position per draw, the WW3D clocks per draw, the radar glow and
@@ -39,7 +39,7 @@ namespace GXAnimTrace
 {
 	inline bool on()
 	{
-		// GeneralsX: GX_ANIMTRACE and GX_ANIMTEST: only an instrumented build reads them - camlock
+		// GX_ANIMTRACE and GX_ANIMTEST: only an instrumented build reads them - camlock
 		// locked the view on an unseen enemy command center and the trace printed where it was.
 #if defined(GX_TEST_INSTRUMENTS)
 		static const bool s_on = []() { const char *e = getenv("GX_ANIMTRACE"); return e != nullptr && e[0] != '\0' && e[0] != '0'; }();

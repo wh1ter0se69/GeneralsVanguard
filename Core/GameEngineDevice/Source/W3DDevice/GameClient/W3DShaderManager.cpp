@@ -231,7 +231,7 @@ Bool ScreenDefaultFilter::postRender(FilterModes mode, Coord2D &scrollDelta,Bool
 	pDev->SetVertexShader(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1);
 
 	pDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(_TRANS_LIT_TEX_VERTEX));
-	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 
 	reset();
 	return true;
@@ -260,21 +260,10 @@ void ScreenDefaultFilter::reset()
 }
 
 
-// GeneralsX: Class-C gate for the screen fade filters.
-//
-// set()/postRender() run once per RENDERED frame, but m_fadeFrames is a count of LOGIC FRAMES
-// (CommandXlat.cpp passes 30 and 60), so a one-second scripted fade or view filter completed in
-// ~62 ms at the 8x network floor - it snapped instead of fading.
-//
-// The `|| isTimeFrozen()` is load-bearing and is NOT a hedge. The logic frame does not advance
-// while time is frozen (GameLogic::update returns before its m_frame++), and W3DDisplay::draw
-// spins `do { ... } while (freezeTime && !isCameraMovementFinished())` INSIDE a single iteration.
-// A bare stamp would therefore stall a fade forever in the middle of a cinematic. Falling open
-// under a freeze keeps that case bit-for-bit what it is today, so this commit fixes normal play
-// and introduces no new failure mode in frozen time.
-//
-// Each filter owns its own stamp; they must not share one, because two filters can be mid-fade
-// at once and the second would see the first's stamp and never step.
+// GeneralsX: gate for screen fade filters: set()/postRender() run per RENDERED frame, m_fadeFrames counts LOGIC frames,
+// so a one-second fade finished in ~62 ms at the 8x network floor.
+// `|| isTimeFrozen()` is load-bearing: logic frames stop under a freeze, so a bare stamp would stall the fade forever.
+// Each filter owns its own stamp; sharing one would stop the second of two mid-fade filters from stepping.
 static Bool gxFadeFrameAdvanced( UnsignedInt &stamp )
 {
 	if (TheGameLogic == NULL)
@@ -407,7 +396,7 @@ Bool ScreenBWFilter::postRender(FilterModes mode, Coord2D &scrollDelta,Bool &doE
 	pDev->SetVertexShader(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1);
 
 	pDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(_TRANS_LIT_TEX_VERTEX));
-	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 
 	reset();
 	return true;
@@ -624,7 +613,7 @@ Bool ScreenBWFilterDOT3::postRender(FilterModes mode, Coord2D &scrollDelta,Bool 
 	DX8Wrapper::_Get_D3D_Device8()->SetTexture(0,tex);	//previously rendered frame inside this texture
 
 	pDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(_TRANS_LIT_TEX_VERTEX));
-	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 
 	//Draw normal view blended by current fade level
 	ShaderClass::Invalidate();	//reset DOT3 blend from above.
@@ -636,7 +625,7 @@ Bool ScreenBWFilterDOT3::postRender(FilterModes mode, Coord2D &scrollDelta,Bool 
 	DX8Wrapper::Set_DX8_Texture_Stage_State( 0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG2);
 
 	pDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(_TRANS_LIT_TEX_VERTEX));
-	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 
 	reset();
 	return true;
@@ -901,7 +890,7 @@ Bool ScreenCrossFadeFilter::postRender(FilterModes mode, Coord2D &scrollDelta,Bo
 //		GxRawTSS(m_pDev, 0,D3DTSS_MINFILTER,D3DTEXF_POINT);
 
 	pDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(_TRANS_LIT_TEX_VERTEX));
-	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 
 	reset();
 	return true;
@@ -1138,7 +1127,7 @@ Bool ScreenMotionBlurFilter::postRender(FilterModes mode, Coord2D &scrollDelta,B
 	GxRawTSS(pDev, 0,D3DTSS_ALPHAARG2, D3DTA_TEXTURE);
 	GxRawTSS(pDev, 0,D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 	pDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(_TRANS_LIT_TEX_VERTEX));
-	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 	DX8Wrapper::Set_DX8_Render_State(D3DRS_ALPHABLENDENABLE,true);
 
 	DX8Wrapper::Apply_Render_State_Changes();
@@ -1167,7 +1156,7 @@ Bool ScreenMotionBlurFilter::postRender(FilterModes mode, Coord2D &scrollDelta,B
 				}
 			}
 			pDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(_TRANS_LIT_TEX_VERTEX));
-			DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+			DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 
 		}
 	}
@@ -2958,7 +2947,7 @@ void W3DShaderManager::drawViewport(Int color)
 	pDev->SetVertexShader(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1);
 
 	pDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(_TRANS_LIT_TEX_VERTEX));
-	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+	DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 }
 
 // W3DShaderManager::startRenderToTexture =======================================================

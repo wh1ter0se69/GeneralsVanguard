@@ -457,7 +457,7 @@ void Eva::playMessage(EvaMessage messageToTest, UnsignedInt currentFrame)
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @note The temporary announcement-chain probe that reported this function's five
+// GeneralsX: The temporary announcement-chain probe that reported this function's five
 // boundaries (request, busy, pick, sent, expired) was removed for release; recover it from
 // 9c1b65175 if EVA ever goes silent again.
 void Eva::processPlayingMessages(UnsignedInt currentFrame)

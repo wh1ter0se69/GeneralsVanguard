@@ -760,7 +760,7 @@ void W3DShroud::render(CameraClass *cam)
 	srcRect.bottom=visEndY;
 
 	// GeneralsX: Step the fade (see init). It writes texels - and so sets m_srcDirty - only for cells
-	// whose drawn level moved, which keeps the 23/09 skip below for every frame with nothing fading.
+	// whose drawn level moved, which keeps the skip below for every frame with nothing fading.
 	if (m_fogInterpolation)
 		interpolateFogLevels(&srcRect);
 

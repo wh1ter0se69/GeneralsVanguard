@@ -1,4 +1,22 @@
-// GeneralsX: The object-velocity bridge - see GxMotionUnits.h and
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The object-velocity bridge - see GxMotionUnits.h and
 // (A35). Game side: it drives the device only through DX8Wrapper (whose caches
 // and DX8Ring stay consistent) plus three direct calls after a ring drain (shader / texture creation, SetObjectVelocity).
 #include "W3DDevice/GameClient/GXRender/Scene/GxMotionUnits.h"
@@ -79,8 +97,12 @@ State s;
 
 int readKey()
 {
+#ifdef GX_TEST_INSTRUMENTS
 	const char *k = std::getenv("GX_MOTION_UNITS");
 	return k && std::strcmp(k, "1") == 0 ? 1 : 0;
+#else
+	return 0;   // Key is initialised before main's GX_* allow-list scrub; the native hosts read the same name after it
+#endif
 }
 
 void setViewport(const D3DVIEWPORT8 &v)   // through the Renderer seam (render-seam-lint: Set_Viewport is a routed method)
@@ -163,7 +185,7 @@ void onDraw(unsigned prim, unsigned minVertex, unsigned vertexCount, unsigned st
 	// heat-vision-only pass W3DScene.cpp:920 draws instead of a stealthed unit's base pass) would overwrite what is behind it.
 	// The wrapper cache can say "unknown" (0x12345678) after Invalidate_Cached_Render_States: ShaderClass re-sends ZWRITEENABLE
 	// before every shaded draw, so an unknown ZWRITE is not recorded; ZENABLE is never re-sent (the game leaves it on), so unknown
-	// counts as on (r3 #4: no device query).
+	// counts as on (no device query).
 	const unsigned *rsCache = DX8Wrapper::Gx_Shadows().renderStates;
 	if (rsCache[D3DRS_ZWRITEENABLE] != TRUE || rsCache[D3DRS_ZENABLE] == FALSE)
 		return;
@@ -362,7 +384,7 @@ void replay()
 		if (FAILED(dev->GetRenderState(kStates[i], &saved[i])))
 			saved[i] = DX8Wrapper::Get_DX8_Render_State(kStates[i]);
 	// Shader handles: the DEVICE's binding is read here and restored through DX8Wrapper, exactly as the seam's composite does after End
-	// (W3DWorldSeam.cpp saveState / restoreState; dlss-integrator ruling on). A raw device binder (water's
+	// (W3DWorldSeam.cpp saveState / restoreState). A raw device binder (water's
 	// SetVertexShader(FVF), W3DWater.cpp:2031; W3DShaderManager.cpp, HeightMap.cpp) can leave the device and the wrapper's cache apart at
 	// End; key off, the composite collapses them to the device's value, so restoring that value here makes key on end in the same state.
 	// Dropping the VB binding below makes the next wrapper draw re-apply its own FVF. Arm: the HUD drawn

@@ -247,12 +247,12 @@ void OptionPreferences::setOnlineIPAddress(UnsignedInt IP)
 	(*this)["GameSpyIPAddress"] = tmp;
 }
 
-// GeneralsX @feature Relay transport. Defaults let the machine that hosts get away with only
+// GeneralsX: Relay transport. Defaults let the machine that hosts get away with only
 // naming the relay and the room; its opponent swaps the two addresses in its own Options.ini.
 static const UnsignedInt DEFAULT_LOCAL_VIRTUAL_IP = (10u << 24) | (42u << 16) | (0u << 8) | 1u;
 static const UnsignedInt DEFAULT_PEER_VIRTUAL_IP = (10u << 24) | (42u << 16) | (0u << 8) | 2u;
 
-// GeneralsX @feature A virtual address stands in for a real one everywhere above the transport
+// GeneralsX: A virtual address stands in for a real one everywhere above the transport
 // layer, so it has to survive every place the engine handles an IP. 10.0.0.0/8 is mandatory, not
 // stylistic: JoinDirectConnectGame builds the address it dials with "(ip1 << 24) + ..." into a
 // signed Int, which is undefined behaviour for any first octet >= 128.
@@ -286,37 +286,10 @@ static UnsignedInt parseVirtualIP(AsciiString value, UnsignedInt defaultIP)
 	return (octet[0] << 24) | (octet[1] << 16) | (octet[2] << 8) | octet[3];
 }
 
-// GeneralsX: A fresh install had NO relay and therefore no online game.
-//
-// getRelayAddress() returned empty when the key was absent, and nothing on any platform ever wrote
-// it: the macOS bundle ships no Options.ini at all, the iOS config carries only LOD settings, and
-// only the Windows installer's bootstrap publishes one. So a Mac player who unzipped the release
-// got "No server configured", could not chat ("not connected to a relay room"), never populated the
-// roster, and - if they hosted - was never advertised, because Transport::setGameAdvertisement
-// bails when m_relayRoom is empty. Observed on a new player's machine 15/08/2026; the design note
-// had already predicted exactly this client: "the only hard
-// failure is a client that has never had a manifest and has no RelayAddress".
-//
-// WHY A COMPILED-IN DEFAULT IS NOT A COMPILED-IN RELAY LIST. 's rule - "adding a relay
-// must not require updating clients" - is about the LIST, and it still holds: the fetched, signed
-// relay list overrides this, and an explicit RelayAddress in Options.ini overrides it too. This is
-// only the bootstrap, which is the role the design doc already assigns it ("RelayAddress stays as
-// the bootstrap and the manual override"). A client with no list and no key had nothing to bootstrap
-// FROM, which is the whole defect.
-//
-// "none" IS A DELIBERATE OPT-OUT AND IS LOAD-BEARING. Absence used to mean "no relay", and five
-// harnesses rely on that to stay off production - drive-lobby-win.sh, lanbridge-npeer.sh,
-// probe-dataid.sh and xplat-machost-play.sh write no RelayAddress at all. Giving every client a
-// default would silently point those at the real relay, which is the failure already recorded in
-// this project's notes: a local-relay test that hits production and still reports success. So
-// "absence" now means "use the bootstrap" and there has to be a way to say "genuinely none" - it is
-// spelled `RelayAddress = none`, and those harnesses are updated in the same commit to write it.
-// GENERALSX_NO_RELAY IS THE HARNESS-SAFE OPT-OUT, and it exists because there is no shared shell
-// library to hook: only one script under scripts/test/ sources a common lib, so "edit every harness"
-// would be a list that silently goes stale the next time someone writes one. An env var is a single
-// export in whatever wrapper already builds the sandbox HOME, needs no file on disk, and cannot be
-// forgotten by a harness that never writes an Options.ini at all - which is the exact shape of the
-// four that would otherwise have started talking to the production relay.
+// A fresh install needs a relay: the key was absent and nothing wrote it on macOS or iOS, so there was no online
+// game. The compiled-in default is only the bootstrap; the fetched, signed relay list and an explicit RelayAddress
+// override it. RelayAddress = none is a deliberate opt-out, and GENERALSX_NO_RELAY the harness-safe one: harnesses
+// that write no RelayAddress would otherwise reach the production relay and still report success.
 static const char GX_BOOTSTRAP_RELAY[] = "relay.wh1ter0se.dev";
 
 static Bool gxRelayDisabledByEnv( void )
@@ -476,18 +449,10 @@ UnsignedInt OptionPreferences::getPeerVirtualIP() const
 
 Bool OptionPreferences::getArchiveReplaysEnabled() const
 {
-	// GeneralsX: DEFAULTS ON, because off meant every match was destroyed.
-	// RecorderClass writes one replay per match to a FIXED name - lastReplayFileName is the literal
-	// "00000000" (Recorder.cpp:96) - so each match overwrites the previous one. archiveReplay()
-	// (Recorder.cpp:758, TheSuperHackers @feature Stubbjax 17/10/2025) already copies it to
-	// ArchivedReplays/YYYYMMDD_HHMMSS.rep, and it is already portable: GetLocalTime comes from
-	// CompatLib/Source/time_compat.cpp, CopyFile is the inline POSIX one in file_compat.h, and
-	// getReplayArchiveDir() picks the POSIX separator. The whole feature worked; it was just
-	// gated behind a preference nobody had set, so the default was silently throwing the record
-	// of every game away.
-	//
-	// ONLY THE ABSENT CASE CHANGES. An explicit "ArchiveReplays = no" is still honoured below, so
-	// anyone who turned it off keeps it off; this only decides for the user who never chose.
+	// Defaults ON. RecorderClass writes one replay per match to a fixed name (lastReplayFileName is 00000000,
+	// Recorder.cpp:96), so each match overwrites the previous; archiveReplay() (Recorder.cpp:758) copies it to
+	// ArchivedReplays/YYYYMMDD_HHMMSS.rep and is portable. Only the absent case changes: an explicit ArchiveReplays = no
+	// is still honoured below.
 	OptionPreferences::const_iterator it = find("ArchiveReplays");
 	if (it == end())
 		return TRUE;
@@ -1150,18 +1115,10 @@ Int OptionPreferences::getGameTimeFontSize()
 	return fontSize;
 }
 
-// GeneralsX: The in-game message list's size, as a USER preference.
-//
-// Those messages ("Unit under attack", "Upgrade Complete", "... has been Defeated") are sized by
-// MessagePointSize in the InGameUI INI block, overridden by the language data. Neither is reachable
-// by a player, and the INI one must NOT become reachable: it goes through the INI parser into
-// iniCRC -> dataID, which is a REFUSAL field, so a player who enlarged their own message text would
-// be unable to join anyone. That is why this is an Options.ini preference like every other HUD size
-// rather than an INI edit.
-//
-// 0 means "leave the INI/language value alone", which is the default and is why absence returns 0
-// rather than a guess at a point size - the shipped value differs per language and inventing one
-// here would silently override localisation for everybody who never touched the setting.
+// The in-game message list size, as a user preference. MessagePointSize in the InGameUI INI block must not be made
+// player-editable: it goes through the INI parser into iniCRC -> dataID, a refusal field, so an enlarged font would
+// stop that player joining anyone. 0 means leave the INI/language value alone, because the shipped size differs per
+// language.
 Int OptionPreferences::getInGameMessageFontSize()
 {
 	OptionPreferences::const_iterator it = find("InGameMessageFontSize");

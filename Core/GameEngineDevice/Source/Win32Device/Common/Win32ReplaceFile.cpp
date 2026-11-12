@@ -18,13 +18,13 @@
 
 ///////// Win32ReplaceFile.cpp /////////////////////////////
 //
-// GeneralsX: The Win32 arm of gxCommitAndReplace (GameClient/GXReplaceFile.h):
+// The Win32 arm of gxCommitAndReplace (GameClient/GXReplaceFile.h):
 // put a finished .tmp in place of the real file. MSVCRT's rename() refuses an existing destination,
 // so this is MoveFileExA with MOVEFILE_REPLACE_EXISTING; MOVEFILE_WRITE_THROUGH returns only once the
 // rename has reached the disk. The "A" form because the caller opened the .tmp with the same narrow
 // path through fopen(); a wide conversion here could name a different file.
 //
-// Moved out of the shared header after the review of 5cdc742e1 (platform code stays in the platform
+// Moved out of the shared header (platform code stays in the platform
 // layer). NOT compiled by MSVC on this branch yet - the first Windows build is the check.
 ////////////////////////////////////////////////////////////
 

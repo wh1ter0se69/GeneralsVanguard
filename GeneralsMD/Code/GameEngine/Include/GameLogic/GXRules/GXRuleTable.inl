@@ -1,19 +1,25 @@
-// GeneralsX: AI RULE BANK registry (2.2.1, CONTRACT v1 2.6). THE
-// SOURCE OF TRUTH: scripts/ai/rulebank/gen-rule-ids.py generates rule_ids.json from these rows, and GXRuleSpec.h / GXRuleBank.cpp expand
-// GX_RULE_TABLE in place (a macro, never an #include inside an initializer: scripts/build/simid-closure.py refuses that). The rows sit in
-// ONE macro: every row line ends with " \", NO comment inside it (a // comment would swallow the line splice), and the blank line after
-// the last row ends the macro - so a new row is one more line ending in " \" before that blank line. Row forms (one per line):
-//   GX_RULE(id, Class, "NAME", tiers, vision, cadence_s, live)    id: explicit, append-only, never reused (ids live in scb data and saves);
-//                                                                NAME = RULES.tsv rule_id; Class names the glue (gxRuleMake_<Class>);
-//                                                                tiers: GX_TIER_HARD | GX_TIER_SENTIENT | GX_TIER_BRUTAL (a real rule is
-//                                                                HARD only if it is an in-flight pin, plan 2.8); vision 1 = reads the whole
-//                                                                map, so BRUTAL only; cadence_s 0 = no scheduled tick; live 1 = accepts
-//                                                                configuration after its first dispatch (needs tested onReconfigure/onDisable)
-//   GX_RULE_PARAM(rule id, key, "name", default, lo, hi, "unit") key >= 1, explicit, immutable, append-only within the rule; decimal integers only
-//   GX_RULE_REF(rule id, key, "name", GX_REF_TEMPLATE|GX_REF_TEAM) key >= 1, its own key space; saved by name, resolved at use
-//   GX_RULE_CLAIM(rule id, "HOOK:context")                       an EXCLUSIVE value-hook claim (plan 2.2.5); two enabled rules never share one
-//   GX_CAPABILITY("NAME")                                        what this binary can do (rule_ids.json _capabilities)
-// A new rule: its rows here, its files, one CMake line - see GXRules/README.md.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// AI rule bank registry; a generator script produces rule_ids.json from these rows.
+// Ids are explicit, append-only, never reused (they live in scb data and saves); param and ref keys start at 1.
+// Rows sit in ONE macro: each row ends in a line splice, no comment inside; the blank line after the last ends it.
+// GX_RULE_CLAIM is an exclusive value-hook claim: two enabled rules never share one.
 #pragma once
 
 #define GX_RULE_TABLE(GX_RULE, GX_RULE_PARAM, GX_RULE_REF, GX_RULE_CLAIM, GX_CAPABILITY) \

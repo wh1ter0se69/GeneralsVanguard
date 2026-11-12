@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 """GeneralsX look for the control bar's side buttons and the General's experience ladder: the members of !GXUISide.big.
 
   make-gxsidebar-archive.py <out-dir>
@@ -61,7 +63,7 @@ FAMILIES = {
 OBS_KINDS = ('Options', 'Chat')                # the only kinds ObserverPro has
 # Names the <prefix><kind><state> pattern makes that retail uses for something ELSE and no ControlBarScheme binds. SUWorker is the
 # GLA Worker's portrait and build cameo (Command_ConstructGLAWorker's ButtonImage, the Community Patch Worker objects): redefining
-# it put the spanner on every GLA Worker cameo, inside the cameo border (rank-button-fix, 09/10). GLA's Idle Worker button is
+# it put the spanner on every GLA Worker cameo, inside the cameo border. GLA's Idle Worker button is
 # SUWorkerE/H/P/I, which stay redefined.
 NOT_SIDEBAR = ('SUWorker',)
 LADDER_PRO_NAMES = ('AmericaProExpBar', 'ChinaProExpBar', 'GlaProExpBar')
@@ -220,7 +222,7 @@ def glyph(cv, kind, state, W, H):
         cv.shape(lambda x, y: sd_box(x, y, cx, cy - 0.12 * g, 0.075 * g, 0.20 * g), (cx - 0.1 * g, cy - 0.35 * g, cx + 0.1 * g, cy + 0.1 * g), col, ga)
         cv.shape(lambda x, y: sd_box(x, y, cx, cy + 0.27 * g, 0.085 * g, 0.085 * g), (cx - 0.11 * g, cy + 0.17 * g, cx + 0.11 * g, cy + 0.37 * g), col, ga)
     elif kind == 'General':                                 # three stars: hollow at rest, filled when lit. The engine lights H both on hover AND as the 'points to spend' flash frame, so H must
-        # not say more than 'lit' - an amber H would read as 'promote me' on every mouse-over (adversarial review P2-3)
+        # not say more than 'lit' - an amber H would read as 'promote me' on every mouse-over
         u = min(H, 0.414 * W)                            # the narrow retail buttons (China 58x31, GLA 65x29) are not wide enough for height-sized stars
         r_c, r_s, dx = 0.43 * u, 0.31 * u, 0.80 * u
         assert dx + r_s <= W / 2.0 - 2, 'General stars clip at %dx%d' % (W, H)

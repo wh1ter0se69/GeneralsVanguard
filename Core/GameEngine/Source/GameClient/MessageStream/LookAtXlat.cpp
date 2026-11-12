@@ -70,10 +70,9 @@ enum
 
 static Bool scrollDir[4] = { false, false, false, false };
 
-// GeneralsX @feature camera-tilt 06/10/2026 Player tilt is limited to the Options slider's own 20..60 degrees
-// (View::getPrefCameraPitch), so a tilt can never show more map than a player can already choose in Options.
+// Player tilt is limited to the Options slider's own 20..60 degrees (View::getPrefCameraPitch), so a tilt can never show more
+// map than a player can already choose in Options. The range lives in GameClient/TiltRange.h (pure, unit-tested).
 // Trade-off: the two feel knobs live here; make them settings if they ever need to.
-// The player range lives in GameClient/TiltRange.h (pure, unit-tested).
 static const Real GX_TILT_PER_WHEEL_NOTCH = DEG_TO_RADF(2.0f);
 
 static void tiltBy( Real radians )
@@ -81,13 +80,18 @@ static void tiltBy( Real radians )
 	// Like TheSuperHackers #3363 (closed, unmerged): in a multiplayer match the camera may not go flatter than the
 	// player's own default pitch, so a tilt cannot see further than the Options-chosen view. Skirmish/replay: 20.
 	const Bool inMatch = TheGameLogic != nullptr && TheGameLogic->isInMultiplayerGame();
-	// GeneralsX @feature tilt-unlimited-admin 07/10/2026 A signature-verified, UNEXPIRED admin assertion lifts the clamp
-	// (debug), but never for a combatant in a live multiplayer match (TiltRange.h says why: a copied login proves
-	// nothing and revocation is relay-side). Presentation only: the view is not simulated.
+	// A signature-verified, UNEXPIRED admin assertion lifts the clamp (debug), but never for a combatant in a live multiplayer
+	// match (TiltRange.h says why: a copied login proves nothing and revocation is relay-side). Presentation only: the view
+	// is not simulated.
 	const Player *me = ThePlayerList != nullptr ? ThePlayerList->getLocalPlayer() : nullptr;
 	const Bool unlocked = gxTiltUnlocked( GXPlayerIdentity::getVerifiedRole() == GX_ROLE_ADMIN,
 		GXPlayerIdentity::getVerifiedExpiry(), (long long)time( NULL ), inMatch, me != nullptr && me->isPlayerObserver() );
-	const Real target = gxTiltTarget( TheTacticalView->getPitch(), radians, unlocked, inMatch, TheTacticalView->getDefaultPitch() );
+	Real target = gxTiltTarget( TheTacticalView->getPitch(), radians, unlocked, inMatch, TheTacticalView->getDefaultPitch() );
+	// GeneralsX @feature The Debug menu's Uncap pitch widens the player's range where it applies (View::getPlayerPitchRange).
+	Real uncappedLo, uncappedHi;
+	View::getPlayerPitchRange( &uncappedLo, &uncappedHi );
+	if( !unlocked && uncappedLo < DEG_TO_RADF( (Real)View::CameraPitchLo ) )
+		target = gxTiltTargetUncapped( TheTacticalView->getPitch(), radians );
 	TheTacticalView->userSetPitch( target );
 }
 
@@ -280,7 +284,7 @@ GameMessageDisposition LookAtTranslator::translateGameMessage(const GameMessage 
 		}
 
 		//-----------------------------------------------------------------------------
-		// GeneralsX @bugfix 25/07/2026 Treat the raw double click event identical to the raw button
+		// GeneralsX: Treat the raw double click event identical to the raw button
 		// down event because it implicitly is a raw button down event as well. Mouse::processMouseEvent
 		// emits GWM_RIGHT_DOUBLE_CLICK *instead of* GWM_RIGHT_DOWN for a rapid second press (SDL3 reports
 		// clicks>=2 on the down event), so without this label the second press never set the scroll anchor
@@ -316,7 +320,7 @@ GameMessageDisposition LookAtTranslator::translateGameMessage(const GameMessage 
 		}
 
 		//-----------------------------------------------------------------------------
-		// GeneralsX @bugfix 25/07/2026 Treat the raw double click event identical to the raw button
+		// GeneralsX: Treat the raw double click event identical to the raw button
 		// down event because it implicitly is a raw button down event as well. A rapid second middle
 		// press arrives as GWM_MIDDLE_DOUBLE_CLICK instead of GWM_MIDDLE_DOWN, so without this label
 		// m_isRotating stayed false (no view rotation for the whole drag) and m_originalAnchor /
@@ -329,7 +333,7 @@ GameMessageDisposition LookAtTranslator::translateGameMessage(const GameMessage 
 			m_lastMouseMoveTimeMsec = now;
 			m_middleButtonDownTimeMsec = now;
 
-			// GeneralsX @feature camera-tilt 06/10/2026 Option/Alt + middle-drag tilts (pitch) instead of rotating.
+			// Option/Alt + middle-drag tilts (pitch) instead of rotating.
 			// Client-only: the view is not simulated and no message is sent.
 			m_isRotating = !( msg->getArgument( 1 )->integer & ( KEY_STATE_LALT | KEY_STATE_RALT ) );
 			m_isPitching = !m_isRotating;
@@ -347,7 +351,7 @@ GameMessageDisposition LookAtTranslator::translateGameMessage(const GameMessage 
 			m_lastMouseMoveTimeMsec = now;
 
 			const UnsignedInt CLICK_DURATION_MSEC = 167;
-			// GeneralsX @bugfix 25/07/2026 The absolute value was only taken for dx, and PIXEL_OFFSET
+			// GeneralsX: The absolute value was only taken for dx, and PIXEL_OFFSET
 			// was UnsignedInt, so a negative dy (mouse moved *up* from the anchor) was converted to a
 			// huge unsigned value by the usual arithmetic conversions and always compared greater than
 			// the threshold. The middle-click "reset camera to home" gesture therefore tolerated 5 px
@@ -435,8 +439,8 @@ GameMessageDisposition LookAtTranslator::translateGameMessage(const GameMessage 
 				m_anchor = msg->getArgument( 0 )->pixel;
 			}
 
-			// GeneralsX @feature tilt-thumb-buttons 06/10/2026 Mouse 4 / 5 held: tilt continuously. This message is made every
-			// frame, so the held state is polled here; dt is the real frame time, so the rate is frame-rate independent.
+			// Mouse 4 / 5 held: tilt continuously. This message is made every frame, so the held state is polled here;
+			// dt is the real frame time, so the rate is frame-rate independent.
 			if (TheMouse != nullptr)
 			{
 				const Int dir = gxThumbTiltDir( TheMouse->isThumbBackDown(), TheMouse->isThumbForwardDown() );

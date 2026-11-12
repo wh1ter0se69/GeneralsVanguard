@@ -1,19 +1,25 @@
-// GeneralsX: NVIDIA Streamline (DLSS Super Resolution) for the native renderer.
-// Windows x64 only, behind GX_STREAMLINE (default OFF); PREREG A36.
-//
-// Licence (render-dlss research R8, binding): nothing of NVIDIA's is in this tree or in our zip. The Streamline headers (MIT) are
-// read at BUILD time from the SDK folder named by GX_STREAMLINE_SDK. At RUN time the user's own copy of NVIDIA's signed DLLs
-// (sl.interposer.dll, sl.common.dll, sl.dlss.dll, nvngx_dlss.dll from NVIDIA's Streamline release) is loaded from ONE folder,
-// after the Windows + NVIDIA signature checks on sl.interposer.dll (sl_security.h); the interposer checks its plugins itself.
-// No folder or no DLLs = DLSS absent, everything else runs as before.
-//
-// How it sits under VkCtx: Streamline's interposer becomes the Vulkan loader root (VkCtxDesc::getInstanceProcAddr). Its
-// vkGetInstanceProcAddr / vkGetDeviceProcAddr hand out vulkan-1.dll's own functions except the few Streamline intercepts
-// (sl_hooks.h): vkCreateInstance / vkCreateDevice add Streamline's extensions, features and queues and tell it the device;
-// the swapchain + vkQueuePresentKHR proxies run its per-frame bookkeeping (presentCommon). So VkCtx, the swapchain and the
-// present path are not edited: with Streamline loaded the same calls resolve to the proxies.
-//
-// Render-only: nothing here is read by the simulation.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// NVIDIA Streamline (DLSS Super Resolution) for the native renderer. Windows x64 only, behind GX_STREAMLINE
+// (default OFF). Nothing of NVIDIA's is in this tree: the MIT headers are read at build time from
+// GX_STREAMLINE_SDK; at run time the user's own signed DLLs load from ONE folder after signature checks.
+// No folder or DLLs = DLSS absent. Render-only: not read by the simulation.
 #pragma once
 
 #include "VkCommon.h"
@@ -39,10 +45,9 @@ struct DlssImage
 	VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
 };
 
-// GeneralsX: which Streamline features
+// which Streamline features
 // this session loads. PCL (the latency markers) loads with every Streamline. NVIDIA's frame-generation DLLs (sl.dlss_g.dll,
 // nvngx_dlssg.dll) stay OPTIONAL like every other: absent = that feature unavailable, logged, the rest unchanged.
-//
 struct StreamlineFeatures
 {
 	bool dlss = false;	// sl.dlss: Super Resolution / DLAA (GXUpscaler=dlss)
@@ -89,7 +94,7 @@ struct DlssFrame
 	float nearZ = 1.0f, farZ = 1000.0f, fovY = 1.0f, aspect = 1.0f;
 	bool reset = false;	// history invalid (first frame, size change, camera cut)
 	uint32_t frameIndex = 0;	// +1 per evaluated frame (used only when no frame was begun: see Streamline::frameBegin)
-	// dlss-fg-1: the part of the PRESENTED image frame generation runs on (the world's camera viewport in back-buffer pixels); zero
+	// the part of the PRESENTED image frame generation runs on (the world's camera viewport in back-buffer pixels); zero
 	// width = the whole image. Outside it DLSS-G copies the real frame (the control bar is never interpolated).
 	uint32_t fgSubrectX = 0, fgSubrectY = 0, fgSubrectW = 0, fgSubrectH = 0;
 };
@@ -128,15 +133,15 @@ public:
 	// "sl=2.14.1 ngx=x.y.z" for the run's log line ("" before load).
 	std::string versions();
 
-	// dlss-fg-1: ONE id per rendered frame, ONE sl::FrameToken for it. Reflex's sleep and markers, the
+	// ONE id per rendered frame, ONE sl::FrameToken for it. Reflex's sleep and markers, the
 	// common constants, the tags and DLSS's evaluate all name the frame begun here, so DLSS-G can match its inputs to the present.
 	// frameBegin: a new token for id; with Reflex loaded, slReflexSleep then eSimulationStart. False + why when Streamline refuses.
 	bool frameBegin(uint32_t id, std::string* why);
 	bool hasFrame() const { return m_frameToken != nullptr; }
 	uint32_t frameId() const { return m_frameId; }
 	void marker(PclMarker m);	// on the current frame; no-op before the first frameBegin or without Reflex
-	// FG P0 H3 (the present hook, VkCtx.h PresentHook): the current frame's sl::FrameToken as an opaque handle, and a marker on the frame
-	// that handle names - so ePresentStart / ePresentEnd carry the PRESENTED frame's id wherever the present runs (F9)
+	// The present hook (VkCtx.h PresentHook): the current frame's sl::FrameToken as an opaque handle, and a marker on the frame
+	// that handle names - so ePresentStart / ePresentEnd carry the PRESENTED frame's id wherever the present runs
 	void* frameHandle() const { return m_frameToken; }
 	void markerOn(PclMarker m, void* frame);
 	// Reflex: mode 0 off / 1 low latency / 2 + boost; frameLimitUs 0 - the game's FramePacer stays the only cap.
@@ -151,7 +156,7 @@ public:
 	bool frameGenSetOptions(bool on, uint32_t generated, std::string* why);
 	bool frameGenState(FrameGenState* out, std::string* why);
 	// DLSS-G's HUD-less colour for the current frame (kBufferTypeHUDLessColor, eValidUntilPresent): the scene without HUD at back-buffer
-	// size, in the layout `img` names when the present runs. Recorded into cmd (PREREG A39c).
+	// size, in the layout `img` names when the present runs. Recorded into cmd.
 	bool tagHudless(VkCommandBuffer cmd, const DlssImage& img, std::string* why);
 	// The same for DLSS-G's UI alpha (kBufferTypeUIAlpha: R8, 1 = UI, 0 = none).
 	bool tagUiAlpha(VkCommandBuffer cmd, const DlssImage& img, std::string* why);

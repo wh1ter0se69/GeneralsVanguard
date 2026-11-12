@@ -36,6 +36,7 @@
 #include "GameClient/GameClient.h"
 #include "GameClient/GXHostCamera.h"
 #include "GameClient/View.h"
+#include "GameClient/TiltRange.h"
 
 UnsignedInt View::m_idNext = 1;
 
@@ -100,29 +101,10 @@ void View::init()
 
 	m_zoom = 1.0f;
 
-	// GeneralsX: Options.ini camera limits apply at startup, not only
-	// through the Extras menu.
-	//
-	// The launcher and the Extras menu both write MinCameraHeight/MaxCameraHeight into
-	// Options.ini, and OptionPreferences has parsed the keys all along - but nothing on the
-	// startup path ever read them back. The GlobalData startup override block applies its other
-	// Options.ini keys and skips these two, so the only consumer was the Extras menu, which
-	// applies them on Accept. A launcher-written camera limit therefore did nothing until the
-	// player opened Extras.
-	//
-	// Applied HERE, not in GlobalData.cpp, on purpose: GlobalData.cpp is Common/, inside the
-	// SimID source digest, and a purely client-side camera limit must not cost every peer a wire
-	// break. GameClient/ is excluded from the digest - the same reasoning that put the HUD anchor
-	// preference in GXHud.ini rather than through GlobalData/Options (see the GXHud note in
-	// GeneralsMD InGameUI.cpp). This file is also shared by both game twins, and both consult
-	// TheGlobalData camera limits the same way, so the override is twin-safe.
-	//
-	// Presence is tested on the map itself because the getters return the TheGlobalData value
-	// when the key is absent - indistinguishable from "player chose the default". Absent keys
-	// change nothing: a player who never touched the launcher or Extras sees exactly today's
-	// behaviour. If the two resolved values would invert (min > max), both are left at the data
-	// defaults - applying either half alone would manufacture a limit range the settings UI
-	// itself cannot express.
+	// Options.ini camera limits apply at startup, not only through the Extras menu: the launcher and Extras write
+	// MinCameraHeight/MaxCameraHeight but the startup path never read them. Applied here, not in GlobalData.cpp (inside
+	// the SimID digest). Absent keys change nothing. If the resolved values would invert (min > max), both stay at the
+	// data defaults; applying either half alone would create a range the settings UI cannot express.
 	Real cameraPitch;
 	{
 		OptionPreferences prefs;
@@ -130,8 +112,8 @@ void View::init()
 		const Bool hasMax = prefs.find("MaxCameraHeight") != prefs.end();
 		if (hasMin || hasMax)
 		{
-			const Real prefMinHeight = getPrefMinCameraHeight(prefs);	// clamped 50..300 (Debug menu: 10..300) when present
-			const Real prefMaxHeight = getPrefMaxCameraHeight(prefs);	// clamped 100..1000 (Debug menu: 100..3000) when present
+			const Real prefMinHeight = getPrefMinCameraHeight(prefs);	// clamped 50..300 (Debug menu: 5..300) when present
+			const Real prefMaxHeight = getPrefMaxCameraHeight(prefs);	// clamped 100..1000 (Debug menu: 100..50000) when present
 			if (prefMinHeight <= prefMaxHeight)
 			{
 				if (hasMin)
@@ -141,18 +123,10 @@ void View::init()
 			}
 		}
 
-		// GeneralsX: Options.ini's TerrainDrawDistanceScale applies at startup
-		// too. The Extras and Debug menus write it and apply it live, but only SagePatch.ini fed it at
-		// startup, so a player's draw distance reverted on every launch. Same placement and reasoning as
-		// the camera limits above; like them, a present key wins over SagePatch.ini.
-		//
-		// Only a value the menus can write, 1.00-2.00, is taken; anything else leaves SagePatch.ini's.
-		// Until 25/09/2026 the Extras menu wrote the slider PERCENT ("105"), which the pref getter clamps
-		// to 2.0 - so a reopened Extras showed 200 and the next Accept saved "200", a maximum nobody
-		// chose. A percent therefore cannot be trusted and is ignored, which is exactly how startup
-		// treated it before; the fixed menu's next Accept writes the real. The range test is also false
-		// for a NaN, which clamp() would pass to the renderer. Not through the getter, whose clamp would
-		// turn that percent into 2.0; fixing the getter would move the SimID digest (it is Common/).
+		// Options.ini's TerrainDrawDistanceScale applies at startup too, like the camera limits above; a present key wins over
+		// SagePatch.ini. Only a value the menus can write, 1.00-2.00, is taken; a legacy slider percent ("105") is ignored,
+		// and the range test is also false for a NaN. Not through the getter, whose clamp would turn that percent into 2.0;
+		// fixing the getter would move the SimID digest (it is Common/).
 		TheWritableGlobalData->m_terrainDrawDistanceScale = getPrefTerrainDrawDistanceScale(prefs);
 
 		// GeneralsX: A camera pitch the player chose in Extras or Debug applies at
@@ -160,6 +134,7 @@ void View::init()
 		// as a choice is getPrefCameraPitch's call. Unlike the draw distance, TheGlobalData's pitch is NOT
 		// overwritten: it stays GameData.ini's value, because that is what "no choice" resolves to - here,
 		// in both menus and for their Defaults - and the view's own default pitch is the only consumer.
+		setCameraPitchUncapped(getPrefCameraPitchUncapped(prefs));
 		cameraPitch = getPrefCameraPitch(prefs);
 	}
 
@@ -173,21 +148,16 @@ void View::init()
 	m_okToAdjustHeight = FALSE;
 
 	m_defaultAngle = DEG_TO_RADF(TheGlobalData->m_cameraYaw);
-	m_defaultPitch = DEG_TO_RADF(cameraPitch);
+	// GeneralsX @feature through setDefaultPitch's clamp: an uncapped pitch can be saved as 90, where Look_At loses the yaw
+	View::setDefaultPitch(DEG_TO_RADF(cameraPitch));
 	m_angle = m_defaultAngle;
 	m_pitch = m_defaultPitch;
 }
 
-// Only a pitch the player CHOSE is taken; otherwise TheGlobalData's (GameData.ini's 37.5), exactly what startup
-// always used. Until 25/09/2026 both menus saved the pitch slider on EVERY Accept, and the slider opened at the
-// truncated default, so an Accept that never touched it wrote "37" - "%d" of (Int)37.5. That is not a choice:
-// taking it would drop every such player to 37 degrees, which is not above ViewDefaultLowPitchRadians, so it
-// would also switch their terrain to the larger LOW_ANGLE draw window - a perf change nobody asked for. So
-// exactly that string is ignored - derived from the active default, since that is what the old menus truncated
-// - and setPrefCameraPitch never writes it (a chosen 37 is stored "37.0"). Any
-// other legacy whole number was moved to on purpose and is kept. Outside the sliders' 20-60, or NaN (the range
-// test is false for it), is ignored like a bad draw distance. Not through OptionPreferences::getCameraPitch,
-// which cannot tell the legacy value from a choice; changing it would move the SimID digest (it is Common/).
+// Only a pitch the player CHOSE is taken; otherwise TheGlobalData's (GameData.ini's 37.5).
+// An untouched slider wrote "37" ("%d" of (Int)37.5): taking it would switch the terrain to the larger LOW_ANGLE
+// draw window, so exactly that string is ignored (setPrefCameraPitch never writes it). Outside 20-60 (5-90 with the
+// Debug menu's Uncap pitch), or NaN, is ignored. Not through getCameraPitch (changing it would move the SimID digest).
 Real View::getPrefCameraPitch( const OptionPreferences &prefs )
 {
 	OptionPreferences::const_iterator it = prefs.find("CameraPitch");
@@ -196,7 +166,10 @@ Real View::getPrefCameraPitch( const OptionPreferences &prefs )
 		AsciiString untouched;
 		untouched.format("%d", (Int)TheGlobalData->m_cameraPitch);
 		const Real pitch = (Real)atof(it->second.str());
-		if (it->second != untouched && pitch >= 20.0f && pitch <= 60.0f)
+		const Bool uncapped = getPrefCameraPitchUncapped(prefs);
+		const Real lo = (Real)(uncapped ? DebugCameraPitchLo : CameraPitchLo);
+		const Real hi = (Real)(uncapped ? DebugCameraPitchHi : CameraPitchHi);
+		if (it->second != untouched && pitch >= lo && pitch <= hi)
 			return pitch;
 	}
 	return TheGlobalData->m_cameraPitch;
@@ -219,8 +192,52 @@ void View::clearPrefCameraPitch( OptionPreferences &prefs )
 	prefs.erase("CameraPitch");
 }
 
+Bool View::s_cameraPitchUncapped = FALSE;
+
+Bool View::getPrefCameraPitchUncapped( const OptionPreferences &prefs )
+{
+	OptionPreferences::const_iterator it = prefs.find("UncapCameraPitch");
+	return it != prefs.end() && it->second.compareNoCase("yes") == 0;
+}
+
+void View::setPrefCameraPitchUncapped( OptionPreferences &prefs, Bool uncapped )
+{
+	if (uncapped)
+		prefs["UncapCameraPitch"] = "yes";
+	else
+		prefs.erase("UncapCameraPitch");
+}
+
+void View::getPlayerPitchRange( Real *lo, Real *hi )
+{
+	if (isCameraPitchUncapped() && GXHostCamera::debugRangeAllowed())
+	{
+		*lo = DEG_TO_RADF((Real)DebugCameraPitchLo);
+		*hi = DEG_TO_RADF(89.9f);	// setPitch's own ceiling
+	}
+	else
+	{
+		*lo = DEG_TO_RADF((Real)CameraPitchLo);
+		*hi = DEG_TO_RADF((Real)CameraPitchHi);
+	}
+}
+
+// GeneralsX @feature An uncapped default pitch outside the player's range does not apply where the Debug range does not
+// (a multiplayer match with a second human): there the camera takes what the pref reader gives any out-of-range pitch,
+// the data default. Read wherever the default pitch reaches the camera (setPitchToDefault at the start of every match,
+// Camera Apply, the tilt's floor), so a pitch chosen in a skirmish cannot be carried into such a match.
+Real View::getDefaultPitch()
+{
+	const Real eps = 1.0e-4f;
+	if (isCameraPitchUncapped()
+		&& (m_defaultPitch < DEG_TO_RADF((Real)CameraPitchLo) - eps || m_defaultPitch > DEG_TO_RADF((Real)CameraPitchHi) + eps)
+		&& !GXHostCamera::debugRangeAllowed())
+		return DEG_TO_RADF(TheGlobalData->m_cameraPitch);
+	return m_defaultPitch;
+}
+
 // GeneralsX: Two caps on one key (owner): the launcher's camera range is the player's -
-// MaxCameraHeight 100 .. 1000, Generals Online's own lobby cap - while the Debug menu goes down to 10 and up to 3000.
+// MaxCameraHeight 100 .. 1000, Generals Online's own lobby cap - while the Debug menu goes down to 5 and up to the whole map.
 // Both write MinCameraHeight / MaxCameraHeight, so the Debug menu also marks the pair when it leaves the player's
 // range; without that mark the player's range clamps, so a MaxCameraHeight above 1000 from the launcher or a hand
 // edit plays at 1000, exactly as OptionPreferences' getter always clamped it. Clamped the way that getter clamps (an
@@ -377,7 +394,7 @@ void View::setAngleToDefault()
  */
 void View::setPitchToDefault()
 {
-	m_pitch = m_defaultPitch;
+	m_pitch = getDefaultPitch();
 }
 
 void View::setHeightAboveGround(Real z)
@@ -411,7 +428,13 @@ void View::setLocation( const ViewLocation *location )
 	{
 		setPosition(location->getPosition());
 		setAngle(location->getAngle());
-		setPitch(location->getPitch());
+		// GeneralsX @feature A bookmark keeps its pitch, and one taken in a skirmish (Uncap pitch, an admin tilt) outlives the
+		// match. Where the Debug range does not apply (a second human in the match) it comes back inside the tilt's own
+		// in-match range, the player's default pitch up to 60 (TiltRange.h).
+		Real pitch = location->getPitch();
+		if (!GXHostCamera::debugRangeAllowed())
+			pitch = gxTiltTarget(pitch, 0.0f, false, true, getDefaultPitch());
+		setPitch(pitch);
 		setZoom(location->getZoom());
 	}
 

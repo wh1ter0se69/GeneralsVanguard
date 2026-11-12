@@ -13,6 +13,19 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 # Add main build targets
 add_subdirectory(Code)
 
+# GeneralsX @performance perf32 09/11/2026 (A1a) MSVC's RelWithDebInfo (the shipped Windows config) is /O2 /Ob1: only functions marked
+# inline are inlined, while clang -O2 on the Mac inlines freely. Zero Hour's own compiled targets get /Ob2 (the last /Ob wins). Generals and
+# the core_* libraries both games link keep /Ob1, so the base game stays retail by construction: it has no replay corpus or per-frame CRC
+# to prove a codegen change against. The game-wide /Ob2 (58b0206444) was per-frame CRC identical on two full recorded matches and -6.48%
+# process wall on one; this narrower set is checked by scripts/build/check-msvc-ob.py and timed by the stack's Windows leg.
+if(MSVC)
+    foreach(_gxt z_gameengine z_gameenginedevice z_ww3d2 z_wwaudio z_wwdownload z_generals)
+        if(TARGET ${_gxt})
+            target_compile_options(${_gxt} PRIVATE $<$<CONFIG:RelWithDebInfo>:/Ob2>)
+        endif()
+    endforeach()
+endif()
+
 # If we are building on windows for windows, try and get the game install path from the registry.
 if("${CMAKE_HOST_SYSTEM}" MATCHES "Windows" AND "${CMAKE_SYSTEM}" MATCHES "Windows")
     include(${CMAKE_SOURCE_DIR}/cmake/registry.cmake)

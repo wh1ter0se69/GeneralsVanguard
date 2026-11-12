@@ -37,29 +37,9 @@ struct AudioSettings
 	AudioSettings()
 		: m_use3DSoundRangeVolumeFade(true) // Enabled by default because it prevents audio cut off at the max range of 3D sounds
 		, m_3DSoundRangeVolumeFadeExponent(4.0f) // Exponent of 4 gives a nice balance between loud sounds and graceful fade
-		// GeneralsX: THE MASTER VOLUME WAS SEEDED FROM UNINITIALISED MEMORY.
-		//
-		// Every volume below used to be left indeterminate by this constructor, and
-		// AudioManager::init() copies the m_preferred* four straight into m_system*Volume and
-		// m_*Volume (GameAudio.cpp:245-257). SubsystemInterfaceList::initSubsystem runs sys->init()
-		// BEFORE it loads any INI (SubsystemInterface.cpp:172 vs :176), so at the moment of that
-		// copy nothing had written them: not AudioSettings.ini, and not the player's Options.ini,
-		// which INI::parseAudioSettingsDefinition only folds in afterwards.
-		//
-		// Reported as "I turn it down and it's still very loud" on Windows, with Options.ini
-		// holding MusicVolume=8 / SFXVolume=9 / VoiceVolume=10. Whatever the allocator happened to
-		// leave there became the master volume; any value >= 1.0 is clamped by OpenAL to full
-		// scale, so the game plays at maximum and the saved settings appear to do nothing. Being
-		// indeterminate, it also differs between runs and between platforms, which is why this
-		// never reproduced the same way twice.
-		//
-		// Zero is the correct floor here rather than 1.0: these are all overwritten a moment later
-		// by the INI parse in every real launch, and the tools that never parse it (WorldBuilder,
-		// MapCacheBuilder) are better off silent than at full blast.
-		//
-		// Order below follows DECLARATION order exactly, which is what -Wreorder checks. The
-		// money-transaction default keeps its per-game value and simply moved to its declared
-		// position among the other defaults.
+		// The volumes below start at zero, never indeterminate: AudioManager::init() copies them into the live volumes
+		// (GameAudio.cpp) before any INI is loaded, so uninitialised memory became the master volume.
+		// Zero rather than 1.0 so tools that never parse the INI stay silent. Order follows declaration order (-Wreorder).
 		, m_relative2DVolume(0.0f)
 		, m_defaultSoundVolume(0.0f)
 		, m_default3DSoundVolume(0.0f)

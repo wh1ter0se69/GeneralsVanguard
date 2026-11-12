@@ -637,9 +637,8 @@ void DockUpdate::xfer( Xfer *xfer )
 		// Vector of Bool gets packed as bitfield internally
 		Bool unpack = m_approachPositionReached[vectorIndex];
 		xfer->xferBool( &unpack );
-		// GeneralsX: Ported by hand from upstream PR #3117 (5da068845). The load
-		// direction never copied the temporary back, so every "approach reached" flag came out of a
-		// savegame FALSE. Zero Hour's copy already had this fix (GeneralsX, 25/07/2026).
+		// GeneralsX: Ported from upstream PR #3117. The load direction never copied the temporary back, so every
+		// approach reached flag came out of a savegame FALSE.
 		m_approachPositionReached[vectorIndex] = unpack;
 	}
 

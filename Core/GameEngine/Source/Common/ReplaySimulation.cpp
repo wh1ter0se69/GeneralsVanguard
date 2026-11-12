@@ -196,13 +196,13 @@ int ReplaySimulation::simulateReplaysInWorkerProcesses(const std::vector<AsciiSt
 #endif
 	WideChar exePath[1024];
 	// Convert narrow char to WideChar for command formatting
-	// GeneralsX @bugfix Terminate at the copy position, not at the end of the buffer.
-	// The terminator used to be written at index 1023 unconditionally, so every WideChar
-	// between the end of the executable path and index 1023 stayed indeterminate. The
-	// L"\"%s\"" below then read past the path through ~960 uninitialised wchar_t, producing
-	// a garbage (and potentially enormous) worker command line. Also bound the loop by the
+	// GeneralsX: Terminate at the copy position, not at the end of the buffer.
+	// Writing the terminator at index 1023 unconditionally would leave every WideChar
+	// between the end of the executable path and index 1023 indeterminate, and the
+	// L"\"%s\"" below would read past the path through ~960 uninitialised wchar_t, producing
+	// a garbage (and potentially enormous) worker command line. The loop is bound by the
 	// destination capacity rather than the source size, so the two buffers can be resized
-	// independently without reintroducing an overrun.
+	// independently without an overrun.
 	size_t exePathLen = 0;
 	for (; exePathLen < ARRAY_SIZE(exePath) - 1 && exePathNarrow[exePathLen] != '\0'; ++exePathLen) {
 		exePath[exePathLen] = static_cast<WideChar>(exePathNarrow[exePathLen]);

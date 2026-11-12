@@ -358,7 +358,7 @@ Bool GameEngine::isTimeFrozen()
 
 	// GeneralsX: ...nor by the camera or a script in the replay of one, which plays back with no
 	// TheNetwork: a freeze the match ignored would put every script after it on another frame, and the replay's CRCs out
-	// (camera-sim-B). The debug pause still holds.
+	// The debug pause still holds.
 	const Bool networkReplay = TheRecorder != nullptr && TheRecorder->isPlaybackMode()
 		&& (TheRecorder->getGameMode() == GAME_LAN || TheRecorder->getGameMode() == GAME_INTERNET);
 
@@ -408,7 +408,7 @@ Bool GameEngine::isGameHalted()
 //-------------------------------------------------------------------------------------------------
 static const struct { const char *block; } sagePatchPreviousEngineBlocks[] =
 {
-	// 0af21a6f9 (10/09/2026) until 25/09/2026: MaxCameraHeight 350. gxio ENGINE_AUTOWRITE_BLOCK_V2.
+	// MaxCameraHeight 350 (gxio ENGINE_AUTOWRITE_BLOCK_V2).
 	{
 	  "; -----------------------------------------------------------------------------\n"
 	  "; SagePatch - Casual QoL overrides for GeneralsX\n"
@@ -1015,37 +1015,9 @@ void GameEngine::init()
 	DEBUG_LOG(("%s", Buf));////////////////////////////////////////////////////////////////////////////
 	#endif/////////////////////////////////////////////////////////////////////////////////////////////
 		initSubsystem(TheAudio,"TheAudio", createAudioManager(TheGlobalData->m_headless), nullptr);
-		// GeneralsX: Missing music must not abort a HEADLESS run.
-		//
-		// A headless process has no audio by definition, and on a machine with no sound device at
-		// all - which is every server - the audio manager cannot load music, so this set the
-		// engine to quitting during INIT. Nothing reported an error: the process started, built
-		// its lobby, hosted a match, printed "game starting", and then the match loop exited
-		// before its first iteration because it (correctly) respects getQuitting().
-		//
-		// It hid because the only other headless entry point does not consult the flag:
-		// ReplaySimulation loops on TheRecorder->isPlaybackInProgress(), so replays ran fine on
-		// the same box. It also cannot reproduce on a developer machine, which has a sound device
-		// and therefore loads music successfully.
-		//
-		// Audio is not simulation state, so this is safe: no music simply means no music.
-		//
-		// GeneralsX: The GUI path must not silently quit either.
-		//
-		// This is the retail disc-check. isMusicAlreadyLoaded() picks one AT_Music event and
-		// checks that its FILE exists in the VFS - and Zero Hour's music list includes BASE
-		// GENERALS tracks, so the check fails whenever the base-Generals archives are not
-		// resolvable (no CNC_GENERALS_PATH, no [Paths]GeneralsAssetPath, no registry key, no
-		// ..\Generals, no <root>\ZH_Generals). The engine then set m_quitting with no log, no
-		// dialog and no artifact: init completes, the window stays black, execute() exits
-		// before frame 1, and teardown segfaults in the WW3D pool destructors (measured
-		// 0xC0000005 with intermittent dumps). Users see "the game exits silently after a few
-		// seconds"; two machines and several sessions were lost to it. Root-cause evidence:
-		//
-		//
-		// The headless carve-out above already established the principle: a machine that
-		// cannot resolve music gets a loud stderr line and a music-less game, never a
-		// vanishing process.
+		// Missing music must not quit the engine. A headless process or a machine with no sound device cannot load
+		// music, and the check needs the base-Generals archives (Zero Hour's music list includes base Generals tracks).
+		// Warn on stderr and run without music; audio is not simulation state.
 		if (!TheAudio->isMusicAlreadyLoaded() && !TheGlobalData->m_headless)
 		{
 			fprintf(stderr, "[GXAUDIO] WARNING: no music track file is resolvable "
@@ -1185,19 +1157,10 @@ void GameEngine::init()
 		TheWritableGlobalData->m_iniCRC = xferCRC.getCRC();
 		DEBUG_LOG(("INI CRC is 0x%8.8X", TheGlobalData->m_iniCRC));
 
-		// GeneralsX:
-		// Snapshot the join-time compatibility identity. The m_iniCRC assignment directly
-		// above is the only point at which m_iniCRC is final, and it is before any network
-		// subsystem exists (TheLAN is constructed later, from LanLobbyMenu), so the identity
-		// is always populated before a join can occur and never changes afterwards.
-		// Snapshotting rather than reading live also immunises it against the RTS_DEBUG
-		// backdoor in WOLLobbyMenu that overwrites m_exeCRC and m_iniCRC with a remote peer's
-		// advertised values. TheArchiveFileSystem->loadMods() has already run above, so the
-		// archive fingerprint includes mods. SagePatch.ini keeps its nullptr xfer and is
-		// deliberately not part of this - it is a per-device client-tuning file, and an iPad
-		// and a desktop legitimately want different camera limits.
-		// initialize() and computeMountedArchiveFingerprint() both fail closed and never
-		// throw, so neither can reach the catch (...) that wraps GameEngine::init.
+		// Snapshot the join-time compatibility identity: m_iniCRC is final here, before any network subsystem exists. A
+		// snapshot is also immune to the RTS_DEBUG backdoor in WOLLobbyMenu that overwrites m_exeCRC and m_iniCRC;
+		// loadMods() has already run. SagePatch.ini is deliberately excluded: it is a per-device client-tuning file
+		// (camera limits differ per device).
 		SimulationId::Inputs simIn;
 		simIn.iniCRC               = TheGlobalData->m_iniCRC;
 		simIn.nameKeyBeforeScience = nameKeyBeforeScience;
@@ -1205,7 +1168,7 @@ void GameEngine::init()
 		simIn.archiveFingerprint   = TheArchiveFileSystem->computeMountedArchiveFingerprint();
 		SimulationId::initialize( simIn );
 
-		// GeneralsX @diag /07/2026 De-folded libm fingerprint. PRINT ONLY - deliberately
+		// GeneralsX: De-folded libm fingerprint. PRINT ONLY - deliberately
 		// NOT folded into the SimID, for the reason recorded at SimulationId.cpp:76-80: a libm
 		// difference is a warning, not grounds to refuse a join.
 		//
@@ -1219,19 +1182,10 @@ void GameEngine::init()
 
 		TheSubsystemList->postProcessLoadAll();
 
-		// GeneralsX: THE max-FPS cap, resolved once - Common/FpsLimitPolicy.h.
-		// The launcher's value (-fps N, or -noFPSLimit for 0) wins; else the refresh rate of the display
-		// the game window is on, read HERE because TheGameClient above has created the display and applied
-		// the window mode, so the window sits on the monitor it will play on; else the tick rate. 0 means
-		// unlimited. The retail INI's FramesPerSecondLimit = 30 and UseFPSLimit no longer choose anything,
-		// and nothing after this line writes the cap - the skirmish slider is a game speed, map scripts
-		// and detail presets leave it alone.
-		//
-		// This used to be a `<= 0 -> tick rate` fix-up, with a warning that widening it broke match start
-		// ("simulated 0 frames"). The cause recorded for that was this global being ALSO the negotiated
-		// logic-rate ceiling in ConnectionManager::updateRunAhead; that ceiling has been the constant
-		// LOGICFRAMES_PER_SECOND since 17/08/2026, so the global is now read as the render cap only.
-		// Match start is re-proven at caps 0, 60 and 144 for this change (W7 handback, 27/09/2026).
+		// THE max-FPS cap, resolved once (Common/FpsLimitPolicy.h): the launcher's -fps N (-noFPSLimit for 0), else the
+		// refresh rate of the display the window is on, else the tick rate. 0 means unlimited. Without -fps, Options.ini
+		// FPSLimit = no also means unlimited. The INI's FramesPerSecondLimit and UseFPSLimit choose nothing. This global is
+		// the render cap only; the logic-rate ceiling is the constant LOGICFRAMES_PER_SECOND.
 		{
 			const Bool fromArgv = CommandLine::hasFpsLimitArgument();
 			// A launch with no -fps (run-macos-zh.sh, run-linux-zh.sh) keeps the old launcher's "uncapped",
@@ -1442,27 +1396,10 @@ Bool GameEngine::canUpdateGameLogic(UnsignedInt logicTimeQueryFlags)
 }
 
 /// -----------------------------------------------------------------------------------------------
-// GeneralsX: DO NOT PUT A TIME ACCUMULATOR IN HERE. It has been tried, it
-// was committed, and it was reverted the same night (684117700 reverting 3ed15cee3). This note
-// exists so the third attempt does not have to rediscover why.
-//
-// 1. THIS GATE IS DOWNSTREAM OF COMMAND DELIVERY. Network::update() runs earlier in this same
-//    GameEngine::update() (:1260), and it appends the frame's commands to TheCommandList via
-//    RelayCommandsToCommandList BEFORE setting m_frameDataReady - the two happen in the same
-//    `if` body, Network.cpp:866-869. So by the time this function is asked, the commands for the
-//    frame are already queued. Returning false here does not defer them; it leaves them on the
-//    list, where the NEXT Network::update()'s GetCommandsFromCommandList picks them up and
-//    re-broadcasts them at a later execution frame. That is a desync between peers whose sourceID
-//    and dataID match perfectly, so no join gate can catch it - strictly worse than a fast game.
-// 2. IT DOUBLE-THROTTLES. FramePacer::getActualLogicTimeScaleFps returns TheNetwork->getFrameRate()
-//    in a network game, which is the rate Network::timeForNewFrame() has ALREADY enforced. Pacing
-//    against it a second time under-runs rather than corrects.
-//
-// The network path is not missing a pacer. Network::timeForNewFrame() is a wall-clock accumulator
-// with a debt carry, it sits UPSTREAM of the relay, and it is the only writer of m_frameDataReady.
-// If the simulation is running at the wrong rate, the rate it was handed is wrong - fix
-// m_frameRate, which is what the 17/08/2026 fixes in ConnectionManager::updateRunAhead and
-// Network::processRunAheadCommand do. Do not add a second gate below the relay.
+// DO NOT PUT A TIME ACCUMULATOR HERE. This gate is downstream of command delivery: Network::update() has already
+// queued the frame's commands, so returning false re-broadcasts them at a later frame, a desync no join gate
+// catches. It would also double-throttle: Network::timeForNewFrame() already enforces the rate. Fix a wrong rate
+// in m_frameRate (ConnectionManager::updateRunAhead).
 Bool GameEngine::canUpdateNetworkGameLogic()
 {
 	DEBUG_ASSERTCRASH(TheNetwork != nullptr, ("TheNetwork is null"));
@@ -1541,7 +1478,7 @@ static void autoLoadThroughGate()
 	presentLoadResult( TheGameState->loadGame( s_autoLoadGame ), s_autoLoadGame.filename );
 }
 
-// GeneralsX @feature -autoload support.
+// GeneralsX: -autoload support.
 //
 // Picks the most recent save and resumes it, so a test cycle starts inside the
 // match instead of at the main menu. Runs once, on the first update after the
@@ -1587,25 +1524,10 @@ static void autoLoadLatestSaveOnce()
 	Bool found = FALSE;
 
 	{
-		// GeneralsX: The probe must not be allowed to throw.
-		// GameState::iterateSaveFiles() gets away with passing a bare leaf name only because it
-		// chdir()s into the save directory first, and this hand-rolled walk does not. So every
-		// leaf resolved against the process working directory (the app container on iOS), missed,
-		// and threw XFER_FILE_NOT_FOUND straight out of GameEngine::update() into the catch(...)
-		// in execute(), i.e. RELEASE_CRASH. -autoload therefore never resumed anything: it killed
-		// the process on the first frame after the shell came up, every single time.
-		//
-		// GeneralsX: The path used to be resolved HERE with
-		// getFilePathInSaveDirectory(). getSaveGameInfoFromFile() now resolves a relative argument
-		// itself (TheSuperHackers #3226), so pre-resolving it would double-prefix whenever
-		// getSaveDirectory() is itself relative - GlobalData falls back to "./" for user data when
-		// HOME is unset, and "./Save/x.sav" is not absolute, so it would become
-		// "./Save/./Save/x.sav". Pass the bare leaf and let the resolver do it once.
-		// A missing file is not the only way out either - a truncated or foreign .sav makes the
-		// block parser throw SC_UNKNOWN_BLOCK - so the probe is wrapped exactly the way
-		// addGameToAvailableList() wraps it and a bad entry is skipped instead of being fatal.
-		// closedir() is scope-guarded for the same reason: it used to be unreachable on a throw.
-		// loadGame() below still receives the bare leaf, because it builds the path itself.
+		// The probe must not throw: unlike GameState::iterateSaveFiles(), this walk does not chdir() into the save
+		// directory, so a bare leaf would miss and throw XFER_FILE_NOT_FOUND out of update(). A truncated or foreign
+		// .sav throws SC_UNKNOWN_BLOCK too, so the probe is wrapped and bad entries skipped. Pass the bare leaf:
+		// getSaveGameInfoFromFile() resolves a relative path itself, and pre-resolving would double-prefix.
 		struct DirCloser
 		{
 			DIR *m_dir;
@@ -1823,7 +1745,7 @@ void GameEngine::updateLogic()
 				TheGameClient->step();
 				// GeneralsX: A motion blur's TRUE ending in this update's scripted camera step
 				// (ScriptedCamera::logicFrame) can make a camera freeze in flight hold: from the next draw on, and only after the
-				// view took this frame's step too (re-read inside that step, it made this very update skip it: camera-sim-B).
+				// view took this frame's step too (re-read inside that step, it made this very update skip it)
 				TheFramePacer->setTimeFrozen(isTimeFrozen());
 			}
 			// GeneralsX: In a script freeze the scripts still run on this update and read

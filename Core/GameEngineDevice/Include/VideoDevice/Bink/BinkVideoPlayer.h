@@ -48,17 +48,8 @@
 #include "GameClient/VideoPlayer.h"
 // GeneralsX: Stub Bink for Phase 1 (proprietary SDK)
 // TODO Phase 3: Replace with FFmpeg or skip videos gracefully
-//
-// GeneralsX: Take the real header back on Windows.
-//
-// Commenting out bink.h left HBINK as a pointer to an incomplete type, which is enough to declare
-// the class but not to compile BinkVideoPlayer.cpp - BinkOpen, BinkDoFrame, BINKSURFACE32 and the
-// rest all vanish with it (33 errors). Zero Hour's copy of this header, three directories away,
-// never lost the include, which is why only Generals broke. The header is supplied by the
-// binkloader target in Dependencies/Bink, which the root CMakeLists adds on Windows and which
-// exports its own directory PUBLIC, so this resolves; off Windows there is no bink.h to find and
-// the forward declaration is all the non-Windows build ever needs, since it builds
-// BinkVideoPlayerStub.cpp instead of BinkVideoPlayer.cpp.
+// bink.h comes on Windows from the binkloader target in Dependencies/Bink (PUBLIC include dir).
+// Off Windows a forward declaration suffices: BinkVideoPlayerStub.cpp is built instead.
 #ifdef _WIN32
 #include "bink.h"
 #else

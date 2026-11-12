@@ -16,8 +16,8 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G Task 5: the replay driver - one flush's `=2` call log through the device-less model, with
-// C6's call-level comparison (MODEL_CALL, CONTRACT_L2 r9b) built in (GxL2Model.h replay()). Engine-free.
+// The replay driver - one flush's `=2` call log through the device-less model, with
+// a call-level comparison (MODEL_CALL) built in (GxL2Model.h replay()). Engine-free.
 
 #include "W3DDevice/GameClient/GXRender/Scene/GxL2Model.h"
 
@@ -259,7 +259,7 @@ void replay(State &s, const gxlog::Log &L, ReplayHooks &h)
 	h.end(s);
 }
 
-// ---- C5 INVARIANCE (CONTRACT_L2 §4.3 C5, §3.4 under DrawRun S1-DR r10) ---------------------------------------------
+// ---- C5 INVARIANCE (CONTRACT_L2 §4.3 C5, §3.4 under DrawRun S1-DR) ------------------------------------------------
 namespace {
 
 // Arm B's hooks: the boundary replay's invocations have no logged counterpart (MODEL_CALL is C6's, on arm A), so it hears nothing.

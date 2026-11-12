@@ -82,17 +82,9 @@ enum RecorderModeType CPP_11(: Int) {
 
 enum CPP_11(: Int)
 {
-	// GeneralsX: The .rep header carries disconnect flags at fixed byte
-	// offsets - a FILE FORMAT quantity, deliberately NOT MAX_SLOTS (AI slots never disconnect).
-	//
-	// It was pinned at 8 while humans were confined to slots 0-7. Twelve human machines breaks
-	// that premise, so the block must cover every human slot - which MOVES every byte after it.
-	// The format is therefore keyed by the MAGIC rather than by a version field: "GENREP" means
-	// the legacy 8-flag block, "GENR12" means MAX_HUMAN_SLOTS flags. Same six bytes either way,
-	// so every offset up to the block is unchanged and the reader can tell them apart before it
-	// has read anything it could mis-parse. Legacy replays - including the regression corpus -
-	// stay readable; new replays are not readable by old builds, which is what the hard cutover
-	// already implies.
+	// GeneralsX: the .rep header carries disconnect flags at fixed byte offsets, a file-format quantity (not MAX_SLOTS).
+	// The magic selects the layout: GENREP is the legacy 8-flag block, later magics carry more flags (see below).
+	// All are six bytes, so earlier offsets do not move; legacy replays stay readable, new ones are not for old builds.
 	REPLAY_DISCON_SLOTS_LEGACY = 8,
 	// GeneralsX: "GENR12" files carry exactly 12 flags, forever: MAX_HUMAN_SLOTS
 	// went 12 -> 14 (12 players + 2 observers), so new recordings are "GENR14" with 14, and the reader

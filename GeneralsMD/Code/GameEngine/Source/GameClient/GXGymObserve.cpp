@@ -16,23 +16,11 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: ai-gym observation logger: the match state as NDJSON, schema v1
-// (is the contract; bump GXGYM_SCHEMA_VERSION with any change to a line's fields).
-//
-// SELF-CONTAINED ON PURPOSE. The first learned AI will be trained on Generals Online replays decoded by GO's OWN client with
-// this same logger patched in, so this file uses only engine concepts both forks share - Object, Player,
-// ThePlayerList, ThePartitionManager, TheTerrainLogic, ThingTemplate, ScoreKeeper, TheVictoryConditions - and no GeneralsX helper. Its caller
-// (GXGym.cpp here) decides when to call it and where the lines go.
-//
-// READS ONLY, AND ONLY GETTERS THAT CHANGE NOTHING. It runs on one peer (the bot's), so any write the simulation reads back
-// would split that peer from the others. So, deliberately:
-//  * never Object::getShroudedStatus - it recomputes a lazy cache the logic reads back (PartitionData::m_everSeenByPlayer).
-//    Visibility is the const cell query ThePartitionManager->getShroudStatusForPlayer plus the stealth/detected status bits,
-//    exactly GXOrderDriver::isVisibleTo; CLEAR only, never FOGGED vs SHROUDED (that distinction differs headless/rendered);
-//  * never a name key: NAMEKEY/nameToKey on a string no peer interned yet mints a SEQUENTIAL key on this peer alone. KEYNAME
-//    (keyToName) only reads, and the supply warehouse is found by dynamic_cast on its dock interface, not by module name;
-//  * no random numbers, no AI group creation, no weapon or mood queries (TheSuperHackers #3328's unsafe-getters list).
-// The [CRC] stream with this on and off on the same seed is the proof.
+// ai-gym observation logger: the match state as NDJSON, schema v1 (bump GXGYM_SCHEMA_VERSION on any field change).
+// Self-contained: only engine concepts both forks share, so Generals Online replays can be decoded with it.
+// READS ONLY, via getters that change nothing: it runs on one peer, so a write the simulation reads back would split
+// that peer. Never Object::getShroudedStatus (it recomputes a cache the logic reads back).
+// No name keys (an uninterned name mints a sequential key on this peer alone), no random numbers, no AI group creation.
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
@@ -189,7 +177,7 @@ void gxGymObserveStart(FILE *out, const char *prefix, Int viewPlayerIndex)
 		Player *p = ThePlayerList->getNthPlayer(i);
 		if (!isPlayable(p))
 			continue;
-		// GeneralsX: scale32: 64 bits and every Player, as the frame rows' `vis` below - at MAX_PLAYER_COUNT 40
+		// scale32: 64 bits and every Player, as the frame rows' `vis` below - at MAX_PLAYER_COUNT 40
 		// an ally at index 32+ was dropped from the start record, so the readers split that alliance.
 		UnsignedInt64 allies = 0;
 		for (Int j = 0; j < ThePlayerList->getPlayerCount() && j < MAX_PLAYER_COUNT; ++j)
@@ -239,7 +227,7 @@ void gxGymObserveFrame(FILE *out, const char *prefix, UnsignedInt frame, Int vie
 	// Everyone who could see a row, as a bit per player index - so one stream serves every player's fog view (a replay
 	// decoded once gives each player's (what it saw, what it did) pairs).
 	std::vector<Player *> seers;
-	for (Int i = 0; i < ThePlayerList->getPlayerCount() && i < MAX_PLAYER_COUNT; ++i)	// GeneralsX 06/11/2026 every Player (was < 32)
+	for (Int i = 0; i < ThePlayerList->getPlayerCount() && i < MAX_PLAYER_COUNT; ++i)	// every Player
 		if (isPlayable(ThePlayerList->getNthPlayer(i)))
 			seers.push_back(ThePlayerList->getNthPlayer(i));
 
@@ -250,7 +238,7 @@ void gxGymObserveFrame(FILE *out, const char *prefix, UnsignedInt frame, Int vie
 		if (!worthARow(o))
 			continue;
 		Player *owner = o->getControllingPlayer();
-		UnsignedInt64 vis = 0;	// GeneralsX 06/11/2026 64-bit: a Player index (and view's below) can pass 31 at MAX_PLAYER_COUNT 40
+		UnsignedInt64 vis = 0;	// 64-bit: a Player index (and view's below) can pass 31 at MAX_PLAYER_COUNT 40
 		for (size_t i = 0; i < seers.size(); ++i)
 			if (visibleTo(o, owner, seers[i]))
 				vis |= (UnsignedInt64)1 << seers[i]->getPlayerIndex();
@@ -291,7 +279,7 @@ void gxGymObserveFrame(FILE *out, const char *prefix, UnsignedInt frame, Int vie
 	fflush(out);
 }
 
-// GeneralsX: pro-macro-data: the "ext" line - how each mobile object stands and moves, for
+// pro-macro-data: the "ext" line - how each mobile object stands and moves, for
 // analysis of decoded replays (which way a truck faces, whether it drives in reverse, which dock it uses, what it is
 // ordered at). Same rules as above: const getters only, no name keys, no random numbers; heading and the forward speed
 // are computed here from getOrientation and the physics velocity, not from Object::getUnitDirectionVector2D.

@@ -1,47 +1,35 @@
-// GeneralsX: a hosted lobby's SEATS, as the host tells the relay: "GXSLOT".
-//
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// A hosted lobby's seats, as the host tells the relay:
 //     GXSLOT <room> <listing> <mapMax> <seat> <seat> ...   host -> relay, on change and every 30 s
-//
-//     <listing> eight lowercase hex digits naming the GXADV these seats describe (Transport::resendRelaySlots
-//               adds it; this header composes only "<mapMax> <seat> ..."). The relay takes the seats only onto
-//               that exact advertisement.
-//     <mapMax>  the map's own player count (MapMetaData::m_numPlayers), 0 when the host cannot resolve its
-//               map. The advertisement's <slots> is seats taken or open, capped by the map; this is the map.
-//     <seat>    one per slot, slot order, through the map's last seat; closed ones past it are left off
-//               (with no map count, every trailing closed one), and nothing occupied or open ever is:
-//                 o                                    open
-//                 x                                    closed
-//                 <k>:<faction>:<team>:<colour>        an AI, k = E | M | B (SLOT_EASY_AI, SLOT_MED_AI,
-//                                                      SLOT_BRUTAL_AI - the one the game's lobby calls Hard)
-//                 H:<faction>:<team>:<colour>[:<id>]   a human; <id> is its virtual address, which IS its
-//                                                      relay member id, so the console can name the seat
-//                 O:<faction>:<team>:<colour>[:<id>]   a human OBSERVER (PLAYERTEMPLATE_OBSERVER) - its own
-//                                                      letter, because a mod may name a playable template
-//                                                      "FactionObserver" and that player is not one
-//               faction  the PlayerTemplate's name less "Faction" ("ChinaTankGeneral"), or empty for
-//                        random/unknown
-//               team     1-based, as the lobby shows it; empty for none
-//               colour   the colour's TooltipName less "Color:" ("SkyBlue"); empty for random/unknown
-//
-// Every field is a plain word or a number, so no separator can move. A name that is not one - a mod's
-// template with a space, a name past the relay's cap - is sent as UNKNOWN rather than cut, because a cut name
-// is a wrong name. tools/relay/relay.js SEAT_RE enforces the same bounds and refuses the whole line otherwise.
-//
-// WHY A TAG AND NOT A FIELD ON GXADV: the advertisement's tail goes through the relay's sanitizeText and is
-// positional; every relay older than a new field folds it into the map name (see LNAM_TAG in relay.js). Held
-// on the host's member record like GXLNAM, an older relay never shows it and the console keeps the numbers
-// the advertisement alone can back.
-//
-// AN OLDER RELAY: "GXSLOT" is four capitals after "GX", so the /^GX[A-Z]{3,4} / unknown-tag guard of the
-// relay deployed today DROPS it - it is never broadcast to the room. A relay older than that guard would
-// broadcast it, and a client receiving it reads no GXR1 header and counts it as an unknown packet
-// (Transport::doRecv) - harmless, and the 30 s cadence is what bounds even that.
-//
-// PURE, for the reason GXRelayIdentityWire.h gives: LANAPI.cpp cannot be compiled on its own, so
-// scripts/test/relay-slots-wire-test.cpp drives THIS - the composer RequestGameOptions calls.
-//
-// IN THE DIGEST, harmlessly: Core/GameEngine/Include/GameNetwork is a digested root. Nothing here is read by
-// the simulation; the line is a control datagram the relay consumes.
+//     <listing>  eight lowercase hex digits naming the GXADV these seats describe (Transport::resendRelaySlots adds it;
+//                this header composes only "<mapMax> <seat> ..."); the relay takes the seats only onto that advertisement
+//     <mapMax>   the map's own player count (MapMetaData::m_numPlayers), 0 when the host cannot resolve its map
+//     <seat>     one per slot, in slot order; closed seats past the map's last are left off:
+//                o open | x closed | <k>:<faction>:<team>:<colour> an AI, k = E | M | B (B = SLOT_BRUTAL_AI, the lobby's Hard)
+//                | H:<faction>:<team>:<colour>[:<id>] a human, <id> = its virtual address = its relay member id
+//                | O:<faction>:<team>:<colour>[:<id>] a human observer (own letter: a mod may name a template "FactionObserver")
+//     faction = PlayerTemplate name less "Faction", empty for random; team = 1-based as the lobby shows it, empty for none;
+//     colour = TooltipName less "Color:", empty for random. A name that is not a plain word is sent as UNKNOWN, never cut;
+//     tools/relay/relay.js SEAT_RE enforces the same bounds and refuses the whole line otherwise.
+// A tag, not a GXADV field: an older relay folds an extra GXADV field into the map name. A relay with the
+// /^GX[A-Z]{3,4} / unknown-tag guard drops GXSLOT; one without it broadcasts it, and a client counts an unknown packet.
 #pragma once
 
 #include <stddef.h>
@@ -64,7 +52,7 @@ enum GXSeatState
 
 enum
 {
-	// GeneralsX: scale32: 14 -> 34 seats (32 players + 2 observers), with relay.js SEATS_PER_LOBBY.
+	// scale32: 14 -> 34 seats (32 players + 2 observers), with relay.js SEATS_PER_LOBBY.
 	GX_RELAY_SEATS_MAX = 34,			///< MAX_SLOTS, and relay.js SEATS_PER_LOBBY
 	GX_RELAY_SEAT_NAME_MAX = 32,		///< a faction, after "Faction" is taken off
 	GX_RELAY_SEAT_COLOUR_MAX = 16,		///< a colour, after "Color:" is taken off

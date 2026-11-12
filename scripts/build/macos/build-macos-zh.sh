@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Build GeneralsXZH (Zero Hour) natively on macOS (Apple Silicon / arm64)
 # GeneralsX: Phase 5 macOS port
 #
@@ -26,7 +28,7 @@
 set -eo pipefail
 
 PRESET="macos-vulkan"
-# GeneralsX: GX_BUILD_DIR and GX_CMAKE_DEFS exist for scripts/test/gx-ab-build.sh
+# GX_BUILD_DIR and GX_CMAKE_DEFS exist for scripts/test/gx-ab-build.sh
 # alone (gx-ab-test G12): a build-flag arm configured into a directory of its own, never build/macos-vulkan,
 # the directory verify-4platform.sh certifies. Unset, this script is what it always was. They are
 # environment, so an exported one reaches every caller: verify-4platform.sh unsets both, and extra -D
@@ -66,7 +68,7 @@ check_tool ninja "brew install ninja"
 check_tool meson "brew install meson"
 check_tool python3 "brew install python3"
 
-# GeneralsX: Auto-detect VCPKG_ROOT for preset toolchain resolution
+# Auto-detect VCPKG_ROOT for preset toolchain resolution
 resolve_vcpkg_root() {
     local candidate=""
     local -a candidates=()

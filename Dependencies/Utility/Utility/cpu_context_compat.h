@@ -1,30 +1,26 @@
 /*
- * GeneralsX: Architecture-neutral access to the Windows CONTEXT record.
- *
- * The crash reporters (WWLib/Except.cpp, <game>/GameEngine/Source/Common/System/StackDump.cpp and
- * Libraries/Source/debug/debug_*.cpp) were written for 32-bit x86 and hardcode three things that
- * do not exist at x64:
- *
- *   1. CONTEXT::Eip / Esp / Ebp. The x64 CONTEXT calls them Rip / Rsp / Rbp, so every reference
- *      was "error C2039: 'Eip': is not a member of '_CONTEXT'".
- *   2. MSVC inline assembly, to read those registers at the current instruction. /Zi-era __asm is
- *      simply not supported by the x64 compiler ("error C4235: nonstandard extension used: '__asm'
- *      keyword not supported on this architecture"), and the surrounding token soup then produces
- *      a cascade of C2065s.
- *   3. IMAGE_FILE_MACHINE_I386 as the StackWalk machine type.
- *
- * RtlCaptureContext solves (2) on every Windows architecture without a line of assembly - it is
- * exported from kernel32 and declared in winnt.h for MSVC and mingw-w64 alike - so this header
- * uses it for x86 as well and the games end up with a single code path instead of three.
- *
- * KNOWN LIMITATION at x64: StackWalk64 cannot walk an x64 stack from a frame pointer, because x64
- * code is compiled without one; it needs the CONTEXT record and the unwind tables. Call sites that
- * currently hand StackWalk a null ContextRecord should pass GX_STACKWALK_CONTEXT(&ctx) instead,
- * which is a no-op at x86 (preserving the original frame-pointer walk) and the real context at
- * x64. Where a call site has not been converted the walk degrades to producing no frames, which is
- * a diagnostic gap, never a crash.
- *
- * Windows-only by construction: everything below sits inside #ifdef _WIN32.
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+ * Architecture-neutral access to the Windows CONTEXT record for the crash reporters, which assumed 32-bit x86
+ * (CONTEXT::Eip/Esp/Ebp, inline __asm). RtlCaptureContext replaces the asm on every architecture.
+ * KNOWN LIMITATION at x64: StackWalk64 needs the CONTEXT record, so pass GX_STACKWALK_CONTEXT(&ctx); unconverted
+ * call sites yield no frames (a diagnostic gap, never a crash). Windows-only: all of it sits inside #ifdef _WIN32.
  */
 #pragma once
 

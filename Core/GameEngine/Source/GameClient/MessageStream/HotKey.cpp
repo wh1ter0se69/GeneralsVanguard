@@ -47,7 +47,7 @@
 // SYSTEM INCLUDES ////////////////////////////////////////////////////////////
 //-----------------------------------------------------------------------------
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
-#include <wctype.h>	// GeneralsX @bugfix towlower/towupper, HotKeyManager::labelWithHotKey
+#include <wctype.h>	// GeneralsX: towlower/towupper, HotKeyManager::labelWithHotKey
 #include <stdio.h>
 #include <stdlib.h>
 //-----------------------------------------------------------------------------
@@ -418,19 +418,9 @@ UnicodeString HotKeyManager::labelWithHotKey( const UnicodeString& label, const 
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX @feature wh1ter0se 20/08/2026 Rebindable command-button hotkeys.
-//
-// The keybind file lives in the USER data directory, not in a BIG archive, and deliberately so:
-// a keybind is a per-user preference and must not participate in dataID. Putting it in the game
-// data would make two players with different keybinds fail to join each other with DATA_DIFFERS.
-//
-// Format is the standard UserPreferences "key = value" map, keyed by the CommandButton's INI
-// name VERBATIM:
-//     Command_ConstructChinaDozer = J
-//     Early_Command_LeafletDrop   = L
-// No prefix is added by us. CommandButton names already begin with "Command_" - and a good few
-// with "Early_Command_" - so requiring a prefix of our own would mean writing
-// "Command_Command_ConstructChinaDozer" and would leave the Early_ buttons unbindable.
+// GeneralsX @feature wh1ter0se 20/08/2026 Rebindable command-button hotkeys. The keybind file lives in the USER data directory, not a BIG archive, so it does
+// not participate in dataID (differing keybinds must not cause DATA_DIFFERS). Format: UserPreferences "key = value",
+// keyed by the CommandButton INI name VERBATIM (Command_ConstructChinaDozer = J), no prefix added.
 //-----------------------------------------------------------------------------
 static const char *KEYBIND_PREFS_FILE = "CommandButtonHotKeys.ini";
 static const char *KEYBIND_SHOW_KEY   = "ShowHotKeyIndicators";
@@ -533,8 +523,7 @@ AsciiString HotKeyManager::getCommandButtonHotKey( const AsciiString& commandBut
 																									 const AsciiString& textLabel )
 {
 	HotKeyOverrideMap::const_iterator it = m_commandButtonOverrides.find( commandButtonName );
-	// GeneralsX: GX_KEYS_TRACE=1: one stderr line per lookup, to see what a proof run's buttons ask
-	// for and whether the override file answered (the Mini in-game proof showed a rebound button keeping its letter).
+	// GX_KEYS_TRACE=1: one stderr line per lookup, to see what a proof run's buttons ask for and whether the override file answered.
 	static const Bool s_trace = getenv( "GX_KEYS_TRACE" ) != nullptr;
 	if( s_trace )
 	{
@@ -548,16 +537,10 @@ AsciiString HotKeyManager::getCommandButtonHotKey( const AsciiString& commandBut
 	// No override - retail behaviour, the '&' marker inside the localized string.
 	AsciiString key = searchHotKey( textLabel );
 #if RTS_ZEROHOUR
-	// GeneralsX: Sell defaults to Z, for every army (asked by a pro player on 0.9.69: "I like it
-	// as Z for all armies"). Retail's CONTROLBAR:Sell is plain "Sell", no '&', so Sell had no key at all. Measured on the
-	// release data (English generals.csf + CommandButton.ini + every CommandSet): Command_Sell sits in 213 sets, slot 14 in
-	// 209 and slot 12 in 4, and no other button in any of them - nor on any of the 13 shortcut bars - uses Z; the only
-	// stock Z is Supply Drop Zone on the USA dozers, whose sets carry no Sell. Retail CommandMap binds no bare Z either.
-	// Only when the label gives no letter: a localized or modded label that marks one keeps it. A player's override,
-	// including a cleared key (KEYBIND_NO_KEY), returned above and wins. If a mod puts a Z button in a set beside Sell,
-	// that button registers first (lower slot) and Sell's letter is drawn greyed, as for any refused key.
-	// The launcher (gxio commandmap.rs DEFAULT_KEYS_MARKER) shows Z as Sell's game default only beside a binary that
-	// contains GX_DEFAULT_KEYS_MARKER, so it never promises a key an older engine does not bind.
+	// Sell defaults to Z for every army. Retail's CONTROLBAR:Sell is plain "Sell", no '&', so Sell had no key. On the
+	// release data Command_Sell sits in 213 command sets and no other button in them, nor on any of the 13 shortcut bars,
+	// uses Z. Only when the label gives no letter; a player's override (even a cleared key) returned above wins.
+	// The launcher shows Z as Sell's default only beside a binary containing GX_DEFAULT_KEYS_MARKER.
 	static const char *GX_DEFAULT_KEYS_MARKER = "GXDefaultKey Command_Sell=z";
 	if( key.isEmpty() && strcmp( commandButtonName.str(), "Command_Sell" ) == 0 )
 	{

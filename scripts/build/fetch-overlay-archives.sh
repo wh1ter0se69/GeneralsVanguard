@@ -1,5 +1,7 @@
 #!/bin/bash
-# GeneralsX: Give a build host that has no community-patch archives a way
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Give a build host that has no community-patch archives a way
 # to obtain them, so "the release refuses to publish an unjoinable bundle" is a gate with a route
 # through it rather than a dead end.
 #

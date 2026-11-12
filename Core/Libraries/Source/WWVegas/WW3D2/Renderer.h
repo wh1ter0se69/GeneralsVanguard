@@ -1,6 +1,6 @@
 /*
 **	Command & Conquer Generals Zero Hour(tm)
-**	Copyright 2026 TheSuperHackers
+**	Copyright 2026 GeneralsX contributors
 **
 **	This program is free software: you can redistribute it and/or modify
 **	it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@ public:
                       float dest_alpha = 0.0f, float z = 1.0f, unsigned int stencil = 0);
     static void Set_Viewport(const RenderViewport & viewport);
     static void Invalidate_Cached_Render_States();
-    // GeneralsX: WW3D::End_Render marks only the matrices dirty each frame instead of
+    // WW3D::End_Render marks only the matrices dirty each frame instead of
     // invalidating every cached state (fork divergence, ww3d.cpp), so the seam carries that call too.
     static void Set_Transform_Dirty();
 

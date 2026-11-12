@@ -1,22 +1,27 @@
 /*
-**	GeneralsX: IN-MATCH VOTE KICK, the client's half (GameClient/GXVoteKick.h says what each entry
-**	point is for). Included ONCE, at the end of InGameUI.cpp, after GXSpectatorHud.inl (whose top inset it reads).
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
 **
-**	READS ONLY: the simulation's vote (TheGameLogic->getGxVoteKick(), GameLogic::gxVoteKickLiving) and the Players. SENDS only
-**	the two orders. So nothing here can desync anything: whatever this client shows or misses, the vote is decided by the
-**	orders' execution on every peer (Common/GXVoteKick.h).
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
 **
-**	THE BANNER: small, top-centre under the players bar, the GeneralsX navy/steel look (tokens from,
-**	06/10/2026), in both UI modes - it is game function, not a skin. It is drawn ABOVE the hide-everything switch (F11) like
-**	the fast-forward readout: a vote that waits for you must not be hideable by accident. It has its own HIDE, per vote; the
-**	keys still answer while it is hidden.
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
 **
-**	NO KEYS: no F-key is free (F1-F8 camera
-**	views, F9 control bar, F5 Friends, F10/F11 HUD toggles, F12 screenshot), so the ballot is two buttons, a green YES and a
-**	red NO, each labelled in words (never colour alone). Every click or tap on the banner is the banner's: none passes through
-**	as an order to the units under it. On the iPad a tap arrives as the same left down/up (SDL3GameEngine.cpp's touch state
-**	machine) and a long press as a right click, which the banner also swallows; the hit areas reach past the drawn buttons.
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+/*
+**	IN-MATCH VOTE KICK, the client's half (see GameClient/GXVoteKick.h). Included ONCE, at the end of InGameUI.cpp.
+**	READS ONLY the simulation's vote and the Players; SENDS only the two orders, so nothing here can desync.
+**	The banner is drawn ABOVE the hide-everything switch (F11) so a vote cannot be hidden by accident.
+**	No F-key is free, so the ballot is two labelled buttons (YES / NO); every click or tap on the banner is its own.
+ */
 
 #include "GameClient/GXVoteKick.h"
 #include "GameClient/Mouse.h"
@@ -293,7 +298,7 @@ static void drawBanner( const GXVoteKickState &v, UnsignedInt frame, Int me, GXV
 
 #if defined(GX_TEST_INSTRUMENTS)
 // ---------------------------------------------------------------------------------------------------------------------
-// GeneralsX: GX_TEST_VOTEKICK - drive the vote from a headless peer through the same calls the board
+// GX_TEST_VOTEKICK - drive the vote from a headless peer through the same calls the board
 // and the keys make. NEVER in a shipping build.
 //   GX_TEST_VOTEKICK="<frame>:<action>[:<arg>...],..."   at the first client frame whose logic frame is >= <frame>
 //   start:<slot>          gxVoteKickStart on the player in <slot> (the client's own checks apply, as for the button)

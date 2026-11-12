@@ -123,7 +123,7 @@ static AsciiString obfuscate( AsciiString in )
 	{
 		if (!*c2)
 			c2 = xorWord;
-		// GeneralsX @bugfix Was: *c = *c++ ^ *c2++;
+		// GeneralsX: Was: *c = *c++ ^ *c2++;
 		//
 		// C++17 sequences the right operand of an assignment before the left, and
 		// this project builds as C++20 — so `c` was already incremented by the time

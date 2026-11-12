@@ -189,6 +189,8 @@ void showSkirmishGameOptionsUnderlyingGUIElements( Bool show )
 
 	// hide some GUI elements of the screen underneath
 	ShowUnderlyingGUIElements( show, skirmishLayoutFilename, skirmishParentName, skirmishGadgetsToHide, skirmishPerPlayerGadgetsToHide );
+	// GeneralsX @bugfix The seat rows' scroll bar is not one of the named gadgets: it hides and shows with them.
+	CodeGuiRowsScrollShow( show, skirmishLayoutFilename, skirmishParentName );
 
 	GameWindow *win;
 
@@ -285,7 +287,7 @@ void SkirmishMapSelectMenuInit( WindowLayout *layout, void *userData )
 
 	// GeneralsX: A 12-PLAYER MAP SHOWED EIGHT START MARKERS.
 	//
-	// The shipped .wnd authors ButtonMapStartPosition0..7 (the 12/08 note below), so the loop that
+	// The shipped .wnd authors ButtonMapStartPosition0..7, so the loop that
 	// follows found nothing for 8.., skipped it, and GXCircle12 / GXCauldron12 drew no marker on
 	// the bases of players 9-12. The game-options screens already clone the missing markers from
 	// marker 0 - same art, font and draw func - and this is the same call. FREE fit: the markers are
@@ -299,21 +301,8 @@ void SkirmishMapSelectMenuInit( WindowLayout *layout, void *userData )
 		tmpString.format("SkirmishMapSelectMenu.wnd:ButtonMapStartPosition%d", i);
 		buttonMapStartPositionID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		buttonMapStartPosition[i] = TheWindowManager->winGetWindowFromId( winMapPreview, buttonMapStartPositionID[i] );
-		// GeneralsX: SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
-		//
-		// The shipped layouts author ButtonMapStartPosition0..7 - read out of WindowZH.big, all
-		// three map screens, exactly 8 rows. MAX_SLOTS became 12, so winGetWindowFromId returns
-		// null for 8..11 (GameWindowManager.cpp:719) and the two lines below dereferenced it
-		// unguarded: opening the map screen was an access violation at i == 8 on every real
-		// client. e1730b5e2 guarded the setup menus, the score screen and GUIUtil this way; it
-		// did not reach the three map screens or LoadScreen.
-		//
-		// WHY NO TEST CAUGHT IT: -headless swaps TheWindowManager for GameWindowManagerDummy
-		// (GameClient.cpp:367), whose winGetWindowFromId override returns m_windowList instead
-		// of null "because callers expect this to be non-null" (GameWindowManager.cpp:4214-4223).
-		// Every headless soak that validated 12 slots was structurally incapable of reaching this
-		// fault. A crash that only exists when a real window manager is installed needs an arm
-		// that runs one.
+		// Layouts author ButtonMapStartPosition0..7 only, so winGetWindowFromId returns null for slots 8 and up.
+		// The headless dummy window manager returns non-null, so headless runs never reach this.
 		DEBUG_ASSERTCRASH(buttonMapStartPosition[i] || i >= LEGACY_WND_SLOT_ROWS,
 			("Could not find the ButtonMapStartPosition[%d]",i ));
 		if (buttonMapStartPosition[i] == nullptr)

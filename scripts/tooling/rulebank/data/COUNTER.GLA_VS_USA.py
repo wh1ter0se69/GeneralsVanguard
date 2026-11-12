@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule COUNTER.GLA_VS_USA: GLA meets USA with Rocket Buggies once its
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule COUNTER.GLA_VS_USA: GLA meets USA with Rocket Buggies once its
 # Palace stands (rows 273, 284, 435, 500, 620, 1015, 1785; Dominator: "against Humvees, hold with Tunnels/Technicals into Palace Buggies.
 # Use Quads against aircraft"). Stock Hard GLA sends Scorpion waves at everyone; its only Rocket Buggies are wave 4's two artillery ones.
 # This, per general:

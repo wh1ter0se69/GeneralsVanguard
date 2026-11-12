@@ -16,41 +16,13 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: ai-gym - a training ground on our own engine: OBSERVE a match as
-// NDJSON (GXGymObserve.cpp) and ACT for this peer's player from lines a training process writes (GXGymProtocol.h).
-//
-// HOW ACTING STAYS HONEST. Every action becomes the GameMessages the UI appends for the same click - MSG_CREATE_SELECTED_GROUP
-// and then one order - in TheMessageStream, exactly as GXOrderDriver (GX_ORDERS) does. So it crosses the network like a human's,
-// every peer executes it from the command list, and the replay records it. Nothing here calls into GameLogic to act. Each
-// action is checked first against what a human could click: only this player's own live units, an attack only on a visible
-// enemy (GXOrderDriver's cell + stealth test, never Object::getShroudedStatus), a build only of a button the builder shows, that
-// the player can afford, on a spot the PlaceEventTranslator's checks accept (behind GXOrderDriver's anyObjectNear guard), and no
-// more than GX_ACT_APM actions a minute. A refused action writes a "rej" line with the reason and sends nothing.
-//
-// It lives in GameClient/, outside the SimID source digest: an observing or acting peer joins a stock peer of the same build.
-//
-//   GX_OBS=<n>               write an "obs" line every n logic frames (1..36000); unset or 0 = off.
-//   GX_OBS_OUT=<file>        where the lines go (truncated per match); unset = stderr, each line prefixed "[GXOBS] ".
-//   GX_OBS_VIEW=local|all|<i> whose fog marks the rows' visible bit: this peer's player (default with GX_ACT), nobody (default
-//                            without; every row visible), or player index i.
-//   GX_OBS_EXT=1             after each obs line also an "ext" line: height, heading, forward speed (negative = reversing),
-//                            AI state, goal object/position, a harvester's preferred dock and boxes carried, unmanned/moving/
-//                            idle bits, for every mobile object. Analysis of decoded replays only.
-//   GX_ACT=<file>            read action lines from this file as it grows (it must exist when the match starts).
-//   GX_ACT_SYNC=1            lock-step with the trainer: after each obs line the match waits for a "step" line.
-//   GX_ACT_APM=<n>           actions per minute of logic time, 1..6000, default 600 (GX_ORDERS' ceiling).
-//   GX_ACT_TIMEOUT_MS=<n>    GX_ACT_SYNC: give up waiting after this long and stop acting, default 120000.
-//   GX_GYM_ALLOW_HUMANS=1    allow both in a match with more than one human (the 2-peer lockstep proof). Honoured ONLY in a
-//                            GX_TEST_INSTRUMENTS build (never shipped): in a player's binary it would be a maphack and a bot
-//                            in a stranger's room through -lanjoin.
-//
-// WHERE IT MAY RUN. Observing is a full map reveal and acting is a bot, so neither runs in a player's game: only in a
-// command-line harness match (-lanhost / -lanjoin) with at most one human - GameLogic::gxCheatsAllowed, the cheats' own
-// sandbox rule, so the bot's own seat is that one human - or with GX_GYM_ALLOW_HUMANS=1 in a test-instruments build. Observing
-// a REPLAY is allowed (a replay viewer sees everything anyway); acting in one is not.
-//
-// EVERY action line costs one unit of the GX_ACT_APM budget, refused or not, and one update reads at most MAX_LINES_PER_UPDATE
-// of them: validation is real work (a build search walks the object list), and a refusal is information.
+// ai-gym: OBSERVE a match as NDJSON (GXGymObserve.cpp) and ACT for this peer's player from a training process.
+// Acting stays honest: each action becomes the GameMessages the UI appends for the same click, so it crosses
+// the network like a human's and nothing calls into GameLogic. Actions are validated against what a human could
+// click and capped by GX_ACT_APM. Outside the SimID digest. Harness matches only, with at most one human.
+// Env: GX_OBS=<n> (obs line every n logic frames), GX_OBS_OUT, GX_OBS_VIEW, GX_OBS_EXT, GX_ACT=<file>, GX_ACT_SYNC,
+// GX_ACT_APM, GX_ACT_TIMEOUT_MS. GX_GYM_ALLOW_HUMANS is honoured only in a GX_TEST_INSTRUMENTS build: in a player's
+// binary it would be a maphack and a bot.
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
@@ -428,7 +400,7 @@ void selectGroup(const std::vector<Object *> &group)
 }
 
 /// NULL when the action was sent; otherwise why it was refused. `at` is set for a build: the spot chosen.
-/// GeneralsX: Track B scenario drills (S2): the TRUSTED controller sets up a
+/// Track B scenario drills (S2): the TRUSTED controller sets up a
 /// battle with the existing sandbox cheat orders - MSG_GX_CHEAT_SPAWN_UNIT / MSG_GX_CHEAT_DELETE_OBJECTS, whose
 /// handlers (GameLogicDispatch.cpp) refuse them in any match with more than one human. Off unless GX_GYM_SCENARIO=1;
 /// the Python side never lets a policy emit these two verbs.
@@ -638,7 +610,7 @@ const char *perform(const GXGymAction &a, const Player *me, Coord3D *at, Bool *p
 			selectGroup(std::vector<Object *>(1, producer));	// onQueueUpgrade queues on the selection
 			GameMessage *msg = TheMessageStream->appendMessage(GameMessage::MSG_QUEUE_UPGRADE);
 			msg->appendObjectIDArgument(producer->getID());
-			msg->appendIntegerArgument((Int)u->getWireId());	// GeneralsX: the name's id, not the NameKey (GXWireId.h)
+			msg->appendIntegerArgument((Int)u->getWireId());	// the name's id, not the NameKey (GXWireId.h)
 			return nullptr;
 		}
 		case GXG_EVACUATE:
@@ -687,7 +659,7 @@ const char *perform(const GXGymAction &a, const Player *me, Coord3D *at, Bool *p
 				if (TheScienceStore->getSciencePurchaseCost(can[i]) > p->getSciencePurchasePoints())
 					return "not enough science points";
 				TheMessageStream->appendMessage(GameMessage::MSG_PURCHASE_SCIENCE)->appendIntegerArgument(
-					(Int)TheScienceStore->getWireIdForScience(can[i]));	// GeneralsX: the name's id, not the NameKey (GXWireId.h)
+					(Int)TheScienceStore->getWireIdForScience(can[i]));	// the name's id, not the NameKey (GXWireId.h)
 				return nullptr;
 			}
 			return "cannot buy it now";
@@ -725,7 +697,7 @@ const char *perform(const GXGymAction &a, const Player *me, Coord3D *at, Bool *p
 			Coord3D want;
 			if (!onMap(a.x, a.y, &want))
 				return "off the map";
-			// GeneralsX: ai-train-8: a facing from the bot, else the template's -
+			// a facing from the bot, else the template's -
 			// what a player who clicks without dragging gets (InGameUI). It travels in the message, so every peer builds the same.
 			const Real angle = a.hasAngle ? (Real)a.angleDeg * (PI / 180.0f) : what->getPlacementViewAngle();
 			if (!findBuildSpot(want, what, angle, dozer, at))

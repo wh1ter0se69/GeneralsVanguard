@@ -318,9 +318,9 @@ public:
 };
 
 // LaserUpdate::initLaser puts the muzzle and target effects at its (logic) ends once, where they stay. On the beam's
-// first drawn frame under interpolation, put them at the DRAWN ends instead, so beam and effects start together (
-// interp-r4, r8: a bone start is already interpolated by then, so this cannot key on the ends having moved). Untouched at
-// phase 1, so that picture is today's.
+// first drawn frame under interpolation, put them at the DRAWN ends instead, so beam and effects start together.
+// A bone start is already interpolated by then, so this cannot key on the ends having moved. Untouched at
+// phase 1, so that picture is unchanged.
 static void gxLaserPlaceEffects(const LaserUpdate *update, const Coord3D &start, const Coord3D &end)
 {
 	if (TheDisplay->getLogicPhase() == 1.0f)
@@ -425,8 +425,8 @@ void W3DLaserDraw::doDrawModule(const Matrix3D* transformMtx)
 			// the segment renderer normalizes a zero vector (upstream #257). An epsilon nudge on
 			// the end point removes the degenerate geometry; the arc is suppressed with it, because
 			// applying the full ArcHeight to a hairline chord would raise its midpoint by the whole
-			// arc and draw a vertical spike (cross-model review caught that). The guarded legacy
-			// path produces zero height in this case, and this now matches it.
+			// arc and draw a vertical spike. The guarded legacy
+			// path produces zero height in this case, and this matches it.
 			Bool degenerate = FALSE;
 			if( lineLength < 0.01f )
 			{
@@ -489,23 +489,9 @@ void W3DLaserDraw::doDrawModule(const Matrix3D* transformMtx)
 				if( m_texture && data->m_tile && width > 0.0f )
 				{
 					// GeneralsX @bugfix wh1ter0se 11/08/2026 Map the texture by ARC LENGTH, not by
-					// point index.
-					//
-					// The first consolidated version set one tile factor from the MEAN segment
-					// length, because that is the only thing a single scalar can express. But the
-					// renderer advances V once per point, so every segment then received the same
-					// V span whatever its real length: on a beam that is arced or clamped to
-					// terrain the texture stretched across the long segments and bunched up on the
-					// short ones. Uniform beams were unaffected, which is exactly why the A/B
-					// against the legacy path did not show it.
-					//
-					// Per-point V from the cumulative distance is the same quantity the legacy
-					// per-segment path computed - length/width*aspect*tiling - just accumulated
-					// instead of restarted. Accumulating also removes a seam the legacy path had
-					// at every joint, where V snapped back to 0 mid-texture.
-					// V is scaled into its own buffer rather than in place: each beam has its own
-					// width and therefore its own scale, and scaling m_pointDist then dividing it
-					// back would leave every later beam working from slightly rounded distances.
+					// point index: V advances once per point, so one tile factor stretches long segments and bunches short ones.
+					// V comes from the cumulative distance, scaled into its own buffer because each beam has its own width
+					// and scaling m_pointDist in place would round the distances later beams use.
 					const Real vScale = m_textureAspectRatio * data->m_tilingScalar / width;
 					for( UnsignedInt pt = 0; pt <= data->m_segments; pt++ )
 						m_pointV[ pt ] = m_pointDist[ pt ] * vScale;

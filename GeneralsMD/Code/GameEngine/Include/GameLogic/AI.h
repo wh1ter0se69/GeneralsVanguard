@@ -45,6 +45,7 @@ class Path;
 class Pathfinder;
 class Player;
 class PolygonTrigger;
+class Team;
 class UpgradeTemplate;
 class WeaponTemplate;
 
@@ -132,7 +133,7 @@ public:
 	AsciiString				m_side;						///< Name of the faction.
 	BuildListInfo*		m_buildList;				///< Build list for the faction.
 	AISideBuildList*	m_next;
-	// GeneralsX 04/11/2026 base-layout: this side's opt-ins, read from the data by side each time and never saved. Absent = the retail path.
+	// This side's opt-ins, read from the data by side each time and never saved. Absent = the retail path.
 	Bool							m_gxTurnLayout;			///< GXTurnLayout: the list's spots AND angles turn rigidly to the base front (AISkirmishPlayer::adjustBuildList)
 	Bool							m_gxFrontDoors;			///< GXFrontDoors: with AI_PLAYER_FACE_FRONT on, the door rule, run-time doors and airfields (AIPlayer.cpp)
 	Real							m_gxRingRadius;			///< GXRingRadius: > 0: the defence ring's radius in place of m_baseRadius (AISkirmishPlayer::buildAIBaseDefenseStructure); 0: the base radius
@@ -281,6 +282,7 @@ public:
 
 	// AI Groups -----------------------------------------------------------------------------------------------
 	AIGroupPtr createGroup(); ///< instantiate a new AI Group
+	AIGroupPtr gxBuildTeamGroup( Team *team ); ///< GeneralsX: createGroup() + Team::getTeamAsAIGroup(), reusing the team's group in place when that is indistinguishable
 	void destroyGroup( AIGroup *group );	///< destroy the given AI Group
 	AIGroup *findGroup( UnsignedInt id );	///< return the AI Group with the given ID
 
@@ -908,7 +910,10 @@ public:
 	void Add_Ref() const { m_refCount.Add_Ref(); }
 	void Release_Ref() const { m_refCount.Release_Ref(destroy, this); }
 	UnsignedShort Num_Refs() const { return m_refCount.Num_Refs(); }
+	Bool gxIsExactlyTeam( Team *team ) const;		///< GeneralsX: our members are exactly what adding this team would give us, and only they hold us
+	void gxReissue();														///< GeneralsX: become what a freshly built group of these members would be
 #endif
+	static Bool gxTakesObject( Object *obj );		///< GeneralsX: would add() accept this object
 
 	void groupMoveToPosition( const Coord3D *pos, Bool addWaypoint, CommandSourceType cmdSource );
 	void groupMoveToAndEvacuate( const Coord3D *pos, CommandSourceType cmdSource );			///< move to given position(s)
@@ -939,7 +944,7 @@ public:
 	void groupGetHealed( Object *healDepot, CommandSourceType cmdSource );		///< go get healed at the heal depot
 	void groupGetRepaired( Object *repairDepot, CommandSourceType cmdSource );///< go get repaired at the repair depot
 	void groupEnter( Object *obj, CommandSourceType cmdSource );							///< enter the given object
-	Int groupGxQueueEnter( Object *container, CommandSourceType cmdSource );	///< GeneralsX @feature WAYPOINT ENTER: returns how many members took it
+	Int groupGxQueueEnter( Object *container, CommandSourceType cmdSource );	///< GeneralsX: WAYPOINT ENTER: returns how many members took it
 	void groupDock( Object *obj, CommandSourceType cmdSource );							///< get near given object and wait for enter clearance
 	void groupExit( Object *objectToExit, CommandSourceType cmdSource );			///< get out of this Object
 	void groupEvacuate( CommandSourceType cmdSource );												///< empty its contents

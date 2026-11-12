@@ -1292,17 +1292,9 @@ if(SAGE_UPDATE_CHECK)
     target_link_libraries(corei_gameengine_public INTERFACE CURL::libcurl)
 endif()
 
-# SDL3::SDL3 is a public dependency so that MainMenu.cpp and GXLoginFlow.cpp (both of which call
-# SDL_OpenURL) can find SDL3/SDL.h even though gameengine does not otherwise depend on the device
-# layer.
-#
-# GeneralsX: This linkage used to live inside the if(SAGE_UPDATE_CHECK)
-# block above, which coupled it to the wrong feature: SDL3 is what provides SDL_OpenURL, libcurl is
-# what the update checker needs, and the two are independent. The iOS preset sets SAGE_USE_SDL3=ON
-# with SAGE_UPDATE_CHECK=OFF, so the iPadOS build got no SDL include directory at all and failed to
-# compile with "'SDL3/SDL.h' file not found". SAGE_USE_SDL3 is also the only condition under which
-# the root CMakeLists has included cmake/sdl3.cmake, so it is the only condition under which the
-# SDL3::SDL3 target exists to be named here at all.
+# SDL3::SDL3 is public so MainMenu.cpp and GXLoginFlow.cpp (SDL_OpenURL) can find SDL3/SDL.h. It is independent
+# of SAGE_UPDATE_CHECK: the iOS preset has SAGE_USE_SDL3=ON with the update check OFF. The target exists
+# only when SAGE_USE_SDL3 made the root CMakeLists include cmake/sdl3.cmake.
 if(SAGE_USE_SDL3)
     target_link_libraries(corei_gameengine_public INTERFACE SDL3::SDL3)
 endif()

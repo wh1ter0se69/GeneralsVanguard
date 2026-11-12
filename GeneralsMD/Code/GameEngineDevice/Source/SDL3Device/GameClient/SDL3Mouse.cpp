@@ -440,29 +440,11 @@ void SDL3Mouse::initCursorResources(void)
 }
 
 /**
- * GeneralsX: Tooltips and cursor text never rendered on ANY SDL3 peer -
- * macOS, Linux and iPadOS. Not "sometimes"; never.
+ * Tooltips and cursor text on every SDL3 peer (macOS, Linux, iPadOS).
  *
- * Mouse::drawTooltip() and Mouse::drawCursorText() have exactly ONE call site in the whole tree,
- * W3DMouse::draw() (W3DMouse.cpp:600-604), and W3DGameClient::createMouse() only builds a W3DMouse
- * under the `#else` of `#ifndef _WIN32`. Every non-Windows peer therefore gets an SDL3Mouse, which
- * had no draw() override and so inherited the EMPTY Mouse::draw() (Mouse.cpp:1151). The engine
- * dutifully calls TheMouse->DRAW() once per rendered frame (W3DDisplay.cpp:2242) and it did
- * nothing at all.
- *
- * That is why "the tooltip is gone if the mouse moves slightly" is only ever reported from the
- * Windows client: on the other three there was no tooltip to lose.
- *
- * Nothing here needs a device backend. Both functions render through TheDisplay->drawFillRect /
- * drawOpenRect and DisplayString::draw - the same path every menu already draws through.
- * W3DMouse::draw()'s body above these two calls is entirely D3D8 cursor plumbing (SetCursorPosition,
- * SetCursorProperties); on SDL3 the cursor image is an SDL system cursor, so there is nothing else
- * to mirror.
- *
- * Gated on m_IsVisible, not the base m_visible: SDL3Mouse::setVisibility above pins Mouse::m_visible
- * to TRUE unconditionally so that setCursor() keeps picking the right cursor type, which means the
- * base flag no longer answers "should the cursor be showing". m_IsVisible does, and it is the flag
- * that matches what W3DMouse::draw() gates its own drawTooltip() on.
+ * drawTooltip() and drawCursorText() have one call site, W3DMouse::draw(), and only Windows builds a W3DMouse;
+ * SDL3Mouse would inherit the EMPTY Mouse::draw(), so it overrides draw() to call them.
+ * Gated on m_IsVisible, not m_visible, which SDL3Mouse::setVisibility pins to TRUE.
  */
 void SDL3Mouse::draw(void)
 {
@@ -546,7 +528,7 @@ void SDL3Mouse::loseFocus()
 {
 	m_LostFocus = true;           // GeneralsX @bugfix felipebraz 18/02/2026 Set focus flag
 	releaseCapture();
-	setThumbButton( 1, false );	// GeneralsX @feature tilt-thumb-buttons: no UP arrives while unfocused
+	setThumbButton( 1, false );	// tilt-thumb-buttons: no UP arrives while unfocused
 	setThumbButton( 2, false );
 	// A thumb DOWN still buffered here would be translated by Mouse::update after this clear and re-set the flag
 	// (its UP may never arrive): turn every pending X1/X2 press into a release.
@@ -777,7 +759,7 @@ void SDL3Mouse::translateButtonEvent(const SDL_MouseButtonEvent& event, MouseIO 
 			result->middleFrame = currentFrame;  // GeneralsX @bugfix felipebraz 18/02/2026 Track frame for replay
 			break;
 
-		// GeneralsX @feature tilt-thumb-buttons 06/10/2026 SDL's X1 = back (button 4), X2 = forward (button 5).
+		// SDL's X1 = back (button 4), X2 = forward (button 5).
 		// Held state only: they stay out of MouseIO so no click/double-click is ever generated for them.
 		case SDL_BUTTON_X1:
 			setThumbButton( 1, gxThumbPressHeld( event.down, m_LostFocus ) );
@@ -806,7 +788,7 @@ void SDL3Mouse::translateWheelEvent(const SDL_MouseWheelEvent& event, MouseIO *r
 
 	// SDL3 wheel: positive = up/away, negative = down/toward user
 	// Multiply by MOUSE_WHEEL_DELTA (120) to match Windows behavior
-	// GeneralsX: Carry the part the Int drops into the next event. A trackpad or Magic Mouse
+	// Carry the part the Int drops into the next event. A trackpad or Magic Mouse
 	// sends fractional deltas (0.1 is common, momentum tails go lower), and truncating each one lost up to a whole
 	// 1/120: 0.1 arrived as 11, not 12 (measured), and anything under 1/120 as nothing. Summed, nothing is lost.
 	const Real wheel = event.y * MOUSE_WHEEL_DELTA + m_wheelRemainder;

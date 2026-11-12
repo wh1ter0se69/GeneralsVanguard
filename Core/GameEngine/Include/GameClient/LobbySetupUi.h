@@ -1,25 +1,25 @@
 /*
-** GeneralsX: the decisions behind two game-setup screen conveniences,
-** as pure functions so they can be checked without an engine or a display
-** (scripts/test/lobby-setup-ui-test.sh).
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
 **
-** 1. Slot drop-down letter keys. While a slot drop-down (Open / Closed / Easy Army / ...) is open,
-**    a letter picks the entry whose label starts with it. The letter is derived from the entry's
-**    OWN text, so a localised build gets its own letters (German "Offen / Geschlossen / Leichte
-**    Armee ..." answers O / G / L ...), never a table compiled in here. When two labels share a
-**    letter (French "Armee facile / Armee moyenne / Armee difficile" all lead with A), the list
-**    STAYS OPEN on that letter and repeated presses cycle through them, starting after the current
-**    entry - the stock Windows list idiom. Only a letter that names exactly one entry closes the
-**    list (and lets the menu open the next slot). The letter pressed is the character the keyboard
-**    LAYOUT typed, not the engine's key-table name for the physical key (ComboTextFor), and only a
-**    letter that names an entry is taken from a focused text field (ComboListOwnsChar).
-**    Both sides fold to ASCII, so an accented lead answers its base letter ("Ecran" with an acute
-**    E answers E). A label whose first letter has no ASCII base (a CJK or Greek build) has no key.
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
 **
-** 2. The heading over the slot list carries the room's name. That name comes from another
-**    player, so it is filtered (no control characters, no bidi overrides that could reorder the
-**    rest of the line) and fitted to the heading's box with "..." - the game's own overflow
-**    marker (InGameUI's superweapon timers) - rather than wrapping onto a clipped second line.
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+** Pure decisions behind two game-setup conveniences, testable without an engine (scripts/test/lobby-setup-ui-test.sh):
+** 1. Slot drop-down letter keys come from each label itself (no table); shared letters cycle, a unique one closes.
+** 2. The heading's room name is another player's text: filter control/bidi characters, fit with "...".
 */
 
 #pragma once
@@ -200,8 +200,8 @@ inline WideChar ComboKeyDownVouch( UnsignedInt keycode, Bool chord )
 /// Does that vouch survive an SDL event on the way to its text? Only a key event (`keyOrText`: a key-down,
 /// which replaces it, a key-up, or the text itself): iOS's software keyboard sends the key's up - and a
 /// Shift down/up around it - before its text. Anything else in between - a click, a focus change, an IME's
-/// editing text - ends it, so a stale key-down cannot vouch for text that came some other way (
-/// keys-b1-r7: character equality alone is not provenance).
+/// editing text - ends it, so a stale key-down cannot vouch for text that came some other way (character
+/// equality alone is not provenance).
 inline Bool ComboVouchSurvives( Bool keyOrText )
 {
 	return keyOrText;

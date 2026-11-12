@@ -1153,21 +1153,10 @@ UpdateSleepTime ChinookAIUpdate::update()
 				m_hasPendingCommand = false;
 				aiDoCommand(&parms);
 			}
-			// GeneralsX: TheSuperHackers/GeneralsGameCode#54
-			// Boarding is over and we are airborne and idle again, so put the guard order back.
-			// setMyState() destroyed it - it calls StateMachine::clear() - but the PARAMETERS
-			// live on AIUpdateInterface, not in the machine, and AIGuardState::onEnter rebuilds
-			// the entire guard machine from exactly these four accessors
-			// (AIStates.cpp:6733-6742). Re-issuing from them is therefore the same guard by
-			// construction rather than a reconstruction that has to be kept in step.
-			//
-			// Gated on CHINOOK_FLYING, not on "not landed": at the moment boarding finishes we
-			// are still CHINOOK_LANDED and the take-off branch below has to run first.
-			//
-			// Switches on the CAPTURED type, never on getGuardTargetType(). By the time we get
-			// here the live discriminator has been wiped to GUARDTARGET_NONE by
-			// AIGuardState::onExit -> clearGuardTargetType(), which setMyState(LANDING) fired on
-			// the way in. See the member declaration.
+			// Boarding is over and we are airborne and idle: put the guard order back. setMyState() cleared the machine, but the
+			// parameters live on AIUpdateInterface and AIGuardState::onEnter rebuilds the guard from them.
+			// Gated on CHINOOK_FLYING (still LANDED when boarding ends). Switch on the CAPTURED type, not getGuardTargetType(),
+			// which AIGuardState::onExit has already wiped to GUARDTARGET_NONE.
 			else if (m_resumeGuardType != GUARDTARGET_NONE && m_flightStatus == CHINOOK_FLYING)
 			{
 				const GuardTargetType resumeType = m_resumeGuardType;
@@ -1198,62 +1187,20 @@ UpdateSleepTime ChinookAIUpdate::update()
 				setMyState(TAKING_OFF, nullptr, nullptr, CMD_FROM_AI);
 			}
 		}
-		// GeneralsX: TheSuperHackers/GeneralsGameCode#54
-		//
-		// A GUARDING transport never landed to let anything board. The branch above is gated on
-		// isIdle(), and AIUpdateInterface::isIdle() is true only for AI_IDLE - so a Helix or
-		// Chinook sitting on guard is not idle, setMyState(LANDING) was never reached, and units
-		// ordered to board simply queued forever. There is no AI_GUARD token anywhere in this
-		// file, which is why searching for one finds nothing and the path reads as absent.
-		//
-		// Restricted to the THREE GUARD STATES, not to "any generic AI state". An earlier cut
-		// used getAIStateType() < ChinookAIStateType_FIRST, reasoning that the class's private
-		// states are all >= 1000 so combat drops and evacs stay protected. That much is true,
-		// but the test also admits AI_MOVE_TO, AI_ATTACK_OBJECT and every other generic state -
-		// so queuing a passenger onto a transport that was moving or attacking would cancel
-		// that order and land it. #54 is about a GUARDING transport; interrupting an ordinary
-		// move is a behaviour change nobody asked for, and the old code did not do it.
-		// Caught by a cross-model review.
-		//
-		// !isEffectivelyDead() is load-bearing: setMyState is a no-op on a locked state machine
-		// (StateMachine.cpp:348-356) and AIUpdateInterface::update locks AI_DEAD, so without it
-		// this re-fires every frame for the whole death sequence.
-		//
-		// == CHINOOK_FLYING is load-bearing too - widening it to != CHINOOK_LANDED re-enters
-		// LANDING every frame while already landing.
-		//
-		// getNumberBoxes() == 0 implements the "no silent box loss" half. A laden supply Chinook
-		// is refused rather than landed, because ChinookTakeoffOrLandingState::onEnter runs
-		// 'while (ai->loseOneBox());' on every landing - so boarding one would quietly destroy
-		// its cargo. Refusing to LAND is what blocks the boarding; nothing in the contain layer
-		// needs to change, and no other transport's behaviour is touched.
+		// GeneralsX: a GUARDING transport never landed for boarding: the branch above needs isIdle() (AI_IDLE only).
+		// Only the three guard states, so a moving or attacking transport keeps its order. !isEffectivelyDead() and
+		// == CHINOOK_FLYING are required: setMyState is a no-op on locked AI_DEAD, and widening re-enters LANDING.
+		// getNumberBoxes() == 0: landing runs while (ai->loseOneBox()) and would destroy a laden Chinook cargo.
 		else if (waitingToEnterOrExit
 					&& m_flightStatus == CHINOOK_FLYING
 					&& isAGuardStateType(getAIStateType())
 					&& !getObject()->isEffectivelyDead()
 					&& getNumberBoxes() == 0)
 		{
-			// AI_GUARD ONLY, and the narrowness is the point. AIGuardState::onEnter builds its
-			// machine from getGuardTargetType/Location/Object/Area/Mode, which is precisely what
-			// the resume above replays - so for AI_GUARD the replay is exact.
-			//
-			// The other two guard states are NOT recoverable this way and must not be added:
-			//   * AI_GUARD_RETALIATE is populated from ai->getGoalPosition() and
-			//     ai->getGoalObject() (AIStates.cpp:6887-6890), not from the guard accessors -
-			//     and setMyState() calls setGoalPositionClipped(), so landing actively
-			//     overwrites the very parameters a resume would need.
-			//   * AI_GUARD_TUNNEL_NETWORK re-issues as aiGuardTunnelNetwork(guardMode) with no
-			//     location, object or area at all (AI.h:785-790), so the switch above has
-			//     nothing correct to do for it.
-			// Both still get the landing - that is the bug being fixed - they just do not get a
-			// restored order, rather than getting a confidently wrong one.
-			//
-			// ORDER IS LOAD-BEARING: getGuardTargetType() is read BEFORE setMyState, because
-			// setMyState -> StateMachine::clear() -> AIGuardState::onExit ->
-			// clearGuardTargetType() wipes the discriminator to GUARDTARGET_NONE. Reading it
-			// after, or reading it at resume time, yields NONE every single time and the
-			// resume becomes a silent no-op. The guard parameters themselves are untouched by
-			// that call, so capturing the type here is all that is needed.
+			// AI_GUARD only: AIGuardState::onEnter builds from the getGuardTarget* accessors, which the resume replays.
+			// AI_GUARD_RETALIATE uses goal position/object that setMyState() overwrites; AI_GUARD_TUNNEL_NETWORK re-issues with
+			// no location. Neither is recoverable; both still land. Read getGuardTargetType() BEFORE setMyState:
+			// clear() -> onExit -> clearGuardTargetType() wipes it to NONE.
 			m_resumeGuardType = (getAIStateType() == AI_GUARD) ? getGuardTargetType() : GUARDTARGET_NONE;
 			setMyState(LANDING, nullptr, nullptr, CMD_FROM_AI);
 		}
@@ -1432,7 +1379,6 @@ void ChinookAIUpdate::aiDoCommand(const AICommandParms* parms)
 	// GeneralsX: The same refusal privateExit applies (TheSuperHackers #3089/#3136), made before the
 	// AICMD_EXIT case below starts landing the Chinook: a script's "team exit all buildings" sends aiExit(nullptr) to every
 	// member, and a flying Chinook in the team landed (dropping its order) only to find it was inside nothing
-	//
 	if (parms->m_cmd == AICMD_EXIT)
 	{
 		const Object *container = parms->m_obj != nullptr ? parms->m_obj : getObject()->getContainedBy();
@@ -1455,24 +1401,9 @@ void ChinookAIUpdate::aiDoCommand(const AICommandParms* parms)
 		return;
 
 	// GeneralsX: TheSuperHackers/GeneralsGameCode#54
-	// Any order supersedes the guard post we were going to return to after boarding. Without
-	// this, a player who moves the transport somewhere else after loading it would see it snap
-	// back to its old guard position the moment that move completed.
-	//
-	// UNCONDITIONAL, and an earlier cut excluding CMD_FROM_AI was wrong. The reasoning was that
-	// the resume re-issues itself that way, so excluding CMD_FROM_AI protected it. But
-	// AIPlayer and AIGroup issue REAL orders with CMD_FROM_AI (e.g. AIPlayer.cpp:2720
-	// aiIdle(CMD_FROM_AI), AIGroup.cpp:1959 aiTightenToPosition(..., CMD_FROM_AI)), so a
-	// computer player's replacement order left the resume armed and its transport snapped back
-	// to a stale guard post once that order finished. Caught by a cross-model review.
-	//
-	// Clearing unconditionally is safe precisely because the resume site sets
-	// m_resumeGuardType = GUARDTARGET_NONE *before* it calls aiGuardPosition/Object/Area, so
-	// this line is a no-op for the resume's own command. The class's internal take-off and
-	// landing transitions go through setMyState(), which does not route through aiDoCommand at
-	// all. The two internal calls that DO route through here - the rally-point move of a healed
-	// Chinook and the m_hasPendingCommand replay - are both real new destinations that should
-	// supersede a guard post anyway.
+	// Any order supersedes the guard post the transport would return to after boarding.
+	// Unconditional, including CMD_FROM_AI (AIPlayer and AIGroup issue real orders that way): the resume site sets
+	// m_resumeGuardType = GUARDTARGET_NONE before it re-issues, so this is a no-op for its own command.
 	m_resumeGuardType = GUARDTARGET_NONE;
 
 	if (m_flightStatus == CHINOOK_TAKING_OFF ||

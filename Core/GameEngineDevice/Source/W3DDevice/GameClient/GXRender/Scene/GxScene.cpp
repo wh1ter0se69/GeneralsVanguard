@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G: see GxScene.h.
+// See GxScene.h.
 
 #include "W3DDevice/GameClient/GXRender/Scene/GxScene.h"
 #include "W3DDevice/GameClient/GXRender/Scene/GxL2Dry.h"
@@ -167,7 +167,7 @@ static unsigned long long s_flushDraws = 0, s_drawsSeen = 0, s_c9Samples = 0, s_
 // counted across flushes so small flushes are sampled too and the samples walk the sites
 static unsigned long long s_c9Rs[256], s_c9Tss[MAX_TEXTURE_STAGES][32], s_c9Tex[MAX_TEXTURE_STAGES], s_c9Light[4], s_c9World, s_c9View;
 static unsigned long long s_c9Proj, s_c9Texm[8], s_c9Mat, s_c9Fvf, s_c9ViewSent, s_c9Planted;	// planted: M10 samples (X9's denominator)
-static unsigned long long s_c9TruthRs[256], s_c9TruthTss[MAX_TEXTURE_STAGES][32];	// CONTRACT_L2 r5: the device-truth table vs the device
+static unsigned long long s_c9TruthRs[256], s_c9TruthTss[MAX_TEXTURE_STAGES][32];	// the device-truth table vs the device
 // The sentinel report: the RS / stage-0..1 TSS slots DXVK's fixed-function pipeline reads for a triangle
 // draw (d3d9_fixed_function / d3d9_state: depth, blend, alpha test, fog, stencil, cull, fill, lighting + material sources,
 // colour write, wrap, texture factor; per stage colour/alpha ops and args, texcoord index, addressing, filters, transform flags),
@@ -188,7 +188,7 @@ static void gxC9Report(const char *field, unsigned shadow, unsigned device)
 
 static void gxC9Sample(bool sortingPath)
 {
-	DX8Wrapper::GxLogBody rd(gxlog::DEVICE_READ);	// GeneralsX: WS-G Task 5 T3: a modelled flush's C9 sample is a READ
+	DX8Wrapper::GxLogBody rd(gxlog::DEVICE_READ);	// a modelled flush's sample is a READ
 	IDirect3DDevice8 *dev = DX8Wrapper::_Get_D3D_Device8();	// drains the ring
 	const DX8Wrapper::GxShadowView v = DX8Wrapper::Gx_Shadows();
 	int diffs = 0;
@@ -307,7 +307,7 @@ static void gxC9Sample(bool sortingPath)
 				gxC9Report(name, 0, 0);
 			}
 		}
-	// WORLD/VIEW only while the cache holds them (dx8wrapper.h GxXformValid): a zeroed cache is "unknown", not a diff (rw1-G-r6 #2)
+	// WORLD/VIEW only while the cache holds them (dx8wrapper.h GxXformValid): a zeroed cache is "unknown", not a diff
 	if ((v.xformValid & 1u) && dev->GetTransform(D3DTS_WORLD, &m) == D3D_OK && memcmp(&m, &v.transforms[D3DTS_WORLD], sizeof(m)) != 0) {
 		++s_c9World; ++diffs;
 		gxC9Report("WORLD", 0, 0);
@@ -333,17 +333,10 @@ static void gxC9Sample(bool sortingPath)
 	s_c9DiffSamples += diffs != 0;
 }
 
-// ---- Task 3 (§4.1-4.5; v3): every classic TASK judged at its OWN device draw ----------
-// A TASK entry is recorded before its setters (dx8renderer.cpp Gx_Executed), so the first non-sorting device draw after it, while it is
-// the newest entry, is its draw. There: the static rules (E1, E3, E5-E9) from pure reads, then E2 (every slot its pipeline reads KNOWN
-// in the device truth) and E4 (blend / depth / colour / stencil decoded from that truth) - GxL2Exec.h. Claimed tasks form runs (consecutive
-// entries of one category body); per run, each bin key's FIRST task's captured state is that key's snapshot (what DXVK prepares for the
-// key, §3.2). L2's prediction for every claimed task = the snapshot + its own per-instance data computed from L2's path (world from
-// the mesh, lights from GxL2Check_Light, ambient, base vertex, draw parameters from the polygon renderer); C2 compares it with the
-// captured state, C1 the run's packet (planBins) with the claimed entries, C4 the packet's flush tag. Dry: L2 draws nothing.
-// Mutants: 1 = every draw of a bin lit by the bin's first task's environment (C2), 7 = each run's last task dropped from its packet
-// (C1), 8 = packets tagged with the previous flush (C4). A TASK that makes no draw (sorted, or a debug skip) takes the flush-start plan's
-// static reason; one whose static rules all pass is a COVERAGE "nodraw" mismatch.
+// Every classic TASK is judged at its OWN device draw: its entry is recorded before its setters, so the
+// first non-sorting device draw after it, while it is the newest entry, is its draw. There: static rules
+// (E1, E3, E5-E9), E2 and E4 (GxL2Exec.h). C2 compares L2's prediction with the bin key's snapshot, C1 the
+// run's packet, C4 the packet's flush tag. Dry: L2 draws nothing. Mutants: 1 (C2), 7 (C1), 8 (C4).
 static const gxl2::Policy s_policy;	// phase 1a: no skins, tie epsilon 0 (classification)
 static gxl2::Policy s_fpolicy;		// the flush's: tieEpsilon from its camera (Task 4, gxl2x::tieEps)
 static const gxl2x::SlotList kGxSlots = { kGxFfRs, kGxFfRsN, kGxFfTss, kGxFfTssN };
@@ -363,7 +356,6 @@ static unsigned long long s_xOrder = 0, s_xOrderFlushes = 0, s_xPacketsBB = 0, s
 static int s_modeBEvery = 8;	// GX_L2_MODEB_EVERY: Mode B + C3 on every Nth SCENE frame (~10 ns per pair test, millions per big flush)
 // A scene frame = a WW3D frame with a flush at a claimable site. Counting WW3D frames could phase-lock: a projected-shadow texture's
 // own End_Render advances the WW3D counter once more per displayed frame, so "frame % 8" might only ever land on shadow frames.
-//
 static unsigned s_sceneFrames = 0, s_lastSceneFrame = ~0u;
 static bool s_sampleScene = false;
 static const float kGxNdcGuard = 0.004f;	// ~2 px at 1080 lines: the contract's +1 px, doubled
@@ -546,7 +538,7 @@ static int s_xPrinted = 0;
 static const int kGxXPrintMax = 40;
 static unsigned long long s_cmask[16];	// COLORWRITEENABLE (low 4 bits) of every task refused R_COLOR_MASK
 
-// GeneralsX: WS-G Task 5 T3 (CONTRACT_L2 §4.3 C6 r9b): GX_L2_MODEL=1 (GX_L2_CHECK=1 only).
+// GX_L2_MODEL=1 (GX_L2_CHECK=1 only).
 // Every flush of a modelled scene frame is logged (the `=2` call log, dx8wrapper.h GxLogOn) from its start to its close point (after
 // the null-buffer setters, dx8renderer.h GxL2FlushClosedHook), every device draw in it captured (GxDrawState), and the log replayed
 // through the device-less model (GxL2Model.h) seeded from the flush-start snapshot: MODEL_CALL = the model's predicted invocations vs
@@ -599,9 +591,9 @@ static void gxXReport(const char *kind, size_t seq, const char *field, unsigned 
 		kGxFlushSiteName[GxFlushSite], s_flushIndex, seq, kind, field, classic, l2);
 }
 
-// L2's own prediction of a claimed task's draw state (§4.2): its key's snapshot + the per-instance data L2 computes itself.
+// L2's own prediction of a claimed task's draw state: its key's snapshot + the per-instance data L2 computes itself.
 // A task's pose as the classic draw reads it - the mesh transform and its identity flag (GxL2Dry_FillTask leaves both to the caller):
-// gxL2TaskDraw after the classic draw has validated the transform, the S1 seat at its run's position (rw1-G-seat-c1 #1).
+// gxL2TaskDraw after the classic draw has validated the transform, the S1 seat at its run's position.
 static void gxL2TaskPose(MeshClass *mesh, gxl2::TaskState &t)
 {
 	const Matrix3D &tm = mesh->Get_Transform();
@@ -611,8 +603,8 @@ static void gxL2TaskPose(MeshClass *mesh, gxl2::TaskState &t)
 	t.transformIdentity = mesh->Is_Transform_Identity();
 }
 
-// The world matrix the device receives for a task (§1.3): the resolved recipe (identity / billboard look-at / the mesh transform),
-// as Set_Transform(D3DTS_WORLD, Matrix3D) stores and sends it (transposed). The C2 predictor's (C2 = 0 over 37.6 M claimed draws, R20)
+// The world matrix the device receives for a task: the resolved recipe (identity / billboard look-at / the mesh transform),
+// as Set_Transform(D3DTS_WORLD, Matrix3D) stores and sends it (transposed). The C2 predictor's (C2 = 0 over 37.6 M claimed draws)
 // and the S1 seat's packet world - one function. t needs its pose (gxL2TaskPose).
 static Matrix4x4 gxL2World(MeshClass *mesh, const gxl2::TaskState &t)
 {
@@ -731,7 +723,7 @@ static void gxL2TaskDraw(size_t idx, unsigned prim, unsigned minIndex, unsigned 
 	gxL2TaskPose(d.mesh, t);	// the classic draw has just validated the transform
 	gxl2::FlushCtx f = s_fctx;
 	gxL2TruthCtx(f, c);
-	const unsigned cmask = c.shader.colorMask;	// CONTRACT_L2 r9: RGB or RGBA passes E4, the mask is in the key
+	const unsigned cmask = c.shader.colorMask;	// RGB or RGBA passes E4, the mask is in the key
 	const gxl2::Reason reason = gxl2::classifyTask(f, c, t, s_policy);
 	gxL2SetReason(idx, reason);
 	++s_xTasks;
@@ -744,7 +736,7 @@ static void gxL2TaskDraw(size_t idx, unsigned prim, unsigned minIndex, unsigned 
 	if (reason != gxl2::OK)
 		return;
 	++s_xClaimed;
-	if (s_model) {	// GeneralsX: WS-G Task 5 T3: procpass_claimed_xflush's set
+	if (s_model) {	// procpass_claimed_xflush's set
 		gxClaimedFrame();
 		s_claimedMeshes.insert(d.mesh);
 	}
@@ -823,7 +815,7 @@ static void gxL2ExecStart()
 		s_lastSceneFrame = WW3D::Get_Frame_Count();
 		const unsigned sf = s_sceneFrames++;
 		s_sampleScene = sf % (unsigned)s_modeBEvery == 0;
-		s_modelScene = s_model && sf % (unsigned)s_modelEvery == 0;	// GeneralsX: WS-G Task 5 T3: its own modulus
+		s_modelScene = s_model && sf % (unsigned)s_modelEvery == 0;	// its own modulus
 	}
 	if (CameraClass *cam = TheDX8MeshRenderer.Peek_Camera()) {
 		const Matrix3D &ct = cam->Get_Transform();
@@ -882,7 +874,7 @@ static void gxL2ExecEnd(unsigned frame)
 
 static void gxL2ExecPrint()
 {
-	char model[512] = "", c5[256] = "";	// GeneralsX: WS-G Task 5 T3 / T4: the model's counters, GX_L2_MODEL=1 only
+	char model[512] = "", c5[256] = "";	// the model's counters, GX_L2_MODEL=1 only
 	if (s_model)
 		snprintf(c5, sizeof(c5), " invariance=%llu c5_runs=%llu c5_scaled_runs=%llu c5_compares=%llu c5_unsourced=%llu payload_stable=%llu "
 			"c5_bad_ranges=%llu", s_c5Mism, s_c5Runs, s_c5Scaled, s_c5Compares, s_c5Unsourced, s_c5Unstable, s_c5BadRanges);
@@ -904,7 +896,7 @@ static void gxL2ExecPrint()
 	GxL2Check_PrintFieldHist();
 }
 
-// GeneralsX: WS-G Task 5 T3: C6 (CONTRACT_L2 §4.3 r9b) - the replay hooks, and the log's open / close points.
+// The replay hooks, and the log's open / close points.
 static void gxMReport(bool cache, unsigned seq, const char *field, unsigned classic, unsigned l2)
 {
 	if (cache)
@@ -967,8 +959,8 @@ static void gxModelDrawn(const gxlog::Record &r, const gxl2m::DrawArgs &a, const
 	if (c.projKnown && (!d.projValid || memcmp(&d.proj, c.proj, sizeof(c.proj)) != 0))
 		gxMReport(false, seq, "PROJ", 1, d.projValid);
 	// The device's SetIndices base vertex: Apply sends index_base_offset + vba_offset, which is the capture's baseVertex after Apply.
-	// Device state, so MODEL - where X-M24 (the index offset replayed as a no-op) must fire; at GC23 it showed only in the cache column
-	// (INDEXBASE) and MODEL_CALL (X25, rw1-G-3). A sorting draw binds its own indices raw, so only an indexed draw is compared.
+	// Device state, so MODEL - where the index offset replayed as a no-op must fire; it showed only in the cache column
+	// (INDEXBASE) and MODEL_CALL. A sorting draw binds its own indices raw, so only an indexed draw is compared.
 	if (!sorting) {
 		if (!d.indicesKnown)
 			++s_mIdxUnknown;
@@ -1053,7 +1045,7 @@ struct GxModelHooks : gxl2m::ReplayHooks
 	}
 };
 
-// GeneralsX: WS-G Task 5 T4: C5 INVARIANCE (CONTRACT_L2 §4.3) - the boundary-replay arm vs the as-recorded arm.
+// C5 INVARIANCE - the boundary-replay arm vs the as-recorded arm.
 struct GxC5Hooks : gxl2m::C5Sink
 {
 	void invariance(uint32_t seq, const char *point, const char *field, uint64_t classic, uint64_t l2) override
@@ -1130,7 +1122,7 @@ static void gxL2Draw(unsigned prim, unsigned minIndex, unsigned numVerts, unsign
 	if (!s_inFlush)
 		return;
 	++s_flushDraws;
-	if (s_logOpen) {	// GeneralsX: WS-G Task 5 T3: every device draw of a modelled flush, in order, before Task 3's code
+	if (s_logOpen) {	// every device draw of a modelled flush, in order
 		s_mcap.resize(s_mcap.size() + 1);
 		GxL2Check_Capture(s_mcap.back(), prim, minIndex, numVerts, startIndex, primCount);
 	}
@@ -1156,7 +1148,7 @@ static void gxL2Draw(unsigned prim, unsigned minIndex, unsigned numVerts, unsign
 		dev->GetRenderState(D3DRS_ZFUNC, &was);
 		dev->SetRenderState(D3DRS_ZFUNC, D3DCMP_ALWAYS);
 		++s_c9Planted;
-		const bool viewOk = dev->GetTransform(D3DTS_VIEW, &view) == D3D_OK;	// and a VIEW: the validity gate must not hide it (r6 #2)
+		const bool viewOk = dev->GetTransform(D3DTS_VIEW, &view) == D3D_OK;	// and a VIEW: the validity gate must not hide it
 		if (viewOk) { planted = view; planted._41 += 1.0f; dev->SetTransform(D3DTS_VIEW, &planted); }	// GX-WRAPSKIP-OK: C9 fail arm (mutant 10): plants, then restores, the device's own VIEW
 		gxC9Sample(sortingPath);
 		if (viewOk) dev->SetTransform(D3DTS_VIEW, &view);	// GX-WRAPSKIP-OK: C9 fail arm (mutant 10): plants, then restores, the device's own VIEW
@@ -1238,14 +1230,14 @@ static void gxL2Compare()
 	}
 }
 
-// ---- GeneralsX: WS-G: the S1 DrawRun seat (CONTRACT_L2 §3.2 S1-DR, §3.4 under DrawRun) ---
-// GX_L2_DRAWRUN=1 outside check mode (=1 is DRY by definition, contract §4): at each claimed run's first task in the category loop
-// (dx8renderer.h GxL2SeatHook) the seat forms the run (D1), runs PREPARE - the first task's setters exactly as the classic block calls
-// them, then one Apply - and judges the draw-time rules once on the device truth (D2). ON (GxDrawRun::S1_On) and admitted: the run's
-// packets go to GxDrawRun::Draw_Run (D4), the wrapper's NORMALIZENORMALS FALSE follows if any task is scaled, then CARRY-OUT - the last
+// ---- The S1 DrawRun seat ---
+// GX_L2_DRAWRUN=1 outside check mode (=1 is DRY by definition): at each claimed run's first task in the category loop
+// (dx8renderer.h GxL2SeatHook) the seat forms the run, runs PREPARE - the first task's setters exactly as the classic block calls
+// them, then one Apply - and judges the draw-time rules once on the device truth. ON (GxDrawRun::S1_On) and admitted: the run's
+// packets go to GxDrawRun::Draw_Run, the wrapper's NORMALIZENORMALS FALSE follows if any task is scaled, then CARRY-OUT - the last
 // task's setters (Set_Index_Buffer_Index_Offset through the setter: REQUIRED) and one Apply - and the loop only unlinks
-// the run's tasks. OFF or refused: the classic loop draws the whole run from its first task (§3.4's refusal path, D3). With
-// GX_DRAWRUN_DIGEST=2 every run, in both states, sits in a C2b digest bracket from before PREPARE to the run's last own draw (D5).
+// the run's tasks. OFF or refused: the classic loop draws the whole run from its first task. With
+// GX_DRAWRUN_DIGEST=2 every run, in both states, sits in a C2b digest bracket from before PREPARE to the run's last own draw.
 static bool s_seat = false;
 static GxL2FlushPlan s_seatPlan;					// the flush-start static plan over s_list (the census / check's own)
 static gxseat::Digest s_seatDigest;
@@ -1292,7 +1284,7 @@ static void gxSeatPostDraw()
 }
 
 // DX8Wrapper::GxPrePresentHook with GX_DRAWRUN_DIGEST=2: an open bracket closes in its own frame, before Present and before the depth
-// shot GameClient takes after the draw (rw1-X2-2 11/10 (b)).
+// shot GameClient takes after the draw.
 static void gxSeatPresent()
 {
 	s_seatDigest.frameEnd();
@@ -1340,7 +1332,7 @@ static void gxSeatSetters(MeshClass *mesh, bool withNormalize, bool pokeBase = f
 		DX8Wrapper::Set_Index_Buffer_Index_Offset(mesh->Get_Base_Vertex_Offset());
 }
 
-// GX_DRAWRUN_TRUTH=1 (PREREG A5.2): the wrapper's BELIEF handed to GxDrawRun::Check_Truth, which asks the d3d8
+// GX_DRAWRUN_TRUTH=1: the wrapper's BELIEF handed to GxDrawRun::Check_Truth, which asks the d3d8
 // device for the same fields on the device thread in stream order. Called IMMEDIATELY after the CARRY-OUT's Apply in ON runs and, as the
 // A/A control, at the first defined point after a classic run (the next hook call that is not a member of it, or the flush's end) in
 // OFF / refused runs. Belief that the wrapper itself calls unknown (sentinel render state, transform cache cleared, no DX8 index buffer,
@@ -1535,7 +1527,7 @@ static bool gxSeatTask(DX8TextureCategoryClass *cat, PolyRenderTaskClass *prt)
 		DX8PolygonRendererClass *pr = Gx_Task_Renderer(s_seatMembers[i]);
 		gxl2::TaskState ti;
 		GxL2Dry_FillTask(mesh, pr, 0, ti);
-		gxL2TaskPose(mesh, ti);	// FillTask leaves the pose to the caller: a billboard's look-at reads it (rw1-G-seat-c1 #1)
+		gxL2TaskPose(mesh, ti);	// FillTask leaves the pose to the caller: a billboard's look-at reads it
 		gxLightsOf(*mesh->Get_Lighting_Environment(), s_seatLights[i]);	// non-null: E7
 		gxseat::LightKey &key = s_seatKeys[i];
 		memset(&key, 0, sizeof(key));
@@ -1579,8 +1571,8 @@ static bool gxSeatTask(DX8TextureCategoryClass *cat, PolyRenderTaskClass *prt)
 		s_seatDigest.runPath(1ull << 32 | runIndex, 0);	// path 1: DrawRun's draws are not wrapper draws
 	GxDrawRun::Draw_Run(D3DPT_TRIANGLELIST, s_seatTasks.data(), (unsigned)n, s_seatSets.data(), sets);
 	for (size_t i = 0; i < n; ++i)	// the run's draws in the draw census ([GXGFX] dc=, GxBoundary) as the classic draws counted them
-		DX8Wrapper::Record_Direct_Draw();	// - main thread, at submission, fallback or not (rw1-G-seat-c2 #2)
-	if (scaled)	// classic leaves the cached NORMALIZENORMALS FALSE after a scaled task (contract r10 §3.4 under DrawRun)
+		DX8Wrapper::Record_Direct_Draw();	// main thread, at submission, fallback or not
+	if (scaled)	// classic leaves the cached NORMALIZENORMALS FALSE after a scaled task
 		DX8Wrapper::Set_DX8_Render_State(D3DRS_NORMALIZENORMALS, FALSE);
 	if (s_seatMutant != 1) {	// GX_SEAT_MUTANT=1 skips the CARRY-OUT entirely
 		// =3: the carry-out applies the PENULTIMATE task coherently - wrapper and device agree, only the claim's last task tells
@@ -1628,7 +1620,7 @@ static void gxSeatFlushStart()
 		GxL2Executed = nullptr;
 		return;
 	}
-	// the census reads this Flush's list and plan in every frame it runs, OFF frames included (rw1-G-seat-c2 #1: never another
+	// the census reads this Flush's list and plan in every frame it runs, OFF frames included (never another
 	// Flush's - their meshes may be gone); a census run is not a timing run
 	TheDX8MeshRenderer.Gx_List_Pending(s_list);
 	GxL2Dry_Plan(s_list, GxFlushSite, s_seatPlan);
@@ -1652,7 +1644,7 @@ static void gxSeatFlushStart()
 static void gxL2Flush(bool end)
 {
 	if (end) {
-		if (s_seat) {	// GeneralsX: WS-G S1 seat: a Flush without a camera runs no hooks, so nothing of this
+		if (s_seat) {	// seat: a Flush without a camera runs no hooks, so nothing of this
 			gxSeatTruthPending();	// the flush's last classic run, before the bracket state is dropped
 			GxL2SeatHook = nullptr;	// one may reach it (its list, its plan)
 			GxL2Executed = nullptr;
@@ -1673,7 +1665,7 @@ static void gxL2Flush(bool end)
 		memset(s_siteIndex, 0, sizeof(s_siteIndex));
 	}
 	s_flushIndex = s_siteIndex[GxFlushSite]++;
-	if (s_seat) {	// GeneralsX: WS-G S1 seat (never with check: DRY by definition)
+	if (s_seat) {	// the seat (never with check: DRY by definition)
 		gxSeatFlushStart();
 		if (s_census) {	// the census reads the seat's own plan
 			GxL2Dry_Census(s_seatPlan, frame);
@@ -1705,7 +1697,7 @@ static void gxL2Flush(bool end)
 		s_flushDraws = 0;
 		gxL2ExecStart();
 		if (s_model)
-			gxL2ModelStart(frame);	// GeneralsX: WS-G Task 5 T3
+			gxL2ModelStart(frame);
 	}
 }
 
@@ -1740,7 +1732,7 @@ void GxScene_Install()
 			s_modeBEvery = atoi(mbe);
 		fprintf(stderr, "[GXL2] Mode B + C3 on every %d scene frame(s)\n", s_modeBEvery);
 		const char *mdl = GxTestEnv("GX_L2_MODEL");
-		if (s_check == 1 && mdl && atoi(mdl) == 1) {	// GeneralsX: WS-G Task 5 T3 (off under the K fail arm, =2)
+		if (s_check == 1 && mdl && atoi(mdl) == 1) {	// off under the K fail arm, =2
 			s_model = true;
 			s_modelEvery = s_modeBEvery;
 			const char *me = GxTestEnv("GX_L2_MODEL_EVERY");
@@ -1756,7 +1748,7 @@ void GxScene_Install()
 		fprintf(stderr, "[GXL2] C9 on: shadows vs device every %d draws in a Flush%s\n", s_c9Every,
 			s_mutant == 10 ? " - MUTANT 10 (planted ZFUNC behind the wrapper every 100th Flush)" : "");
 	}
-	// GeneralsX: WS-G S1 seat: GX_L2_DRAWRUN=1, never in check mode (DRY by definition)
+	// The seat: GX_L2_DRAWRUN=1, never in check mode (DRY by definition)
 	// the seat's own opt-in: GxDrawRun::Enabled() is also true for its synthetic test and the overhead arm
 	const char *dr = getenv("GX_L2_DRAWRUN");
 	s_seat = !s_check && dr != nullptr && atoi(dr) == 1 && GxDrawRun::Enabled();
@@ -1784,5 +1776,5 @@ void GxScene_Install()
 	if (s_census || s_check || s_seat)
 		GxL2FlushHook = &gxL2Flush;
 	if (s_model)
-		GxL2FlushClosedHook = &gxL2FlushClosed;	// GeneralsX: WS-G Task 5 T3
+		GxL2FlushClosedHook = &gxL2FlushClosed;
 }

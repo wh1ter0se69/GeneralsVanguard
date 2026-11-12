@@ -1,15 +1,25 @@
-// GeneralsX: L1 in the game: the IDirect3D8 proxy and the per-session native/classic decision
-// (§2, §5.2, §8.1; RW3_PLAN_1710 brief S).
-//
-// GxNativeD3D8 wraps DXVK's own IDirect3D8. Every adapter query is forwarded, so caps / identity / modes / formats are DXVK's
-// answers by construction. Only CreateDevice differs: rows S2-S10 are evaluated in order; the first "no" tears down every
-// native object created so far (the half-built device's Release(), DESIGN §2.2) and forwards to DXVK's CreateDevice, logging ONE
-// `[GXNATIVE] session=classic reason="..."` line. All "yes" -> `[GXNATIVE] session=native ...` and the native device is
-// returned. A native session never hands back (DESIGN §2.3). Row S1 (the build has GX_RENDER_NATIVE and the process asked for native:
-// Options.ini GXRenderer = native, or GX_RENDERER=native) is the installer's: when it does not hold, GxNativeWrapInterface is never
-// called (GxNative::Requested() -> GXGraphics::nativeRendererRequested() answers it, GameClient/GXRendererKey.h).
-//
-// Render-only: nothing the simulation reads.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// L1 in the game: the IDirect3D8 proxy and the per-session native/classic decision. Adapter queries are forwarded to
+// DXVK, so caps and formats are DXVK's answers. CreateDevice evaluates rows S2-S10 in order; the first "no" tears down
+// every native object and forwards to DXVK, logging ONE `[GXNATIVE] session=classic` line. All "yes": session=native,
+// and a native session never hands back. Row S1 is the installer's. Render-only.
 #pragma once
 
 #include <d3d8.h>
@@ -43,7 +53,7 @@ struct GxNativeSessionDebug
 	bool skipConfigRow = false;      // S5 accepts an unreproduced DXVK config key
 	bool skipShaderRow = false;      // S6 accepts any shader set
 	bool skipShadowRow = false;      // S7 ignores GX_SHADOW_GPU
-	bool shadowPortMissing = false;  // S7 behaves as in a build whose catalogue lacks the GX_SHADOW_GPU vs (rw3-R11's arm)
+	bool shadowPortMissing = false;  // S7 behaves as in a build whose catalogue lacks the GX_SHADOW_GPU vs
 	bool skipLoaderRow = false;      // S8 accepts any loader
 	bool skipUuidRow = false;        // S9 does not compare the adapter UUID
 	bool noTeardown = false;         // a refused session leaves the half-built device alive (never forwards to DXVK)
@@ -67,7 +77,7 @@ struct GxNativeSession
 
 // The proxy. `dxvk` is the interface DXVK's Direct3DCreate8 returned; the proxy takes over that one reference (its own
 // Release releases it) and returns itself with one reference. On any failure to build the proxy: returns `dxvk` unchanged.
-bool GxNativeSessionLive();	// GeneralsX: the device this process created last is a native session
+bool GxNativeSessionLive();	// the device this process created last is a native session
 IDirect3D8* GxNativeWrapInterface(IDirect3D8* dxvk, const GxNativeHost& host, const GxNativeSessionHost& session,
 	const GxNativeSessionDebug* debug = nullptr);
 
@@ -89,7 +99,7 @@ struct GxLoaderFacts
 	// content when it has none, "path:<p>" = unreadable: only itself). Two paths with one build are ONE loader (the 0.9.63 bundle stages
 	// libvulkan.1.dylib and libvulkan.dylib as identical copies). Empty / a different size = every image is its own build (its path).
 	std::vector<std::string> builds;
-	// (PREREG A36.2): the module of the ONE vetted interposer allowed to own the host's
+	// The module of the ONE vetted interposer allowed to own the host's
 	// vkGetInstanceProcAddr (NVIDIA Streamline's sl.interposer.dll, NVIDIA-signature-checked and loaded by full path by the host;
 	// it forwards to the process's vulkan-1.dll, which must still be the one loader build). Empty = none declared.
 	std::string interposerImage;

@@ -61,6 +61,7 @@
 #include "GameNetwork/GameSpy/BuddyDefs.h"
 #include "GameNetwork/GameSpy/BuddyThread.h"	// TheGameSpyBuddyMessageQueue
 #include "GameClient/GUICallbacks.h"			// GXBuddyOverlayToggle
+#include "GameClient/GXLobbyCommands.h"		// GXChatBoxAdd: the score screen's two-column chat box
 #include "GameNetwork/GameSpy/PeerDefs.h"
 #include "GameNetwork/GameSpy/PeerThread.h"
 #include "GameNetwork/GameSpy/PersistentStorageDefs.h"
@@ -1222,18 +1223,10 @@ void InitWOLGameGadgets()
 		return;
 	}
 
-	// GeneralsX: The .wnd authors eight of every per-slot control; the loop
-	// below binds MAX_SLOTS of them and dereferences each one immediately - winSetTooltipFunc() on
-	// the player, ping and accept windows, GadgetComboBoxGetListBox() on the faction box - so a row
-	// the layout does not contain is a null crash at init, not a short list. Build whatever the
-	// layout is short of BEFORE anything looks a row up. At the shipped MAX_SLOTS every one of these
-	// calls measures the column and returns without touching a rect.
-	//
-	// ButtonMapStartPosition is NOT a column: those markers are children of MapWindow and are placed
-	// over the preview from the map's own start waypoints, so they only need to exist.
-	//
-	// GeneralsX: The seat columns SCROLL instead, and the chat box's space goes to them
-	// See CodeGui.h.
+	// The .wnd authors eight of every per-slot control, but the loop below binds MAX_SLOTS of them and dereferences each
+	// one immediately, so a missing row is a null crash at init. Build whatever the layout lacks BEFORE any row lookup.
+	// ButtonMapStartPosition is not a column: those are children of MapWindow placed from the map's start waypoints.
+	// The seat columns scroll and take the chat box's space (see CodeGui.h).
 	static const char * const wolSeatColumns[] =
 	{
 		"GameSpyGameOptionsMenu.wnd:ComboBoxPlayer%d",
@@ -1718,8 +1711,8 @@ void WOLGameSetupMenuUpdate( WindowLayout * layout, void *userData)
 						GameWindow *listboxChatWindowScoreScreen = TheWindowManager->winGetWindowFromId( nullptr, listboxChatWindowScoreScreenID );
 						if (listboxChatWindowScoreScreen)
 						{
-							GadgetListBoxAddEntryText(listboxChatWindowScoreScreen, TheGameText->fetch(disconMunkee),
-								GameSpyColor[GSCOLOR_DEFAULT], -1);
+							GXChatBoxAdd(listboxChatWindowScoreScreen, UnicodeString(L"[S]"), TheGameText->fetch(disconMunkee),
+								GXChatMutedColor());	// GeneralsX @feature through the chat-box helper
 						}
 						else
 						{

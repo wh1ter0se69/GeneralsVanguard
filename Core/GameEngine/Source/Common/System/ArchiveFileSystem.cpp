@@ -240,18 +240,10 @@ void ArchiveFileSystem::loadMods()
 	}
 }
 
-// GeneralsX: Join-time SimID compatibility check - tier2 warn signal.
-// The map is keyed by the RAW insertion name, not by basename - loadMods inserts
-// TheGlobalData->m_modBIG verbatim above and loadBigFilesFromDirectory inserts
-// directory-prefixed names - so iterating the map in its own order and hashing
-// basenames would leave the ORDER path-dependent even though the VALUES are not. Two
-// installs holding the same archives under different roots would then produce
-// different fingerprints and warn forever. Collect, sort, then hash.
-//
-// Basename-only and lowercased so an install path can never itself cause a mismatch.
-// Both separators are stripped: '/' for Apple, '\\' for a future Windows build and for
-// the archive-internal form. Sizes are deliberately not hashed - that would make a
-// re-packaged iOS archive a permanent difference.
+// Join-time SimID compatibility check - tier2 warn signal. The map is keyed by the raw insertion name (loadMods
+// inserts m_modBIG verbatim, loadBigFilesFromDirectory directory-prefixed names), so iterate sorted, not in map
+// order. Basename-only and lowercased so the install path cannot cause a mismatch; both separators stripped. Sizes
+// are not hashed, or a re-packaged iOS archive would differ permanently.
 UnsignedInt ArchiveFileSystem::computeMountedArchiveFingerprint() const
 {
 	UnsignedInt hash = 2166136261u;

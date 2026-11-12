@@ -1,4 +1,22 @@
-// GeneralsX: S7 GPU sun shadow map: the caster list and its INIT replay (see the header).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// S7 GPU sun shadow map: the caster list and its INIT replay (see the header).
 #include "GxShadowCasters.h"
 #include "GxLookFrame.h"
 #include "GxOwnPull.h"
@@ -287,7 +305,7 @@ void GxShadowCasters::record(VkCommandBuffer cmd)
 	m_records.clear();
 }
 
-// P2 (GxLookFrame.h): the receivers' view of the frame's pass. The uv mapping is the replay's own viewport (offset rect.xy, size
+// The receivers' view of the frame's pass (GxLookFrame.h). The uv mapping is the replay's own viewport (offset rect.xy, size
 // rect.wh, positive height: clip y +1 = the rect's bottom row), so a receiver lands on the texel its caster was drawn into.
 void GxPackLookFrame(const GxShadowPassDesc& p, uint32_t atlasW, uint32_t atlasH, GxLookFrameUbo* o)
 {

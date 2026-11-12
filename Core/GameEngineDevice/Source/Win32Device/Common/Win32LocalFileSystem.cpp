@@ -34,26 +34,9 @@
 #include "Win32Device/Common/Win32LocalFile.h"
 #include <io.h>
 
-// GeneralsX: Asset-root fallback for loose data files on Windows.
-//
-// StdLocalFileSystem has had this since 23/03/2026, guarded by a comment reading "On Windows cwd
-// == install dir so this is never needed". That assumption is false whenever the game is launched
-// from a staging folder: the run folder is C:\dev\GeneralsX-run while the data lives in the Steam
-// install, so every loose (non-BIG) file opened by a relative path silently missed.
-//
-// Win32BIGFileSystem already resolves CNC_GENERALS_ZH_PATH into primaryAssetsDirectory - it just
-// never handed it to the local file system, which inherited the base class no-op. So Windows
-// resolved the asset root and then threw the answer away.
-//
-// Three separate desync/behaviour bugs are instances of this one defect, each carrying its own
-// staging workaround in setup-run-win64.ps1:
-//   * Data\Scripts\SkirmishScripts.scb  - the AI-only frame-0 desync (13,919 frames differing)
-//   * Data\Cursors                      - Win32Mouse.cpp:376
-//   * MapsZH.big                        - built-in maps missing from the map cache, so a joiner
-//                                         reports "You do not have the map" for a map it can play
-//
-// The fallback is strictly additive: it is consulted ONLY when the path is relative and the
-// normal cwd-relative lookup has already failed, so no currently-working resolution changes.
+// GeneralsX: Asset-root fallback for loose data files. Win32BIGFileSystem hands CNC_GENERALS_ZH_PATH here, so relative
+// loose files resolve when cwd != install dir (a missed Data\Scripts\SkirmishScripts.scb causes a frame-0 desync).
+// Consulted ONLY when the path is relative and the cwd-relative lookup already failed, so no working lookup changes.
 static AsciiString s_win32AssetFallbackPath;
 
 /// Returns assetRoot\filename, or an empty string when no fallback is possible.

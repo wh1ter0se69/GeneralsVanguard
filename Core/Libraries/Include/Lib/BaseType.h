@@ -288,11 +288,11 @@ __forceinline UnsignedInt gx_double_to_unsigned_int(double x)
   return (UnsignedInt)x;
 }
 
-// GeneralsX: review det1-float P2. The REAL_TO_* macros took every argument through Real, so an
+// GeneralsX: The REAL_TO_* macros took every argument through Real, so an
 // integer of 2^24 or more lost its low bits (EMPUpdate's UnsignedInt deadline 16777217 became 16777216) and a double
 // rounded to float before it truncated (0.99999999 became 1). Each argument now converts from its OWN type: a Real takes
-// the functions above unchanged, so every float input gives exactly what it gave before; a double saturates in double;
-// an integer or enum takes the plain integral conversion it had before Determinism-1 (modular, the same on every
+// the functions above unchanged, so every float input gives the same result; a double saturates in double;
+// an integer or enum takes the plain integral conversion (modular, the same on every
 // two's-complement target). Anything else (a class with a conversion operator, long double) converts through Real.
 __forceinline Int gx_real_to_int(double x) { return gx_double_to_int(x); }
 __forceinline UnsignedInt gx_real_to_unsigned_int(double x) { return gx_double_to_unsigned_int(x); }
@@ -559,7 +559,7 @@ struct ICoord2D
 		return x == value && y == value;
 	}
 
-	// GeneralsX @bugfix Deterministic Sqrt, not libm sqrt - this feeds the lockstep CRC.
+	// GeneralsX: Deterministic Sqrt, not libm sqrt - this feeds the lockstep CRC.
 	Int length() const { return (Int)Sqrt( (double)(x*x + y*y) ); }
 	Int lengthSqr() const { return x*x + y*y; }
 
@@ -892,7 +892,7 @@ struct ICoord3D
 		return xy;
 	}
 
-	// GeneralsX @bugfix Deterministic Sqrt, not libm sqrt - this feeds the lockstep CRC.
+	// GeneralsX: Deterministic Sqrt, not libm sqrt - this feeds the lockstep CRC.
 	Int length() const { return (Int)Sqrt( (double)(x*x + y*y + z*z) ); }
 	Int lengthSqr() const { return x*x + y*y + z*z; }
 

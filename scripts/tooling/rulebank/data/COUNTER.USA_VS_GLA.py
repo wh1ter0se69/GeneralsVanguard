@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule COUNTER.USA_VS_GLA: USA Air Force / Superweapon meet GLA with an
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule COUNTER.USA_VS_GLA: USA Air Force / Superweapon meet GLA with an
 # early King Raptor opener and an earlier Colonel Burton (row 50: "a few early King Raptors; they shut down Technicals and force him into
 # Quad Cannons"; row 121: "As USA Superweapon always build Colonel Burton: at $1,200 he pays for himself with one Demo buggy kill";
 # Dominator: "make a few King Raptors, stop the initial technical"). This, per general:

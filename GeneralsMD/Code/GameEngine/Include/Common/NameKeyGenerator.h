@@ -93,6 +93,8 @@ public:
 
 	/// Given a string, convert into a unique integer key.
 	NameKeyType nameToKey(const AsciiString& name);
+	/// GeneralsX: would nameToKey() find this name without allocating a key?
+	Bool gxIsNameKnown(const AsciiString& name) const;
 	NameKeyType nameToLowercaseKey(const AsciiString& name);
 
 	/// Given a string, convert into a unique integer key.

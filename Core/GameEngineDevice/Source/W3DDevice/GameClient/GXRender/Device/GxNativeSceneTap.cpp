@@ -1,7 +1,25 @@
-// GeneralsX: IGxSceneTap on the native device (GxSceneTap.h; F-depth+, GxSceneCopy.h).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// IGxSceneTap on the native device (GxSceneTap.h, GxSceneCopy.h).
 //
-// Front halves here; the copies are ONE async command per frame (A23-B: owned arguments, stream-ordered with the draws around it -
-// it runs on gx-native-cs when the worker is on, which is wh1ter0se's default with GXUpscaler off).
+// Front halves here; the copies are ONE async command per frame (owned arguments, stream-ordered with the draws around it).
+// It runs on gx-native-cs when the worker is on (the default with GXUpscaler off).
 
 #include "GxNativeDevice.h"
 

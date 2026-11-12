@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # GeneralsX: Bundle Linux GeneralsXZH binary + .so libs into a tarball archive
 # Packages the same files as deploy-linux-zh.sh into GeneralsXZH-linux-x86_64.tar.gz
 
@@ -18,25 +20,10 @@ BINARY_SRC="${BUILD_DIR}/GeneralsMD/GeneralsXZH"
 DXVK_CONF_SRC="${PROJECT_ROOT}/resources/dxvk/dxvk.conf"
 OUTPUT_TARBALL="${PROJECT_ROOT}/GeneralsXZH-linux-x86_64.tar.gz"
 
-# GeneralsX: THE OVERLAY'S SOURCE DIRECTORIES, AS ONE LIST, UP HERE.
-#
-# ONE list feeds both the archive search (gx_find_overlay_archive) and the generator's --game-dir
-# candidates. The generator used to get ${GX_GAME_DATA:-${GX_OVERLAY_SRC:-${GX_PATCH_SRC}}} - a
-# chain of its own, with the macOS bundler's GX_PATCH_SRC in it, which nothing else in this file
-# reads - so the two could name different places. They now cannot.
-#
-# NOT HARDCODED: /root/gamedata. The harness host keeps the retail data and the mandatory archives
-# there, and release 85f9a6650 needed GX_OVERLAY_SRC=/root/gamedata to package on it. That is one
-# host's layout, so it is recorded, not baked in.
-#
-# GX_OVERLAY_SRC, NOT GX_PATCH_SRC, and that disagreement with the macOS bundler is left exactly as
-# it was found. Renaming either one is a breaking change for whoever sets it on a packaging box, and
-# it is not this change's to make. Whoever unifies them must update both scripts and every
-# packaging box in the same step.
-#
-# Defined before the build checks so GX_OVERLAY_RESOLVE_ONLY=1 can answer "which WindowZH.big would
-# this read" on a box with no build at all. scripts/test/overlay-gamedir-test.sh is the check that
-# fails if a directory the archive search walks stops being one the generator tries.
+# The overlay's source directories, as one list: it feeds both the archive search (gx_find_overlay_archive) and the
+# generator's --game-dir candidates, so the two cannot disagree. Defined before the build checks so
+# GX_OVERLAY_RESOLVE_ONLY=1 works with no build. GX_OVERLAY_SRC differs from macOS's GX_PATCH_SRC on purpose:
+# renaming either breaks packaging boxes. scripts/test/overlay-gamedir-test.sh checks it.
 GX_SRC_DIR="${GX_OVERLAY_SRC:-${HOME}/GeneralsX/GeneralsZH}"
 GX_OVERLAY_SRC_DIRS=("${GX_SRC_DIR}/../GeneralsXPatch" "${GX_SRC_DIR}" "${GX_SRC_DIR}/GeneralsXPatch")
 # GX_GAME_DATA first: it is the explicit override, and the generator's own error names it.
@@ -49,7 +36,7 @@ if [[ -n "${GX_OVERLAY_RESOLVE_ONLY:-}" ]]; then
     exec python3 "${_gx_gen}" --resolve "${_gx_gen_dirs[@]}"
 fi
 
-# GeneralsX: THE TARBALL SHIPPED ZERO ARCHIVES, and that is a join refusal.
+# THE TARBALL SHIPPED ZERO ARCHIVES, and that is a join refusal.
 #
 # This bundled the engine and its .so files and nothing else, while its macOS counterpart carries the
 # overlay inside the .app at Contents/Resources/GeneralsXPatch. So a Linux player who installed this
@@ -140,7 +127,7 @@ echo "  + GeneralsXZH"
 cp "${BINARY_SRC}" "${BUNDLE_DIR}/GeneralsXZH"
 chmod +x "${BUNDLE_DIR}/GeneralsXZH"
 
-# GeneralsX: The openal-soft this engine was built against, and a runpath
+# The openal-soft this engine was built against, and a runpath
 # of $ORIGIN so it is the one that loads. The tarball shipped no libopenal at all, so every player
 # ran the distro's copy - see scripts/build/linux/lib-openal.sh.
 # shellcheck source=scripts/build/linux/lib-openal.sh
@@ -169,7 +156,7 @@ if [[ -f "${SAGE_PATCH_LIB}" ]]; then
     cp "${SAGE_PATCH_LIB}" "${BUNDLE_DIR}/"
 fi
 
-# GeneralsX: Copy FFmpeg runtime libs transitively so the bundle is independent of host SONAME layout.
+# Copy FFmpeg runtime libs transitively so the bundle is independent of host SONAME layout.
 echo "  + FFmpeg runtime libraries"
 shopt -s nullglob
 ffmpeg_roots=(
@@ -203,58 +190,14 @@ else
     echo "WARNING: ${DXVK_CONF_SRC} not found - terrain shaders may fail"
 fi
 
-# GeneralsX: Stage the community-patch overlay.
-#
-# WHY IT GOES BESIDE THE EXE HERE AND NOT ON A DEPLOYED LINUX BOX. lib-overlay.sh documents that
-# <exe dir>/GeneralsXPatch is WRONG for a deployed macOS/Linux install, because there the exe lives
-# INSIDE the game folder, so the overlay becomes a subdirectory of the asset root and
-# loadBigFilesFromDirectory mounts every archive a second time under a cwd-relative spelling.
-#
-# The tarball's layout is not that layout: the exe sits in GeneralsXZH-linux/ and the game data is a
-# SIBLING directory the wrapper never cds into. The overlay is therefore outside the asset root, and
-# run.sh exports GENERALSX_PATCH_PATH explicitly so the engine cannot resolve it any other way.
-#
-# GeneralsX: THE TARBALL SHIPPED NO OPTIONAL CONTENT AND NO MANIFESTS.
-#
-# This block read overlay-archives.txt and stopped there. overlay-optional.txt was never opened, so
-# the Linux tarball carried the 2 mandatory archives while the macOS .app carried those plus the 5
-# optional ones - and it carried neither optional.txt nor required.txt, which are the two files the
-# launcher reads to answer "is this install complete" and "what may I toggle".
-#
-# MEASURED HERE 14/09/2026, and the two halves have different authorities, so they are separated.
-# What this session checked itself: `grep -n 'optional.txt|required.txt|gx_overlay_stage_optional'`
-# over this file matched NOTHING while the same pattern matched 10 lines in bundle-macos-zh.sh; and
-# a shipped .app on this box (gx-testreset-20260826) carries 340_ControlBarProZH.big,
-# 340_ControlBarPro-Fix1440ZH.big, 340_ControlBarPro1440ZH.big, !HotkeysLeikezeZH.big and !GXUI.big
-# alongside the mandatory pair, plus an optional.txt this file now reproduces byte for byte. That
-# .app predates required.txt, which bundle-macos-zh.sh has written since 10/09/2026.
-# Reported by the republish packaging run rather than re-measured here: the live tarball is
-# 214,105,383 bytes and the optional set is ~59 MB UNCOMPRESSED, so no published Linux build has
-# ever carried it. The tarball grows by far less than that: overlay-optional.txt records the
-# COMPRESSED sizes - 340_ControlBarProZH 20.7 MB, 340_ControlBarPro-Fix1440ZH 117 KB,
-# 340_ControlBarPro1440ZH 3.4 KB, !HotkeysLeikezeZH 186 KB - and !GXUI.big is 46,979 bytes on
-# disk, so the real growth is about 21 MB and the artifact lands near 235 MB, not 273.
-#
-# THIS IS NOT A DATA ID BUG. Every entry in overlay-optional.txt is measured dataID-neutral (see the
-# per-archive "0 fingerprinted" counts recorded in that file), so a Linux player joins the fleet
-# today. What they lose is the content itself - and, because the toggle is a RENAME and not a
-# download, the ability to switch any of it on later. That is why a missing optional archive is
-# fatal here by default, exactly as in bundle-macos-zh.sh and package-windows-share.ps1.
-#
-# THE PROCESS-SUBSTITUTION TRAP, WHICH THIS FILE STILL HAD ON THE MANDATORY SIDE. lib-overlay.sh
-# documents gx_overlay_count as existing because `while read < <(gx_overlay_archives)` runs the
-# producer in a CHILD and throws its exit status away: a missing or empty list makes the loop body
-# run zero times, gx_missing stays empty, and the script reports success having staged NOTHING. The
-# loop below was written without that pre-flight, so an unreadable overlay-archives.txt would have
-# produced a tarball with an empty GeneralsXPatch and printed "0 archive(s)" as though that were
-# fine. gx_overlay_count is now called first, and the optional list is CAPTURED into a variable so
-# its status is checked by the same command that reads its bytes - the stronger form, and the one
-# bundle-macos-zh.sh adopted for its own OVERLAY_OPTIONAL_LINES capture, after exactly this failure
-# let optional.txt advertise a set that was never staged.
+# Stage the community-patch overlay beside the exe: the game data is a sibling the wrapper never cds into, so the
+# overlay stays outside the asset root, and run.sh exports GENERALSX_PATCH_PATH. A missing optional archive is fatal,
+# as in the other packagers. gx_overlay_count runs first and the optional list is captured, because
+# `while read < <(...)` discards the producer's exit status.
 GX_PATCH_STAGE="${BUNDLE_DIR}/GeneralsXPatch"
 mkdir -p "${GX_PATCH_STAGE}"
 
-# GeneralsX: GENERATE !GXUI.big HERE, the way the Windows packager
+# GENERATE !GXUI.big HERE, the way the Windows packager
 # already does. It is now on overlay-archives.txt, so a missing copy is a refusal rather than a
 # quiet omission - and only package-windows-share.ps1 ran the generator, despite a comment in
 # overlay-optional.txt claiming iOS, Linux and Windows all did. They did not; that line was wrong
@@ -286,35 +229,9 @@ else
     exit 1
 fi
 
-# GX_SRC_DIR and the directories searched around it are defined at the top of this file, as
-# GX_OVERLAY_SRC_DIRS, so the generator step above searches the same ones.
-#
-# The same two directories this script already searched - the game folder and a GeneralsXPatch
-# underneath it - now behind one helper so the mandatory and optional passes cannot drift on which
-# places they look or on what counts as a usable file.
-#
-# -f AND -s, both, which is a deliberate tightening of the bare -f this loop used before. Measured
-# on this box (bash 5.3.15, Darwin 25.6.0, APFS) rather than reasoned, because the two tests fail on
-# OPPOSITE inputs and neither is a superset of the other:
-#
-#   test          directory   zero-byte file   1-byte file
-#   -f            FALSE       TRUE             TRUE
-#   -s            TRUE        FALSE            TRUE
-#
-# -f alone accepts a ZERO-BYTE archive: the tarball then looks complete, the engine mounts nothing
-# from it, and the player gets a dataID that matches no peer with no message anywhere saying why.
-# That is the failure this whole block exists to end, so the rule is "a regular file with bytes in
-# it". The same reasoning, and the same table, is recorded above find_overlay_archive in
-# bundle-macos-zh.sh.
-# THE SIBLING IS SEARCHED FIRST, because it is the canonical location and this function did not
-# look there. lib-overlay.sh's gx_overlay_dir() is `<runtime>/../GeneralsXPatch` - a SIBLING of the
-# game folder, not a child - and it is what migrate-patch-overlay.sh and deploy-linux-zh.sh both
-# compute. The macOS bundler's first search dir is that same sibling (GX_PATCH_SRC defaults to
-# ~/GeneralsX/GeneralsXPatch), and so is the iOS packager's. Only this script looked exclusively
-# game-folder-relative, so on a migrated packaging box - the arrangement lib-overlay.sh documents as
-# correct for Linux - it opened neither directory the archives are in. That was survivable while
-# only two archives were staged and loudly fatal; with the optional set it would silently ship five
-# fewer. The game-folder paths stay, after it, so an unmigrated box keeps working.
+# Searches the sibling GeneralsXPatch first (the place gx_overlay_dir() computes), then the game folder and a
+# GeneralsXPatch under it, so migrated and unmigrated packaging boxes both work. A usable archive is -f AND -s:
+# -f alone accepts a zero-byte file (dataID then matches no peer), -s alone accepts a directory.
 gx_find_overlay_archive() {
     local name="$1" dir
     for dir in "${GX_GENERATED_DIR}" "${GX_OVERLAY_SRC_DIRS[@]}"; do
@@ -340,15 +257,9 @@ gx_overlay_count > /dev/null || exit 1
 while IFS= read -r gx_arch; do
     [[ -n "${gx_arch}" ]] || continue
     if gx_src="$(gx_find_overlay_archive "${gx_arch}")"; then
-        # PLAIN cp, NOT `cp -a`, and this is the whole point of the -s test above. A packaging
-        # box that SYMLINKS its archives rather than duplicating them is the normal arrangement -
-        # the Linux build host used for the 14/09/2026 republish has every .big in /root/gamedata
-        # reached through a symlink - and `[[ -f link && -s link ]]` is TRUE for a symlink to a
-        # real file, because both tests follow the link. `cp -a` would then preserve the LINK,
-        # putting a dangling symlink inside the tarball: GeneralsXPatch looks complete,
-        # required.txt validates, the engine mounts nothing, and dataID matches no peer with
-        # nothing saying why. Measured on this box: `cp -a link dst` yields a symlink, `cp link
-        # dst` yields the file. bundle-macos-zh.sh uses plain cp on the same two lines.
+        # PLAIN cp, NOT `cp -a`: a packaging box that symlinks its archives passes `[[ -f link && -s link ]]` (both tests follow the link),
+        # and `cp -a` would then copy the LINK, leaving a dangling symlink in the tarball. The patch folder would look complete and
+        # validate, the engine would mount nothing, and dataID would match no peer. bundle-macos-zh.sh uses plain cp on the same two lines.
         cp "${gx_src}" "${GX_PATCH_STAGE}/${gx_arch}" || exit 1
         echo "      [required] ${gx_arch}"
         gx_staged=$((gx_staged + 1))
@@ -486,7 +397,7 @@ if [[ ${#gx_missing_required[@]} -gt 0 || ${#gx_missing_optional[@]} -gt 0 ]]; t
     fi
 fi
 
-# GeneralsX: THE LOOSE DATA EVERY OTHER PLATFORM SHIPS.
+# THE LOOSE DATA EVERY OTHER PLATFORM SHIPS.
 # Data/INI/Multiplayer.ini (the sixteen colours) and Data/INI/Weapon.ini (the
 # Toxin Tractor change, cut by scripts/tooling/make-weapon-ini.py from the CoreINI staged above) both go
 # through the INI parser, so both are in iniCRC -> dataID: a tarball without them is refused by every
@@ -755,30 +666,10 @@ exec "${SCRIPT_DIR}/GeneralsXZH" "$@"
 WRAPPER
 chmod +x "${BUNDLE_DIR}/run.sh"
 
-# GeneralsX: BUILD.txt, SO THE LAUNCHER CAN TELL THIS PAYLOAD IS THE RELEASE.
-#
-# The launcher identifies a Linux engine from the gitinfo compiled into it, and that names a
-# COMMIT - which any build at that commit also carries, local changes and other flags included. So
-# it no longer calls such a match "Up to date"; a tarball install read "Built from the release
-# commit". This is the packager's statement about the binary it packed, the same one
-# package-windows-share.ps1 ships for Windows, and the launcher reads it only from the folder it
-# runs the engine from (cmd_release.rs, engine_build_stamp).
-#
-# THE COMMIT IS READ OUT OF THE PACKED BINARY, NEVER FROM git HEAD: a bundler run at a later
-# checkout would otherwise stamp a commit the engine was not built from. The rule is the Windows
-# packager's: a 40-character lowercase sha ADJACENT to its own 7-12 character prefix - `strings`
-# drops the zero padding a compiler puts between the two globals. No commit, no bundle: a payload
-# that cannot name its build must not ship as one that can.
-#
-# EITHER ORDER. MSVC and clang emit the sha then its prefix; GCC emits them the other way round -
-# measured 18/09/2026 on the 093922015 and 85f9a6650 Linux engines, `strings` prints the date, the
-# short form, then the sha. Accepting only the MSVC order refused every Linux bundle.
-# scripts/test/embedded-commit-test.sh runs this function out of this file.
-#
-# WINDOWS-GRADE TRUST: nothing re-checks the binary against the `exe sha256` line after install.
-#
-# awk READS TO THE END rather than exiting at the match: an early exit hands `strings` a SIGPIPE,
-# and under `set -o pipefail` that failure would refuse every bundle.
+# BUILD.txt states the commit this packed binary was built from; the launcher reads it from the engine's folder. The
+# commit comes from the binary, never git HEAD: a 40-char sha next to its 7-12 char prefix, in either order (GCC puts
+# the prefix first). No commit, no bundle. awk reads to the end: an early exit would SIGPIPE `strings` under pipefail.
+# scripts/test/embedded-commit-test.sh runs this function from this file.
 gx_embedded_commit() {
     strings -a -n 7 "$1" | awk '
         function sha(s) { return length(s) == 40 && s ~ /^[0-9a-f]+$/ }

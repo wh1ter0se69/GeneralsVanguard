@@ -1,4 +1,6 @@
-# GeneralsX: rule bank, DATA half: scb helpers for the ruleset compiler and its modules.
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank, DATA half: scb helpers for the ruleset compiler and its modules.
 # Works on the recipe's own parse (make-skirmish-scripts.py: SCB / Node / parse_call / enc_call), which the compiler binds in as `mss`
 # before any module runs. A module sees this file as `rb`.
 #
@@ -17,7 +19,7 @@ SIDE_ENEMY = "<This Player's Enemy>"
 # rb-data-12: the GX leaves a DATA rule may emit, each with the rule_ids.json capability that builds it (gen-rule-ids.py CAP_SOURCES)
 GX_LEAVES = {('Condition', 'AI_PLAYER_GX_SENSE'): 'SENSE.ENEMY_FACTION',
              ('Condition', 'AI_PLAYER_GX_SEEN_COUNT'): 'SENSE.FOG_CONDITIONS', ('Condition', 'AI_PLAYER_GX_SEEN_VALUE'): 'SENSE.FOG_CONDITIONS'}
-# rb-sense-3, SENSE.FOG_CONDITIONS: every ask walks the partition (~9 us), so a script reading one runs on at least this
+# SENSE.FOG_CONDITIONS: every ask walks the partition (~9 us), so a script reading one runs on at least this
 # script delay (seconds); a seen value only of MY perimeter; an OBJECT_TYPE list a rule builds carries the prefix and is built by a seen_list_script
 SEEN_MIN_DELAY = 2
 SEEN_AREAS = ('[Skirmish]MyInnerPerimeter', '[Skirmish]MyOuterPerimeter')
@@ -26,7 +28,7 @@ SEEN_LIST_SCRIPT = 'GX Seen List '
 # the lists stock defines on its first pass ("USA Define Object Lists" etc.; selftest pins this against the file): seen_count reads them, nothing writes them
 STOCK_OBJECT_LISTS = ('Tanks', 'Aircraft', 'Base Defenses', 'Infantry', 'Artillery', 'Super Weapons', 'Tech Buildings', 'Spy', 'Base Factories',
                       'Base Buildings', 'Anti-Air Vehicle', 'Vehicle', 'Utility', 'Tech Center', 'Supply Lines', 'Supply Lines - Buildings', 'Power')
-# the strings AI_PLAYER_GX_SENSE answers for (rb-sense-1 HANDBACK section 1): a BASE side (from the lobby or from 3 different units
+# the strings AI_PLAYER_GX_SENSE answers for: a BASE side (from the lobby or from 3 different units
 # seen) or a lobby side (only when the lobby showed it - a Random enemy is never known by its general). PlayerTemplate.ini Side/BaseSide.
 SENSE_BASE = ('USA', 'China', 'GLA')
 SENSE_FACTIONS = SENSE_BASE + ('America', 'AmericaSuperWeaponGeneral', 'AmericaLaserGeneral', 'AmericaAirForceGeneral', 'ChinaTankGeneral',

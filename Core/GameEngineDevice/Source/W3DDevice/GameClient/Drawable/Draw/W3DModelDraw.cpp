@@ -1544,6 +1544,14 @@ void W3DModelDraw::showSubObject( const AsciiString& name, Bool show )
 {
 	if( name.isNotEmpty() )
 	{
+#if RTS_ZEROHOUR
+// GeneralsX: The clip-status skip is Zero Hour only; RTS_GENERALS keeps the retail clip path exactly.
+//
+		// GeneralsX: Not applied here: the next updateSubObjects or clip update applies it.
+		noteSubObjectHideChange();
+
+#endif
+#line 1541	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 		Bool found = false;
 		for( std::vector<ModelConditionInfo::HideShowSubObjInfo>::iterator it = m_subObjectVec.begin(); it != m_subObjectVec.end(); ++it )
 		{
@@ -1996,6 +2004,15 @@ W3DModelDraw::W3DModelDraw(Thing *thing, const ModuleData* moduleData) : DrawMod
 	}
 	m_needRecalcBoneParticleSystems = false;
 	m_fullyObscuredByShroud = false;
+#if RTS_ZEROHOUR
+	for (i = 0; i < WEAPONSLOT_COUNT; ++i)
+	{
+		m_projectileClipApplied[i].valid = false;
+	}
+	m_subObjectHideGeneration = 0;
+	m_applyingProjectileClip = false;
+#endif
+#line 1993	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 
 	// only validate the current time-of-day and weather conditions by default.
 	getW3DModelDrawModuleData()->validateStuffForTimeAndWeather(getDrawable(),
@@ -2297,23 +2314,23 @@ void W3DModelDraw::adjustTransformMtx(Matrix3D& mtx) const
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: True when doDrawModule's per-frame Set_Transform would be
-// a no-op: an HLOD whose transform is already bit-identical and whose pose is not advanced by time.
-// HLodClass::Set_Transform stores the matrix, invalidates the cached bounds and dirties the hierarchy
-// and every sub-object transform (hlod.cpp, animobj.cpp, rendobj.cpp Set_Transform), which makes the
-// next Render re-run HTree Base_Update and Set_Transform on the sub-objects of EVERY LOD. With the
-// same matrix all of that recomputes the same values, because the other inputs invalidate on change
-// themselves: Set_Animation, Control_Bone, sub-object adds, the ObjSphere/ObjBox rebuild. The HLOD
-// world bounds are the base-pose ObjSphere/ObjBox (or the BOUNDINGBOX mesh, evaluated per query)
-// under Transform and ObjectScale, so animation never moves them and they stay correct too.
-// SINGLE_ANIM that is not ANIM_MODE_MANUAL follows the clock, and the per-frame invalidation is what keeps a
-// Get_Bone_Transform between two renders (updateBonesForClientParticleSystems) on the current frame instead of
-// the previous one. GeneralsX: R-CPU pose cache: so such a model is skipped only
-// when its built pose is already the one the clock gives now (Animatable3DObjClass::Is_Clock_Pose_Current: the
-// same frame and direction, nothing invalidated since). The WW3D clock steps once per draw, in W3DDisplay::draw
-// before the views draw, so it does not move between this check and the readers of this draw; such a Get_Bone_
-// Transform then reads the bits a rebuild would have written. Under GX_POSECACHE=2 the skip is checked instead:
-// Set_Transform runs as before here, the pose is rebuilt at once and compared with the kept one.
+// GeneralsX: True when doDrawModule's per-frame Set_Transform would be a no-op: an HLOD whose transform is already
+// bit-identical and whose pose is not advanced by time; its other inputs invalidate on change themselves.
+// A clock-driven SINGLE_ANIM is skipped only if its pose is current (Animatable3DObjClass::Is_Clock_Pose_Current).
+// GX_POSECACHE=2 checks the skip: Set_Transform runs, the pose is rebuilt and compared with the kept one.
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 static Bool gxTransformIsUnchangedStaticHLod(RenderObjClass* robj, const Matrix3D& mtx)
 {
 	if (robj->Class_ID() != RenderObjClass::CLASSID_HLOD)
@@ -2683,6 +2700,31 @@ static void doHideShowBoneSubObjs(Bool state, Int numSubObjects, Int boneIdx, Re
 }
 
 //-------------------------------------------------------------------------------------------------
+#if RTS_ZEROHOUR
+// GeneralsX: The projectile clip cache skips a re-apply until another writer of the hidden bits moves. A muzzle flash
+// is such a writer (a mod may share one sub-object between clip and flash), so the caller notes a CHANGED bit
+// (noteSubObjectHideChange); an unchanged bit keeps the cache, so recoil does not invalidate every draw.
+Bool ModelConditionInfo::WeaponBarrelInfo::setMuzzleFlashHidden(RenderObjClass *fullObject, Bool hide) const
+{
+	Bool changed = FALSE;
+	if (fullObject)
+	{
+		RenderObjClass* childObject = fullObject->Get_Sub_Object_On_Bone(0, m_muzzleFlashBone);
+		if (childObject)
+		{
+			changed = (childObject->Is_Hidden() != 0) != (hide != 0);
+			childObject->Set_Hidden(hide);
+			childObject->Release_Ref();
+		}
+		else
+		{
+			DEBUG_CRASH(("*** ASSET ERROR: childObject %s not found in setMuzzleFlashHidden()",m_muzzleFlashBoneName.str()));
+		}
+	}
+	return changed;
+}
+#else
+#line 2697	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 void ModelConditionInfo::WeaponBarrelInfo::setMuzzleFlashHidden(RenderObjClass *fullObject, Bool hide) const
 {
 	if (fullObject)
@@ -2699,10 +2741,17 @@ void ModelConditionInfo::WeaponBarrelInfo::setMuzzleFlashHidden(RenderObjClass *
 		}
 	}
 }
+#endif
+#line 2713	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 
 //-------------------------------------------------------------------------------------------------
 void W3DModelDraw::doHideShowSubObjs(const std::vector<ModelConditionInfo::HideShowSubObjInfo>* vec)
 {
+#if RTS_ZEROHOUR
+	noteSubObjectHideChange();
+
+#endif
+#line 2700	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 	if (!m_renderObject)
 		return;
 
@@ -2760,16 +2809,16 @@ void W3DModelDraw::stopClientParticleSystems()
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: Capture_Bone + Control_Bone, skipped when the bone is
-// already captured with a bit-identical control matrix. Control_Bone only stores the matrix and
-// invalidates the hierarchy (animobj.cpp Control_Bone, htree.cpp Control_Bone), so re-storing the
-// same bits changes nothing but forcing HTree Base_Update and every sub-object Set_Transform on the
-// next render. Every other hierarchy input (object transform, Set_Animation, sub-object changes)
-// invalidates by itself, and a clock-driven SINGLE_ANIM model is re-posed whenever the clock moves its
-// frame (07/10/2026: the per-frame Set_Transform no longer invalidates a pose that is already current,
-// see gxTransformIsUnchangedStaticHLod; the pivots then hold this same control). Every Control_Bone on these bones
-// uses world_space_translation = false, the default, so the flag cannot differ either.
-// Client-side sibling of TheSuperHackers PR #2046, which gates the same work from GameLogic.
+// GeneralsX: Capture_Bone + Control_Bone, skipped when the bone is already captured with an identical control matrix.
+// Control_Bone only stores the matrix and invalidates the hierarchy, so re-storing the same bits only forces HTree
+// Base_Update and every sub-object Set_Transform at the next render. Client sibling of
+// TheSuperHackers PR #2046 (same gate in GameLogic). The skip compares only the matrix: every caller here uses
+// world_space_translation = false, the default, so the flag Control_Bone also stores cannot differ. Every other
+// hierarchy input (object transform, Set_Animation, sub-object changes) invalidates by itself.
+//
+//
+//
+//
 static void gxControlBoneIfChanged(RenderObjClass* robj, Int bone, const Matrix3D& xfrm)
 {
 	const HTreeClass* htree = robj->Get_HTree();
@@ -2912,7 +2961,14 @@ void W3DModelDraw::handleClientRecoil()
 			if (barrels[i].m_muzzleFlashBone != 0)
 			{
 				Bool hidden = recoils[i].m_state != WeaponRecoilInfo::RECOIL_START;
+#if RTS_ZEROHOUR
+				if (barrels[i].setMuzzleFlashHidden(m_renderObject, hidden))
+					noteSubObjectHideChange();
+#else
+#line 2931	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 				barrels[i].setMuzzleFlashHidden(m_renderObject, hidden);
+#endif
+#line 2932	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 			}
 
 			const Real TINY_RECOIL = 0.01f;
@@ -3178,6 +3234,13 @@ void W3DModelDraw::setTerrainDecalOpacity(Real o)
 //-------------------------------------------------------------------------------------------------
 void W3DModelDraw::nukeCurrentRender(Matrix3D* xform)
 {
+#if RTS_ZEROHOUR
+	// GeneralsX: Every render object swap comes through here. The clip update's key holds the
+	// render object's address, and a new object can reuse the old one's.
+	noteSubObjectHideChange();
+
+#endif
+#line 3175	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 	// this needs to be "dirtied" so that the new pausing of the animation will be triggered.
 	m_pauseAnimation = false;
 
@@ -3223,6 +3286,10 @@ void W3DModelDraw::hideGarrisonFlags(Bool hide)
 	if ((subObj = m_renderObject->Get_Sub_Object_By_Name("POLE", &objIndex)) != nullptr)
 	{
 		subObj->Set_Hidden(hide);
+#if RTS_ZEROHOUR
+		noteSubObjectHideChange();
+#endif
+#line 3220	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 
 		const HTreeClass *htree = m_renderObject->Get_HTree();
 		if (htree)
@@ -3251,6 +3318,10 @@ void W3DModelDraw::hideAllHeadlights(Bool hide)
 			if (subName && strstr(subName,"HEADLIGHT"))
 			{
 				test->Set_Hidden(hide);
+#if RTS_ZEROHOUR
+				noteSubObjectHideChange();
+#endif
+#line 3248	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 			}
 			test->Release_Ref();
 		}
@@ -3420,6 +3491,10 @@ void W3DModelDraw::setModelState(const ModelConditionInfo* newState)
 
 	// and always hide muzzle flashes, in case modelstate and model have crossed at the same time
 	hideAllMuzzleFlashes(newState, m_renderObject);
+#if RTS_ZEROHOUR
+	noteSubObjectHideChange();	// GeneralsX: D8: the static muzzle-flash hide is another writer of the hidden bits
+#endif
+#line 3454	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 
 	// note that different states might use the same model; for these, don't go thru the
 	// expense of creating a new render-object. (exception: if color is changing, or subobjs are changing,
@@ -4275,7 +4350,7 @@ Bool W3DModelDraw::handleWeaponFireFX(WeaponSlotType wslot, Int specificBarrelTo
 	if (info.m_recoilBone || info.m_muzzleFlashBone)
 	{
 		//DEBUG_LOG(("START muzzleflash %08lx for Draw %08lx state %s at frame %d",info.m_muzzleFlashBone,this,m_curState->m_description.str(),TheGameLogic->getFrame()));
-		// GeneralsX: review shroud-barrel P2: rebuildWeaponRecoilInfo sized this instance's recoils
+		// GeneralsX: rebuildWeaponRecoilInfo sized this instance's recoils
 		// when m_curState was entered, but BARRELS_VALID lives in shared module data and getBarrelCount can validate the
 		// state afterwards (a state entered at render time, where validation is skipped), so wbvec can be longer than the
 		// recoils here. Resynchronise before indexing; specificBarrelToUse < wbvec.size() was enforced above.
@@ -4286,7 +4361,14 @@ Bool W3DModelDraw::handleWeaponFireFX(WeaponSlotType wslot, Int specificBarrelTo
 		recoil.m_state = WeaponRecoilInfo::RECOIL_START;
 		recoil.m_recoilRate = getW3DModelDrawModuleData()->m_initialRecoil;
 		if (info.m_muzzleFlashBone != 0)
+#if RTS_ZEROHOUR
+			if (info.setMuzzleFlashHidden(m_renderObject, false))
+				noteSubObjectHideChange();
+#else
+#line 4320	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 			info.setMuzzleFlashHidden(m_renderObject, false);
+#endif
+#line 4321	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 	}
 
 	return handled;
@@ -4448,7 +4530,44 @@ void W3DModelDraw::updateProjectileClipStatus( UnsignedInt shotsRemaining, Unsig
 	if ((getW3DModelDrawModuleData()->m_projectileBoneFeedbackEnabledSlots & (1 << slot)) == 0)
 		return; // Only if specified.
 
+#if RTS_ZEROHOUR
+	// GeneralsX: Called for every weapon slot of every object every tick, and the name lookups
+	// and bone walks underneath are 3.6% of a late 32-player tick. Re-applying what is already applied changes nothing, so
+	// skip it until the ammo, the state, the render object or another writer of the hidden bits moves.
+	ProjectileClipApplied& applied = m_projectileClipApplied[slot];
+	if (applied.valid
+		&& applied.renderObject == m_renderObject
+		&& applied.state == m_curState
+		&& applied.showCount == shotsRemaining
+		&& applied.maxCount == maxShots
+		&& applied.generation == m_subObjectHideGeneration)
+	{
+		return;
+	}
+
+	m_applyingProjectileClip = true;
+#endif
+#line 4445	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 	doHideShowProjectileObjects( shotsRemaining, maxShots, slot );// Means effectively, show m of n.
+#if RTS_ZEROHOUR
+	m_applyingProjectileClip = false;
+
+	applied.renderObject = m_renderObject;
+	applied.state = m_curState;
+	applied.showCount = shotsRemaining;
+	applied.maxCount = maxShots;
+	applied.generation = m_subObjectHideGeneration;
+	applied.valid = true;
+
+	// Slots come here in ascending order, and where two slots' projectiles share a mesh the later slot's write wins every
+	// tick. So a slot that just wrote makes every later slot write again. Earlier slots stay valid, or two such slots
+	// would keep re-triggering each other forever.
+	for (Int later = slot + 1; later < WEAPONSLOT_COUNT; ++later)
+	{
+		m_projectileClipApplied[later].valid = false;
+	}
+#endif
+#line 4446	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -4503,6 +4622,11 @@ void W3DModelDraw::doHideShowProjectileObjects( UnsignedInt showCount, UnsignedI
 //-------------------------------------------------------------------------------------------------
 void W3DModelDraw::updateSubObjects()
 {
+#if RTS_ZEROHOUR
+	noteSubObjectHideChange();
+
+#endif
+#line 4500	// GeneralsX: __LINE__ keeps its retail value below this Zero Hour block
 	if (!m_renderObject)
 		return;
 

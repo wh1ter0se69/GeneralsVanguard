@@ -1,4 +1,22 @@
-// GeneralsX: the native device's present = DXVK's swapchain blitter.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// the native device's present = DXVK's swapchain blitter.
 //
 // DXVK draws the game's back buffer onto the window with its present shaders (dxvk_swapchain_blitter.cpp, references/
 // fbraz3-dxvk 954c5c692): a single-sample back buffer at the window's size is copied as is (the "no redundant conversion"
@@ -31,7 +49,7 @@ public:
 	// testSkipFinal (TEST plant): dst is left in COLOR_ATTACHMENT_OPTIMAL.
 	bool record(VkCommandBuffer cmd, uint32_t slot, Res::GxImage& src, VkImageView srcView, Res::GxImage& dst, VkImageView dstView,
 		bool testSkipFinal = false);
-	// rw3-W lever (2) W-a, the one-pass present: the same draw, 1:1 only (src extent = the image's), straight into a swapchain image
+	// The one-pass present: the same draw, 1:1 only (src extent = the image's), straight into a swapchain image
 	// the caller has moved to COLOR_ATTACHMENT_OPTIMAL (it is left there, written at COLOR_ATTACHMENT_OUTPUT). src ends in
 	// SHADER_READ_ONLY_OPTIMAL. testAverage (TEST plant, X-present-direct-average): an MSAA source is averaged as stored values,
 	// not in linear light. False when the pipeline for dstFormat cannot be made or the slot has no set: nothing is recorded.

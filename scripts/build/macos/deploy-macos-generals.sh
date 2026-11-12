@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # GeneralsX: Deploy macOS base-game build to runtime directory
 # Copies GeneralsX binary and required dylibs to ~/GeneralsX/Generals
 

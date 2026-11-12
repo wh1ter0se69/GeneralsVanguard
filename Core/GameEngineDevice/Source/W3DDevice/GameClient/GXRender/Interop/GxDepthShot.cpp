@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-X2 - see W3DDevice/GameClient/GxDepthShot.h.
+// WS-X2 - see W3DDevice/GameClient/GxDepthShot.h.
 //
 // One readback per screenshot, synchronous (a test switch): on the main thread with the d3d8 ring drained, RecordExternal hands
 // our recorder DXVK's execution command buffer with the bound depth/stencil surface in its default layout (the break path,
@@ -425,7 +425,7 @@ void GxDepthShot::Capture()
 		fprintf(stderr, "[GXDSHOT] n=%u readback buffer allocation failed\n", n);
 		return;
 	}
-	// GX_DSHOT_STENCIL_PROBE=1: the stencil readback's fail arm (render-integration, 11/10: the synthetic stencilref arm did not fire -
+	// GX_DSHOT_STENCIL_PROBE=1: the stencil readback's fail arm (the synthetic stencilref arm does not fire -
 	// later stencil users overwrite the test's marks before the end-of-frame readback). The SAME frame is read twice: as rendered
 	// (tag "_pre"), then after a known write to the very surface being read - stencil 0x5A over the top-left 64x64 (tag "_probe").
 	// PASS = stencil_fnv differs between the two and depth_fnv does not; one run, so lavapipe's run-to-run states cannot fake it.

@@ -123,23 +123,10 @@ inline WebBrowser *Win32GameEngine::createWebBrowser() { return NEW CComObject<W
 inline AudioManager *Win32GameEngine::createAudioManager(Bool dummy)
 {
 #if defined(SAGE_USE_OPENAL)
-	// GeneralsX: The OpenAL branch. This is what was missing: win64 had
-	// no path to any backend but Miles, so even a fully working OpenAL device could never be
-	// constructed and the build was silent by construction rather than by failure.
-	//
-	// KNOWN GAP, deliberately left visible rather than papered over: there is no OpenAL dummy
-	// manager, so `dummy` is currently ignored on this branch. A -headless Windows peer therefore
-	// builds a real OpenAL manager and relies on alcOpenDevice failing gracefully rather than on
-	// never being asked. That is acceptable for a rendered peer, which is the case this is being
-	// enabled for, and it is wrong for the headless harnesses. The correct fix is a
-	// backend-independent AudioManagerDummy under Core/GameEngineDevice/Include/ - NOT in
-	// Core/GameEngine/Include/Common/GameAudio.h, which IS digested. Note when writing it that
-	// getFileLengthMS must stay real: MilesAudioManager.h:342-343 records why - scripts read audio
-	// length and it feeds the CRC, so a dummy that returns 0 changes simulation state.
-	//
-	// Generals/Code/GameEngineDevice/Source/SDL3GameEngine.cpp already names an AudioManagerDummy
-	// class that does not exist anywhere in the tree; it compiles only because it sits inside a
-	// !_WIN32 block. That same new class fixes both.
+	// OpenAL branch. Known gap: there is no OpenAL dummy manager, so dummy is ignored here and a -headless peer builds a
+	// real OpenAL manager. A backend-independent AudioManagerDummy belongs under Core/GameEngineDevice/Include/, not in
+	// the digested GameAudio.h; its getFileLengthMS must stay real, because scripts read audio length and it feeds the
+	// CRC.
 	return NEW OpenALAudioManager;
 #else
 	if (dummy)

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: See GXHostCamera.h for what this is, why the host's value
+// See GXHostCamera.h for what this is, why the host's value
 // REPLACES rather than min()s the peer's, and why the scope is exactly two keys.
 
 // The engine binding at the bottom of this file is the ONLY part that needs the engine. Compiling
@@ -67,13 +67,13 @@ namespace
 	// print. Never set outside a match, so the shell and skirmish stay silent.
 	Bool s_announcePending = FALSE;
 
-	// The match-start line is printed at the edge, which can be BEFORE the local player exists (measured on the
-	// Mini: the line came ahead of the [GXSLOT] lines), so it may say observer=no for a seat that is one. These
-	// remember what it said so the first time an observer exemption applies AFTER a "no" the line is printed
-	// once more, truthfully. Reset with the match.
+	// The match-start line is printed at the edge, which can be BEFORE the local player exists (the
+	// line can come ahead of the [GXSLOT] lines), so it may say observer=no for a seat that is one. These
+	// remember what it said so the first time an exemption (observer, or a match with no second human) applies
+	// AFTER a line that showed none, the line is printed once more, truthfully. Reset with the match.
 	Bool s_announceMade         = FALSE;
-	Bool s_announcedObserver    = FALSE;
-	Bool s_observerReannounced  = FALSE;
+	Bool s_announcedExempt      = FALSE;
+	Bool s_exemptReannounced    = FALSE;
 
 	//-----------------------------------------------------------------------------------------------
 	/** GX_HOSTCAM=0 disables the override. Static latch + one announcing line, the same idiom as the
@@ -88,7 +88,7 @@ namespace
 		static Int s_gate = -1;
 		if( s_gate < 0 )
 		{
-			// GeneralsX: Only an instrumented build reads it: GX_HOSTCAM=0 turned the host's camera
+			// Only an instrumented build reads it: GX_HOSTCAM=0 turned the host's camera
 			// limits off in a live online match - the zoom hack this module exists to close (N4).
 #if defined(GX_TEST_INSTRUMENTS)
 			const char *v = getenv( "GX_HOSTCAM" );
@@ -141,8 +141,8 @@ namespace
 				s_announcePending = FALSE;
 			}
 			s_announceMade        = FALSE;
-			s_announcedObserver   = FALSE;
-			s_observerReannounced = FALSE;
+			s_announcedExempt     = FALSE;
+			s_exemptReannounced   = FALSE;
 			s_wasInMatch = FALSE;
 			return;
 		}
@@ -174,28 +174,28 @@ namespace
 	  * already happened to hold the host's value proves nothing, because the pass and the failure
 	  * look identical on screen. It prints the local pair, the host pair, and what actually won. */
 	//-----------------------------------------------------------------------------------------------
-	void announce( const Limits &local, const Limits &effective, Bool observer )
+	void announce( const Limits &local, const Limits &effective, Bool observer, Bool solo )
 	{
 		s_announceMade      = TRUE;
-		s_announcedObserver = observer;
+		s_announcedExempt   = observer || solo;
 		if( s_activeArmed )
 		{
 			fprintf( stderr,
-				"[GXHCAM] match start: gate=%s local={%.1f,%.1f} host={%.1f,%.1f} effective={%.1f,%.1f} observer=%s\n",
+				"[GXHCAM] match start: gate=%s local={%.1f,%.1f} host={%.1f,%.1f} effective={%.1f,%.1f} observer=%s solo=%s\n",
 				gateEnabled() ? "on" : "off",
 				local.minHeight, local.maxHeight,
 				s_active.minHeight, s_active.maxHeight,
 				effective.minHeight, effective.maxHeight,
-				observer ? "yes" : "no" );
+				observer ? "yes" : "no", solo ? "yes" : "no" );
 		}
 		else
 		{
 			fprintf( stderr,
-				"[GXHCAM] match start: gate=%s local={%.1f,%.1f} host=none effective={%.1f,%.1f} observer=%s\n",
+				"[GXHCAM] match start: gate=%s local={%.1f,%.1f} host=none effective={%.1f,%.1f} observer=%s solo=%s\n",
 				gateEnabled() ? "on" : "off",
 				local.minHeight, local.maxHeight,
 				effective.minHeight, effective.maxHeight,
-				observer ? "yes" : "no" );
+				observer ? "yes" : "no", solo ? "yes" : "no" );
 		}
 		fflush( stderr );
 	}
@@ -290,8 +290,8 @@ Bool getHostLimits( Limits *out )
 Bool isOverrideInForce( void )
 {
 	updateMatchState();
-	// An observer is exempt (effectiveLimits): the host's pair is not what his camera returns.
-	return gateEnabled() && s_activeArmed && s_wasInMatch && !isLocalPlayerObserving();
+	// An observer, or the one human in a match, is exempt (effectiveLimits): the host's pair is not what the camera returns.
+	return gateEnabled() && s_activeArmed && s_wasInMatch && !isLocalPlayerObserving() && !isSoloNetworkMatch();
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -320,17 +320,19 @@ Limits effectiveLimits( void )
 	{
 		effective = s_active;
 	}
-	// GeneralsX: An OBSERVER keeps his own local limits (Debug range, up to 10000 / down to
-	// 10) and the host's pair does not bind him. The clamp below and the host pair exist so no PLAYER sees more map
+	// An OBSERVER keeps his own local limits (Debug range, up to the whole map / down to
+	// 5) and the host's pair does not bind him. The clamp below and the host pair exist so no PLAYER sees more map
 	// than the others; an observer already sees all of it, so "zoom past 1000 does not work while observing"
 	// was a rule with nothing to protect. Both branches are skipped by the same predicate isOverrideInForce()
 	// carries, so the UI that greys on it and this value cannot disagree.
-	else if( gateEnabled() && s_wasInMatch && isLocalPlayerObserving() )
+	// GeneralsX @feature The one human in a multiplayer match with nobody else in it (isSoloNetworkMatch) keeps his own
+	// limits the same way: the clamp has nobody to protect.
+	else if( gateEnabled() && s_wasInMatch && ( isLocalPlayerObserving() || isSoloNetworkMatch() ) )
 	{
 		// effective stays == local
 	}
-	// GeneralsX: In a multiplayer match without a host pair, this machine plays by the same
-	// clamp its pair meets on the wire. The Debug menu reaches past the wire's range (up to 10000, down to 10:
+	// In a multiplayer match without a host pair, this machine plays by the same
+	// clamp its pair meets on the wire. The Debug menu reaches past the wire's range (up to the whole map, down to 5:
 	// View::DebugCamera*), and a host's pair is clamped by validate() on every peer, so the host alone would have
 	// seen more map than everybody else. Gate off keeps the pre-feature read, as above.
 	else if( gateEnabled() && s_wasInMatch )
@@ -342,15 +344,16 @@ Limits effectiveLimits( void )
 
 	// The seat is reported whatever the gate says: GX_HOSTCAM=0 is the negative control and must stay comparable.
 	const Bool observing = ( s_wasInMatch && isLocalPlayerObserving() );
+	const Bool solo = ( s_wasInMatch && isSoloNetworkMatch() );
 	if( s_announcePending )
 	{
 		s_announcePending = FALSE;
-		announce( local, effective, observing );
+		announce( local, effective, observing, solo );
 	}
-	else if( s_announceMade && !s_announcedObserver && observing && !s_observerReannounced )
+	else if( s_announceMade && !s_announcedExempt && ( observing || solo ) && !s_exemptReannounced )
 	{
-		s_observerReannounced = TRUE;
-		announce( local, effective, observing );
+		s_exemptReannounced = TRUE;
+		announce( local, effective, observing, solo );
 	}
 
 	return effective;
@@ -403,6 +406,40 @@ Bool isLocalPlayerObserving( void )
 	return ( p != NULL ) && p->isPlayerObserver();
 }
 
+Bool isSoloNetworkMatch( void )
+{
+	// gxCheatsAllowed walks every player and slot and the camera reads its limits many times a frame, so the answer is
+	// kept for the logic frame, and taken again when the player list or the local player changes (a match loading) or
+	// after any call outside a match (the Player objects are reused by the next match).
+	static Bool s_valid = FALSE;
+	static UnsignedInt s_frame = 0;
+	static Int s_count = -1;
+	static const Player *s_local = NULL;
+	static Bool s_solo = FALSE;
+	const Player *local = ( ThePlayerList != NULL ) ? ThePlayerList->getLocalPlayer() : NULL;
+	if( TheGameLogic == NULL || !TheGameLogic->isInMultiplayerGame() || local == NULL || local->getPlayerType() != PLAYER_HUMAN )
+	{
+		s_valid = FALSE;
+		return FALSE;
+	}
+	const UnsignedInt frame = TheGameLogic->getFrame();
+	const Int count = ThePlayerList->getPlayerCount();
+	if( !s_valid || frame != s_frame || count != s_count || local != s_local )
+	{
+		s_valid = TRUE;
+		s_frame = frame;
+		s_count = count;
+		s_local = local;
+		s_solo = GameLogic::gxCheatsAllowed();
+	}
+	return s_solo;
+}
+
 #endif  // GXHOSTCAM_NO_ENGINE
+
+Bool debugRangeAllowed( void )
+{
+	return !isInMultiplayerMatch() || isLocalPlayerObserving() || isSoloNetworkMatch();
+}
 
 }  // namespace GXHostCamera

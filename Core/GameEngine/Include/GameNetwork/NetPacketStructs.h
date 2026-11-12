@@ -86,32 +86,10 @@ inline size_t writeBytes(UnsignedByte *dest, const UnsignedByte* src, size_t len
 	return len;
 }
 
-// GeneralsX: THE IN-GAME CHAT WIRE CHARACTER IS 16 BITS ON EVERY PLATFORM.
-//
-// WideChar is `typedef wchar_t` (BaseType.h:36) with no platform guard, and wchar_t is 2 bytes on
-// MSVC and 4 bytes on clang/gcc. Every chat payload in this file used to be sized and copied as
-// `n * sizeof(WideChar)`, so a macOS/Linux/iPadOS peer emitted 4 bytes per character where a
-// Windows peer emitted 2, and NetPacket::readChatMessage consumed whichever its own compiler
-// believed. That is not merely mojibake:
-//
-//   NetPacket::getCommandList walks one shared cursor `i` through m_packet and every reader
-//   advances it (NetPacket.cpp:566-737). A chat command whose payload is 2n bytes on the wire but
-//   consumed as 4n leaves the cursor 2n bytes past the next command's type byte, so EVERY command
-//   packed behind the chat line in that datagram is decoded from the wrong offset - including
-//   NETCOMMANDTYPE_GAMECOMMAND, which is the lockstep-critical one. Chat is not a synchronised
-//   command (NetworkUtil.cpp IsCommandSynchronized) and cannot desync the simulation by itself,
-//   but corrupting the game commands sitting behind it in the same packet certainly can.
-//
-// The LAN lobby already hit this and fixed it the same way, with `typedef uint16_t
-// WideCharWindows` (LANAPI.h:231-234). The game packet path was simply never given the same
-// treatment. Sixteen bits is also the retail-compatible choice: it is what the Windows build has
-// always put on the wire, so this makes the three SDL3 platforms conform to Windows rather than
-// inventing a third format, and it halves the bytes a chat line costs inside a 476-byte packet.
-// GeneralsX: One definition, not two. This was its own `typedef uint16_t`
-// until the identical split was found on the GAME COMMAND path (NetPacketGameCommandData, which
-// carries MSG_SET_BEACON_TEXT's per-character WIDECHAR arguments) and in the .rep body. Aliasing
-// GXWireChar rather than restating uint16_t means there is a single answer to "how wide is a wide
-// character on the wire", which is the property that was missing when this file was fixed alone.
+// The in-game chat wire character is 16 bits on every platform, aliasing GXWireChar so there is one answer to how wide
+// a wide character is on the wire. wchar_t is 2 bytes on MSVC and 4 on clang/gcc; sizing chat as n * sizeof(WideChar)
+// misaligned the shared cursor in NetPacket::getCommandList, so every command packed behind a chat line, including
+// lockstep GAMECOMMANDs, was decoded from the wrong offset. 16 bits is the retail Windows format.
 typedef GXWireChar NetWireChar;
 
 /// Write `maxLen` code units of `value` as 16-bit units. Anything outside the BMP becomes '?' so
@@ -552,23 +530,9 @@ struct NetPacketDestroyPlayerCommandBase
 ////////////////////////////////////////////////////////////////////////////////
 // NetPacketLatencyReportCommand
 //
-// GeneralsX: The packet router's whole latency row in one fixed-size
-// payload: MAX_SLOTS round trips as UnsignedShort MILLISECONDS, indexed by slot.
-//
-// Milliseconds rather than the Real seconds the engine measures in, for three reasons that all
-// point the same way: it halves the payload (2 bytes per slot instead of 4), it is the unit the
-// readout actually prints so no peer can disagree about the conversion, and an integer has no
-// NaN/Inf to smuggle in from a hostile peer - the whole 16-bit range is a legal, bounded number.
-// 65535 ms is ~65 s, far past any link a lockstep match survives, so the range costs nothing.
-//
-// Slot-indexed and FIXED SIZE rather than a packed list of (slot, ms) pairs: the reader then has
-// no count field to trust, which is one fewer thing an attacker controls, and 12 * 2 = 24 bytes
-// sits nowhere near MAX_PACKET_SIZE (476, RETAIL_COMPATIBLE_NETWORKING being live).
-//
-// Modelled on KeepAlive rather than RunAheadMetrics: no frame, no command id, no ack. This is a
-// periodic display broadcast and losing one costs a single stale refresh interval, which the
-// staleness window already handles. Making it acked would put a purely cosmetic message into the
-// retransmit and pending-command machinery for no benefit.
+// The packet router's latency row in one fixed-size payload: MAX_SLOTS round trips as UnsignedShort milliseconds,
+// indexed by slot. Milliseconds halve the payload and cannot carry NaN or Inf; fixed size leaves no count to trust.
+// Like KeepAlive: no frame, no command id, no ack. A lost report costs one stale refresh interval.
 ////////////////////////////////////////////////////////////////////////////////
 
 struct NetPacketLatencyReportCommandData
@@ -607,13 +571,9 @@ struct NetPacketLatencyReportCommandBase
 	static size_t copyBytes(UnsignedByte *buffer, const NetCommandRef &ref);
 };
 
-// The packet budget, ENFORCED rather than asserted in prose. MAX_PACKET_SIZE is 476 under
-// RETAIL_COMPATIBLE_NETWORKING and 1069 without it (GameDefines.h defaults it to 0 since 01/10/2026),
-// and NetPacket::addCommand silently REFUSES a command that does not fit - the message would then
-// never be sent, in both directions, and the symptom is an unreachable-looking peer rather than a
-// size error. At MAX_SLOTS 12 this payload is 24 bytes, so the check has enormous headroom today;
-// it exists so that raising MAX_SLOTS fails the build here instead of quietly disabling the
-// scoreboard at some future slot count.
+// The packet budget, enforced at build time. MAX_PACKET_SIZE is 476 under RETAIL_COMPATIBLE_NETWORKING and 1069
+// without it, and NetPacket::addCommand silently refuses a command that does not fit, so the report would never be
+// sent. Raising MAX_SLOTS fails the build here instead of quietly disabling the scoreboard.
 static_assert(sizeof(NetPacketLatencyReportCommandData::FixedData)
                   + sizeof(NetPacketLatencyReportCommandBase::CommandBase) <= (size_t)MAX_PACKET_SIZE,
               "latency report must fit one packet; NetPacket::addCommand drops it silently otherwise");

@@ -568,19 +568,9 @@ Bool GameInfo::amIHost() const
 
 /// Set the lobby's display name, sanitised for the announce.
 ///
-/// GeneralsX: SANITISED HERE, ONCE, rather than encoded. The announce is
-/// a byte-oriented "KEY=value;" list split with strtok_r on ';' and then on '=', and the slot list
-/// nested inside it splits on ',' and ':'. A name carrying any of those would not corrupt one
-/// field, it would shift every field after it - and ParseAsciiStringToGameInfo abandons the WHOLE
-/// options string the moment it sees an empty value, so the failure mode is the entire lobby
-/// vanishing from every browser, not a mangled title.
-///
-/// Stripping rather than percent-encoding keeps this symmetric with how player names are handled
-/// (GXApplyNickname removes the same delimiters) and means no decoder has to exist on the read
-/// side - which is one fewer thing that can disagree between two builds.
-///
-/// Non-ASCII is dropped for the same reason GXApplyNickname refuses it: every consumer below is
-/// byte-oriented, and AsciiString::translate would narrow a WideChar to a single char anyway.
+/// Sanitised once, here. The announce is a byte-oriented KEY=value; list split on ; = , and :, so a name carrying
+/// any of them would shift every later field, and ParseAsciiStringToGameInfo abandons the whole options string on an
+/// empty value. Non-ASCII is dropped: every consumer is byte-oriented.
 void GameInfo::setLobbyName( AsciiString name )
 {
 	m_lobbyName.clear();
@@ -628,19 +618,10 @@ void GameInfo::setMap( AsciiString mapName )
 		const MapMetaData *mapData = TheMapCache->findMap( mapName );
 		if (mapData)
 		{
-			// GeneralsX @note /08/2026 DELIBERATELY NOT TRANSLATED HERE, and the reason is
-			// worth keeping: translating the identity to its real on-disk path makes these probes
-			// succeed on iOS, so the host advertises that it HAS the preview, map.ini and map.str -
-			// but DoAnyMapTransfers (FileTransfer.cpp:395-407) still opens game->getMap(), the
-			// lowercased identity, and ConnectionManager::sendFile passes that same string to BOTH
-			// the local open and the wire. So the host would announce sidecars it then fails to
-			// send, which is strictly worse than today's consistent "I do not have them": peers
-			// currently do not ask.
-			//
-			// Fixing it properly means separating the local source path from the portable wire name
-			// through the whole transfer layer. That changes what peers compare, which is an
-			// all-peers-at-once contract change - the same reason INIMapCache refuses to re-key the
-			// cache - and is not a local repair. Tracked rather than half-done.
+			// Deliberately NOT translated here. Translating the identity to its real on-disk path would make these probes
+			// succeed on iOS, so the host would advertise the preview, map.ini and map.str, but DoAnyMapTransfers
+			// (FileTransfer.cpp) and ConnectionManager::sendFile still open the lowercased identity and would fail to send them.
+			// A proper fix separates the local source path from the portable wire name, an all-peers-at-once contract change.
 			m_mapMask = 1;
 			AsciiString path = mapName;
 			path.truncateBy(3);
@@ -648,12 +629,9 @@ void GameInfo::setMap( AsciiString mapName )
 			if (gxSendableFile(path))
 				m_mapMask |= 2;
 
-			// GeneralsX: This was a hand-rolled token walk that rebuilt the
-			// map's directory - and nextToken skips leading separators, so an absolute POSIX path
-			// lost its leading '/' and the probe opened a RELATIVE path against the CWD. Measured
-			// live 2026-08-10: a host with map.ini on disk advertised contentsMask without bit 4,
-			// so the sidecar was never offered for transfer. GetINIFromMap builds exactly the path
-			// this walk was trying to build, with the separator handling fixed in one place.
+			// GetINIFromMap builds the sidecar path with the separator handling in one place. A hand-rolled token walk
+			// lost the leading / of an absolute POSIX path (nextToken skips leading separators), so the probe opened a
+			// relative path and the sidecar was never offered for transfer.
 			if (gxSendableFile(GetINIFromMap(m_mapName)))
 				m_mapMask |= 4;
 			if (gxSendableFile(GetStrFileFromMap(m_mapName)))
@@ -1101,10 +1079,9 @@ Bool GameInfo::isSandbox()
 	return TRUE;
 }
 
-// GeneralsX: The start rule (GameInfo.h). Retail's setup screens refused a lobby
-// with no human player (GUI:NeedHumanPlayers) and called fewer than two sides "sandbox mode"; the owner's
-// rule (27/09/2026) lets an all-AI lobby start as a sandbox too. The slots counted are the lobby menus' own -
-// occupied and not observing - and a side is one team, or one player on no team.
+// The start rule (GameInfo.h). Retail setup screens refused a lobby with no human player (GUI:NeedHumanPlayers) and
+// called fewer than two sides sandbox mode; an all-AI lobby may start as a sandbox too. The slots counted are the lobby
+// menus own: occupied and not observing. A side is one team, or one player on no team.
 GameInfo::StartVerdict GameInfo::getStartVerdict() const
 {
 	Int players = 0;
@@ -1242,18 +1219,10 @@ static AsciiString buildGameInfoAsciiString(const GameInfo& game, const AsciiStr
 		game.getStartingCash().countMoney(), game.oldFactionsOnly() ? 'Y' : 'N' );
 #endif
 
-	// GeneralsX: The writer's /24 network prefix, written ONCE and
-	// amortized across every shorthand slot IP below. The reader reconstructs ".N" against THIS
-	// value - never against its own subnet, which it has no reason to share with the writer's
-	// (a joiner on 192.168.2.x hearing a host on 192.168.1.x must not invent 192.168.2.7).
-	// Absent when the writer has no local IP; the parser refuses shorthand without it.
-	// GeneralsX: The lobby's display name, written ONLY when it has one.
-	//
-	// Omitted rather than emitted empty, and that is not a style choice: the reader treats an empty
-	// value as a malformed options string and abandons the entire announce
-	// (ParseAsciiStringToGameInfo, "saw empty value, quitting"), so "LN=;" would delete the lobby
-	// from every browser. setLobbyName has already stripped the delimiters and capped the length,
-	// so whatever is here is safe to concatenate raw.
+	// The writer /24 network prefix, written ONCE and amortized across every shorthand slot IP below. The reader
+	// reconstructs .N against THIS value, never its own subnet. Absent when the writer has no local IP.
+	// The lobby display name, written only when it has one: an empty value makes the reader abandon the whole announce
+	// (ParseAsciiStringToGameInfo). setLobbyName already stripped delimiters and capped the length.
 	if (!game.getLobbyName().isEmpty())
 	{
 		AsciiString lnField;
@@ -1342,26 +1311,11 @@ static AsciiString buildGameInfoAsciiString(const GameInfo& game, const AsciiStr
 		AsciiString str;
 		if (slot && slot->isHuman())
 		{
-			// GeneralsX: Compact slot encoding for 12 humans. Measured
-			// (scripts/test/announce/): the legacy fixed fields overflow the 400-byte budget at
-			// NINE humans with names truncated to nothing, so no name policy can close it. The
-			// two compressible fields:
-			//   IP    - when the slot shares the local peer's /24 (always true through the relay,
-			//           which assigns 10.42.0.1-12 in one subnet; true on typical LANs) it is
-			//           written as ".<lastOctet>" (2-3 chars) instead of up-to-8 hex chars. The
-			//           leading dot disambiguates from bare-hex; cross-subnet LANs keep full hex.
-			//   port  - written as "." when it equals NETWORK_BASE_PORT_NUMBER (a bare dot, NOT
-			//           an empty field: strtok_r collapses consecutive delimiters, so ",," would
-			//           silently shift every later field by one).
-			// The parser accepts both compact and legacy forms; legacy replays stay readable.
-			//
-			// GeneralsX: In a replay FILE the IP is a placeholder: slot index + 1 in plain hex, 0 staying 0
-			// (a skirmish human has no address). Playback needs no real value: the local slot is the header's own index
-			// (ReplayGameInfo::getLocalSlotNum), GameLogic's by-IP test is commented out, and gxKickShowLine returns early in
-			// playback. Measured: a replay with two humans' placeholders forged equal plays the same slot and the same CRC. Nonzero
-			// and unique all the same, so the fields keep meaning what they meant to anything that reads a slot's IP (parse-replay.py
-			// is_multiplayer). The port is always the bare dot and the NAT type the default, whatever the slot had. Every reader
-			// since the compact form parses these.
+			// Compact slot encoding (legacy fields overflow the 400-byte budget at nine humans):
+			//   IP   - on the local /24: .<lastOctet>, the leading dot tells it from bare hex.
+			//   port - a bare . when it equals NETWORK_BASE_PORT_NUMBER, NOT an empty field: strtok_r
+			//          collapses consecutive delimiters and would shift later fields. Replay FILE IP: slot index + 1.
+			// The parser accepts both compact and legacy forms.
 			AsciiString ipField;
 			if (forReplayFile)
 				ipField.format("%X", slot->getIP() != 0 ? (UnsignedInt)(i + 1) : 0u);
@@ -1388,13 +1342,8 @@ static AsciiString buildGameInfoAsciiString(const GameInfo& game, const AsciiStr
 				slot->getColor(), slot->getPlayerTemplate(),
 				slot->getStartPos(), slot->getTeamNumber(),
 				forReplayFile ? FirewallHelperClass::FIREWALL_TYPE_SIMPLE : slot->getNATBehavior() );
-			// GeneralsX: The per-slot truncate-and-repair block that
-			// stood here (the 12/08/2026 negative-lenMax clamp and the trailing continuation-byte
-			// strip) is gone. TheSuperHackers #3039 computes every name's length up front instead,
-			// so this loop never cuts a name at all and the repair has nothing to repair. The
-			// clamp's hang is impossible by construction now, and the strip's own defect - it ran
-			// unconditionally, so a name ending in a multi-byte character lost it even when
-			// nothing was truncated - goes with it.
+			// TheSuperHackers #3039 computes every name length up front, so this loop never cuts a name and
+			// needs no truncate-and-repair block.
 			str.format( "H%s%s", playerNames[i].str(), tmp.str() );
 		}
 		else if (slot && slot->isAI())
@@ -1451,32 +1400,8 @@ AsciiString GameInfoToAsciiString( const GameInfo *game, Int maxLength, Bool for
 
 	// TheSuperHackers @bugfix bobtista 23/08/2026 Prevent an infinite loop when player names exceed
 	// the LAN options limit by rebuilding the payload with bounded UTF-8 names.
-	// GeneralsX: Size against what an ANNOUNCE actually carries (366),
-	// not against the buffer it is copied into (m_lanMaxOptionsLength, 692). The derivation is
-	// beside g_lanAnnounceOptionsRoom in LANAPI.h. wireSize() stops sending partway through
-	// GameInfo.options for every message type except MSG_GAME_OPTIONS, so a string that passed a
-	// 692-byte fit check was cut off mid-field, arrived unterminated, failed
-	// ParseGameOptionsString, and the lobby silently never appeared in anyone's game list.
-	//
-	// The same string also feeds MSG_GAME_OPTIONS, which could carry more - but a lobby nobody can
-	// discover is worthless, so the announce is the binding constraint. The rebalancing retry
-	// below now targets it, which is what makes this a narrowing rather than a new refusal:
-	// strings in 367..692 that used to be accepted-and-silently-truncated now get their player
-	// names rebalanced to fit, and only fail loudly if even that cannot.
-	// GeneralsX: Size against the longest STRING the room carries (365),
-	// not the room itself (366): the terminator has to fit inside the bytes wireSize() sends.
-	// A 366-byte string passed here and arrived unterminated. Every string of 365 bytes or
-	// fewer takes exactly the path it always did, so its announce is byte-identical.
-	// GeneralsX: Size against the 692-byte buffer (m_lanMaxOptionsLength),
-	// because a long announce is now sent at its own length (LANAPI.h LANMessageWireSize) instead of
-	// being cut at the legacy extent. The 365-byte room above was the reason a twelve-human lobby
-	// returned the empty string here: its fixed per-slot fields alone overflow 365, so no name
-	// truncation could rescue it, and the empty string reached MSG_GAME_OPTIONS too. A lobby whose
-	// untruncated string is 365 bytes or fewer takes exactly the path it always did and still
-	// announces at the legacy extent, byte for byte. One of 366..692 bytes that the old gate rescued
-	// by cutting its names now keeps them and goes out at its own length.
-	// A positive maxLength is a string that is never announced - the replay header, GX_REPLAY_OPTIONS_MAX,
-	// the only one that carries the admin field (GameInfo.h).
+	// Size against what a long announce carries (LANAPI.h LANMessageWireSize), within m_lanMaxOptionsLength.
+	// A positive maxLength is never announced: the replay header, GX_REPLAY_OPTIONS_MAX.
 	const Int optionsRoom = (maxLength > 0) ? maxLength : m_lanMaxOptionsLength;
 
 	AsciiString optionsString = buildGameInfoAsciiString(*game, playerNames, maxLength > 0, forReplayFile);
@@ -1494,12 +1419,8 @@ AsciiString GameInfoToAsciiString( const GameInfo *game, Int maxLength, Bool for
 
 	if (!optionsFit)
 	{
-		// GeneralsX: kept 21/09/2026 Release-visible overflow trace.
-		// Upstream's DEBUG_CRASH here is invisible in a release build, and this is the failure the
-		// twelve-human lobby has to be able to see. It now fires only after the rebalancing retry
-		// has also failed, so a lobby upstream's truncatePlayerNames rescues no longer prints it.
-		// GeneralsX: Name the stress field when it is part of the overflow,
-		// or a stress lobby that stops announcing reads as a plain slot-count problem.
+		// Release-visible overflow trace; upstream DEBUG_CRASH is invisible in a release build. It fires only after the
+		// rebalancing retry has also failed. Names the stress field when it counts toward the overflow.
 		fprintf(stderr, "[GXCAP] GameInfoToAsciiString overflow: %d of %d bytes - too many human slots for the lobby options string%s; this lobby will not announce correctly\n",
 			optionsString.getLength(), optionsRoom,
 			gxStressIsOn(game->getGxStress()) ? " (its stress ST= field counts toward it)" : "");
@@ -1754,9 +1675,9 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
     else if (key.compare("SC") == 0 )
     {
       UnsignedInt startingCashAmount = strtoul( val.str(), nullptr, 10 );
-      // GeneralsX: Set, not deposit: Money::deposit records income on player 0's AcademyStats
-      // whatever its flags, so parsing any peer's lobby announce - even one LANAPI then refuses - wrote game state.
-      // init() + deposit(amount, FALSE, FALSE) and setStartingCash(amount) leave the same Money (net-hardening r6).
+      // Set, not deposit: Money::deposit records income on player 0's AcademyStats whatever its flags, so parsing
+      // any peer's lobby announce, even one LANAPI then refuses, wrote game state. init() + deposit(amount, FALSE,
+      // FALSE) and setStartingCash(amount) leave the same Money.
       startingCash.setStartingCash( startingCashAmount );
       sawStartingCash = TRUE;
     }
@@ -1890,18 +1811,10 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 							}
 							UnicodeString name;
               				name.set(MultiByteToWideCharSingleLine(slotValue.str() +1).c_str());
-							// GeneralsX: Bound the name HERE, where a
-							// received announce turns into a slot. Memory-safe already (UnicodeString
-							// allocates), but an announce can carry a ~380-character name that is then
-							// rendered in the lobby list.
-							//
-							// INVARIANT, and read it before adding any new name path: a name reaching a
-							// slot or the player list is bounded only if it EITHER comes through this
-							// parser (this clamp) OR arrives in a fixed-size wire field read through the
-							// field-size-deducing template in LANAPI.h. A display name arriving on its
-							// own message type and calling setName directly satisfies NEITHER and this
-							// clamp will not see it - a GXIDN-style identity name is exactly that shape.
-							// The question for any new path is that one, not a general re-audit.
+							// Bound the name HERE, where a received announce turns into a slot.
+							// INVARIANT: a name reaching a slot or the player list is bounded only if it comes through this
+							// parser or arrives in a fixed-size wire field read through the template in LANAPI.h. A name on
+							// its own message type that calls setName directly satisfies neither.
 							name.truncateTo(g_lanPlayerNameLength);
 
 							//DEBUG_LOG(("ParseAsciiStringToGameInfo - name is %s", slotValue.str()+1));
@@ -2387,16 +2300,10 @@ void SkirmishGameInfo::xfer( Xfer *xfer )
 	xfer->xferBool(&m_surrendered);
 	xfer->xferInt(&m_gameID);
 
-	// GeneralsX: A save records how many slots it holds, and a load reads EXACTLY that
-	// many. The old loop always read MAX_SLOTS records, so every raise of MAX_SLOTS (8 -> 12, then 12 -> 14 for
-	// 12 players + 2 observers) made an older save read the fields that follow its slots as more slots - no slot
-	// came out local, and MultiPlayerLoadScreen::init dereferenced getSlot(-1): SIGSEGV. A record past this build's
-	// MAX_SLOTS is read into a scratch slot and dropped; a slot the save does not hold stays closed. Saving always
-	// writes MAX_SLOTS, so a save written by this build is unchanged.
-	// GeneralsX: (merge of the 25/09 save gate) A count no build has written is not a
-	// slot table: refused before anything reads it, with no assert ahead of the recovery, so a debug build takes
-	// the same path; the caller is inside GameState::loadGame's catch. A save whose local slot this build drops
-	// is stopped by MultiPlayerLoadScreen's own local-slot guard.
+	// A save records how many slots it holds and a load reads exactly that many; reading MAX_SLOTS records made an
+	// older save read later fields as slots and MultiPlayerLoadScreen::init dereferenced getSlot(-1).
+	// A record past this build MAX_SLOTS is read into a scratch slot and dropped; a missing slot stays closed.
+	// A count no build has written is refused before anything reads it. Saving writes MAX_SLOTS.
 	Int savedSlots = MAX_SLOTS;
 	xfer->xferInt(&savedSlots);
 	if (savedSlots < 0 || savedSlots > 64)

@@ -1,4 +1,22 @@
-// GeneralsX: Synthetic custom programs: d3d8 shader "bytecode" that no game file ships,
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Synthetic custom programs: d3d8 shader "bytecode" that no game file ships,
 // created by the game's own code and matched by the custom catalogue like any file shader (by every token + the declaration,
 // GxCustomCatalog.h). Each blob is a version token, one comment block carrying a fixed tag, and the end token; it is never
 // executed as d3d8 bytecode - the native device draws it with the GLSL port named beside it. The classic path never creates these.
@@ -11,7 +29,7 @@
 
 namespace GXRender {
 
-// --- render-motion-units-1 bridge: object velocity -------------------------
+// --- the motion-units bridge: object velocity -------------------------
 // gx:vel-rigid  vs  -> gx_cs_vel.vert           v0 = position (FLOAT3)
 // gx:vel-skin   vs  -> gx_cs_vel.vert -DGX_VEL_SKIN   v0 = current position, v1 = previous position (FLOAT3 each, world space)
 // gx:vel-ps     ps  -> gx_cs_vel.frag (GxCsPsVelocity, its own module): (prevPx - curPx, 0, 1)
@@ -27,7 +45,7 @@ static const uint32_t gxVelRigidDecl[] = { 0x20000000, 0x40020000, 0xffffffff };
 static const uint32_t gxVelSkinDecl[] = { 0x20000000, 0x40020000, 0x40020001, 0xffffffff };
 enum : uint32_t { GX_VEL_CONSTANTS = 14 };   // c0..c13
 
-// Object-velocity image O: R16G16B16A16_SFLOAT, .xy = velocity (current -> previous, render pixels), .a = written (render-motion-1
+// Object-velocity image O: R16G16B16A16_SFLOAT, .xy = velocity (current -> previous, render pixels), .a = written (the motion resolve
 // reads O.xy where O.a > 0.5). A GXRES-private FOURCC like GX_BC7 (Res/GxD3D.h): 'GXRA'.
 enum : uint32_t { GX_FOURCC_RGBA16F = 0x41525847 };
 

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G: the DRAW-TIME half of (E2, E4) and the effective-state id of §1.4,
+// The DRAW-TIME half of (E2, E4) and the effective-state id of §1.4,
 // judged from a draw's device-truth snapshot (DX8Wrapper::GxTruth*, captured at the task's own draw by GxScene.cpp). Engine-free so
 // scripts/test/l2-exec-test.cpp can plant a defect in each rule (GX_L2X_MUTANT=n) and see it caught. The D3D8 numbers are the
 // d3d8types.h ABI; GxScene.cpp static_asserts them against the real enums.
@@ -88,7 +88,7 @@ inline gxl2::ShaderDesc e4Decode(const unsigned rs[256], uint32_t shaderBits)
 	d.zEnable = rs[RS_ZENABLE] != 0;
 	d.depthWrite = rs[RS_ZWRITEENABLE] != 0;
 	d.depthCmpLess = rs[RS_ZFUNC] == CMP_LESS || rs[RS_ZFUNC] == CMP_LESSEQUAL;
-	// CONTRACT_L2 r9: red, green and blue written (RGB or RGBA); the mask itself goes into the key (BinKey::colorMask)
+	// red, green and blue written (RGB or RGBA); the mask itself goes into the key (BinKey::colorMask)
 #if GX_L2X_MUTANT == 3
 	d.colorWrite = (rs[RS_COLORWRITEENABLE] & 0x3u) == 0x3u;
 #else

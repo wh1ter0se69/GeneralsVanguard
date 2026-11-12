@@ -33,14 +33,9 @@
 namespace
 {
 
-// GeneralsX: One clock, read one way, for the whole file.
-//
-// The constructor, wait() and reset() each used to read the clock themselves, and reset() got it
-// wrong: it called QueryPerformanceCounter with no #ifdef, and off Windows that is the CompatLib
-// shim (CompatLib/Include/time_compat.h), which reports 100-NANOSECOND units while the POSIX
-// constructor sets m_freq = 1000000000 and stores NANOSECONDS. m_start landed ~100x too small, so
-// the next wait() measured an elapsed of roughly the machine's whole uptime and did not pace that
-// frame at all. Three readers meant three chances to disagree; there is now one.
+// One clock, read one way, for the whole file. Off Windows QueryPerformanceCounter is the CompatLib shim, which reports
+// 100-nanosecond units while the POSIX constructor stores nanoseconds (m_freq = 1000000000); mixing them made the next
+// wait() see a huge elapsed time and skip pacing.
 Int64 nowTicks()
 {
 #ifdef _WIN32
@@ -85,21 +80,10 @@ HANDLE createFrameTimer()
 }
 #endif
 
-// GeneralsX: Sleep until an absolute deadline, and do NOT busy-wait.
-//
-// What this replaces: sleep to 2 ms short of the target, then spin on the clock until the target
-// arrives. That guard band is an ABSOLUTE 2 ms against a target that is not - at the 8x network
-// floor the target is 1/480 = 2.083 ms, so sleepSeconds was negative on essentially every frame
-// and the limiter degenerated into a pure busy-wait. measured
-// exactly that: at a 480 cap, nanosleep 0.00% of the main thread and the clock_gettime spin
-// 33.46%; at a 60 cap the spin still cost 0.69 ms of every 16.67 ms frame, 19% on top of all the
-// CPU the game actually uses. On a weak CPU that is a core-slice spent watching a clock, and it
-// competes with the pathfinder for it.
-//
-// Every platform here has a kernel primitive that wakes a thread at a deadline, which is what the
-// spin was emulating in userspace. None of them was being used. There is deliberately no spin tail
-// on any arm - a guard band small enough not to cost CPU is also too small to correct anything,
-// and the deadline grid in wait() already absorbs the wake-up error by shortening the next frame.
+// Sleep until an absolute deadline, and do NOT busy-wait.
+// A fixed 2 ms guard band against a target that can be shorter (1/480 s = 2.083 ms) made sleepSeconds negative on most
+// frames and turned the limiter into a spin. Every platform has a kernel primitive that wakes a thread at a deadline.
+// There is no spin tail: the deadline grid in wait() absorbs wake-up error by shortening the next frame.
 void sleepUntilTick(Int64 deadlineTicks, Int64 freq)
 {
 	const Int64 remaining = deadlineTicks - nowTicks();
@@ -152,14 +136,10 @@ void sleepUntilTick(Int64 deadlineTicks, Int64 freq)
 		const uint64_t machTicks = static_cast<uint64_t>(remaining) * s_timebase.denom / s_timebase.numer;
 		const uint64_t machDeadline = mach_absolute_time() + machTicks;
 
-		// GeneralsX: mach_wait_until is a NORMAL-urgency kernel timer, and XNU coalesces those:
-		// it fires anywhere in a leeway window that grows with the wait (~a quarter of it), even on a user-interactive
-		// thread. Measured on M-series Macs at a 60 cap: woke 2.3-3.7 ms late at the median, up to ~7 ms, differently
-		// every frame, so the grid turned each late wake into a long + short frame pair - p99 ~22 ms and ~10% of frames
-		// over 20 ms, in full G3 games on the Mini with both renderers (the "worst frame every second" was the max of
-		// that spread per 1-s window). NOTE_CRITICAL asks the kernel for no coalescing on THIS timer only: ~0.02 ms
-		// late at the median. No spin, no thread priority change. Falls back to mach_wait_until if the timer cannot be
-		// armed. scripts/test/frame-limit-wake-test.sh pins it.
+		// mach_wait_until is a normal-urgency kernel timer, and XNU coalesces those: it fires anywhere in a leeway window
+		// (about a quarter of the wait), so wakes were 2.3-3.7 ms late at the median, up to ~7 ms, and the deadline grid
+		// turned each into a long + short frame pair. NOTE_CRITICAL asks for no coalescing on this timer only (~0.02 ms late).
+		// Falls back to mach_wait_until if the timer cannot be armed. scripts/test/frame-limit-wake-test.sh pins it.
 		static const int s_kq = kqueue();
 		if (s_kq >= 0)
 		{
@@ -295,27 +275,10 @@ Real FrameRateLimit::wait(UnsignedInt maxFps, UnsignedInt pollFps, Bool (*poll)(
 	return static_cast<Real>(elapsedSeconds);
 }
 
-// GeneralsX: This read the clock through a raw QueryPerformanceCounter
-// with no #ifdef _WIN32. Off Windows that is the CompatLib shim, which reports 100-NANOSECOND
-// units (CompatLib/Include/time_compat.h) while the POSIX constructor sets m_freq = 1000000000 and
-// stores NANOSECONDS. Measured on an Apple Silicon machine: m_start landed exactly 100.00x too
-// small, so the next wait() computed an elapsed of 513548 SECONDS - roughly the uptime.
-//
-// Consequences, and only these two - the third one is a claim that does not survive the code:
-//   * that frame is not paced. sleepSeconds is hugely negative and the spin exits on its first
-//     test, whatever the cap.
-//   * wait() RETURNS 513548 s into FramePacer::m_updateTime, so for one frame every
-//     getUpdateTime()/getUpdateFps() consumer reads garbage. getBaseOverUpdateFpsRatio() floors
-//     the fps at 5 so the window transition merely runs ~6x fast for that frame; Intro.cpp:342,350
-//     and ControlBar.cpp:1706 do not clamp at all.
-//   * NOT m_totalHoldNs. entrySeconds is captured AFTER the bogus elapsed, so the bogus part
-//     cancels in (elapsedSeconds - entrySeconds) and the accumulator is unharmed - confirmed in a
-//     live base-binary run, where hold_ms never exceeded 914 of a 1000 ms window.
-//
-// Its only caller is FramePacer::reset(), immediately before the FadeWholeScreen loop in
-// GameLogic::startNewGame() - i.e. ONE frame per match start on macOS, iOS and Linux, in the loop
-// that upstream #2889 added reset() to fix in the first place. It is NOT the undershoot: it cannot
-// recur between resets and does not explain a sustained 405 against a 480 cap.
+// Reads the clock through nowTicks(). A raw QueryPerformanceCounter off Windows is the CompatLib shim (100 ns
+// units, CompatLib/Include/time_compat.h) against the POSIX nanosecond m_freq, so m_start was 100x too small and
+// the next wait() returned a bogus elapsed for one frame. Its only caller is FramePacer::reset(), before the
+// FadeWholeScreen loop in startNewGame().
 void FrameRateLimit::reset()
 {
 	m_start = nowTicks();
@@ -323,12 +286,9 @@ void FrameRateLimit::reset()
 }
 
 
-// GeneralsX: Nothing below the tick rate at GX_LOGIC_60HZ. The engine advances
-// AT MOST ONE logic frame per main-loop iteration, so a render cap under the tick rate would also cap
-// the LOGIC; FramePacer::getActualFramesPerSecondLimit therefore lifts any cap under it to it, in every
-// game, and 30, 50 and 56 were steps that changed nothing. At 30 Hz logic the ladder keeps them: 30 is
-// the tick rate there. (This closes the 05/08/2026 TODO that stood here: "filter s_fpsValues below
-// LOGICFRAMES_PER_SECOND before GX_LOGIC_60HZ is offered to players".)
+// Nothing below the tick rate at GX_LOGIC_60HZ. The engine advances at most one logic frame per main-loop iteration, so a
+// render cap under the tick rate would also cap the logic; FramePacer::getActualFramesPerSecondLimit lifts any cap
+// under it to it, in every game. At 30 Hz logic the ladder keeps 30, 50 and 56.
 const UnsignedInt RenderFpsPreset::s_fpsValues[] = {
 #if !GX_LOGIC_60HZ
 	30, 50, 56,

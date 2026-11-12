@@ -87,9 +87,9 @@
 // upstream's loader is Core/GameEngine/Source/Common/System/BIGFileSystem.cpp, which the fork does not build - the same
 // directory reader lives here and in its twin (StdBIGFileSystem.cpp / Win32BIGFileSystem.cpp), so the two stay mirrored.
 // The header and every directory entry are read whole and the read is checked; the counts are unsigned (a count with the
-// top bit set used to read as negative and mount an EMPTY archive); a short header, a directory that runs past the end of
+// top bit set would read as negative and mount an EMPTY archive); a short header, a directory that runs past the end of
 // the file or a path with no terminator inside the buffer rejects the whole archive. In an anonymous namespace because
-// Windows compiles both twins into one library. A well-formed archive reads the same bytes in the same order as before.
+// Windows compiles both twins into one library.
 namespace {
 
 const char BIGFileIdentifier[] = { 'B', 'I', 'G', 'F' };
@@ -653,28 +653,9 @@ static Bool loadPrimaryGameAssets(TBigFileSystem* fileSystem, AsciiString* loade
 
 #if RTS_ZEROHOUR
 // GeneralsX @bugfix wh1ter0se 12/08/2026 THE SIBLING GUESS ONLY EVER MATCHED ONE LAYOUT.
-//
-// Zero Hour draws most of its WORLD art from the BASE Generals archives - Textures.big, W3D.big,
-// Terrain.big. When those are not mounted the engine falls back to MissingTexture's 0x7FFF00FF and
-// the entire 3D scene renders magenta, while the UI - which lives in the ZH archives - looks
-// perfect. That combination is what makes it read as a graphics fault instead of missing data.
-//
-// Only two layouts were ever tried: Steam's "<ZH root>\ZH_Generals", and a sibling literally named
-// "Generals". Retail, the EA App and every repack name that sibling "Command and Conquer Generals"
-// (some with an ampersand), so on those installs the base art sat one directory away, invisible:
-//
-//   ...\Command and Conquer - Generals\
-//       Command and Conquer Generals\             <- base art, never found
-//       Command and Conquer Generals Zero Hour\   <- the asset root
-//
-// Measured on exactly that layout: 17 archives mounted and the menu magenta; linking the sibling in
-// took it to 35 and the scene rendered correctly, with the engine's own "base Generals assets
-// missing from the asset root?" warning dropping to zero.
-//
-// Each candidate is GATED on a marker rather than simply mounted, because tryLoadBigFiles returns
-// true for any .big it finds - aimed at a second Zero Hour install it would cheerfully mount the
-// wrong game's archives. A base Generals folder has INI.big and no INIZH.big; the expansion is the
-// other way round. That is the same test the installer uses to recognise Zero Hour.
+// Zero Hour takes its WORLD art from the base Generals archives; if they are not mounted the scene renders magenta
+// while the UI looks fine. Candidates are gated on a marker (base Generals has INI.big and no INIZH.big) because
+// tryLoadBigFiles mounts any .big, including a second Zero Hour install's.
 static Bool fileExistsAt(const AsciiString& dir, const char* sep, const char* name)
 {
 	AsciiString path = dir;
@@ -702,21 +683,9 @@ static Bool looksLikeBaseGenerals(const AsciiString& dir, const char* sep)
 }
 
 // GeneralsX @bugfix wh1ter0se 12/08/2026 STOP GUESSING HOW THE FOLDER IS SPELLED.
-//
-// The named-candidate list above fixes the layouts we know, but it compares the DIRECTORY name
-// literally. On a case-sensitive filesystem - Linux, iOS, a case-sensitive APFS volume - a base
-// game in "command and conquer generals" or "Command And Conquer Generals" is missed, and the user
-// gets the magenta world plus a warning telling them nothing is there while it sits next door.
-// Windows and default macOS are case-insensitive, which is exactly why neither of the A/Bs that
-// validated the named list could have surfaced this.
-//
-// Enumerating the parent and testing each entry for the MARKER removes the guess entirely: it also
-// covers trailing spaces from a bad unzip, localised names, and whatever the next installer does.
-//
-// ASCII-only folding on purpose. AsciiString::compareNoCase and rts::less_than_nocase both bottom
-// out in strcasecmp (string_compat.h:47 maps _stricmp onto it), whose folding follows LC_CTYPE -
-// under a Turkish locale 'I' folds to a dotless i and "INI.big" stops matching itself. Archive
-// names are ASCII by construction, so a fixed A-Z fold is correct and immune to the locale.
+// Enumerating the parent and testing each entry for the MARKER, not the NAME, also covers case-sensitive volumes,
+// trailing spaces and localised names. ASCII-only fold on purpose: strcasecmp follows LC_CTYPE, so under a Turkish
+// locale 'I' folds to a dotless i and INI.big stops matching itself.
 static Bool asciiEqualNoCase(const char* a, const char* b)
 {
 	for (; *a != '\0' && *b != '\0'; ++a, ++b) {
@@ -851,19 +820,9 @@ static void loadBaseGeneralsAssetsForZH(TBigFileSystem* fileSystem, const AsciiS
 	}
 
 	if (zhAssetDirectory.isNotEmpty()) {
-		// GeneralsX: Join on a separator-free base.
-		//
-		// zhAssetDirectory is whatever the asset-root resolver selected, and a configured
-		// root very commonly ends with a separator ("...Zero Hour\\"). Concatenating
-		// "/ZH_Generals" straight onto that yields "...Zero Hour\\/ZH_Generals" - which
-		// opens fine, but is a DIFFERENT STRING from the "...Zero Hour\\ZH_Generals" that
-		// the recursive scan of the ZH root already produced. m_archiveFileMap is keyed by
-		// that string, so the same 15 base-Generals archives got mounted TWICE under two
-		// spellings: 55 mounts for 40 files on disk. That moved the SimID assetID and made
-		// an otherwise identical PC disagree with the Mac.
-		//
-		// Previously masked: without a trailing separator the search became
-		// "...ZH_Generals*.big", matched nothing, and the whole path failed silently.
+		// GeneralsX: Join on a separator-free base. A configured root often ends with a separator, and appending
+		// "/ZH_Generals" then spells the path differently from the recursive scan's; m_archiveFileMap is keyed by that
+		// string, so the same archives mount twice and assetID moves.
 		AsciiString base = zhAssetDirectory;
 		while (base.getLength() > 0) {
 			const char c = base.getCharAt(base.getLength() - 1);
@@ -946,9 +905,8 @@ void Win32BIGFileSystem::init() {
 	}
 
 	// GeneralsX: Resolve the overlay BEFORE anything is mounted.
-	// loadBigFilesFromDirectory has to know about it: a recursive scan (a -mod folder, and the
-	// game folder until 25/09/2026) would otherwise mount an overlay living inside it twice -
-	// once at path-sort precedence by that scan and once at filename precedence below.
+	// loadBigFilesFromDirectory has to know about it: a recursive scan (a -mod folder) would otherwise mount an overlay
+	// living inside it twice - once at path-sort precedence by that scan and once at filename precedence below.
 	if (resolvePatchOverlayDirectory(m_patchOverlayDirectory)) {
 		fprintf(stderr, "[PATCH_OVERLAY] Overlay directory '%s'\n", m_patchOverlayDirectory.str());
 	}
@@ -990,38 +948,10 @@ void Win32BIGFileSystem::init() {
 		shellMapArchive != nullptr ? shellMapArchive->getName().str() : "(none)");
 }
 
-// GeneralsX: Load an extra .big from a GeneralsX-owned directory.
-//
-// This is the deliberate mirror of StdBIGFileSystem::loadPatchOverlay and MUST NOT drift from
-// it; the two arms have been shipped out of step before and the Windows half stayed broken for
-// a week. Only the path separators differ, because Win32LocalFileSystem builds its search mask
-// by bare concatenation and the rest of this file already uses backslashes.
-//
-// WHY: two peers may only join each other when their dataID matches, and dataID covers the
-// archive contents. Handing a friend our community patch therefore meant writing a .big into
-// their Zero Hour install. This mounts it from anywhere instead - GENERALSX_PATCH_PATH, else
-// <exe dir>\GeneralsXPatch - and produces the SAME dataID as the file sitting in the game
-// folder, which is the only thing that makes the join legal.
-//
-// WHY NOT THE OBVIOUS TWO CALLS. loadIntoDirectoryTree offers exactly two positions in the
-// per-filename multimap range, and resolution takes instance 0, so:
-//   * overwrite=FALSE appends -> the overlay loses EVERY contested file, including the ones
-//     it exists to replace. Measured: Data\INI\CommandSet.ini then resolves to INIZH.big's
-//     144715-byte vanilla copy while Data\INI\CommandSet\*.ini comes from the patch, and the
-//     resulting half-and-half definition set throws out of INI::load.
-//   * overwrite=TRUE prepends -> the overlay wins every contested file, including ones it
-//     must NOT win. The Community Patch ships Data\INI\CommandButton.ini at ZERO BYTES on
-//     purpose (it blanks the monolithic file and splits it into Data\INI\CommandButton\*.ini),
-//     and in the game folder that empty entry legitimately LOSES to the 352561-byte copy in
-//     !HotkeysLeikezeIndicatorsZH.big, which sorts first. Forced to the front it wins, the
-//     SimID loose scan hashes 0 bytes for that path, and dataID moves FA018128 -> 9F59E16C.
-//
-// Neither is a bug in loadIntoDirectoryTree. The real rule is the one the game folder already
-// implements and neither flag can say: archives resolve in FILENAME order, first match wins.
-// That is what the community's numeric filename prefixes ("340_", "500_900_") are FOR. So the
-// overlay is inserted at the position its own filename earns among the archives already
-// mounted, which reproduces the in-folder layout byte for byte and is independent of where
-// the overlay actually lives.
+// GeneralsX: Mirror of StdBIGFileSystem::loadPatchOverlay (keep in step; only separators differ). Loads an extra .big
+// from GENERALSX_PATCH_PATH, else <exe dir>\GeneralsXPatch, with the SAME dataID as the game-folder file.
+// Neither overwrite flag works: FALSE loses every contested file, TRUE wins ones it must not (empty CommandButton.ini).
+// Archives resolve in FILENAME order, first match wins; the overlay is inserted where its filename sorts.
 void Win32BIGFileSystem::loadPatchOverlay(const AsciiString& primaryAssetsDirectory)
 {
 	if (m_patchOverlayDirectory.isEmpty()) {
@@ -1328,7 +1258,7 @@ Bool Win32BIGFileSystem::loadBigFilesFromDirectory(AsciiString dir, AsciiString 
 }
 
 // GeneralsX: THE GAME FOLDER IS SCANNED AT THE TOP LEVEL ONLY - twin of the
-// same change in StdBIGFileSystem.cpp. Owner's decision (#10, 24/09/2026): GeneralsX loads only its
+// same change in StdBIGFileSystem.cpp. GeneralsX loads only its
 // own files. Retail walked every subfolder, so a GeneralsOnline `launcher\MapsZH.big` mounted and,
 // because "...\launcher\MapsZH.big" sorts before "...\MapsZH.big" and the first archive mounted
 // keeps a contested path, served its own ShellMap1.map. Every game-folder, base-Generals and cwd

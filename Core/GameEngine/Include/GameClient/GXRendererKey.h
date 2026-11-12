@@ -1,15 +1,25 @@
-// GeneralsX: THE RENDERER SWITCH.
-// The decision only - pure, no engine, unit-tested by
-// scripts/test/renderer-key-test.sh. Its one reader is GXGraphics::nativeRendererRequested (GXGraphicsSettings.cpp).
-//
-// Options.ini `GXRenderer = classic | native`, any case. Absent = kGxRendererKeyDefault (classic). Any other value = classic, and
-// the decision says so (the one [GXRENDERER] line). GX_RENDERER (TEST-ONLY: harness arms) wins over the key when it is set and not
-// empty, read exactly as the native renderer always read it (GxNativeD3D8.cpp GxNativeRequested): "native" = native, any other
-// value = classic.
-//
-// This is the ASK, not the outcome: a native session can still go classic at device creation (rows S2-S10, a "[GXNATIVE]
-// session=classic reason=" line), and a build without GX_RENDER_NATIVE is classic whatever this says (GxNativeInstallOff.cpp).
-// Render-only: nothing the simulation reads may ever depend on it.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// THE RENDERER SWITCH: the pure decision; its one reader is GXGraphics::nativeRendererRequested.
+// Options.ini `GXRenderer = classic | native`, any case; absent or any other value = classic.
+// GX_RENDERER (test-only) wins when set and non-empty: "native" = native, anything else = classic.
+// This is the ASK, not the outcome: a native session can still go classic at device creation. Render-only.
 #pragma once
 
 enum GxRendererPick
@@ -25,7 +35,7 @@ enum GxRendererSource
 	GXRENDERER_SRC_ENV				// GX_RENDERER
 };
 
-// What a player who never chose gets. The 0.9.68 flip, if wh1ter0se says so, is this line.
+// What a player who never chose gets. Changing the default is this one line.
 constexpr int kGxRendererKeyDefault = GXRENDERER_CLASSIC;
 
 struct GxRendererDecision

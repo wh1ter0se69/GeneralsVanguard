@@ -43,13 +43,12 @@
 #include "GameLogic/Object.h"
 #include "GameLogic/PartitionManager.h"
 #if defined(GX_TEST_INSTRUMENTS)
-#include "GameLogic/AIPlayer.h"	// GeneralsX 23/10/2026 ai-wh1ter0se-econ T: gxAirWatchRadius, for the transition log below
-// GeneralsX: ai-wh1ter0se-econ T: EVERY move of a unit
-// into or out of an air-watching AI's tunnel network, whatever sent it (the guard's own pop, a team target, a tunnel goal, the AI's
-// Return), with the tunnel and the aircraft the network was last told about - the box readers time T's exits and returns from these.
+#include "GameLogic/AIPlayer.h"	// gxAirWatchRadius, for the transition log below
+// Test-instrument log of every move of a unit into or out of an air-watching AI tunnel network, whatever sent it,
+// with the tunnel and the aircraft the network was last told about:
 //   "[GXTAA] f=<frame> p=<player> ev=in|out unit=<id> tmpl=<template> tunnel=<id> nemesis=<stored id, 0 = none> x=<tunnel x> y=<y>"
 // Reads only (gxPeekNemesisID has no side effect, unlike getCurNemesis); nothing here is read by the simulation; release builds: none.
-static Int s_gxForcedOut = 0;	// GeneralsX 28/10/2026 T2: > 0 while occupants are FORCED out (harm, death, last tunnel)
+static Int s_gxForcedOut = 0;	// > 0 while occupants are FORCED out (harm, death, last tunnel)
 struct GXForcedOutScope { GXForcedOutScope() { ++s_gxForcedOut; } ~GXForcedOutScope() { --s_gxForcedOut; } };
 #define GX_TAA_FORCED_OUT_SCOPE GXForcedOutScope gxForcedOutScope
 static void gxTaaTransition(const char *ev, const Object *tunnel, const Object *obj)
@@ -58,7 +57,7 @@ static void gxTaaTransition(const char *ev, const Object *tunnel, const Object *
 		return;	// t2-cheap: T2's diagnostics off (AIPlayer.h)
 	Player *p = (tunnel != nullptr) ? tunnel->getControllingPlayer() : nullptr;
 	AIPlayer *ai = (p != nullptr) ? p->getAIPlayer() : nullptr;
-	if (ai == nullptr || ai->gxAirWatchScanRadius() <= 0 || obj == nullptr)	// GeneralsX 27/10/2026 T2: T0 too
+	if (ai == nullptr || ai->gxAirWatchScanRadius() <= 0 || obj == nullptr)
 		return;
 	const TunnelTracker *tt = p->getTunnelSystem();
 	const Coord3D *pos = tunnel->getPosition();
@@ -144,7 +143,7 @@ void TunnelContain::removeFromContain( Object *obj, Bool exposeStealthUnits )
 //--------------------------------------------------------------------------------------------------------
 void TunnelContain::harmAndForceExitAllContained( DamageInfo *info )
 {
-	GX_TAA_FORCED_OUT_SCOPE;	// GeneralsX 28/10/2026 T2: these exits are forced (test-instruments log only)
+	GX_TAA_FORCED_OUT_SCOPE;	// these exits are forced (test-instruments log only)
 	Player *owningPlayer = getObject()->getControllingPlayer();
 
 	if(!owningPlayer->getTunnelSystem())
@@ -180,7 +179,7 @@ void TunnelContain::harmAndForceExitAllContained( DamageInfo *info )
 //-------------------------------------------------------------------------------------------------
 void TunnelContain::killAllContained()
 {
-	GX_TAA_FORCED_OUT_SCOPE;	// GeneralsX 28/10/2026 T2: these exits are forced (test-instruments log only)
+	GX_TAA_FORCED_OUT_SCOPE;	// GeneralsX: these exits are forced (test-instruments log only)
 	// TheSuperHackers @bugfix xezon 04/06/2025 Empty the TunnelSystem's Contained Items List
 	// straight away to prevent a potential child call to catastrophically modify it as well.
 	// This scenario can happen if the killed occupant(s) apply deadly damage on death
@@ -249,7 +248,7 @@ void TunnelContain::iterateContained( ContainIterateFunc func, void *userData, B
 void TunnelContain::onContaining( Object *obj, Bool wasSelected )
 {
 	OpenContain::onContaining( obj, wasSelected );
-	GX_TAA_TRANSITION("in", getObject(), obj);	// GeneralsX 23/10/2026 ai-wh1ter0se-econ T: test-instruments log only
+	GX_TAA_TRANSITION("in", getObject(), obj);	// test-instruments log only
 
 	// objects inside a building are held
 	obj->setDisabled( DISABLED_HELD );
@@ -268,7 +267,7 @@ void TunnelContain::onContaining( Object *obj, Bool wasSelected )
 void TunnelContain::onRemoving( Object *obj )
 {
 	OpenContain::onRemoving(obj);
-	GX_TAA_TRANSITION("out", getObject(), obj);	// GeneralsX 23/10/2026 ai-wh1ter0se-econ T: test-instruments log only
+	GX_TAA_TRANSITION("out", getObject(), obj);	// test-instruments log only
 
 	// object is no longer held inside a garrisoned building
 	obj->clearDisabled( DISABLED_HELD );
@@ -307,7 +306,7 @@ void TunnelContain::onSelling()
 	// rather than killing the occupants as if the last tunnel died.
 	if( tunnelTracker->friend_getTunnelCount() == 1 )
 	{
-		GX_TAA_FORCED_OUT_SCOPE;	// GeneralsX 28/10/2026 T2: the last tunnel's kick-out is forced (test-instruments log only)
+		GX_TAA_FORCED_OUT_SCOPE;	// the last tunnel kick-out is forced (test-instruments log only)
 		removeAllContained(FALSE);// Can't be order to exit, as I have no time to organize their exits.
 	}
 	// If they don't go right now, I will delete them in a moment

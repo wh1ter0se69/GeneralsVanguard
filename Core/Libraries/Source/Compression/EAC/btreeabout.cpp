@@ -21,7 +21,7 @@
 /* ABSTRACT */
 /*------------------------------------------------------------------*/
 /*                                                                  */
-/*                    BTree - Binary Tree Codex                     */
+/*                    BTree - Binary Tree review                     */
 /*                                                                  */
 /*                    by FrANK G. Barchard, EAC                     */
 /*                                                                  */

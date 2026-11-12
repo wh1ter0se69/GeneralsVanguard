@@ -1,4 +1,22 @@
-// GeneralsX: WS-X hybrid spike: external Vulkan recording
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Hybrid spike: external Vulkan recording
 // inside DXVK's own device, inserted after the L2 producer flushes of RTS3DScene.
 //
 // GX_RENDER_HYBRID = 0 (default: nothing runs, no QueryInterface, no Vulkan call, no flush hook), 1 = P-L (record inside DXVK's
@@ -31,8 +49,8 @@ namespace GxInterop
 	uint64_t Take_Retire_Value();
 	inline bool Enabled() { return Mode() != 0; }
 
-	// Once, from RTS3DScene's constructor beside WS-G's GxScene_Install. With GX_RENDER_HYBRID set it installs
-	// DX8MeshRendererClass::GxBoundary: inside every mesh-renderer flush WS-G tags as an L2 producer site (dx8renderer.h
+	// Once, from RTS3DScene's constructor beside L2's GxScene_Install. With GX_RENDER_HYBRID set it installs
+	// DX8MeshRendererClass::GxBoundary: inside every mesh-renderer flush tagged as an L2 producer site (dx8renderer.h
 	// GxFlushSite, mapped to Site above) it inserts after the rigid lists and after the delayed passes when that segment drew
 	// something (native rigid work keeps its place ahead of classic skins and decals). Unset: nothing.
 	void Install();

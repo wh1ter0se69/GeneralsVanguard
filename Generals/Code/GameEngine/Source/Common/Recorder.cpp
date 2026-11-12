@@ -422,19 +422,9 @@ void RecorderClass::updatePlayback() {
 		return;
 	}
 
-	// GeneralsX: Hand the logic a frame's commands only once the replay's game has started.
-	// playbackFile() queues MSG_NEW_GAME, and the next update reaches here with the frame counter already 0 - before that
-	// MSG_NEW_GAME is processed, and a whole update before startNewGame() loads the map. So every command recorded at
-	// frame 0 went in behind the MSG_NEW_GAME and was dispatched in the window between prepareNewGame() and the load:
-	// GAME_REPLAY is already set there, so isInGame() is true and each network message other than a CRC or a replay
-	// camera took an AIGroup id (logicMessageDispatcher), and a player flag it set was reset again by the load. The live
-	// game ran those commands at frame 0, after that frame's scripts, terrain update and CRC. A skirmish started from the
-	// shell records one such command (the shell player's MSG_ENABLE_RETALIATION_MODE, at f0 for player 0), so every AI
-	// group alive at the first checks - the start-of-game selection, the AI's first team groups - carried an id one
-	// higher than in the recording, and the replay reported REPLAY_CRC_MISMATCH from frame 0 until those groups were gone
-	// GAME_REPLAY is set only by the replay's own
-	// MSG_NEW_GAME (prepareNewGame), and clearGameData() puts GAME_NONE back - playbackFile() clears first - so this is
-	// FALSE exactly in that first update: the one that runs startNewGame() also runs this, after the load.
+	// GeneralsX: commands are handed to the logic only once the replay game has started. At frame 0, before
+	// startNewGame() loads the map, they would take AIGroup ids the recording never had (REPLAY_CRC_MISMATCH).
+	// GAME_REPLAY is set only by the replay MSG_NEW_GAME, so it is FALSE exactly in the update that runs startNewGame().
 	if (!m_doingAnalysis && TheGameLogic->getGameMode() != GAME_REPLAY)
 		return;
 
@@ -570,8 +560,8 @@ void RecorderClass::startRecording(GameDifficulty diff, Int originalGameMode, In
 		return;
 	}
 	// TheSuperHackers @info the null terminator needs to be ignored to maintain retail replay file layout
-	// GeneralsX: New recordings carry the newest magic (GENS14 since 01/10/2026).
-	m_file->writeFormat("%s", s_gens34);	// GENS15 since 05/10/2026, GENS34 since 06/11/2026
+	// GeneralsX: new recordings carry the newest magic (s_gens34).
+	m_file->writeFormat("%s", s_gens34);	// current replay magic
 
 	//
 	// save space for stats to be filled in.
@@ -931,9 +921,8 @@ Bool RecorderClass::readReplayHeader(ReplayHeader& header, const AsciiString& fi
 	}
 
 	// Read the GENREP header.
-	// GeneralsX: Four accepted magics (GENR14 added 25/09/2026, GENS14 01/10/2026), and the one we
-	// read decides how many disconnect flags the block below carries and whether a SimID follows iniCRC. All are six
-	// bytes, so this read is the same size either way.
+	// GeneralsX: four accepted magics; the one read decides how many disconnect flags the block below carries and whether
+	// a SimID follows iniCRC. All are six bytes, so this read is the same size either way.
 	char genrep[sizeof(s_genrep) - 1] = {0};
 	m_file->read( &genrep, sizeof(s_genrep) - 1 );
 	Int fileDisconSlots = 0;
@@ -1027,7 +1016,7 @@ Bool RecorderClass::readReplayHeader(ReplayHeader& header, const AsciiString& fi
 	// Player of its own, and its commands carry that layout's Player indices; played back in the current one
 	// (observers share the ReplayObserver), a player seated after an observer would run as the wrong Player
 	// The magic says which layout the file holds, so the start rebuilds that one.
-	m_gameInfo.setLegacyObserverLayout(fileDisconSlots < REPLAY_DISCON_SLOTS_14);	// GeneralsX 06/11/2026: 14 and 34 share the layout
+	m_gameInfo.setLegacyObserverLayout(fileDisconSlots < REPLAY_DISCON_SLOTS_14);	// 14 and 34 share the layout
 
 	AsciiString playerIndex = readAsciiString();
 	header.localPlayerIndex = atoi(playerIndex.str());
@@ -1594,9 +1583,8 @@ UnicodeString RecorderClass::readUnicodeString() {
 	}
 	str[index] = c;
 
-	// GeneralsX: Test the slot about to be written (index + 1), as Zero Hour's copy does since
-	// 25/07/2026: the bound was tested on the index already stored, so a 1023+ char name wrote str[1024], one past the
-	// stack array. readReplayHeader runs this on every .rep when the replay list opens (sweep c205-01).
+	// GeneralsX: test the slot about to be written (index + 1), as the Zero Hour copy does: testing the stored index let a 1023+
+	// char name write str[1024], one past the stack array. readReplayHeader runs this on every .rep when the replay list opens.
 	while (index + 1 < 1024 && str[index] != 0) {
 		++index;
 		Int c = m_file->readWideChar();
@@ -1616,7 +1604,7 @@ UnicodeString RecorderClass::readUnicodeString() {
  * Read an ascii string from the current file position. The string is assumed to be 0-terminated.
  */
 AsciiString RecorderClass::readAsciiString() {
-	char str[4096] = "";	// GeneralsX 06/11/2026 1024 -> 4096: a GENS34 slot list may pass 1023 bytes
+	char str[4096] = "";	// a GENS34 slot list may pass 1023 bytes
 	Int index = 0;
 
 	Int c =	m_file->readChar();
@@ -1626,7 +1614,7 @@ AsciiString RecorderClass::readAsciiString() {
 	str[index] = c;
 
 	// GeneralsX: Same one-past-the-end write as readUnicodeString above (sweep c205-01).
-	const Int maxChars = (Int)(sizeof(str) / sizeof(str[0]));	// GeneralsX 06/11/2026 from the buffer, not a literal
+	const Int maxChars = (Int)(sizeof(str) / sizeof(str[0]));	// from the buffer, not a literal
 	while (index + 1 < maxChars && str[index] != 0) {
 		++index;
 		Int c = m_file->readChar();
@@ -1817,7 +1805,7 @@ void RecorderClass::readArgument(GameMessageArgumentDataType type, GameMessage *
 		}
 		case ARGUMENTDATATYPE_BOOLEAN: {
 			// GeneralsX: The file's byte, normalised: reading 0x02 straight into a bool is undefined,
-			// so a crafted replay could play differently per compiler (as NetPacket::readGameMessage, batch0958).
+			// so a crafted replay could play differently per compiler (as NetPacket::readGameMessage).
 			UnsignedByte thebyte = 0;
 			m_file->read(&thebyte, sizeof(thebyte));
 			const Bool thebool = (thebyte != 0);

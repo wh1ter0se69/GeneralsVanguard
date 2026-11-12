@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule RAID.TNT_RAID: the Demolition general strikes the USA
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule RAID.TNT_RAID: the Demolition general strikes the USA
 # Superweapon GENERAL early with Terrorists at its dozers, derricks and War Factory (row 293: "TNT raids killed Dozers, 2 oil derricks and
 # the War Factory and opened a huge income gap; the late game favours USA"; rows 720, 849, 877 the same raid by other names). Stock Hard
 # Demolition fields no Terrorist before its wave-5 "Suicide" teams (600 s). This, for the Demolition general:

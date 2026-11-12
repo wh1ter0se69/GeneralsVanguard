@@ -1,4 +1,6 @@
-# GeneralsX: rule bank, DATA half: reading a gym observation stream for a module's activation(obs, me, params)
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank, DATA half: reading a gym observation stream for a module's activation(obs, me, params)
 # obs = the records of one game's obs.ndjson (v1: start, tmpl, obs). A module sees this file
 # as `ob`. Activation reads only the focal player's OWN rows - it is a measurement, never an input to the AI.
 import json

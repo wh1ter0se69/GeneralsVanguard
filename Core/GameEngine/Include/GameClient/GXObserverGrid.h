@@ -1,17 +1,25 @@
-// GeneralsX: The observer player list's grid: where each player's button goes when a match has
-// more players than ControlBar.wnd has buttons.
-//
-// ControlBar.wnd ships ButtonPlayer0..7 - retail lays them out as two columns of four (icon + name), ControlBar Pro as
-// one column of eight icons - and a lobby now seats 14 (the roadmap wants 32). The template is measured at runtime by
-// ControlBarObserver.cpp, so whichever layout is installed, and however LayoutScale mapped it, is what this extends:
-//   * up to rows * cols players: the .wnd exactly, nothing moves;
-//   * more: the fewest columns, rows balanced (12 -> 2x6, 14 -> 2x7, 32 -> 4x8), cells at the template's size while
-//     they fit the area the observer panel may use, scaled down uniformly once they do not;
-//   * and when the players are in teams, one team per column (4v4v4 -> 3x4, 7v5 -> 2x7) whenever that is as large as
-//     the plain grid - the caller orders players by team, so a team never splits across columns.
-// Columns run down first, like the .wnd numbers its buttons. Near-equal scales (within 2%) go to fewer columns.
-//
-// Header-only and pure: ControlBarObserver.cpp and scripts/test/observer-grid-test.cpp use it.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The observer player list's grid: where each button goes when a match has more players than ControlBar.wnd's
+// ButtonPlayer0..7. The template is measured at runtime (ControlBarObserver.cpp): up to rows * cols players the
+// .wnd is exact; more: the fewest columns with balanced rows, scaled down uniformly once cells no longer fit;
+// with teams, one team per column. Header-only and pure (scripts/test/observer-grid-test.cpp).
 
 #pragma once
 

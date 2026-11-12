@@ -1,5 +1,7 @@
-# GeneralsX: VK_LAYER_GX_queue_census: TEST-ONLY Vulkan layer + its selftest (PREREG A39a,
-# ). Standalone, never part of the game build, outside every digested path.
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# VK_LAYER_GX_queue_census: TEST-ONLY Vulkan layer + its selftest.
+# Standalone, never part of the game build, outside every digested path.
 #
 #   cmake -S <this dir> -B <build> -G Ninja [-DGX_VULKAN_INCLUDE_DIR=<dir holding vulkan/vk_layer.h>]
 #   cmake --build <build>

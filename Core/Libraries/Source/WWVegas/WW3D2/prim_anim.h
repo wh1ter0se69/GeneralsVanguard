@@ -82,7 +82,7 @@ public:
 		const T &	Get_Value () const		{ return m_Value; }
 		T &			Get_Value ()				{ return m_Value; }
 
-		// GeneralsX @bugfix felipe 24/02/2026 Set_Time declared float return but had no return statement (UB)
+		// GeneralsX: Set_Time was declared to return float but had no return statement (UB)
 		void			Set_Time (float time)		{ m_Time = time; }
 		void			Set_Value (const T &value)	{ m_Value = value; }
 

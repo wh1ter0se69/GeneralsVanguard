@@ -1,4 +1,22 @@
-// GeneralsX: gx_translate_test: GxD3D8Translate's d3d8 -> GxDrawPacket rules, one case per rule, each
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// gx_translate_test: GxD3D8Translate's d3d8 -> GxDrawPacket rules, one case per rule, each
 // with the DXVK cite it reproduces (references/fbraz3-dxvk 954c5c692), plus the fail arms: an X-<plant> arm turns on one
 // GxTranslateDebug plant in the PRODUCT translator and must make exactly its own case fail.
 //
@@ -627,7 +645,7 @@ bool caseLightSlots(Env& e, std::string* d)
 
 // ------------------------------------------------------------------------------------------------------------ arms
 
-// rw3-T cut 3a: stats().drawClasses is built from per-draw class counters. It must name exactly what the old per-draw string build
+// stats().drawClasses is built from per-draw class counters. It must name exactly what the old per-draw string build
 // named: each drawn packet's class is recomputed here with that formula and compared with the map's change over the case - both
 // "no-ztest" states (ZWRITEENABLE on and off), ztest+zwrite and ztest, blend, a not pre-transformed draw, an rt-texture target,
 // and a refused draw that must count nothing (identity conditions).
@@ -787,7 +805,7 @@ bool caseA2c(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// S7 P2 (A2/A3/A29/A36 item 6): with receivers on, every draw's PS block carries DrawBits
+// With receivers on, every draw's PS block carries DrawBits
 // (offset 276): RECEIVE tag + not pre-transformed -> Receive; + not a modulate pass (DESTCOLOR src / SRCCOLOR dst) -> ApplyRgb; + blending
 // off -> ApplyAlpha. Receivers OFF (key off): the word stays 0 whatever the tag. X-: ApplyRgb on a modulate pass (darkened twice).
 bool caseSmBits(Env& e, std::string* d)
@@ -874,7 +892,7 @@ bool caseSmBits(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// S7 A41 (PREREG A41, integrator A40 T1/T2): a clamped instance's own light. With receivers on and the RECEIVE tag,
+// A clamped instance's own light. With receivers on and the RECEIVE tag,
 // a draw under SetOwnLight carries DrawBits bit 3 and OwnScale / OwnZ0 (offsets 280 / 284); with it cleared, none of them (no stale own
 // light); with the tag off, nothing. KEY OFF (receivers off): the words stay 0 whatever the own light, and the pack-check (which compares
 // them with the mask off) sees no mismatch. X-sm-own (plant smOwnMaskOff: the words written with the mask off) must be caught there.
@@ -943,7 +961,7 @@ bool caseSmOwn(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// S7 A41 (integrator A40 T3): a CAST draw under an own light is captured with World x S (z' = z0 + mu (z - z0)) - the packet's
+// A CAST draw under an own light is captured with World x S (z' = z0 + mu (z - z0)) - the packet's
 // shadow-capture world - while the recorded draw's VS block is byte-identical to the same draw without it (its transform untouched).
 // X-sm-own-cast (plant smOwnNoCaster: the plain World captured) must be caught.
 bool caseSmOwnCast(Env& e, std::string* d)
@@ -967,7 +985,7 @@ bool caseSmOwnCast(Env& e, std::string* d)
 	const std::vector<uint8_t> vsOwn = e.lastVs;
 	const std::vector<float> castOwn = e.lastCastWorld;
 	const float muOwn = e.lastCastOwnMu;
-	// A79 (integrator ruling (b)): castOwnMu comes from castWorld() alone - mu with the own light, 0 exactly when the capture world is
+	// castOwnMu comes from castWorld() alone - mu with the own light, 0 exactly when the capture world is
 	// World; an own draw THEN a no-own draw (a stale m_castOwnMu would leak into it)
 	e.tr->shadowOwn(0);
 	const bool d2 = e.tr->drawUP(PT_TRIANGLESTRIP, 2, x, sizeof(VtxXyz));
@@ -1084,7 +1102,7 @@ bool caseDrawClasses(Env& e, std::string* d)
 	return ok;
 }
 
-// rw3-T cut 3b (conditions 1 + 3): the translator reuses GxPackFF's last output while none of its inputs changed. A
+// The translator reuses GxPackFF's last output while none of its inputs changed. A
 // repeat draw must reuse it; a change through EVERY setter that reaches a GxPackFF input must make the next draw pack again; and
 // every draw's blocks must equal a fresh GxPackFF of the state that draw saw (state() holds the derived fields it packed with).
 // Each step changes a value that changes the packed bytes, so a setter that fails to invalidate shows as stale blocks.
@@ -1261,7 +1279,7 @@ bool casePackReuse(Env& e, std::string* d)
 	return ended && ok;
 }
 
-// rw3-T cut 3b (L-3's condition 2): check mode packs again on every reuse and counts byte differences - 0 here; a setter that misses
+// Check mode packs again on every reuse and counts byte differences - 0 here; a setter that misses
 // an input (the plant) shows as a mismatch.
 bool casePackCheck(Env& e, std::string* d)
 {
@@ -1281,7 +1299,7 @@ bool casePackCheck(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// rw3-T cut 3b (integrator's condition for GxPackFFWorld): a reuse refreshes WorldView + NormalMatrix ONLY when the world is the
+// A reuse refreshes WorldView + NormalMatrix ONLY when the world is the
 // sole change - with check mode on, so every reuse is also packed again in full and compared (0 mismatches).
 bool casePackWorld(Env& e, std::string* d)
 {
@@ -1335,7 +1353,7 @@ bool casePackWorld(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// rw3-T cut 3b: a WS-E custom pixel shader through the dirty-pack. Its c0-c7 go on a COPY of the cached PS
+// A custom pixel shader through the dirty-pack. Its c0-c7 go on a COPY of the cached PS
 // block: every custom draw's PS block == a fresh GxPackFF + the overlay, an FF draw after it has none, and check mode - which
 // compares the CACHE with a fresh pack - sees 0 mismatches (an overlay written into the cache shows there: packOverlayInCache).
 bool casePackCustom(Env& e, std::string* d)
@@ -1381,7 +1399,7 @@ bool casePackCustom(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// rw3-T cut 3b: a WS-E custom VERTEX shader (Trees.vso + its declaration) through the dirty-pack. Its c0-c95
+// A custom VERTEX shader (Trees.vso + its declaration) through the dirty-pack. Its c0-c95
 // overlay the first 1536 B of a COPY of the cached VS block - the region the world refresh writes (WorldView, NormalMatrix): each
 // custom draw's VS block == a fresh GxPackFF + the overlay, through a repeat, a world-only refresh, new constants and the return to
 // FF, with check mode comparing the CACHE (an overlay written into it shows there: packVsOverlayInCache).
@@ -1442,12 +1460,10 @@ bool casePackCustomVs(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// (R-W1 + R-G1, 21/10/2026; + RA3 water's sheen): live water's two programs, the
-// remastered ground's three and RA3 water's one, created from
+// Live water's two programs, the remastered ground's three and RA3 water's one, created from
 // the catalogue's bytes (gx_cs_test proves those are the game's own arrays, byte for byte), each drawn once: a CUSTOM draw with the
 // entry's program id (the gx_cs_ps.frag case that ports it), the five constants the game sets in PS-block stages 0-4, and no
-// refusal. Before the ports every one of these draws was refused "pixel shader: not in the catalogue (classic)" - the X- arm
-// (psCatalogMiss) reproduces exactly that.
+// refusal. The X- arm (psCatalogMiss) reproduces the refusal "pixel shader: not in the catalogue (classic)".
 bool caseLivePrograms(Env& e, std::string* d)
 {
 	bool ok = true;
@@ -1527,7 +1543,7 @@ const Case kCases[] = {
 	{ "light-slots", caseLightSlots, &GxTranslateDebug::lightsSorted },
 	{ "draw-classes", caseDrawClasses, &GxTranslateDebug::drawClassWrongBit },
 	{ "pack-reuse", casePackReuse, &GxTranslateDebug::packKeepsOnMaterial, "[SetMaterial: did not pack again]" },
-	// cut 3b owner review P3: the same steps; each plant must break its own REPACK step
+	// the same steps; each plant must break its own REPACK step
 	{ "pack-light", casePackReuse, &GxTranslateDebug::packKeepsOnLight, "[SetLight (not enabled): did not pack again]" },
 	{ "pack-viewport", casePackReuse, &GxTranslateDebug::packKeepsOnViewport, "[SetViewport: did not pack again]" },
 	{ "pack-unbind", casePackReuse, &GxTranslateDebug::packKeepsOnUnbind, "[SetTexture (null): did not pack again]" },
@@ -1536,7 +1552,7 @@ const Case kCases[] = {
 	{ "pack-world", casePackWorld, &GxTranslateDebug::packWorldStale },
 	{ "pack-custom", casePackCustom, &GxTranslateDebug::packOverlayInCache },
 	{ "pack-custom-vs", casePackCustomVs, &GxTranslateDebug::packVsOverlayInCache },
-	// S7 P2: the receiver bits; the plant must break the MODULATE step
+	// the receiver bits; the plant must break the MODULATE step
 	{ "sm-bits", caseSmBits, &GxTranslateDebug::smBitsIgnoreBlend, "[modulate DESTCOLOR/ZERO" },
 	// S7 A41: the own light - its words only with the mask on (the plant writes them with it off: the pack-check
 	// must catch it), and the capture world World x S (the plant captures the plain World)
@@ -1606,7 +1622,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 		sh.layout = writer.layout().pipeline;
 		setup = sh.vs && sh.fs && sh.fsFlat && cache.init(ctx, sh, "", 0, &why);
 		writer.setPipelineCache(&cache);
-		cs.ps = module(spv_gx_cs_ps_frag, sizeof(spv_gx_cs_ps_frag));   // WS-E custom programs (pack-custom, pack-custom-vs)
+		cs.ps = module(spv_gx_cs_ps_frag, sizeof(spv_gx_cs_ps_frag));   // custom programs (pack-custom, pack-custom-vs)
 		cs.vsTrees = module(spv_gx_cs_trees_vert, sizeof(spv_gx_cs_trees_vert));
 		cs.vsWave = module(spv_gx_cs_wave_vert, sizeof(spv_gx_cs_wave_vert));
 		setup = setup && cs.ps && cs.vsTrees && cs.vsWave;
@@ -1644,7 +1660,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 	}
 	if (writer.frameOpen())
 		writer.endFrame();
-	ctx.waitIdle();   // R19: drains the submit thread first
+	ctx.waitIdle();   // drains the submit thread first
 	for (R::GxRenderTarget* t : { &argb, &xrgb, &depth, &argb4, &depth4, &x1rgb }) {
 		writer.forget(&t->image());
 		t->destroy();

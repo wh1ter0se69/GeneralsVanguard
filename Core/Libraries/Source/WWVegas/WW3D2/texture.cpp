@@ -929,7 +929,7 @@ void TextureClass::Apply(unsigned int stage)
 	// XBOX always initializes textures at creation time.
 	if (!Initialized)
 	{
-		DX8Wrapper::GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: WS-G Task 5: the load is a known device access
+		DX8Wrapper::GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: the load is a known device access
 		Init();
 
 		/* was in battlefield// Non-thumbnailed textures are always initialized when used

@@ -1,4 +1,22 @@
-// GeneralsX: see GXUserDataMigrate.h for what is moved and the rules.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// see GXUserDataMigrate.h for what is moved and the rules.
 #include "GXUserDataMigrate.h"
 
 #include <cstdio>
@@ -17,24 +35,9 @@ namespace fs = std::filesystem;
 namespace
 {
 
-// The files brought across ONCE each. The owner's list, 23/09/2026. A settings file added here comes
-// across with the same never-overwrite rule.
-//
-// ONCE means once per file, not once per pass (review of b101653df, P2-1). A file is SETTLED when it
-// is copied, merged, found already there, or found absent from the old folder, and the marker
-// records it. A settled file is never looked at again, so a pass that stays PARTIAL over one
-// unreadable map cannot bring back a GXLogin.txt the player signed out of, or a GXPlayer.ini they
-// reset, on every start after. Only the folders below are retried.
-//
-// MERGE, not copy, for every file a launcher can write in the new folder BEFORE the engine's first
-// start:
-//   Options.ini               gxlaunch.c (RelayAddress), both launchers' options screens, the harness
-//   SagePatch.ini             BOTH launchers at their own startup (Program.cs GameSagePatch.EnsureDefaults,
-//                             gxlauncher main.rs sagepatch::ensure_defaults) - always, and whole.
-//                             An untouched one, new or old, counts as absent (kUntouchedSagePatch).
-//   GXHud.ini                 the HUD page of either launcher, when the player saves it first
-//   CommandButtonHotKeys.ini  the Keys page of either launcher, when the player saves it first
-// Network.ini and Skirmish*.ini have no writer but the engine, so they are plain copies.
+// Files brought across once each. A file is settled when copied, merged, already present or absent.
+// Settled files are never revisited, so a PARTIAL pass cannot restore a signed-out GXLogin.txt or a reset GXPlayer.ini.
+// MERGE for files a launcher may write first (Options.ini, SagePatch.ini, GXHud.ini, CommandButtonHotKeys.ini).
 enum How { COPY, MERGE, MERGE_GAMEDATA };
 struct Plain { const char *name; How how; };
 const char *const kIdentity = "GXPlayer.ini";
@@ -47,11 +50,11 @@ const Plain kPlainFiles[] = {
 // Plus every Skirmish*.ini at the top level of the old folder, found in migrate() by isSkirmishIni.
 // The folders copied file by file, and retried until every file is across. Save is the campaign and
 // skirmish saves, GameState::getSaveDirectory() (GameState.cpp): without it every save is missing
-// from the Load menu after the move (review of the merged folder move, finding 1).
+// from the Load menu after the move.
 const char *const kTrees[] = { "Maps", "Replays", "Save" };
 // "settled: Save\" on a finished marker: Save is across. A marker finished before Save joined kTrees
 // (integration builds 5c9056b8b to 30c234514, never tagged) lacks it, so Save alone comes across once
-// more, same rules (review of 2927d052a, finding 2).
+// more, same rules.
 const char *const kSaveSettled = "Save\\";
 
 struct Tally
@@ -74,7 +77,7 @@ void fail(Tally &t, const char *what, const fs::path &p, const std::error_code &
 	fprintf(stderr, "[gxmigrate] could not %s %s: %s\n", what, show(p).c_str(), ec.message().c_str());
 }
 
-// What is at p. An error while looking is a FAILURE, never "absent" (review of b101653df, P3): an
+// What is at p. An error while looking is a FAILURE, never "absent": an
 // absence settles a file, or marks the whole migration done, for good.
 fs::file_type kindOf(const fs::path &p, Tally &t)
 {
@@ -178,7 +181,7 @@ bool isSav(const std::basic_string<C> &name)
 	return true;
 }
 
-// Save\ (review of ccea6fbd1, P2). A save's name is not the player's: GameState::findNextSaveFilename
+// Save\. A save's name is not the player's: GameState::findNextSaveFilename
 // numbers them from 00000000.sav, so a player who saved once on a recent build already holds the old
 // folder's first name. An old .sav whose name holds other bytes takes the lowest free number, as the
 // engine names a new save; one met on the way with the same bytes is this save, across already.
@@ -221,19 +224,9 @@ void copySave(const fs::path &src, const fs::path &dst, Tally &t)
 	fail(t, "find a free save name for", src, std::make_error_code(std::errc::file_exists));
 }
 
-// One folder of Maps or Replays, file by file. Each folder is opened here, so one that cannot be is
-// a failure, never "empty" (review of 6ee23a741, P2). A folder behind a link - a symlink or an NTFS
-// junction - is opened like any other: recursive_directory_iterator yielded the link and never went
-// in, and the pass went done without its files.
-//
-// `inside` is the chain of folders being walked. A link back to one of them would never end, and
-// what it leads to is being copied already, so it is left out. Only a link is compared: a plain
-// folder cannot start a loop, and equivalent() is not asked of a filesystem that never needed it.
-//
-// Nor is a link to a folder that holds `to`: a link to Documents, to GeneralsX\ or to the
-// new Maps itself walks into the folder being written and copies it into itself, a level deeper each
-// time round, until the path is too long - a runaway copy that can fill the disk. `to`'s parents are
-// the output and every folder above it, and each exists: this call's caller created them.
+// Copies one Maps or Replays folder file by file; a folder that cannot be opened is a failure, never "empty".
+// `inside` is the chain being walked: a link back into it, or to a folder holding `to`, is skipped, since following it
+// would loop or copy a folder into itself. Only links are compared; a plain folder cannot start a loop.
 void copyDir(const fs::path &from, const fs::path &to, std::vector<fs::path> &inside, Tally &t, bool saves)
 {
 	std::error_code ec;
@@ -290,7 +283,7 @@ void copyTree(const fs::path &from, const fs::path &to, Tally &t)
 	copyDir(from, to, inside, t, to.filename() == "Save");
 }
 
-// The whole file, or false (review of 6ee23a741, P2). A failed open sets only failbit, never badbit,
+// The whole file, or false. A failed open sets only failbit, never badbit,
 // and a read error inside the filebuf looks like the end of the file, so the bytes are also counted
 // against the size. A file that changes while it is read fails too; the next start retries.
 bool readAll(const fs::path &p, std::string &out)
@@ -306,7 +299,7 @@ bool readAll(const fs::path &p, std::string &out)
 	return !ec && !f.bad() && out.size() == size;
 }
 
-// GeneralsX: A UTF-8 BOM at the start of a file (a hand edit in an older Notepad) is not part of its
+// A UTF-8 BOM at the start of a file (a hand edit in an older Notepad) is not part of its
 // first key - the rule the game (UserPreferences::load) and the launcher (gxio strip_bom) read Options.ini by. mergeByKey read
 // through it: a BOM-first key in the new file counted as absent, so the old value was appended after it and the game (the last
 // line wins) ran the old one while the launcher showed the new; and a BOM-first old line carried its BOM into the middle of the
@@ -359,17 +352,9 @@ struct GameDataScan
 	}
 };
 
-// The SagePatch.ini files that hold nobody's choice: what a launcher or the engine writes, untouched.
-// Either side of the migration being one of them is treated as absent:
-//   * NEW folder (review of 889749a00, P2): each has all six fields the engine reads, so a merge
-//     into one could never bring an old camera value across. The old file replaces it whole.
-//   * OLD folder (review of 2acfb7031, P2): there is nothing to bring across, and the new folder
-//     keeps what it has. Without this an untouched pre-22/09 launcher file brought back its 210
-//     minimum, and a pre-25/09 engine's first write its 350 maximum, over the current defaults.
-// The first two are today's writers: both launchers at their startup (GameSagePatch.WriteCamera(100,
-// 100) == gxio sagepatch::render) and the engine's first write (GameEngine.cpp). The rest are older
-// writers' texts, still on disk in the old folder: APPEND-ONLY, never edit one. gxio's sagepatch.rs
-// holds the first two equal to their writers and pins the rest.
+// SagePatch.ini texts that hold nobody's choice (untouched launcher/engine output) count as absent on either side.
+// Untouched NEW file: it has all six fields, so a merge could not bring old values across; the old file replaces it.
+// Untouched OLD file: nothing to bring across. APPEND-ONLY list: older writers' texts remain in old folders.
 const char *const kUntouchedSagePatch[] = {
 R"GXDEFAULT(; GeneralsX camera / client tuning, written by the launcher. Safe to delete.
 ; The engine restricts this file to six client-side fields, so nothing here
@@ -426,7 +411,7 @@ GameData
   TerrainDrawDistanceScale = 1.05
 End
 )GXDEFAULT",
-// The engine's first write from 0af21a6f9 until 25/09/2026, its 350 maximum (gxio
+// An older engine's first write, with its 350 maximum (gxio
 // ENGINE_AUTOWRITE_BLOCK_V2).
 R"GXDEFAULT(; -----------------------------------------------------------------------------
 ; SagePatch - Casual QoL overrides for GeneralsX
@@ -450,7 +435,7 @@ GameData
   ShellMapSoundVolumeScale = 50%
 End
 )GXDEFAULT",
-// Both launchers, 0af21a6f9 (10/09) to 70bc80d86 (22/09): the 210 minimum.
+// Both launchers, 0af21a6f9 to 70bc80d86: the 210 minimum.
 R"GXDEFAULT(; GeneralsX camera / client tuning, written by the launcher. Safe to delete.
 ; The engine restricts this file to six client-side fields, so nothing here
 ; can affect the shared simulation or desync a match.
@@ -463,7 +448,7 @@ GameData
   ShellMapSoundVolumeScale = 50%
 End
 )GXDEFAULT",
-// Both launchers, 9128f4a96 (10/08) to 0af21a6f9: five fields, the 210 minimum.
+// Both launchers, 9128f4a96 to 0af21a6f9: five fields, the 210 minimum.
 R"GXDEFAULT(; GeneralsX camera / client tuning, written by the launcher. Safe to delete.
 ; The engine restricts this file to five client-side fields, so nothing here
 ; can affect the shared simulation or desync a match.
@@ -475,7 +460,7 @@ GameData
   TerrainDrawDistanceScale = 1.05
 End
 )GXDEFAULT",
-// The C# launcher's first camera screen, 5e863860b (10/08), before 9128f4a96 the same night.
+// The C# launcher's first camera screen, 5e863860b, before 9128f4a96.
 R"GXDEFAULT(; GeneralsX camera / client tuning, written by the launcher. Safe to delete.
 ; The engine restricts this file to five client-side fields, so nothing here
 ; can affect the shared simulation or desync a match.
@@ -612,7 +597,7 @@ struct Marker
 	std::set<std::string> settled;
 };
 
-// False when the marker is there but cannot be read (review of 6ee23a741, P2): its settled lines are
+// False when the marker is there but cannot be read: its settled lines are
 // then unknown, and a pass without them would bring back a file the player removed.
 bool readMarker(const fs::path &p, Marker &m)
 {

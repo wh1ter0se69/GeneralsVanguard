@@ -63,7 +63,7 @@
  * AIGroups.  It is ASSUMED that an object cannot morph from having
  * an AIUpdate module to not having one... (MSB)
 
-	NOTE: This comment has been wrong for about ten years now.  Any Object can be in an AIGroup
+	Any Object can be in an AIGroup
  */
 
 /**

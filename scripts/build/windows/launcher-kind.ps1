@@ -1,4 +1,6 @@
-# GeneralsX: The Windows launcher is the TAURI one (scripts/launcher-rs).
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# The Windows launcher is the TAURI one (scripts/launcher-rs).
 #
 # Dot-sourced by setup-run-win64.ps1 and package-windows-share.ps1. Both stage a file called
 # GeneralsXLauncher.exe, and two different programs have carried that name: the retired C# loader

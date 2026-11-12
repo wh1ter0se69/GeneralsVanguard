@@ -1,4 +1,22 @@
-// GeneralsX: A23-B §3.8 (v8.1): the ONE owner of a failed
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// A23-B §3.8 (v8.1): the ONE owner of a failed
 // device-memory allocation. Every in-scope VMA allocation - GxBuffer's static buffer and dynamic slices, GxImage::create, the
 // upload rings' dedicated buffers, the read-back buffer - goes through gxCreateBuffer / gxCreateImage (the render-seam lint
 // refuses a raw vmaCreateBuffer / vmaCreateImage in Res/ and VkUploadRing). With no policy installed they ARE the raw calls.

@@ -1,17 +1,27 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #pragma once
 
-// GeneralsX: One 2:1 box reduction for every platform.
-//
-// D3DXLoadSurfaceFromSurface builds each mip level from the one above it (D3DXFilterTexture: the terrain atlas, its
-// blend and edge textures, the tree atlas, surface-built textures). Apple averaged every 2x2 block; Windows and Linux
-// called gli::generate_mipmaps(FILTER_LINEAR), which for a 2:1 step samples the source at i * (W - 1) / (W/2 - 1):
-// the left and top half of every level is the even texel POINT-SAMPLED, the rest a blend whose weight drifts with the
-// position. That aliases (distant ground and trees shimmer) and a tile's mips depend on where it sits in an atlas.
-//
-// This is the Apple box, byte for byte, for every format it handled (8-bit channels and A1R5G5B5's 5-bit channels:
-// (sum + 2) >> 2; a 1-bit channel: set when 2+ of the 4 are set). It also reduces a level that is 1 texel wide or
-// high (a non-square texture's tail: 4x1 -> 2x1) by repeating the single row or column, so 2 texels are averaged,
-// and the other 16-bit layouts with the same per-channel rule. No D3D types here, so it can be tested offline.
+// One 2:1 box reduction for every platform, used to build each mip level (D3DXLoadSurfaceFromSurface).
+// Averages each 2x2 block: (sum + 2) >> 2 for 8-bit and 5-bit channels; a 1-bit channel is set when 2+ of 4 are.
+// gli's FILTER_LINEAR mipmaps point-sampled half of each level, which aliased and varied with atlas position.
+// A 1-texel-wide or -high level repeats its single row or column. No D3D types, so it is testable offline.
 
 #include <cstdint>
 

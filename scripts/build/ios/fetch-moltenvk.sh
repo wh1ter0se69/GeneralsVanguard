@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Fetch the dynamic MoltenVK.framework for iOS (DXVK dlopens it from the app
 # bundle at runtime). Pinned to a specific release so the packaged driver is
 # reproducible; bump MVK_VERSION + MVK_SHA256 together.
@@ -14,21 +16,8 @@ STAMP=".gx-mvk-version"
 mkdir -p "${DEST}"
 cd "${DEST}"
 
-# THE GUARD NAMES THE VERSION, AND IT NAMES THE DRIVER. It used to be `[[ -d "${FW}" ]]` alone,
-# which answers "does a directory exist at this path" - a question with no version in it and no
-# file in it. Two ways that shipped the wrong thing, both measured 2026-09-22:
-#
-#   1. Bumping MVK_VERSION + MVK_SHA256 - the exact workflow the header above prescribes - was a
-#      NO-OP on any Mac that had already staged an older release. The script printed "already
-#      staged" and exited 0 having downloaded, verified and changed nothing; package-ios-zh.sh
-#      then embedded the OLD framework and the build log showed a clean fetch. The iPad is the
-#      slowest place in this project to discover anything, and this sends you there.
-#   2. A scratch DEST holding that directory path and ZERO files took the early exit. tar lists
-#      the framework directory (member 74) before its 4.7 MB binary (member 75), so a download
-#      interrupted between the two leaves the guard permanently satisfied by an empty shell.
-#
-# MVK_SHA256 cannot cover either: it is only ever checked on bytes that are downloaded, and in
-# this path nothing is. So the stamp is the only record of which release produced this tree.
+# The guard checks the version stamp and the driver file, not just the directory: otherwise a bumped
+# MVK_VERSION/MVK_SHA256 is a no-op on a Mac with an older release, and an empty framework shell takes the early exit.
 if [[ -f "${FW}/MoltenVK" && "$(cat "${STAMP}" 2>/dev/null)" == "${MVK_VERSION}" ]]; then
     echo "MoltenVK ${MVK_VERSION} already staged at ${DEST}"
     exit 0

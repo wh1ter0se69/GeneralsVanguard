@@ -1,29 +1,25 @@
-// GeneralsX: CLEARER WATER, a client-only look option (look S8a, 5.1;
-// "actual water ... invisible/white water compared to the blue one"). It is ON by default from 0.9.66 (gxWaterClearOptionOn
-// below): Options.ini GXWaterClear = no turns it off; GX_WATER_CLEAR=0/1 overrides the key for A/B arms.
-//
-// HOW RETAIL DRAWS STANDING WATER. The frame's destination alpha is cleared to TransparentWaterMinOpacity (M) every frame
-// (W3DDisplay::draw's Begin_Render, W3DView, W3DShaderManager). Terrain tiles near a shore - every tile with a vertex less
-// than TransparentWaterDepth * M under the surface - are drawn again into destination alpha only, through a 256-texel LUT
-// (BaseHeightMap::updateShorelineTile, initDestAlphaLUT): texel t = depth / (D * M), alpha = min(t, M). The water polygons
-// are then blended with SRC = DESTALPHA, DEST = INVDESTALPHA (W3DWater.cpp drawTrapezoidWater). So the water's opacity
-// rises from 0 at the shore line with slope 1 / (D * M) and stops at M, which it reaches at depth D * M * M - NOT at D, as
-// the PLAN assumed. Deep water is M opaque: stock M is 1, so the sea floor is never seen.
-//
-// WHAT THIS CHANGES. Two Water values, as one more override on TheWaterTransparency's chain, after the map's own map.ini
-// blocks: M falls toward kGxWaterClearMinOpacity (deep water shows the sea floor through it), and D grows so the fade ends
-// kGxWaterClearReach times further out than the map's own fade did. In D * M * M terms, so the reach survives the lower M:
-// "D x 1.6" alone, at M 0.6, would END the fade at 1.6 * 0.36 = 0.58 of today's distance - shorter, not longer. Rivers are
-// untouched: drawRiverWater blends with its own vertex alpha and never reads destination alpha. Nothing else changes: the
-// colours, the textures, the sky names (W3DWater.cpp mapChoseOwnSky compares those), the radar colour are copied.
-//
-// RENDER-ONLY. Every reader of these two values is render code (BaseHeightMap, W3DWater, W3DWaterTracks, W3DShaderManager,
-// W3DView, W3DDisplay); the simulation never reads TheWaterTransparency (GameLogic::reset only deletes the map's overrides).
-// This header is pure logic with no engine include and sits in Core/GameEngine/Include/GameClient, outside the SimID digest
-// (resources/gitinfo/simsourcedigest_watcher.cmake); never include it from Common/, GameLogic/ or GameNetwork/. The engine
-// glue is W3DDevice/GameClient/Water/GXWaterClearGlue.inl, outside every GX-SIMID region.
-//
-// The engine-free functions below are what scripts/test/look-water-clear-test.sh checks.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// CLEARER WATER, client-only, ON by default: GXWaterClear = no turns it off; GX_WATER_CLEAR=0/1 overrides it.
+// Retail's shore-tile alpha LUT makes opacity reach M at depth D*M*M; this lowers M and grows D so the fade
+// ends kGxWaterClearReach times further out. Rivers are untouched.
+// RENDER-ONLY: the simulation never reads TheWaterTransparency. Never include from Common/, GameLogic/, GameNetwork/.
 
 #pragma once
 
@@ -111,9 +107,8 @@ inline GxWaterClearValues gxWaterClearApply(float depth, float minOpacity, float
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
-// The Options.ini key. GeneralsX: ON BY DEFAULT from 0.9.66 (for wh1ter0se, who chose this water
-// from the look-water-3 pictures, where clearer and live water were on together): an Options.ini without GXWaterClear draws
-// clearer water, and GXWaterClear = no turns it off.
+// The Options.ini key. ON BY DEFAULT: an Options.ini without GXWaterClear draws clearer water, and
+// GXWaterClear = no turns it off.
 static const bool kGxWaterClearDefaultOn = true;
 
 // The key's value read exactly as UserPreferences::getBool reads it (UserPreferences.cpp:193): missing or empty ->

@@ -18,9 +18,9 @@
 # ordinal that travels the wire raw - a map-added upgrade in MSG_QUEUE/CANCEL_UPGRADE - is the open code item 4c:
 # its fix is a stable wire id or a bracketed range, not digesting every layout that interns a name.
 
-@Third-party code. Its version is pinned by vcpkg.json / vcpkg-lock.json and cmake/*.cmake, which the digest's BUILD list hashes.
-build/*/vcpkg_installed/*
-build/*/_deps/*
+@Third-party code. Its version is pinned by vcpkg.json / vcpkg-lock.json and cmake/*.cmake, which the digest's BUILD list hashes. In any build directory, inside the tree or not (no tracked path has a _deps or vcpkg_installed directory).
+*/vcpkg_installed/*
+*/_deps/*
 
 @Windows, gadgets, menus, load screens and the shell. The simulation drives them - show, hide, announce - and reads nothing back.
 Core/GameEngine/Source/GameClient/GUI/*

@@ -313,8 +313,8 @@ void EMPUpdate::doDisableAttack()
 #if RETAIL_COMPATIBLE_CRC
 						// TheSuperHackers @fix Okladnoj PR #2742 - ported to GeneralsX 04/08/2026.
 						// Take the LOGIC draws unconditionally, outside the particle guard. On a headless peer
-						// createParticleSystem returns nullptr, so these draws used to be skipped there and taken
-						// on rendering peers - separating the shared logic seed. The values are discarded; they
+						// createParticleSystem returns nullptr, so skipping these draws there while rendering peers
+						// took them would separate the shared logic seed. The values are discarded; they
 						// exist to keep the seed identical on every peer. See Common/RandomValue.h.
 						{
 							Coord3D offs = {0,0,0};

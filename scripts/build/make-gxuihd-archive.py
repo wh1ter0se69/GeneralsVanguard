@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Hand-drawn occupancy pips for renders 1440p and taller: the members of !GXUIHD.big.
 
   make-gxuihd-archive.py <out-dir>
@@ -28,7 +30,7 @@ PAL = {
     'W': (255, 255, 255),   # full pip: highlight (retail grey, tinted)
     'L': (205, 205, 205),   # full pip: body
     'M': (129, 129, 129),   # full pip: shade
-    'K': (0, 0, 0),         # the rim (owner's pick E): black stays black under the tint, so the colours are untouched
+    'K': (0, 0, 0),         # the rim: black stays black under the tint, so the colours are untouched
     'X': (0, 0, 0),         # empty pip: outline
     'b': (115, 99, 87),     # empty pip: fill
     # Ammo pips (rocket pods, bombs): retail's own palette, drawn UNtinted - SCPAmmoFull's orange/yellow, SCPAmmoEmpty's grey-brown.

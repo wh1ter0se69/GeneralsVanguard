@@ -1,6 +1,24 @@
-// GeneralsX: S7 PREREG A41: what the device must hold (tags + a clamped instance's own light) for
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// What the device must hold (tags + a clamped instance's own light) for
 // each draw boundary the mesh renderer reports - pure logic, host-tested (scripts/test/sm-fit/sm-fit-test.cpp A41-tag-*), used by the ZH
-// glue (W3DShadowMap.cpp), which sends each value to the device only when it changes (integrator A40 T4: on change only, no stale own light).
+// glue (W3DShadowMap.cpp), which sends each value to the device only when it changes (on change only, no stale own light).
 // Render-only.
 #pragma once
 

@@ -599,9 +599,9 @@
   ],
   "homepage": "https://gstreamer.freedesktop.org",
   "source": "gst-plugins-base1.0",
-  "source_version": "1.24.2-1ubuntu0.5",
+  "source_version": "1.24.2-1ubuntu0.6",
   "text": "1562456a438e",
-  "version": "1.24.2-1ubuntu0.5"
+  "version": "1.24.2-1ubuntu0.6"
  },
  "libgstreamer-plugins-base1.0-0": {
   "files": [
@@ -615,9 +615,9 @@
   ],
   "homepage": "https://gstreamer.freedesktop.org",
   "source": "gst-plugins-base1.0",
-  "source_version": "1.24.2-1ubuntu0.5",
+  "source_version": "1.24.2-1ubuntu0.6",
   "text": "1562456a438e",
-  "version": "1.24.2-1ubuntu0.5"
+  "version": "1.24.2-1ubuntu0.6"
  },
  "libgstreamer1.0-0": {
   "files": [
@@ -1267,9 +1267,9 @@
   ],
   "homepage": "https://wiki.gnome.org/Projects/libsoup",
   "source": "libsoup3",
-  "source_version": "3.4.4-5ubuntu0.10",
+  "source_version": "3.4.4-5ubuntu0.11",
   "text": "d567c723cb08",
-  "version": "3.4.4-5ubuntu0.10"
+  "version": "3.4.4-5ubuntu0.11"
  },
  "libsoxr0": {
   "files": [

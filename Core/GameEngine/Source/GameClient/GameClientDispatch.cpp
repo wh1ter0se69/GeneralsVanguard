@@ -39,20 +39,10 @@
 	* stream before the messages go to the network for processing.  It gives
 	* the client itself the opportunity to respond to any messages on the stream
 	* or create new ones to pass along to the network and logic */
-// GeneralsX: A SELECTION OF MORE THAN 254 UNITS REACHED THE SIMULATION AS (N + 1) % 256 - 1.
-// GameMessage::getArgumentCount() is an UnsignedByte (retail counted arguments in one), and everything downstream reads
-// that count: GameLogic::onCreateSelectedGroup, the network's NetGameCommandMsg / GameMessageParser, the replay writer.
-// A box-select (SelectionXlat) or a select-across-map (InGameUI) puts every id into ONE message, so selecting 1000 units
-// put 232 of them into the logic's group - and 255, 511, 767 or 1023 put in none - while the client drew all of them as
-// selected; the next order moved only the units the logic held.
-// The message's own argument list still holds every id, so it is re-sent here, the last stop
-// before the network and the logic, as messages of at most 255 arguments: the first keeps the type, the rest are silent
-// (though no translator after this one plays a voice), and every part ADDS to the group - a replacement selection is
-// cleared first by its own MSG_DESTROY_SELECTED_GROUP (see below). A hotkey team
-// (MSG_CREATE_TEAM0-9, SelectionTranslator::onMetaCreateTeam: Ctrl+number) had the same cap; its later parts start with a
-// Boolean, which Player::processCreateTeamGameMessage reads as "add to the squad" instead of "replace it". The wire
-// format is unchanged. This file is inside the SimID digest (simsourcedigest_watcher.cmake, it decides what
-// reaches the command list), so this ships with an all-players release like any digest change.
+// A selection of more than 254 units reached the simulation as (N + 1) % 256 - 1: GameMessage::getArgumentCount()
+// is an UnsignedByte, read by GameLogic, NetGameCommandMsg / GameMessageParser and the replay writer. The list is
+// re-sent here as messages of at most 255 arguments: the first keeps the type, the rest are silent and ADD to the
+// group. Hotkey team parts start with a Boolean read as add to the squad. Wire format unchanged.
 static const Int GX_MAX_MESSAGE_ARGUMENTS = 255;	// the largest getArgumentCount() can report
 
 static Bool gxResendOversizedIdList(const GameMessage *msg)

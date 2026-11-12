@@ -16,24 +16,11 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// FILE: GXCrashLog.h /////////////////////////////////////////////////////////
+// One readable crash log per crash, in OUR folder.
 //
-// GeneralsX: One readable crash log per crash, in OUR folder.
-//
-// Before this, per platform (read on 13c750034):
-//   Windows  a minidump in <userdata>\CrashDumps\ (MiniDumper.cpp) - ours, but not readable.
-//   iOS      a backtrace appended to, which the next launch rotates.
-//   Linux    the handlers in SDL3Main.cpp were compiled but never INSTALLED (the only call was
-//            inside the iOS block), so a crash left the kernel's one dmesg line.
-//   macOS    no handler at all: the only record was the OS's .ips report under
-//            ~/Library/Logs/DiagnosticReports - another program's folder, full of home paths.
-//
-// Now every platform writes <userdata>/CrashLogs/crash-<unix time>-<pid>.txt: a short header
-// (format tag, build, reason, time) and the backtrace, with every directory stripped from every
-// path so no home folder or user name is written. The launcher reads this folder and asks the
-// player before anything leaves the machine (gxio::crashlogs).
-//
-///////////////////////////////////////////////////////////////////////////////
+// Every platform writes <userdata>/CrashLogs/crash-<unix time>-<pid>.txt: a short header and the backtrace, with
+// every directory stripped from every path so no home folder or user name is written.
+// The launcher reads this folder and asks the player before anything leaves the machine.
 
 #pragma once
 

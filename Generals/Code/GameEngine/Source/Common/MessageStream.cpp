@@ -659,7 +659,7 @@ const char *GameMessage::getCommandTypeAsString(GameMessage::Type t)
 	CASE_LABEL(MSG_DEBUG_KILL_OBJECT)
 #endif
 
-	// GeneralsX @feature LAN-safe cheats. Unconditional, matching the unconditional enum values.
+	// GeneralsX: LAN-safe cheats. Unconditional, matching the unconditional enum values.
 	// This name is what shows up in the network/CRC logs, which is exactly where a LAN test gets
 	// read - without these entries the default: arm reports them as "UnknownMessage".
 	CASE_LABEL(MSG_GX_CHEAT_GIVE_MONEY)

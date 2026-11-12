@@ -1,3 +1,21 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "types_compat.h"
 #include "module_compat.h"
 
@@ -10,7 +28,7 @@
 #include <mach-o/dyld.h>
 #endif
 
-// GeneralsX @bugfix 10/09/2026 readlink() neither NUL-terminates nor stops short of the
+// readlink() neither NUL-terminates nor stops short of the
 // buffer: it returns up to `size` bytes, so the old `buffer[count] = 0` wrote one byte past
 // a full buffer. Every caller passes the whole array (sizeof(buf) / ARRAY_SIZE(buf)), so a
 // path at or over the limit - 1024 here, see _MAX_PATH in windows_compat.h - overflowed the

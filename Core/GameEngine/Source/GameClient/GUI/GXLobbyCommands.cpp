@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: See the design note on GXLobbyCommands.h.
+// See the design note on GXLobbyCommands.h.
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
@@ -24,12 +24,35 @@
 #include "GameClient/GXLobbyPresence.h"		// GXLobbySignOut: the shared-lobby socket holds a copy of the sign-in
 #include "GameClient/GXPlayerIdentity.h"
 #include "GameClient/GXLoginFlow.h"
+#include "GameClient/DisplayString.h"			// GXChatBoxUseTimeColumn: the stamp's width in the box's font
+#include "GameClient/DisplayStringManager.h"
 #include "GameClient/GadgetListBox.h"
 #include "GameClient/GameText.h"
 #include "GameClient/GameWindow.h"
 #include "GameNetwork/LANAPI.h"			// GXLobbySignOut: TheLAN's transport holds a copy of the sign-in
 #include "GameNetwork/LANAPICallbacks.h"	// TheLAN
 #include "GameNetwork/Transport.h"
+
+#include <stdlib.h>
+#include <time.h>
+
+#if defined(__APPLE__)
+// GXLobbyTimestamp: the locale's short time pattern. CoreFoundation's header cannot be included in an engine
+// file (its MacTypes.h redefines Byte against BaseTypeCore.h), so the five calls are declared by symbol, the way
+// GXGfxProbe.h reaches the Objective-C runtime. CFIndex is a signed long, CFStringEncoding a UInt32, Boolean a UInt8.
+extern "C" const void *gxCFLocaleCopyCurrent( void ) __asm__( "_CFLocaleCopyCurrent" );
+extern "C" void *gxCFDateFormatterCreate( const void *allocator, const void *locale, long dateStyle, long timeStyle )
+	__asm__( "_CFDateFormatterCreate" );
+extern "C" const void *gxCFDateFormatterGetFormat( const void *formatter ) __asm__( "_CFDateFormatterGetFormat" );
+extern "C" unsigned char gxCFStringGetCString( const void *string, char *buffer, long size, unsigned int encoding )
+	__asm__( "_CFStringGetCString" );
+extern "C" void gxCFRelease( const void *object ) __asm__( "_CFRelease" );
+enum { GX_CF_DATE_NO_STYLE = 0, GX_CF_DATE_SHORT_STYLE = 1 };	// kCFDateFormatterNoStyle, kCFDateFormatterShortStyle
+static const unsigned int GX_CF_STRING_UTF8 = 0x08000100u;	// kCFStringEncodingUTF8
+#elif !defined(_WIN32)
+#include <langinfo.h>
+#include <locale.h>
+#endif
 
 // Colour literals live HERE rather than in multiplayer.ini, deliberately (SCOPE Phase 4f).
 // multiplayer.ini ships inside the .big archives, so recolouring a help heading through data would
@@ -40,42 +63,10 @@ static const Color GX_HELP_GROUP_COLOR  = GameMakeColor( 120, 200, 255, 255 );	/
 static const Color GX_HELP_ROW_COLOR    = GameMakeColor( 215, 215, 215, 255 );	// near white
 static const Color GX_HELP_REFUSE_COLOR = GameMakeColor( 255, 140, 140, 255 );	// soft red
 
-// GeneralsX: The role and system-line colours, in the SAME place and the
-// same form as the four above - one vocabulary, not two - and for the same dataID reason.
-//
-// A TWO-COLOUR CHAT ROW IS NOT POSSIBLE IN THIS ENGINE, so the spec's "purple name with light-green
-// text" is split across the two surfaces that can each carry one colour. Measured, not assumed:
-// DisplayString::draw takes a single Color, SentenceDataStruct (render2dsentence.h) has no colour
-// field at all, and the only markup the renderer parses is '&' for hotkeys, which carries no
-// colour. Per-CELL colour does exist (Gadget.h ListEntryCell, W3DListBox.cpp), but
-// WOLCustomLobby.wnd:ListboxChat is COLUMNS: 1 so it collapses to per-row - and promoting it to two
-// columns at runtime means reallocating columnWidth, allocating the currently-null
-// columnWidthPercentage, doing both before the first row is added or every draw heap-over-reads
-// cells[1], and imposing a fixed gutter on every line of prose.
-//
-// So: the NAME colour goes to ListboxPlayers, which is already COLUMNS: 2 and already gets per-cell
-// treatment, and the TEXT colour goes to the chat row. Both colours from the spec ship; neither is
-// dropped, and neither surface is asked to do something it cannot.
-//
-// TWO ADJACENCIES TO PRESERVE, both one careless edit from being confusing:
-//   GX_CHAT_SYSTEM_COLOR must stay distinguishable from GSCOLOR_CHAT_OWNER (255,255,0) - that is
-//   YOUR line to the room, and this is your own client talking to you alone.
-//   The ADMIN row colour must stay distinguishable from the private-message violet (220,160,255) -
-//   a whisper must never be mistakable for an announcement. Still true of the console's crimson.
-//
-// GeneralsX:
-// THE ADMIN COLOUR IS NOW THE CONSOLE'S, ON BOTH SURFACES.
-//
-// It used to be two different colours for one role: light purple on the chat row and ORANGE in the
-// name column, neither of them anything the console draws. An admin was therefore a different
-// colour in the lobby chat, in the player list and on the website - which is three ways to learn a
-// role and no way to recognise one. Both are now panel.css's --accent, #D62B44, taken from
-// GXChatLine.h so the value has exactly one home; see the long note there for what the console does
-// and does not define, and for why the moderator green below is unchanged.
-//
-// The split between a NAME colour and a ROW colour survives - it exists because a listbox row
-// carries one colour and the two surfaces are the only way to ship both halves of the spec - but
-// the two halves of the ADMIN's pair are no longer different hues.
+// Role and system-line colours, kept beside the four above for the same dataID reason.
+// A chat row carries one colour: the NAME colour goes to ListboxPlayers (COLUMNS: 2), the TEXT colour to the chat row.
+// Keep GX_CHAT_SYSTEM_COLOR distinct from GSCOLOR_CHAT_OWNER (255,255,0), and ADMIN from whisper violet (220,160,255).
+// The ADMIN colour is the console's panel.css --accent #D62B44 on both surfaces, taken from GXChatLine.h.
 static Color gxWebTone( unsigned int rgb, Color fallback )
 {
 	if (rgb == (unsigned int)GX_WEB_TONE_NONE)
@@ -85,9 +76,6 @@ static Color gxWebTone( unsigned int rgb, Color fallback )
 }
 
 static const Color GX_CHAT_SYSTEM_COLOR     = GameMakeColor( 250, 240, 130, 255 );	// pale yellow
-// The console draws no moderator at all, so there is nothing to match and these keep what they had.
-static const Color GX_CHAT_MOD_TEXT_COLOR   = GameMakeColor( 170, 235, 170, 255 );	// light green
-static const Color GX_ROLE_MOD_NAME_COLOR   = GameMakeColor( 185, 130, 255, 255 );	// purple
 
 /// Upper bound on the rows one /help group can print. Sized well above s_commands so the sort
 /// buffer below can never be the thing that truncates the list; a static assert would be better
@@ -108,6 +96,7 @@ enum GXLobbyGroup
 							 GX_SCREEN_BIT(GX_LOBBY_SCREEN_LAN) | \
 							 GX_SCREEN_BIT(GX_LOBBY_SCREEN_GAME))
 #define GX_ON_ONLINE		GX_SCREEN_BIT(GX_LOBBY_SCREEN_ONLINE)
+#define GX_ON_SCORE			GX_SCREEN_BIT(GX_LOBBY_SCREEN_SCORE)
 #define GX_ON_ONLINE_GAME	(GX_SCREEN_BIT(GX_LOBBY_SCREEN_ONLINE) | \
 							 GX_SCREEN_BIT(GX_LOBBY_SCREEN_GAME))
 #define GX_ON_LAN			(GX_SCREEN_BIT(GX_LOBBY_SCREEN_LAN) | \
@@ -127,16 +116,13 @@ struct GXLobbyCommandDef
 // a row in the wrong place cannot silently un-sort what the player reads.
 static const GXLobbyCommandDef s_commands[] =
 {
-	{ "help",     L"[command]",      "GUI:GXHelpHelp",     L"list the commands, or explain one",               GX_ON_ALL,         GX_LOBBY_GROUP_CHAT    },
-	{ "clear",    nullptr,           "GUI:GXHelpClear",    L"empty this chat box",                             GX_ON_ALL,         GX_LOBBY_GROUP_CHAT    },
-	// GeneralsX: LAN ONLY, and the mask is load-bearing. /me is served by
-	// LANAPI::RequestPlayerChat, which only the LAN screens and the score screen call; the relay
-	// lobby sends its own bytes and would broadcast the line verbatim. Listing it on ONLINE would
-	// turn a clear refusal into "/me waves" said out loud.
-	{ "me",       L"<text>",         "GUI:GXHelpMe",       L"say what you are doing, in the third person",     GX_ON_LAN,         GX_LOBBY_GROUP_CHAT    },
+	{ "help",     L"[command]",      "GUI:GXHelpHelp",     L"list the commands, or explain one",               GX_ON_ALL | GX_ON_SCORE, GX_LOBBY_GROUP_CHAT },
+	{ "clear",    nullptr,           "GUI:GXHelpClear",    L"empty this chat box",                             GX_ON_ALL | GX_ON_SCORE, GX_LOBBY_GROUP_CHAT },
+	// GeneralsX @feature No /me: not listed, so every screen's guard refuses
+	// "/me x" with the unknown-command note and sends nothing; "//me x" is said literally, as a normal line.
 	{ "msg",      L"<name> <text>",  "GUI:GXHelpMsg",      L"private message - only they see it",              GX_ON_ONLINE,      GX_LOBBY_GROUP_CHAT    },
 	{ "r",        L"<text>",         "GUI:GXHelpReply",    L"answer the last person who messaged you",         GX_ON_ONLINE,      GX_LOBBY_GROUP_CHAT    },
-	// GeneralsX: /ignore takes a friend CODE too, for somebody absent.
+	// /ignore takes a friend CODE too, for somebody absent.
 	{ "ignore",   L"<name, P3 or code>", "GUI:GXHelpIgnore",   L"hide someone's chat - a code works even when they are not here", GX_ON_ONLINE, GX_LOBBY_GROUP_CHAT },
 	{ "unignore", L"<name, P3 or code>", "GUI:GXHelpUnignore", L"stop hiding them",                            GX_ON_ONLINE,      GX_LOBBY_GROUP_CHAT    },
 	{ "friends",  nullptr,           "GUI:GXHelpFriends",  L"your friends list, and who is online",            GX_ON_ONLINE,      GX_LOBBY_GROUP_FRIENDS },
@@ -148,9 +134,8 @@ static const GXLobbyCommandDef s_commands[] =
 	// offering /login on the LAN screen would be offering a verb that starts something no screen
 	// there ever reports on. Logging out is a file delete and works anywhere, but it belongs beside
 	// its opposite rather than on a screen where logging in is impossible.
-	// (Since 23/09/2026 Zero Hour's LanLobbyMenuUpdate does drain GXLoginFlow::takeMessage, because
-	// its relay notice tells the player to type /login and the dispatch below takes it on any screen;
-	// the Generals LAN screen still reports nothing, so the mask stays.)
+	// (Zero Hour's LanLobbyMenuUpdate does drain GXLoginFlow::takeMessage, since its relay notice tells the
+	// player to type /login; the Generals LAN screen reports nothing, so the mask stays.)
 	{ "login",    nullptr,           "GUI:GXHelpLogin",    L"link your Discord account",                       GX_ON_ONLINE,      GX_LOBBY_GROUP_FRIENDS },
 	{ "logout",   nullptr,           "GUI:GXHelpLogout",   L"unlink it again",                                 GX_ON_ONLINE,      GX_LOBBY_GROUP_FRIENDS },
 #if RTS_ZEROHOUR
@@ -159,7 +144,7 @@ static const GXLobbyCommandDef s_commands[] =
 	// sources are compiled once per product (they reach each target through the
 	// corei_gameengine_private INTERFACE library), so this really does discriminate - the same way
 	// Core/.../GameClient/MapUtil.cpp:994 already uses it.
-	// GeneralsX: GX_ON_ALL: the LAN browser now applies it too, and its
+	// GX_ON_ALL: the LAN browser now applies it too, and its
 	// handler also moves the name box - LanLobbyMenuShutdown writes the pref FROM that box, so a
 	// /nick that left it alone was silently reverted on leaving the screen.
 	{ "nick",     L"<name>",         "GUI:GXHelpNick",     L"change the name everyone sees",                   GX_ON_ALL,         GX_LOBBY_GROUP_GAME    },
@@ -180,22 +165,13 @@ static const Int s_commandCount = sizeof(s_commands) / sizeof(s_commands[0]);
  */
 
 /*
- * "Type /login again to renew" has to actually renew on the second /login.
- *
- * It did not. Every /login with a verified identity took the status branch and returned, so the
- * message was an instruction whose only effect was to reprint itself - the one case where a
- * player is TOLD to do something and the game quietly refuses. Found by the cross-model review of
- * the merged range, not by anyone using it, which is its own comment on how visible it was.
- *
- * The arm is the confirmation state the message already implies, and it is deliberately NOT a
- * timer: the prompt says "again", the player answers "again", and a clock that silently disarms
- * between the two would recreate the same dead end for a slow reader. It is process-lifetime and
- * one-shot - consumed the moment the flow starts - so it cannot open a browser twice, and it can
- * only ever be armed by the player having just been shown the prompt.
+ * "Type /login again to renew" must renew on the second /login; the arm is that confirmation state.
+ * It is deliberately not a timer (a slow reader would be disarmed) and is one-shot: consumed when the flow starts,
+ * so it cannot open a browser twice, and only the prompt arms it.
  */
 static Bool s_renewArmed = FALSE;
 
-// GeneralsX: See GXLobbyCommands.h. Defined here, beside s_renewArmed,
+// See GXLobbyCommands.h. Defined here, beside s_renewArmed,
 // because disarming a renewal is part of signing out and that flag is private to this file.
 GXSignOutResult GXLobbySignOut( void )
 {
@@ -216,7 +192,7 @@ GXSignOutResult GXLobbySignOut( void )
 	if (TheLAN != nullptr && TheLAN->getTransport() != nullptr)
 		TheLAN->getTransport()->sendRelayIdentity("");
 
-	// GeneralsX: And the lobby presence socket's copy - the THIRD one, since
+	// And the lobby presence socket's copy - the THIRD one, since
 	// that socket now declares the identity too so that mute and ban reach lobby chat. Cleared whole,
 	// with the clear the optimiser may not drop, and the relay is told to forget the account for that
 	// membership. It is needed HERE and not only in the lobby's change detector: that socket lives for
@@ -240,7 +216,7 @@ static void gxHandleLogin( GXLobbySayFunc say )
 		UnicodeString line;
 		UnicodeString name;
 		name.translate(AsciiString(GXPlayerIdentity::getVerifiedName()));
-		// GeneralsX: BOT MODE HAS NO RENEWAL TO OFFER. A bot login lives 24 h, so it
+		// BOT MODE HAS NO RENEWAL TO OFFER. A bot login lives 24 h, so it
 		// always reads 0 days below: the first /login offered a renewal and the second promised a browser that
 		// GXLoginFlow::start() refuses in bot mode, corrected one line late. Say who renews it; arm nothing.
 		if (GXPlayerIdentity::isBotMode())
@@ -538,6 +514,10 @@ Bool GXLobbyChatCommand( const AsciiString &line, GXLobbyScreen screen,
 	if (say == nullptr || !gxSplitCommand(line, verb, rest))
 		return FALSE;
 
+	// The score screen runs /help and /clear only; the guard refuses everything else typed there.
+	if (screen == GX_LOBBY_SCREEN_SCORE && verb != "help" && verb != "clear")
+		return FALSE;
+
 	if (verb == "help")
 	{
 		if (rest.isEmpty())
@@ -555,7 +535,7 @@ Bool GXLobbyChatCommand( const AsciiString &line, GXLobbyScreen screen,
 		if (chatListbox != nullptr)
 			GadgetListBoxReset(chatListbox);
 
-		// GeneralsX: The block above no longer exists - say so explicitly.
+		// The block above no longer exists - say so explicitly.
 		// The entry-count guard inside GXLobbyChatRow catches this in every case but one: a box
 		// holding a single row is emptied to zero, and zero is also the count it recorded before
 		// that row went in, so "undisturbed" reads true and the hint below would print indented
@@ -576,19 +556,9 @@ Bool GXLobbyChatCommand( const AsciiString &line, GXLobbyScreen screen,
 
 	if (verb == "logout")
 	{
-		// GeneralsX: NOT INSIDE A RELAY GAME ROOM - a deliberate refusal.
-		//
-		// Signing out there used to be half a sign-out: the claims and the file went, but nothing
-		// cleared the transport's copy, which went on re-declaring the account to the relay every
-		// 30 s for as long as the room lasted. Clearing it properly is no better in a room: the relay
-		// then holds a member with no identity, and a relay that requires one removes that member -
-		// out of a room other players are waiting in. Neither is an acceptable result of typing a
-		// command, so the room says no and says where it can be done. The lobbies are unaffected.
-		//
-		// RELAY ROOMS ONLY (cross-model review, 18/09/2026). A plain LAN room has no relay to hold
-		// or drop anyone, so refusing there took away a working command for a hazard that does not
-		// exist. Only a signed-in player is refused - with nothing to sign out of, there is nothing
-		// a room could lose.
+		// NOT INSIDE A RELAY GAME ROOM: signing out there leaves the relay a member with no identity, and a relay that
+		// requires one removes that member from a room others are waiting in. So the room refuses and says where to do it.
+		// Relay rooms only, and only a signed-in player is refused; plain LAN rooms and the lobbies are unaffected.
 		const Bool relayRoom = (TheLAN != nullptr && TheLAN->getTransport() != nullptr
 			&& TheLAN->getTransport()->isRelayEnabled());
 		if (screen == GX_LOBBY_SCREEN_GAME && relayRoom && GXPlayerIdentity::hasVerifiedIdentity())
@@ -597,31 +567,10 @@ Bool GXLobbyChatCommand( const AsciiString &line, GXLobbyScreen screen,
 				L"Leave this game room first, then sign out from the lobby."), GX_HELP_REFUSE_COLOR);
 			return TRUE;
 		}
-		// GeneralsX @bugfix wh1ter0se 11/08/2026 Cancel any flow still waiting on the browser, and
-		// disarm the renewal, BEFORE dropping the identity.
-		//
-		// This became reachable with the renewal path above and was not before it: a waiting flow
-		// used to imply signed-OUT, so /logout returned at the guard and never cleared anything.
-		// A renewal is the first thing that holds a verified identity and a pending flow at the
-		// same time. Without this, approving that renewal in the browser after typing /logout is
-		// still accepted by GXLoginFlow::update(), which signs the player back in seconds after
-		// the game told them they were signed out - and the listening socket outlives the
-		// intent that opened it. cancel() is unconditional and idempotent. (Cross-model review.)
-		//
-		// GeneralsX: The cancel, the disarm and the delete now live in
-		// GXLobbySignOut, which the lobby's right-click "Sign Out" shares - so the sequence above
-		// is stated once. It also clears the transport's copy, which this verb never did.
-		//
-		// Deleting a file needs no HTTPS, so unlike logging IN this works on all four platforms
-		// including Windows - which is why it is not behind SAGE_UPDATE_CHECK.
-		//
-		// THE RETURN VALUE IS REPORTED. The claims are dropped either way, so the player is signed
-		// out for this session regardless - but if the file survived, they are signed back in at
-		// the next launch, and a message saying "signed out" would be a lie that costs them a
-		// second attempt to work out. (Cross-model review, 11/08/2026.)
-		//
-		// Each result has its own words because each is a different fact. NOT_SIGNED_IN keeps the
-		// old reply; any leftovers were still cleaned up behind it.
+		// Cancel any flow waiting on the browser and disarm the renewal BEFORE dropping the identity: a renewal holds both
+		// a verified identity and a pending flow, and approving it after /logout would sign the player straight back in.
+		// The sequence is GXLobbySignOut, shared with the lobby's right-click Sign Out. Its result is reported: if the file
+		// survived, the player is signed back in next launch, so "signed out" would be wrong.
 		switch (GXLobbySignOut())
 		{
 			case GX_SIGNOUT_DONE:
@@ -680,7 +629,7 @@ Bool GXLobbyTakeNickRest( const UnicodeString &line, UnicodeString &outRest )
 	}
 	// Space OR tab, matching AsciiString::nextToken's separator set - a pasted "/nick\tBob" that
 	// this helper refused would be recognised as a valid verb by the ascii dispatch and then
-	// BROADCAST as chat by the guard, name and all (cross-model review's catch).
+	// BROADCAST as chat by the guard, name and all.
 	if (*c != L'\0' && *c != L' ' && *c != L'\t')
 		return FALSE;
 	while (*c == L' ' || *c == L'\t')
@@ -703,26 +652,10 @@ Bool GXLobbyGuardUnknownCommand( AsciiString &line, GXLobbyScreen screen, GXLobb
 	// in any other case - see the note on the declaration.
 	if (line.getLength() > 1 && line.getCharAt(1) == '/')
 	{
-		// BUT NOT WHEN THE SEND PATH WOULD READ IT BACK AS A COMMAND.
-		//
-		// The LAN screens do not send the line themselves - they hand it to LANAPI::RequestChat,
-		// which parses it AGAIN with applyLobbyCommand (password, pass, nopassword, private,
-		// public, lobbyhelp). So "//password hunter2" would be stripped to "/password hunter2"
-		// here and then silently BIND A PASSWORD instead of saying the words, which is both a
-		// surprise and a disclosure of intent the player did not make.
-		//
-		// The relay lobby has no such second parser - it calls applyLobbyCommand BEFORE this guard
-		// and sends the bytes raw afterwards - so the escape is unrestricted there.
-		//
-		// The collision set is EXACTLY what applyLobbyCommand consumes, listed literally rather
-		// than derived from the tables above. Deriving it from "every verb visible on this screen"
-		// was too broad: it refused "//help" and "//clear", which LANAPI has never heard of and
-		// would have forwarded as ordinary chat.
-		//
-		// A literal list is a duplicate of LANAPI.cpp:1189-1248 and that is deliberate. LANAPI.cpp
-		// is inside the SimID source digest, so this branch may not edit it to export the set; and
-		// a list that is too SHORT only costs a surprising side effect, while one that is too LONG
-		// silently disables a documented escape. If a verb is ever added there, add it here.
+		// BUT NOT when the send path would re-read it as a command: LAN screens hand the line to LANAPI::RequestChat, which
+		// parses it again with applyLobbyCommand, so "//password x" stripped to "/password x" would bind a password.
+		// The relay lobby has no second parser, so the escape is unrestricted there.
+		// The verb list is a literal copy of what applyLobbyCommand consumes (LANAPI.cpp is digested): add new verbs here too.
 		if (screen != GX_LOBBY_SCREEN_ONLINE)
 		{
 			static const char *const reparsedByLanApi[] =
@@ -786,7 +719,7 @@ Bool GXLobbyGuardUnknownCommand( AsciiString &line, GXLobbyScreen screen, GXLobb
 }
 
 // ================================================================================================
-// GeneralsX: Role presentation. See the declarations in the header.
+// Role presentation. See the declarations in the header.
 // ================================================================================================
 
 GXAssertRole GXLobbyRoleFromCode( const char *code )
@@ -806,23 +739,22 @@ GXAssertRole GXLobbyRoleFromCode( const char *code )
 
 UnicodeString GXLobbyDecorateName( const UnicodeString &name, GXAssertRole role )
 {
+	// GeneralsX @feature One name shape on every chat surface: "[Name]", "[@Name]" for an admin,
+	// "[+Name]" for a moderator. The mark comes from the role only; any role mark at the front of the
+	// name itself is dropped (GXChatLine.h gxChatNameStart), so no name can draw as a role.
+	const UnicodeString bare( name.str() + gxChatNameStart( name.str() ) );
 	UnicodeString out;
 	switch (role)
 	{
 		case GX_ROLE_MOD:
-			// Angle brackets AND the '@', so a moderator is distinguishable from an admin without
-			// relying on colour at all. A player who cannot tell the two greens apart - or who is
-			// reading a screenshot - still can.
-			out.format(L"<@%ls>", name.str());
+			out.format(L"[+%ls]", bare.str());
 			break;
 		case GX_ROLE_ADMIN:
-			out.format(L"@%ls", name.str());
+			out.format(L"[@%ls]", bare.str());
 			break;
 		case GX_ROLE_PLAYER:
 		default:
-			// Unchanged from what this screen has always drawn. An ordinary player's line must not
-			// move a pixel because roles now exist.
-			out.format(L"[%ls]", name.str());
+			out.format(L"[%ls]", bare.str());
 			break;
 	}
 	return out;
@@ -845,10 +777,24 @@ UnicodeString GXLobbySaid( const UnicodeString &speaker, const UnicodeString &bo
 	return out;
 }
 
+UnicodeString GXMatchOperatorName( GXAssertRole role )
+{
+	// GeneralsX @feature In a match the player lines are drawn by ConnectionManager::processChat (in the
+	// simulation digest) as "[<their own name>]: text" with no name check, so a bracketed operator name
+	// could be copied by a player called "@Admin". An unbracketed one cannot: every player line there
+	// starts with '['.
+	UnicodeString out;
+	if (role == GX_ROLE_MOD)
+		out.format(L"<@%ls>", TheGameText->FETCH_OR_SUBSTITUTE("GUI:GXModeratorName", L"Mod").str());
+	else
+		out.format(L"@%ls", TheGameText->FETCH_OR_SUBSTITUTE("GUI:GXOperatorName", L"Admin").str());
+	return out;
+}
+
 UnicodeString GXLobbyOperatorName( GXAssertRole role )
 {
-	// GeneralsX: THE ROLE IS AN ARGUMENT, because it used to be the constant
-	// GX_ROLE_ADMIN and a moderator's line was drawn as "@Admin". The name and the
+	// THE ROLE IS AN ARGUMENT, because it used to be the constant
+	// GX_ROLE_ADMIN and a moderator speaking through /api/say was drawn as "@Admin". The name and the
 	// decoration move together on purpose: "<@Admin>" would be a third thing that is neither.
 	if (role == GX_ROLE_MOD)
 	{
@@ -866,8 +812,8 @@ Color GXLobbyRoleTextColor( GXAssertRole role, Color fallback )
 	// "an ordinary line" keeps it.
 	switch (role)
 	{
-		case GX_ROLE_MOD:   return GX_CHAT_MOD_TEXT_COLOR;
-		case GX_ROLE_ADMIN: return gxWebTone(GX_WEB_TONE_ADMIN, fallback);
+		case GX_ROLE_MOD:   return gxWebTone(GX_CHAT_TONE_MOD, fallback);
+		case GX_ROLE_ADMIN: return gxWebTone(GX_CHAT_TONE_ADMIN, fallback);
 		case GX_ROLE_PLAYER:
 		default:            return fallback;
 	}
@@ -877,11 +823,77 @@ Color GXLobbyRoleNameColor( GXAssertRole role, Color fallback )
 {
 	switch (role)
 	{
-		case GX_ROLE_MOD:   return GX_ROLE_MOD_NAME_COLOR;
-		case GX_ROLE_ADMIN: return gxWebTone(GX_WEB_TONE_ADMIN, fallback);
+		case GX_ROLE_MOD:   return gxWebTone(GX_CHAT_TONE_MOD, fallback);
+		case GX_ROLE_ADMIN: return gxWebTone(GX_CHAT_TONE_ADMIN, fallback);
 		case GX_ROLE_PLAYER:
 		default:            return fallback;
 	}
+}
+
+// GeneralsX @feature The OS's short time pattern, as the platform spells it; "" when it cannot be read.
+static void gxOsShortTimePattern( char *out, size_t size )
+{
+	out[0] = '\0';
+#if defined(_WIN32)
+	wchar_t wide[80];
+	if (GetLocaleInfoW(LOCALE_USER_DEFAULT, LOCALE_STIMEFORMAT, wide, (int)(sizeof(wide) / sizeof(wide[0]))) > 0)
+	{
+		size_t i = 0;
+		for (; wide[i] != L'\0' && i + 1 < size; ++i)
+			out[i] = (wide[i] < 0x80) ? (char)wide[i] : '?';	// only the ASCII field letters matter
+		out[i] = '\0';
+	}
+#elif defined(__APPLE__)
+	// The short time style follows the user's own 12/24-hour switch, not just the region default.
+	const void *locale = gxCFLocaleCopyCurrent();
+	if (locale != NULL)
+	{
+		void *fmt = gxCFDateFormatterCreate(NULL, locale, GX_CF_DATE_NO_STYLE, GX_CF_DATE_SHORT_STYLE);
+		if (fmt != NULL)
+		{
+			const void *pattern = gxCFDateFormatterGetFormat(fmt);	// owned by the formatter
+			if (pattern == NULL || gxCFStringGetCString(pattern, out, (long)size, GX_CF_STRING_UTF8) == 0)
+				out[0] = '\0';
+			gxCFRelease(fmt);
+		}
+		gxCFRelease(locale);
+	}
+#else
+	// The environment's LC_TIME, read without touching the process-wide locale.
+	locale_t loc = newlocale(LC_TIME_MASK, "", (locale_t)0);
+	if (loc != (locale_t)0)
+	{
+		const char *pattern = nl_langinfo_l(T_FMT, loc);
+		if (pattern != NULL)
+		{
+			strncpy(out, pattern, size - 1);
+			out[size - 1] = '\0';
+		}
+		freelocale(loc);
+	}
+#endif
+}
+
+// TRUE when chat stamps read 12-hour. Asked once per process. GX_CHAT_CLOCK=12 or 24 overrides it, for
+// tests and pictures.
+static Bool gxChatClockTwelveHour( void )
+{
+	static Int s_twelve = -1;
+	if (s_twelve < 0)
+	{
+		const char *forced = getenv("GX_CHAT_CLOCK");
+		if (forced != NULL && strcmp(forced, "12") == 0)
+			s_twelve = 1;
+		else if (forced != NULL && strcmp(forced, "24") == 0)
+			s_twelve = 0;
+		else
+		{
+			char pattern[96];
+			gxOsShortTimePattern(pattern, sizeof(pattern));
+			s_twelve = gxChatTwelveHourFromPattern(pattern) ? 1 : 0;
+		}
+	}
+	return s_twelve == 1;
 }
 
 UnicodeString GXLobbyTimestamp( void )
@@ -889,6 +901,9 @@ UnicodeString GXLobbyTimestamp( void )
 	// LOCAL time, not UTC. A player reads this against the clock on their own wall; a UTC stamp
 	// would be correct and useless. No timezone suffix - it would cost width in a pane that wraps,
 	// to say something the reader already knows.
+	//
+	// The reader's own clock format: "21:16 " on a 24-hour system, "9:16PM " on a 12-hour one
+	// (GXChatLine.h gxChatClockText).
 	const time_t nowT = time(NULL);
 	const struct tm *lt = localtime(&nowT);
 	UnicodeString out;
@@ -899,14 +914,15 @@ UnicodeString GXLobbyTimestamp( void )
 		// message rather than a timestamp.
 		return out;
 	}
-	out.format(L"%02d:%02d ", (Int)lt->tm_hour, (Int)lt->tm_min);
+	char stamp[GX_CHAT_CLOCK_MAX];
+	gxChatClockText((Int)lt->tm_hour, (Int)lt->tm_min, gxChatClockTwelveHour() != FALSE, stamp);
+	out.translate(AsciiString(stamp));
 	return out;
 }
 
 UnicodeString GXLobbySystemPrefix( void )
 {
-	// The TAG goes first and the stamp follows it with no separator - "[S]04:44 ". See the design
-	// note on the header for why the 2026-08-11 ordering was reversed.
+	// The TAG goes first and the stamp follows it with no separator - "[S]04:44 ". See the design note on the header.
 	UnicodeString out(L"[S]");
 	out.concat(GXLobbyTimestamp());
 	return out;
@@ -921,7 +937,7 @@ UnicodeString GXLobbyRoomPrefix( void )
 	return out;
 }
 
-// GeneralsX: One prefix per run of like lines. Design note on the header.
+// One prefix per run of like lines. Design note on the header.
 
 /// What a continuation line carries instead of the prefix.
 ///
@@ -998,4 +1014,230 @@ UnicodeString GXLobbyChatRow( GameWindow *listbox, const UnicodeString &prefix,
 
 	s_rowEntries = entries;
 	return out;
+}
+
+// ---------------------------------------------------------------------------------------------
+// GeneralsX @feature THE CHAT BOXES: a gray time column beside the words.
+//
+// A listbox row draws each CELL in one colour (DisplayString::draw takes one Color, and there is no
+// colour markup), so a gray time beside white or crimson words needs two cells: the chat boxes are
+// one column in their .wnd and are given a second here, when the screen creates them. Rows allocate
+// their cells lazily with the box's column count, so the switch happens on an empty box (reset first)
+// and every row after it has two cells. A box this cannot change stays one column and gets the time
+// inline, in the line's colour.
+//
+// EVERY WRITER TO A TWO-COLUMN BOX COMES THROUGH GXChatBoxAdd. A row added without a column lands in
+// column 0, the narrow time column; GXChatBoxAdopt moves such a row (written by code that cannot be
+// changed here) into the text column.
+
+static const Color GX_CHAT_MUTED_COLOR = GameMakeColor( (GX_CHAT_TONE_MUTED >> 16) & 0xFF, (GX_CHAT_TONE_MUTED >> 8) & 0xFF,
+	GX_CHAT_TONE_MUTED & 0xFF, 255 );
+
+Color GXChatPlayerColor( void )
+{
+	return GameMakeColor( (GX_CHAT_TONE_PLAYER >> 16) & 0xFF, (GX_CHAT_TONE_PLAYER >> 8) & 0xFF, GX_CHAT_TONE_PLAYER & 0xFF, 255 );
+}
+
+Color GXChatMutedColor( void )
+{
+	return GX_CHAT_MUTED_COLOR;
+}
+
+Color GXChatNoticeColor( Color requested )
+{
+	(void)requested;		// every notice is gray: a red refusal read like an admin's crimson
+	return GX_CHAT_MUTED_COLOR;
+}
+
+Bool GXChatBoxUseTimeColumn( GameWindow *listbox )
+{
+	GXLobbyChatRowReset();		// a new box: its first notice never continues the last box's run
+	if (listbox == nullptr)
+		return FALSE;
+	ListboxData *list = (ListboxData *)listbox->winGetUserData();
+	if (list == nullptr || list->columns != 1 || list->columnWidth == nullptr || list->listData == nullptr)
+		return FALSE;
+
+	Int totalWidth = 0, height = 0;
+	listbox->winGetSize(&totalWidth, &height);
+	if (list->slider)
+	{
+		ICoord2D sliderSize;
+		list->slider->winGetSize(&sliderSize.x, &sliderSize.y);
+		totalWidth -= sliderSize.x;
+	}
+
+	// The widest stamp this clock prints, in the box's own font.
+	Int stampWidth = 0;
+	if (TheDisplayStringManager != nullptr)
+	{
+		DisplayString *probe = TheDisplayStringManager->newDisplayString();
+		if (probe != nullptr)
+		{
+			probe->setFont(listbox->winGetFont());
+			probe->setText(gxChatClockTwelveHour() ? UnicodeString(L"12:00PM") : UnicodeString(L"00:00"));
+			stampWidth = probe->getWidth();
+			TheDisplayStringManager->freeDisplayString(probe);
+		}
+	}
+	if (stampWidth <= 0 || totalWidth <= 0)
+		return FALSE;
+
+	// Wide enough that the stamp never wraps (a cell wraps at its width less TEXT_WIDTH_OFFSET), plus
+	// a gap before the words.
+	const Int need = stampWidth + TEXT_WIDTH_OFFSET + TEXT_X_OFFSET;
+	Int timePct = (need * 100 + totalWidth - 1) / totalWidth;
+	while (timePct < 50 && timePct * totalWidth / 100 < need)
+		++timePct;
+	if (timePct >= 50)
+		return FALSE;		// a box too narrow for a time column keeps the time inline
+
+	GadgetListBoxReset(listbox);		// frees every row's one-column cells
+	for (Int i = 0; i < list->listLength; ++i)
+	{
+		if (list->listData[i].cell != nullptr)
+			return FALSE;
+	}
+
+	Int *pct = NEW Int[2];
+	Int *widths = NEW Int[2];
+	pct[0] = timePct;
+	pct[1] = 100 - timePct;
+	for (Int i = 0; i < 2; ++i)
+		widths[i] = pct[i] * totalWidth / 100;
+	delete[] list->columnWidth;
+	delete[] list->columnWidthPercentage;
+	list->columnWidth = widths;
+	list->columnWidthPercentage = pct;
+	list->columns = 2;
+	return TRUE;
+}
+
+static Bool gxChatBoxHasTimeColumn( GameWindow *listbox )
+{
+	const ListboxData *list = (listbox != nullptr) ? (const ListboxData *)listbox->winGetUserData() : nullptr;
+	return list != nullptr && list->columns == 2;
+}
+
+Int GXChatBoxAdd( GameWindow *listbox, const UnicodeString &tag, const UnicodeString &body, Color color )
+{
+	if (listbox == nullptr)
+		return -1;
+
+	const UnicodeString stamp = GXLobbyTimestamp();
+	if (body.isEmpty())
+		return GXChatBoxAdd(listbox, tag, UnicodeString(L" "), color);	// column 1 is never empty (GXChatBoxAdopt)
+	Int index = -1;
+	if (!gxChatBoxHasTimeColumn(listbox))
+	{
+		UnicodeString text;
+		if (tag.isEmpty())
+		{
+			UnicodeString spoken = stamp;
+			spoken.concat(body);
+			text = GXLobbyChatRow(listbox, UnicodeString::TheEmptyString, spoken);
+		}
+		else
+		{
+			UnicodeString prefix = tag;
+			prefix.concat(stamp);
+			text = GXLobbyChatRow(listbox, prefix, body);
+		}
+		index = GadgetListBoxAddEntryText(listbox, text, color, -1, -1);
+	}
+	else
+	{
+		UnicodeString time = stamp;
+		time.trim();
+		UnicodeString text;
+		if (tag.isEmpty())
+		{
+			GXLobbyChatRow(listbox, UnicodeString::TheEmptyString, body);	// somebody talking closes a notice run
+			text = body;
+		}
+		else
+		{
+			// A run of notices in the same minute prints its tag and time once, as in a one-column box.
+			UnicodeString prefix = tag;
+			prefix.concat(stamp);
+			const UnicodeString row = GXLobbyChatRow(listbox, prefix, body);
+			if (row.startsWith(prefix))
+			{
+				text = tag;
+				text.concat(L' ');
+				text.concat(body);
+			}
+			else
+			{
+				time.clear();
+				text = row;
+			}
+		}
+		index = GadgetListBoxAddEntryText(listbox, time, GX_CHAT_MUTED_COLOR, -1, 0);
+		if (index >= 0)
+			GadgetListBoxAddEntryText(listbox, text, color, index, 1);
+	}
+	if (index >= 0)
+		GadgetListBoxSetItemData(listbox, (void *)-1, index);
+	return index;
+}
+
+void GXChatBoxAdopt( GameWindow *listbox )
+{
+	// The whole box, not just the newest rows: a full box drops its top row as it adds one, so "rows
+	// added since" is not an index. A row GXChatBoxAdd wrote always has text in column 1.
+	if (!gxChatBoxHasTimeColumn(listbox))
+		return;
+	Bool adopted = FALSE;
+	const Int rows = GadgetListBoxGetNumEntries(listbox);
+	for (Int row = 0; row < rows; ++row)
+	{
+		if (!GadgetListBoxGetText(listbox, row, 1).isEmpty())
+			continue;
+		Color written = 0;
+		const UnicodeString text = GadgetListBoxGetTextAndColor(listbox, &written, row, 0);
+		if (text.isEmpty())
+			continue;
+		UnicodeString time = GXLobbyTimestamp();
+		time.trim();
+		UnicodeString notice(L"[S] ");
+		notice.concat(text);
+		GadgetListBoxAddEntryText(listbox, time, GX_CHAT_MUTED_COLOR, row, 0);
+		GadgetListBoxAddEntryText(listbox, notice, GXChatNoticeColor(written), row, 1);
+		adopted = TRUE;
+	}
+	if (!adopted)
+		return;
+
+	// An overwrite only ever grows a row, and the adopted row grew while its words wrapped in the narrow
+	// time column. Lay the box out again exactly as GadgetListBox.cpp computeTotalHeight does (it is static
+	// there), then let GLM_UPDATE_DISPLAY place the view at the end.
+	ListboxData *list = (ListboxData *)listbox->winGetUserData();
+	const Bool oneLine = BitIsSet(listbox->winGetStatus(), WIN_STATUS_ONE_LINE);
+	Int height = 0;
+	for (Int i = 0; i < list->endPos; ++i)
+	{
+		ListEntryRow &entry = list->listData[i];
+		if (entry.cell == nullptr)
+			continue;
+		Int rowHeight = 0;
+		for (Int j = 0; j < list->columns; ++j)
+		{
+			Int cellHeight = 0;
+			if (entry.cell[j].cellType == LISTBOX_TEXT)
+			{
+				if (oneLine)
+					cellHeight = TheWindowManager->winFontHeight(listbox->winGetFont());
+				else if (entry.cell[j].data != nullptr)
+					((DisplayString *)entry.cell[j].data)->getSize(nullptr, &cellHeight);
+			}
+			if (cellHeight > rowHeight)
+				rowHeight = cellHeight;
+		}
+		entry.height = rowHeight;
+		height += rowHeight + 1;
+		entry.listHeight = height;
+	}
+	list->totalHeight = height;
+	TheWindowManager->winSendSystemMsg(listbox, GLM_UPDATE_DISPLAY, (WindowMsgData)list->endPos, 0);
 }

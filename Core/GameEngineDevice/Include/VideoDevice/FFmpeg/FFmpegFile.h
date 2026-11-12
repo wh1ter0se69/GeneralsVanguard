@@ -57,7 +57,7 @@ public:
 	void setUserData(void *user_data) { m_userData = user_data; }
 	// Read & decode a packet from the container. Note that we could/should split this step
 	Bool decodePacket();
-	// GeneralsX @bugfix 14/06/2026 TRUE end-of-file reached (av_read_frame==AVERROR_EOF),
+	// GeneralsX: TRUE end-of-file reached (av_read_frame==AVERROR_EOF),
 	// as opposed to a transient decode error. Used to detect a finished one-shot stream.
 	Bool isAtEof() const { return m_atEof; }
 	void seekFrame(int frame_idx);

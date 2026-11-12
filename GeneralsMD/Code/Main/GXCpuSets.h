@@ -1,20 +1,27 @@
-// GeneralsX: prefer the V-cache CCD on X3D CPUs.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Prefer the V-cache CCD on X3D CPUs.
 //
-// A Ryzen X3D part with two CCDs (7900X3D, 7950X3D, 9900X3D, 9950X3D) has a large L3 on one CCD and a normal one
-// on the other. AMD's driver moves a game onto the cache CCD only when Windows Game Mode is on AND Windows knows
-// the program is a game; GeneralsX is not on that list, so Windows ran it on the other CCD. Measured on the
-// owner's 9950X3D with his own 6v6 replay (PART 2): cache CCD
-// 37.8-43.3 fps / 3.8-4.1 ms tick, unpinned (= the other CCD) 29.0-32.2 fps / 5.95-6.1 ms.
-//
-// So at startup, when the L3 domains are equally wide but the largest L3 is at least 2.5x the smallest (V-cache
-// is 3x: 96 vs 32 MB), the process's default CPU sets become the logical processors under the LARGEST L3. CPU sets
-// are a scheduler preference, not an affinity mask: every thread without its own CPU sets (the main thread, the
-// engine's and DXVK's workers) prefers those processors, and an affinity mask set by the user or a launcher still
-// wins (Microsoft, "CPU Sets"). A single L3 or L3s within 2.5x (Intel, non-X3D AMD, 7800X3D, dual-V-cache parts)
-// and L3 domains of different widths (AMD hybrids like Strix Point) change nothing. GX_CPUSETS=0 turns it off.
-//
-// NOT IN THE SIMULATION DIGEST: GeneralsMD/Code/Main is not a digested root, and where a thread runs changes no
-// game state. The decision is plain C++ so it is tested on any host by scripts/test/x3d-cpusets-test.cpp.
+// Windows does not know the game should run on the large-L3 CCD of a dual-CCD Ryzen X3D part. At startup, when
+// L3 domains are equally wide but the largest is at least 2.5x the smallest (V-cache is 3x: 96 vs 32 MB), the
+// default CPU sets become the logical processors under the LARGEST L3 (a preference, not an affinity mask).
+// GX_CPUSETS=0 turns it off.
 #pragma once
 
 #include <cstdint>

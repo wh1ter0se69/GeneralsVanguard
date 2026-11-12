@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Download C&C game data from your own Steam account.
 #
 # Usage:
@@ -7,7 +9,7 @@
 #
 # Steam Guard: you'll be prompted for the code on first login.
 #
-# GeneralsX: --with-generals, and it is the fix for "why is there no
+# --with-generals, and it is the fix for "why is there no
 # music". Zero Hour's music list asks for 57 tracks and a Zero Hour install carries 8 of them; the
 # other ~50 live in the ORIGINAL Generals, and Zero Hour ships a stub in their place (its
 # Music.big is 768 KB and contains one non-audio file, generalsa.sec - measured, not assumed).
@@ -31,8 +33,6 @@ for arg in "$@"; do
     esac
 done
 
-#
-#
 ZH_APP=2732960        # Command & Conquer(tm) Generals Zero Hour
 GEN_APP=2229870       # Command & Conquer(tm) Generals
 

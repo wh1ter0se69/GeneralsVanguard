@@ -628,9 +628,9 @@ void SidesList::addSide(const Dict* d)
 	}
 	else
 	{
-		// GeneralsX: This drop used to be SILENT in release. The dropped
+		// GeneralsX: Report this drop in release too. The dropped
 		// side is whichever arrives last - typically the neutral or the ReplayObserver - and the
-		// match then plays with players who own nothing while every count still reads full. Say so.
+		// match then plays with players who own nothing while every count still reads full.
 		fprintf(stderr, "[GXCAP] SidesList::addSide: side table full (%d of %d) - dropping side '%s'\n",
 			m_numSides, (Int)MAX_PLAYER_COUNT,
 			d ? d->getAsciiString(TheKey_playerName).str() : "(null)");

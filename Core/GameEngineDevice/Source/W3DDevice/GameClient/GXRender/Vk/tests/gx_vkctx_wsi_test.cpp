@@ -1,16 +1,25 @@
-// GeneralsX: WS-B WSI window test: an SDL3 window, a 1024x768 "game resolution" image with
-// one triangle, presented through VkSwapchain's pillarbox exactly as the game presents its offscreen target.
-//
-//   gx_vkctx_wsi_test [--arm clean|no-present-transition|stretch|no-recovery|all] [--frames N] [--no-validation]
-//
-// Phases (N frames each): windowed 1280x720 -> resized 1600x900 -> fullscreen -> windowed again -> device loss (simulated,
-// then the real recovery: everything torn down and rebuilt on the same window). At the end of each phase the presented
-// swapchain image is read back: fit-rect centre = triangle red, fit-rect corner = clear colour, bars = black.
-// Per phase: extent, present mode, fps, recreations. Arms:
-//   clean                  expect CLEAN    - every phase presents, pixels right, 0 validation errors
-//   no-present-transition  expect DETECTED - the image is presented without its PRESENT_SRC transition: validation reports
-//   stretch                expect DETECTED - the blit ignores the fit rect: the bar pixels are not black
-//   no-recovery            expect DETECTED - after the simulated loss nothing is rebuilt: no frame presents again
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// WSI window test: an SDL3 window, a 1024x768 image with one triangle, presented through VkSwapchain's
+// pillarbox as the game does. Phases: windowed -> resized -> fullscreen -> windowed -> simulated device loss
+// and real recovery; each reads back the presented image. Fail arms expect DETECTED: no-present-transition
+// (validation), stretch (bars not black), no-recovery (no frame presents).
 #include "../VkCtx.h"
 #include "../VkFrameRing.h"
 #include "../VkSwapchain.h"
@@ -186,7 +195,7 @@ void destroyScene(VkCtx& ctx, Scene& s)
 	if (!ctx.initialized())
 		return;
 	VkDevice d = ctx.device();
-	ctx.waitIdle();   // drains the submit thread first (R19)
+	ctx.waitIdle();   // drains the submit thread first
 	if (s.pipeline)
 		vkDestroyPipeline(d, s.pipeline, nullptr);
 	if (s.layout)
@@ -251,7 +260,7 @@ void recordScene(VkCommandBuffer cmd, const Scene& s)
 		VK_ACCESS_2_TRANSFER_READ_BIT);
 }
 
-// FG P0 H2 (rw3-T-7's shape): a counting present hook. What it records answers the arms' questions - every
+// A counting present hook. What it records answers the arms' questions - every
 // present that reached the driver called start then end once, on ONE thread (the caller at thread 0, gx-vk-submit at thread 1, there with
 // the queue mutex held), end saw the driver's answer, and no other present called either.
 struct HookProbe
@@ -340,8 +349,8 @@ struct World
 	bool fullscreen = false;
 	bool validation = true;
 	bool abortOnError = false;
-	bool submitThread = false;   // R19: force the submit thread on (otherwise GX_VK_SUBMIT_THREAD decides)
-	bool submitThreadOff = false;   // FG P0 H2: force it off (the inline present)
+	bool submitThread = false;   // force the submit thread on (otherwise GX_VK_SUBMIT_THREAD decides)
+	bool submitThreadOff = false;   // force it off (the inline present)
 };
 
 bool build(World& w, std::string* why)
@@ -452,7 +461,7 @@ struct ArmResult
 ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 {
 	ArmResult res;
-	// FG P0 H2: present-hook-inline / -thread / -skip are CLEAN arms (a counting hook on every present); X-present-hook-skip plants a hook
+	// present-hook-inline / -thread / -skip are CLEAN arms (a counting hook on every present); X-present-hook-skip plants a hook
 	// call around the TEST-injected present (no driver call) and must be DETECTED
 	const bool hookArm = arm.rfind("present-hook", 0) == 0 || arm == "X-present-hook-skip";
 	const bool hookSkip = arm == "present-hook-skip" || arm == "X-present-hook-skip";
@@ -462,7 +471,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 		g_testMutants.presentSkipTransition = true;
 	if (arm == "stretch")
 		g_testMutants.presentStretch = true;
-	// R19: the thread runs a queued present before the queued submit that signals its semaphore - the layer must report it and,
+	// The thread runs a queued present before the queued submit that signals its semaphore - the layer must report it and,
 	// with call suppression on, the present never reaches the driver (it could strand MoltenVK)
 
 	World w;
@@ -488,7 +497,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 		return res;
 	}
 
-	// R19: the present-first plant only under an ACTIVE layer, which suppresses the inverted present;
+	// The present-first plant only under an ACTIVE layer, which suppresses the inverted present;
 	// without it the present would reach MoltenVK before its signalling submit
 	if (arm == "X-thread-presentfirst") {
 		if (!w.ctx.validationEnabled() || !w.ctx.submitThreaded()) {
@@ -575,7 +584,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 			SDL_Event ev;
 			while (SDL_PollEvent(&ev)) {
 			}
-			// R19: under the submit thread the previous present's answer arrives here (Ok without the thread); DeviceLost is the
+			// Under the submit thread the previous present's answer arrives here (Ok without the thread); DeviceLost is the
 			// acquire's to report
 			const VkSwapchain::Status prevSt = w.swapchain.takePresentStatus();
 			if (hookArm && pendingToken) {
@@ -641,7 +650,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 			w.swapchain.recordPresent(f->cmd, image, w.scene.image, kGameW, kGameH, check ? w.scene.readback : VK_NULL_HANDLE);
 			SubmitDesc extra;
 			w.swapchain.addSubmitSync(f->slot, image, &extra);
-			// R19: one frame per phase is queued WITH its present behind a hold, so the thread meets both at once (FIFO order)
+			// One frame per phase is queued WITH its present behind a hold, so the thread meets both at once (FIFO order)
 			const bool held = w.ctx.submitThreaded() && frame == 3;
 			if (held)
 				w.ctx.testHoldAt(w.ctx.queue(QueueKind::Graphics).timeline.lastSubmitted() + 1);
@@ -699,7 +708,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 			w.swapchain.extent().width, w.swapchain.extent().height, VkSwapchain::modeName(w.swapchain.presentMode()),
 			presented, secs > 0 ? presented / secs : 0.0, recreates, skipped);
 	}
-	if (w.ctx.initialized()) {   // R19: the last present's answer and every queued op are in before the verdict
+	if (w.ctx.initialized()) {   // the last present's answer and every queued op are in before the verdict
 		w.ctx.waitIdle();
 		const VkSwapchain::Status fin = w.swapchain.takePresentStatus();
 		if (hookArm && pendingToken)
@@ -769,7 +778,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 			bool good = !presentFailed && pixelChecks == 4 && allPixelsOk && vc.errors == 0 && expect > kForcedAt && s == expect && e == expect &&
 				probe.unpaired == 0 && probe.open == 0 && probe.threadMismatch == 0 && probe.tokenMismatch == 0 && probe.dupTokens == 0 &&
 				distinctResults == expect && resultMismatch == 0 && resultChecks == expect && forced == VK_SUBOPTIMAL_KHR;
-			if (arm == "present-hook-inline")   // the caller's thread, no lock at start or end (rw3-T-7 correction (a))
+			if (arm == "present-hook-inline")   // the caller's thread, no lock at start or end
 				good = good && !threaded && probe.onMain == s && probe.endOnMain == e && probe.lockHeld == 0 && probe.endLockHeld == 0 &&
 					probe.hostHeld == 0 && probe.endHostHeld == 0;
 			else   // gx-vk-submit, under hostLock + the queue mutex, at start AND end
@@ -815,9 +824,9 @@ int main(int argc, char** argv)
 		                  : std::vector<std::string>{ "clean", "stretch", "no-recovery" };
 		const char* st = std::getenv("GX_VK_SUBMIT_THREAD");
 		if (validation && !(st && std::strcmp(st, "0") == 0))
-			arms.push_back("X-thread-presentfirst");   // R19: needs the layer to see the inverted present
+			arms.push_back("X-thread-presentfirst");   // needs the layer to see the inverted present
 		for (const char* h : { "present-hook-inline", "present-hook-thread", "present-hook-skip", "X-present-hook-skip" })
-			arms.push_back(h);   // FG P0 H2
+			arms.push_back(h);
 	}
 	else
 		arms.push_back(arm);

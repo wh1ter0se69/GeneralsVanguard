@@ -1,22 +1,25 @@
-// GeneralsX: WS-B VkCtx v0 self-test: every gate and every fail arm in one binary.
-//
-//   gx_vkctx_test [--arm NAME|all] [--no-validation] [--device SEL] [--loader PATH]
-//
-// Arms (each in a fresh VkCtx; "all" = every arm, the default):
-//   clean                 expect CLEAN    - device line, barrier copy chain, frame ring under a held GPU, upload ring under
-//                                           delayed consumption + overflow, timestamp provenance VALIDATED, frame scopes,
-//                                           and 0 validation errors
-//   missing-barrier       expect DETECTED - the copy chain without its barrier: synchronization validation must report
-//                                           SYNC-HAZARD-READ-AFTER-WRITE
-//   ring-no-wait          expect DETECTED - VkFrameRing reuses a slot without waiting: core validation must report the
-//                                           pool reset of a pending command buffer
-//   upload-reclaim-early  expect DETECTED - VkUploadRing reclaims without the timeline: the read-back must mismatch
-//   upload-atom-shared    expect DETECTED - ranges packed ignoring the non-coherent atom: live ranges share an atom
-//   ts-period-mutant      expect DETECTED - tick period x1.5: provenance must be REJECTED (gap probe, upper bound)
-//   ts-period-low         expect DETECTED - tick period x0.8: provenance must be REJECTED (gap probe, lower bound)
-//   ts-no-work            expect DETECTED - end stamp written before the workload: provenance must be REJECTED (scale probe)
-//   bad-loader            expect DETECTED - a loader path that does not exist: init() must fail cleanly with a reason
-// Prints [GXVK] lines; exit code 0 only if every arm behaved as expected.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// VkCtx self-test: every gate and fail arm in one binary.
+// gx_vkctx_test [--arm NAME|all] [--no-validation] [--device SEL]
+// The clean arm expects 0 validation errors; every other arm plants one defect and expects DETECTED.
+// Exit 0 only if every arm behaved as expected.
 #include "../VkCtx.h"
 #include "../VkFrameRing.h"
 #include "../VkGpuTimer.h"
@@ -75,7 +78,7 @@ struct HostGate
 	VkDevice device = VK_NULL_HANDLE;
 	VkSemaphore sem = VK_NULL_HANDLE;
 	std::thread thread;
-	std::atomic<int64_t> openedNs { 0 };   // steady_clock time the gate was signalled (0 = not yet): the R19 arms' boundary
+	std::atomic<int64_t> openedNs { 0 };   // steady_clock time the gate was signalled (0 = not yet): the submit-thread arms' boundary
 	std::atomic<bool> safetyOpened { false };   // openWhenBlocked opened it on its 10 s safety limit: NO boundary was observed, so
 	                                            // the arm's experiment is invalid, clean or planted
 
@@ -138,7 +141,7 @@ struct HostGate
 		if (thread.joinable())
 			thread.join();
 		if (sem) {
-			ctx->waitIdle();   // drains the submit thread first (R19)
+			ctx->waitIdle();   // drains the submit thread first
 			vkDestroySemaphore(device, sem, nullptr);
 		}
 		sem = VK_NULL_HANDLE;
@@ -415,7 +418,7 @@ bool testUploadRing(VkCtx& ctx, int holdMs, VkUploadRing::Stats* stats, uint32_t
 	return ok;
 }
 
-// A consumer that is NOT the next submission (rw1-C's case: a rename drawn later / copied later): the bytes are tagged with
+// A consumer that is NOT the next submission (a rename drawn later / copied later): the bytes are tagged with
 // pending()+1, an unrelated submission completes, the ring is then filled past capacity, and only then does the second
 // submission read them. The ring must neither reuse them (read-back intact) nor wait forever (overflow goes dedicated).
 bool testDeferredConsumer(VkCtx& ctx, std::string* detail)
@@ -556,7 +559,7 @@ bool testFrameScopes(VkCtx& ctx, VkGpuTimer& timer, double* scopeMs, std::string
 	return ok;
 }
 
-// ------------------------------------------------------------------------------------------- the submit thread (R19, rw3-V)
+// ------------------------------------------------------------------------------------------- the submit thread
 // Every arm builds its starting state behind VkCtx::testHoldAt (the thread stops before a given
 // value) and ASSERTS it before acting; fail arms plant one defect through g_testMutants.
 
@@ -622,7 +625,7 @@ bool testThreadOrder(VkCtx& ctx, std::string* d)
 	}
 	const bool lastOk = gfx(ctx).wait(last);
 	ctx.waitIdle();   // settles the retirements before they are counted
-	// each retirement ran once, after its value completed; their callback ORDER is not part of the retire() contract (rw3V-code-r1)
+	// each retirement ran once, after its value completed; their callback ORDER is not part of the retire() contract
 	std::vector<uint64_t> order = seen->order;
 	const uint32_t retired = seen->retired;
 	std::sort(order.begin(), order.end());
@@ -740,7 +743,7 @@ struct InflightObs
 	SubmitRefusal refusal;
 };
 
-// The integrator's shared case (A21 amendment 2 (1)): N-1 is held ON THE GPU behind a host gate and N is refused. A caller
+// Shared case: N-1 is held ON THE GPU behind a host gate and N is refused. A caller
 // that tracks a resource by its LAST use waits on N; that wait may answer false only once N-1 has completed - the refusal's drain
 // runs before the latch is visible - so at its return completed() >= N-1 and the gate has opened. wait(N-1) is TRUE and both
 // retirements run after the gate.
@@ -984,17 +987,10 @@ bool initCtx(VkCtx& ctx, const Options& opt, bool abortOnError, std::string* why
 	return ctx.init(desc, why);
 }
 
-// R26: MoltenVK can report a probe's stamps unavailable for a moment after the probe's submission completed (OBSERVED at
-// 33d36f1cc: 1 record-test gputime run in 10, and 1 fresh-context validate() in 177 - too rare to gate on), so the arms make it
-// happen on demand (TestMutants::gpuTimerLateMs) and run validate() once:
-//   gputime-settle      stamps late by 5 ms       -> VALIDATED, and BOTH probes' reads were rescued by the window (gap and scale
-//                                                    each > 0: r26-r1 #2)
-//   gputime-neverstamp  stamps never WRITTEN      -> REJECTED "timestamps unavailable", the read giving up after its 50 ms window
-//                       (gpuTimerNoStamps: a      (50-80 ms, measured by the timer: r26-r1 #3); a watchdog ends a hung validate() -
-//                        real unwritten query)     a WAIT read would block on it on a conformant driver (r26-r2 #2). MoltenVK 1.4.2
-//                                                  does NOT block (OBSERVED: WAIT_BIT planted, this arm still passed), so on this
-//                                                  platform the WAIT guard is readPair's static_assert, not this arm (r26-r4)
-//   X-gputime-nosettle  late by 5 ms, one read    -> REJECTED "timestamps unavailable" (the plant: the window removed)
+// MoltenVK can report a probe's stamps unavailable briefly after the submission completed, so the arms
+// force it on demand (TestMutants::gpuTimerLateMs): gputime-settle (late 5 ms -> VALIDATED),
+// gputime-neverstamp (never written -> REJECTED after the 50 ms read window),
+// X-gputime-nosettle (window removed -> REJECTED).
 struct SettleObs
 {
 	VkGpuTimer::Provenance provenance = VkGpuTimer::Provenance::Unchecked;
@@ -1017,7 +1013,7 @@ SettleObs runSettle(VkCtx& ctx, double lateMs, bool noSettle, bool noStamps)
 	g_testMutants.gpuTimerNoStamps = noStamps;
 	const auto t0 = std::chrono::steady_clock::now();
 	std::atomic<bool> done { false };
-	std::thread watchdog([&done]() {   // a validate() that never returns (an unbounded settle) ends the run, failed (r26-r1 #3)
+	std::thread watchdog([&done]() {   // a validate() that never returns (an unbounded settle) ends the run, failed
 		for (int i = 0; i < 10000 && !done.load(); ++i)
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		if (!done.load()) {
@@ -1631,7 +1627,7 @@ int main(int argc, char** argv)
 		if (!opt.validation)
 			arms = { "clean", "upload-reclaim-early", "upload-atom-shared", "ts-period-mutant", "ts-period-low", "ts-no-work",
 				"bad-loader", "wait-device-lost", "gputime-settle", "gputime-neverstamp", "X-gputime-nosettle", "present-order" };
-		// the submit thread's arms (R19), unless the environment turned the thread off (they would only report "no gate ran")
+		// the submit thread's arms, unless the environment turned the thread off (they would only report "no gate ran")
 		const char* st = std::getenv("GX_VK_SUBMIT_THREAD");
 		if (!(st && std::strcmp(st, "0") == 0))
 			for (const char* a : { "thread-order", "thread-failed-submit", "thread-device-lost", "thread-latch-inflight",

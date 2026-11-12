@@ -76,18 +76,10 @@ Bool CachedFileInputStream::open(AsciiString path)
 		Int uncompLen = CompressionManager::getUncompressedSize(m_buffer, m_size);
 		//DEBUG_LOG(("CachedFileInputStream::open() - file %s is compressed!  It should go from %d to %d", path.str(),
 		//	m_size, uncompLen));
-		// GeneralsX: uncompLen is read verbatim out of bytes 4-7 of the
-		// file's compression wrapper, so it is entirely file-controlled and was passed straight to
-		// NEW char[]. A negative value became a ~4GB size_t; a large positive one made map
-		// enumeration - which walks every .map on disk at startup, including peer-transferred maps
-		// the user never chose to open - allocate hundreds of MB per candidate file and get the app
-		// jetsammed on iOS. An implausible size is now handled the same way a failed decompress
-		// already is: keep the compressed bytes and let the chunk parser reject the file.
-		// NOTE: this bounds the *allocation* only. REF_decode/BTREE_decode/HUFF_decode discard the
-		// destination length entirely and write until their own stream's EOF opcode, so a crafted
-		// stream can still run past uncompBuffer. Closing that hole needs a real destination bound
-		// threaded from CompressionManager::decompressData into the three EAC decoders, which is
-		// outside this file.
+		// GeneralsX: uncompLen is file-controlled, so it is bounded before the allocation; an implausible size keeps the raw
+		// bytes. NOTE: this bounds the allocation only. The EAC decoders ignore the destination length and run to their EOF
+		// opcode, so a crafted stream can still overrun uncompBuffer; closing that needs a bound passed down from
+		// CompressionManager.
 		if (uncompLen <= 0 || uncompLen > MAX_UNCOMPRESSED_CHUNK_FILE_SIZE)
 		{
 			DEBUG_LOG(("CachedFileInputStream::open() - file %s declares an implausible uncompressed size of %d bytes - using the raw data", path.str(), uncompLen));
@@ -563,13 +555,13 @@ void DataChunkTableOfContents::write( OutputStream &s )
 // Append symbols to table
 void DataChunkTableOfContents::read( ChunkInputStream &s)
 {
-	// GeneralsX: count and len used to be left uninitialized here.
+	// GeneralsX: count and len start at zero.
 	// ChunkInputStream::read() returns 0 and does NOT touch the caller's buffer once the stream
-	// is exhausted, so a truncated file (e.g. one containing nothing but the "CkMp" tag) left
-	// count as stack garbage and the loop below allocated that many pooled Mappings - a jetsam
+	// is exhausted, so on a truncated file (e.g. one containing nothing but the "CkMp" tag) count would
+	// be stack garbage and the loop below would allocate that many pooled Mappings - a jetsam
 	// kill during map enumeration, and deterministic with a crafted count of 0x7FFFFFFF. This
 	// runs from the DataChunkInput constructor, before any parser is registered, so the caller's
-	// ERROR_CORRUPT_FILE_FORMAT path never got the chance to reject the file.
+	// ERROR_CORRUPT_FILE_FORMAT path cannot reject the file first.
 	Int count = 0, i;
 	UnsignedInt maxID = 0;
 	unsigned char len = 0;

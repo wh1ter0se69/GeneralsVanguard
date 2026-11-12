@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Build Docker images for GeneralsX development
 # Usage: ./scripts/env/docker/docker-build-images.sh [linux|mingw|all]
 

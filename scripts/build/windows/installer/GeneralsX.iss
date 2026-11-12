@@ -37,12 +37,17 @@
 
 [Setup]
 AppId={{8F3C1D42-6A21-4B7E-9F0C-2E5A7D9B4C11}
-AppName=GeneralsX
+AppName=Generals Vanguard
 AppVersion={#AppVersion}
-AppPublisher=GeneralsX
+AppPublisher=Generals Vanguard
 AppPublisherURL=https://wh1ter0se.dev
-DefaultDirName={localappdata}\Programs\GeneralsX
-DefaultGroupName=GeneralsX
+; A NEW install goes to Programs\GeneralsVanguard. An existing one stays where it is: UsePreviousAppDir
+; is left at its default (yes), so running this over an install in Programs\GeneralsX keeps that folder.
+; Moving it is a separate step of its own. The Start Menu folder is only a name, so it always takes
+; the new one (UsePreviousGroup=no) and [InstallDelete] removes the old-named shortcuts.
+DefaultDirName={localappdata}\Programs\GeneralsVanguard
+DefaultGroupName=Generals Vanguard
+UsePreviousGroup=no
 DisableProgramGroupPage=yes
 DisableDirPage=no
 OutputBaseFilename=GeneralsX-Setup
@@ -54,7 +59,7 @@ PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesInstallIn64BitMode=x64compatible
 ArchitecturesAllowed=x64compatible
-UninstallDisplayName=GeneralsX
+UninstallDisplayName=Generals Vanguard
 ; The game's own icon, on the downloaded file itself. A blank generic exe in a downloads folder is
 ; the shape people are right to be suspicious of - and this installer is already unsigned, so it
 ; needs every honest signal it can carry. Same .ico the launcher embeds, so the file a person
@@ -66,13 +71,13 @@ SetupIconFile=..\loader\GeneralsX.ico
 UninstallDisplayIcon={app}\GeneralsXLauncher.exe
 ; Never write into the user's Zero Hour installation. Said here as well as in the UI because it is
 ; the single promise this installer makes that matters most.
-AppComments=Installs GeneralsX without modifying your Command & Conquer: Generals Zero Hour install.
+AppComments=Installs Generals Vanguard without modifying your Command & Conquer: Generals Zero Hour install.
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Types]
-Name: "full"; Description: "GeneralsX"
+Name: "full"; Description: "Generals Vanguard"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Shortcuts:"
@@ -90,6 +95,11 @@ Type: files; Name: "{app}\relay-settings.ini"
 Type: files; Name: "{app}\install-windows-share.ps1"
 Type: files; Name: "{app}\GeneralsX-Setup.cmd"
 Type: files; Name: "{app}\upd.txt"
+; The shortcuts every release before the rename made, so a reinstall over one leaves a single set.
+; The desktop one goes only when the new one is made in its place.
+Type: files; Name: "{autoprograms}\GeneralsX\GeneralsX.lnk"
+Type: dirifempty; Name: "{autoprograms}\GeneralsX"
+Type: files; Name: "{userdesktop}\GeneralsX.lnk"; Tasks: desktopicon
 
 ; GPL-3 + EA's additional terms (LICENSE.md: "Any propagation or conveyance of this program must include this
 ; copyright notice and these terms"): this setup exe carries the licence too, not only the payload it fetches.
@@ -111,11 +121,11 @@ Source: "..\..\..\..\THIRD_PARTY_NOTICES.txt"; DestDir: "{app}"
 Type: filesandordirs; Name: "{app}"
 
 [Icons]
-Name: "{group}\GeneralsX"; Filename: "{app}\GeneralsXLauncher.exe"; WorkingDir: "{app}"
-Name: "{userdesktop}\GeneralsX"; Filename: "{app}\GeneralsXLauncher.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{group}\Generals Vanguard"; Filename: "{app}\GeneralsXLauncher.exe"; WorkingDir: "{app}"
+Name: "{userdesktop}\Generals Vanguard"; Filename: "{app}\GeneralsXLauncher.exe"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\GeneralsXLauncher.exe"; Description: "Start GeneralsX"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\GeneralsXLauncher.exe"; Description: "Start Generals Vanguard"; Flags: nowait postinstall skipifsilent
 
 [Code]
 // Pascal Script exposes no clock of its own, so the one used for the transfer rate is
@@ -432,8 +442,8 @@ begin
 
   GameDirPage := CreateInputDirPage(wpSelectDir,
     'Your Zero Hour installation',
-    'GeneralsX is an engine. It needs your own copy of the game.',
-    'GeneralsX only ever READS from this folder. Nothing is written to it, renamed in it or ' +
+    'Generals Vanguard is an engine. It needs your own copy of the game.',
+    'Generals Vanguard only ever READS from this folder. Nothing is written to it, renamed in it or ' +
     'deleted from it, so Generals Online and your retail install keep working exactly as they do ' +
     'now.' + #13#10#13#10 +
     'This must be the folder containing INIZH.big.',
@@ -442,7 +452,7 @@ begin
   GameDirPage.Values[0] := DetectedGameDir;
 
   DownloadPage := CreateDownloadPage(
-    'Downloading GeneralsX',
+    'Downloading Generals Vanguard',
     'The engine and its data are being fetched from dl.wh1ter0se.dev.',
     @OnDownloadProgress);
 end;
@@ -757,13 +767,13 @@ begin
     begin
       DeleteFile(ExpandConstant('{tmp}\gx-skirmish-scb.keep'));   // a leftover is from an earlier, interrupted install
       if not FileCopy(ExpandConstant('{app}\Data\Scripts\SkirmishScripts.scb'), ExpandConstant('{tmp}\gx-skirmish-scb.keep'), False) then
-        RaiseException('GeneralsX: could not keep SkirmishScripts.scb before copying the retail scripts');
+        RaiseException('Generals Vanguard: could not keep SkirmishScripts.scb before copying the retail scripts');
       Exec(ExpandConstant('{cmd}'),
            '/c xcopy "' + AddBackslash(GameDir) + 'Data\Scripts" "' +
              ExpandConstant('{app}\Data\Scripts') + '" /E /I /Y /Q',
            '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
       if not FileCopy(ExpandConstant('{tmp}\gx-skirmish-scb.keep'), ExpandConstant('{app}\Data\Scripts\SkirmishScripts.scb'), False) then
-        RaiseException('GeneralsX: could not restore the generated SkirmishScripts.scb after copying the retail scripts');
+        RaiseException('Generals Vanguard: could not restore the generated SkirmishScripts.scb after copying the retail scripts');
       DeleteFile(ExpandConstant('{tmp}\gx-skirmish-scb.keep'));
     end
     else

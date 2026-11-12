@@ -16,25 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: The host-side policy that decides when a LAN match starts.
-//
-// WHY THIS IS A SEPARATE, ENGINE-FREE HEADER
-//
-// The arithmetic below is the only thing standing between "the host clicked something" and a match
-// beginning, and a mistake in it is expensive: it either starts a game nobody agreed to, or leaves
-// a lobby permanently stuck showing CANCEL. It is therefore written against plain ints and a clock
-// value passed in by the caller - no GameInfo, no GameWindow, no TheLAN - so it can be driven
-// exhaustively by a standalone test with a fake clock. See scripts/test/lan-start-policy-test.cpp,
-// which compiles THIS header and nothing else.
-//
-// WALL CLOCK, NOT FRAMES. Every deadline here is in the timeGetTime() millisecond domain. Counting
-// rendered frames instead is a mistake this codebase has already paid for once - 37ca1b7c1 fixed a
-// UI animation that strobed on a fast machine because it counted frames - and a countdown that ran
-// at a different speed per peer would be far worse than a cosmetic strobe.
-//
-// Comparisons use the signed difference (now - deadline) rather than `now >= deadline`, because
-// timeGetTime() is a 32-bit millisecond counter that wraps roughly every 49.7 days. A plain
-// comparison across the wrap either fires 49 days early or never fires at all.
+// Host-side policy for when a LAN match starts, on plain ints and a caller-supplied clock (no engine types),
+// so scripts/test/lan-start-policy-test.cpp can drive it with a fake clock.
+// Deadlines are wall-clock timeGetTime() ms, never frames: every peer must count at the same speed.
+// Compare (now - deadline) as signed: the 32-bit counter wraps every ~49.7 days.
 
 #pragma once
 

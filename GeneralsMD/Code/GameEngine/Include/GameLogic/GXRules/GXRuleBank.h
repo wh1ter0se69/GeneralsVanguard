@@ -1,4 +1,22 @@
-// GeneralsX: AI RULE BANK, the engine side (2.2.2-2.2.7, rb-core plan
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// AI RULE BANK, the engine side (2.2.2-2.2.7, rb-core plan
 // Task 4). One GXRuleBank per skirmish AI player (AISkirmishPlayer owns it): the three AI_PLAYER_GX_RULE* actions configure it, ONE call in
 // AISkirmishPlayer::update() runs it and returns at once while no rule is enabled, AISkirmishPlayer::xfer saves it in its own block. The
 // decisions are GXRuleCore.h's (pure, unit-tested); this layer adapts them to the engine: rule instances, the context a rule reads the
@@ -95,15 +113,15 @@ public:
 	/// a PERMISSION hook ("may I spend / sell / build"): the AND of every enabled rule's answer
 	Bool permitHook(int hook, const char *context);
 
-	/// SENSE.ENEMY_FACTION (GeneralsX 01/11/2026 rb-sense-1), the AI_PLAYER_GX_SENSE condition: TRUE iff this AI fairly knows `enemy`'s
-	/// faction and it is `faction` - the BASE side (USA, China, GLA: PlayerTemplate BaseSide) once known from the lobby or from 3 fair
-	/// sightings, or the lobby's own side (America, ChinaTankGeneral, ...) when the lobby showed it. Never the resolved side of a Random
-	/// slot. A question changes nothing: whether the bank looks is decided once per game from the scripts - if any
-	/// loaded script list holds AI_PLAYER_GX_SENSE, every bank runs the sighting pass (every half second, staggered by player, until
-	/// every tracked player is known or mixed); a game whose scripts never ask (every shipped scb) costs nothing.
+	/// SENSE.ENEMY_FACTION, the AI_PLAYER_GX_SENSE condition: TRUE iff this AI fairly knows the faction of `enemy` and it is `faction` -
+	/// the BASE side (USA, China, GLA: PlayerTemplate BaseSide) once known from the lobby or from 3 fair sightings, or the lobby side
+	/// (America, ChinaTankGeneral, ...) when the lobby showed it. Never the resolved side of a Random slot. A question changes nothing:
+	/// whether the bank looks is decided once per game from the scripts - if any loaded script list holds AI_PLAYER_GX_SENSE, every bank
+	/// runs the sighting pass (every half second, staggered by player, until every tracked player is known or mixed); a game whose
+	/// scripts never ask (every shipped scb) costs nothing.
 	Bool senseEnemyFaction(const Player *enemy, const char *faction);
-	/// SENSE.FOG_CONDITIONS (GeneralsX 02/11/2026 rb-sense-2), the AI_PLAYER_GX_SEEN_COUNT condition: how many of `who`'s units and
-	/// buildings (owner and template AS SEEN) of `types` this AI's own units and buildings see NOW (GXRuleSense::seenOf, computed at this ask); -1 for no
+	/// SENSE.FOG_CONDITIONS, the AI_PLAYER_GX_SEEN_COUNT condition: how many units and buildings of `who` (owner and template AS SEEN)
+	/// of `types` the units and buildings of this AI see NOW (GXRuleSense::seenOf, computed at this ask); -1 for no
 	/// player or this AI itself. Reads only; no state, no snapshot.
 	Int seenCount(const Player *who, const ObjectTypes &types);
 	/// the AI_PLAYER_GX_SEEN_VALUE condition: the build cost of `who`'s ARMED units and buildings (as seen; neither dozers nor harvesters)
@@ -207,7 +225,7 @@ std::vector<gxrb::PlanRow> gxTierPlanTeams(const std::vector<std::string> &names
 /// copies the row's stock position instead - the broken copy N3's team-contents check must catch
 int gxTierTeamCopySource(const gxrb::PlanRow &row);
 /// test-instruments builds: ev=tier_team for a team the filter REPLACED - the team AS STORED (after addTeam) and the stock twin's dict, by
-/// their teamMaxInstances, so a gate proves the replacement's CONTENTS were taken, not only its name (r3-lensB)
+/// their teamMaxInstances, so a gate proves the replacement's CONTENTS were taken, not only its name
 void gxRuleLogTeamPick(const Player *player, TeamsInfo *stored, const Dict *stock, const std::string &name);
 /// once per player per game start (test-instruments builds): ev=tier when GX_RULE_TIER_TEST set this player's tier
 void gxRuleLogTier(const Player *player);

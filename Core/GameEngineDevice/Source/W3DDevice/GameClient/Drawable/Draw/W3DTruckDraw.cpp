@@ -172,22 +172,10 @@ void W3DTruckDraw::createWheelEmitters()
 			{
 				if (const ParticleSystemTemplate *sysTemplate = TheParticleSystemManager->findTemplate(*effectNames[i]))
 				{
-					// GeneralsX: Guard the createParticleSystem result.
-					//
-					// A headless peer installs ParticleSystemManagerDummy (SDL3GameEngine.cpp:1390),
-					// whose createParticleSystem returns nullptr unconditionally - while the draw
-					// modules themselves still run. The template check above only proves the
-					// template exists, so it does NOT cover this. The deref below was unconditional
-					// and killed the Linux host outright the first time a truck needed its dust,
-					// dirt or powerslide emitter: measured 2026-08-04, segfault writing
-					// ParticleSystem::m_attachedToObjectID at this+0x29c with this==nullptr, in
-					// ParticleSystem::attachToObject+14, at frame 10791 of a four-platform match.
-					//
-					// Leaving m_truckEffectIDs[i] as INVALID_PARTICLE_SYSTEM_ID simply retries next
-					// frame, exactly as the missing-template branch below already does.
-					//
-					// No CRC impact: GameEngineDevice is not a digested path and nothing here draws
-					// from either random stream.
+					// GeneralsX: Guard the createParticleSystem result: a headless peer installs ParticleSystemManagerDummy,
+					// which returns nullptr while the draw modules still run, and the template check above does not cover it.
+					// Leaving m_truckEffectIDs[i] INVALID_PARTICLE_SYSTEM_ID retries next frame.
+					// No CRC impact: GameEngineDevice is not a digested path and nothing here draws from either random stream.
 					ParticleSystem *particleSys = TheParticleSystemManager->createParticleSystem( sysTemplate );
 					if (particleSys == nullptr)
 						continue;

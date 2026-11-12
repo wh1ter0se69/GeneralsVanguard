@@ -124,18 +124,10 @@ public:
 
 extern void pickAndPlayUnitVoiceResponse( const DrawableList *list, GameMessage::Type msgType, PickAndPlayInfo *info = nullptr );
 
-// GeneralsX: Expose the frame pacing steps to non-keyboard callers.
-//
-// These two live in CommandXlat.cpp because the MSG_META_*_MAX_RENDER_FPS / *_LOGIC_TIME_SCALE key
-// handlers are their only stock caller, but the pairing between them is subtle enough that it must
-// not be reimplemented elsewhere: changeLogicTimeScale re-seeds the scale from the render cap when
-// it was disabled, ceils it so the next decrease lands on the right step, toggles the enable flag,
-// and refuses outright when TheNetwork is up. A touch-only device has no way to reach any of that,
-// so the Debug screen calls the same functions the keys do rather than poking TheFramePacer.
-//
-// changeMaxRenderFps always succeeds. changeLogicTimeScale returns false and writes nothing while
-// TheNetwork is up, so callers that can be reached during a network match must disable their own
-// entry point rather than rely on the refusal - a silent no-op reads as a broken control.
+// GeneralsX: Expose the frame pacing steps to non-keyboard callers (the Debug screen); do not reimplement them
+// elsewhere. changeMaxRenderFps always succeeds. changeLogicTimeScale returns false and writes nothing while
+// TheNetwork is up, so callers reachable in a network match must disable their own entry point (a silent no-op
+// reads as a broken control).
 extern bool changeMaxRenderFps( FpsValueChange change );
 extern bool changeLogicTimeScale( FpsValueChange change );
 

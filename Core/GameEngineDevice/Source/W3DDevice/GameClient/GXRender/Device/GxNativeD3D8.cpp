@@ -1,10 +1,28 @@
-// GeneralsX: GxNativeD3D8: see GxNativeD3D8.h and, §2.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GxNativeD3D8: see GxNativeD3D8.h and, §2.
 #include "GxNativeD3D8.h"
 
 #include "GxCustomCatalog.h"
 #include "GxNativeConfig.h"
 #include "GxNativeLoaderDirect.h"
-#include "../../../../../Include/W3DDevice/GameClient/GxShadowVolumeVS.h"   // S7: the bytes the game creates (rw3-R11)
+#include "../../../../../Include/W3DDevice/GameClient/GxShadowVolumeVS.h"   // the bytes the game creates
 
 #include <algorithm>
 #include <cctype>
@@ -23,7 +41,7 @@
 #include <mach-o/loader.h>
 #include <CommonCrypto/CommonDigest.h>
 #elif defined(_WIN32)
-// GeneralsX: S8 on Windows: the loader images come from the process's module list
+// S8 on Windows: the loader images come from the process's module list
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -60,7 +78,7 @@ bool isLoader(const std::string& p)
 	std::string b = baseName(p);
 	if (b.compare(0, 9, "libvulkan") == 0 && b.find("MoltenVK") == std::string::npos)
 		return true;
-	// GeneralsX: the Windows loader names in the DXVK fork's search list (VkCtx.cpp
+	// the Windows loader names in the DXVK fork's search list (VkCtx.cpp
 	// platformLoaderNames): vulkan-1.dll, winevulkan.dll. Module names are case-insensitive on Windows.
 	std::transform(b.begin(), b.end(), b.begin(), [](unsigned char c) { return char(std::tolower(c)); });
 	return b == "vulkan-1.dll" || b == "winevulkan.dll";
@@ -290,7 +308,7 @@ GxLoaderFacts GxNativeLoaderFacts(PFN_vkGetInstanceProcAddr gipa, const void* in
 		}
 	}
 #elif defined(_WIN32)
-	// GeneralsX: the Windows facts: the module holding the host's entry point, and every
+	// the Windows facts: the module holding the host's entry point, and every
 	// loaded module named like a loader. A module's BUILD = the sha256 of its file (the Mac fallback's identity; a content hash, so
 	// a patched copy keeping its PE timestamp and size is still a second build). Each listed module is PINNED
 	// (GetModuleHandleExW without UNCHANGED_REFCOUNT) while its path is read, so an unload between the snapshot and the read cannot
@@ -396,7 +414,7 @@ bool GxNativeQualifyShaders(const GxNativeSessionHost& host, std::string* why)
 	for (size_t i = 0; i < count; ++i) {
 		const GxCsEntry& e = entries[i];
 		// unported: never loaded; water: compiled into the binary; gx: synthetic programs created by the game's own code
-		// (Pipeline/GxSyntheticPrograms.h, THE rule for every synthetic program - 13/10)
+		// (Pipeline/GxSyntheticPrograms.h, THE rule for every synthetic program)
 		if (e.program == 0 || std::strncmp(e.files, "water:", 6) == 0 || std::strncmp(e.files, "gx:", 3) == 0)
 			continue;
 		std::string name = e.files;
@@ -610,7 +628,7 @@ private:
 #endif
 			const char* e = envOf(m_session, "GX_SHADOW_GPU");
 			const int mode = (e && e[0] >= '0' && e[0] <= '2' && e[1] == '\0') ? e[0] - '0' : def;
-			// rw3-R11: the port is in the catalogue (gx:shadowvol). S7 resolves the very bytes the game will create, so a shader edit
+			// the port is in the catalogue (gx:shadowvol). the shadow path resolves the very bytes the game will create, so a shader edit
 			// that was never re-catalogued sends the session to classic instead of dropping every GPU shadow draw.
 			const bool ported = !m_debug.shadowPortMissing && GxCsResolveVertex(kGxShadowVS, sizeof(kGxShadowVS) / 4, kGxShadowDecl,
 				sizeof(kGxShadowDecl) / 4).verdict == GxCsPorted;

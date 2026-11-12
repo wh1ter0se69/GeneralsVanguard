@@ -109,7 +109,7 @@ constexpr const char s_genr14[] = "GENR14";
 constexpr const char s_gens14[] = "GENS14";
 // GeneralsX: GENS14's layout, but MSG_QUEUE_UPGRADE / MSG_CANCEL_UPGRADE / MSG_PURCHASE_SCIENCE carry the
 // template's name id (Common/GXWireId.h), not its NameKey. The bytes are the same shape, so only the magic can tell a
-// reader - this engine and every tool that decodes those arguments (scripts/ai/parse-replay.py) - which one it holds.
+// reader - this engine and every tool that decodes those arguments - which one it holds.
 // New recordings carry it; a GENS14 file is listed but never played (replayRefusal).
 constexpr const char s_gens15[] = "GENS15";
 // GeneralsX: GENS15's layout with 34 disconnect flags (MAX_HUMAN_SLOTS 34: 32 players + 2
@@ -141,24 +141,10 @@ const char *lastReplayFileName = "00000000";	// a name the user is unlikely to e
 // Note that this will overflow on January 18, 2038. @todo Upgrade to 64 bits when we break compatibility.
 typedef int32_t replay_time_t;
 
-// GeneralsX: Replay strings are UTF-16 on the wire, not native wchar_t.
-//
-// A Mac-recorded .rep crashed Windows with an access violation before frame 0, and the Mac refused
-// Windows replays. Cause: the header's strings were written and read with File::writeChar(const
-// WideChar*) / File::readWideChar(), which move sizeof(WideChar) bytes - and WideChar is wchar_t,
-// which is 4 BYTES on macOS/clang and 2 BYTES on Windows/MSVC. Visible in the file itself: a Mac
-// replay contains "4c00 0000 6100 0000 7300 0000 7400 0000" = 'L','a','s','t' at four bytes each.
-// Windows reads those as 2-byte characters, desynchronises mid-header and walks off into garbage.
-//
-// Retail .rep files are UTF-16, so pinning the wire format to 16-bit both fixes cross-platform
-// playback AND makes our replays match the format the rest of the Generals ecosystem expects.
-// Everything else in the header was already portable: SYSTEMTIME here is a compat struct of eight
-// uint16_t (16 bytes, same as the Win32 one) and replay_time_t is int32_t.
-//
-// Consequence: .rep files previously written by a Mac or Linux build no longer load. They could
-// never be read by anything else anyway, which is exactly the bug.
-//
-// This is why the CI keeps separate linux_*.rep and macos_*.rep sets instead of sharing one.
+// Replay header strings are UTF-16 on the wire, not native wchar_t: WideChar is 4 bytes on macOS/clang and 2 on
+// Windows/MSVC, so File::writeChar(const WideChar*) / readWideChar() desynchronised the header across platforms.
+// Retail .rep files are UTF-16. Replays written by earlier Mac or Linux builds no longer load, which is why CI
+// keeps separate linux_*.rep and macos_*.rep sets.
 static void writeUnicodeString16(File *file, const UnicodeString &str)
 {
 	const WideChar *src = str.str();
@@ -507,19 +493,10 @@ void RecorderClass::updatePlayback() {
 		return;
 	}
 
-	// GeneralsX: Hand the logic a frame's commands only once the replay's game has started.
-	// playbackFile() queues MSG_NEW_GAME, and the next update reaches here with the frame counter already 0 - before that
-	// MSG_NEW_GAME is processed, and a whole update before startNewGame() loads the map. So every command recorded at
-	// frame 0 went in behind the MSG_NEW_GAME and was dispatched in the window between prepareNewGame() and the load:
-	// GAME_REPLAY is already set there, so isInGame() is true and each network message other than a CRC or a replay
-	// camera took an AIGroup id (logicMessageDispatcher), and a player flag it set was reset again by the load. The live
-	// game ran those commands at frame 0, after that frame's scripts, terrain update and CRC. A skirmish started from the
-	// shell records one such command (the shell player's MSG_ENABLE_RETALIATION_MODE, at f0 for player 0), so every AI
-	// group alive at the first checks - the start-of-game selection, the AI's first team groups - carried an id one
-	// higher than in the recording, and the replay reported REPLAY_CRC_MISMATCH from frame 0 until those groups were gone
-	// GAME_REPLAY is set only by the replay's own
-	// MSG_NEW_GAME (prepareNewGame), and clearGameData() puts GAME_NONE back - playbackFile() clears first - so this is
-	// FALSE exactly in that first update: the one that runs startNewGame() also runs this, after the load.
+	// Hand the logic a frame's commands only once the replay's game has started. playbackFile() queues MSG_NEW_GAME,
+	// and the next update reaches here at frame 0 before it is processed; frame-0 commands would dispatch before the
+	// load, taking AIGroup ids the live game never assigned. GAME_REPLAY is set only by the replay's MSG_NEW_GAME,
+	// so this is FALSE exactly in that first update.
 	if (!m_doingAnalysis && TheGameLogic->getGameMode() != GAME_REPLAY)
 		return;
 
@@ -658,8 +635,8 @@ void RecorderClass::startRecording(GameDifficulty diff, Int originalGameMode, In
 		return;
 	}
 	// TheSuperHackers @info the null terminator needs to be ignored to maintain retail replay file layout
-	// GeneralsX: New recordings carry the newest magic (GENS14 since 01/10/2026).
-	m_file->writeFormat("%s", s_gens34);	// GENS15 since 05/10/2026, GENS34 since 06/11/2026
+	// GeneralsX: New recordings carry the newest magic (s_gens34).
+	m_file->writeFormat("%s", s_gens34);
 
 	//
 	// save space for stats to be filled in.
@@ -871,21 +848,10 @@ void RecorderClass::archiveReplay(AsciiString fileName)
 	AsciiString archiveFileName;
 
 	/*
-	 * GeneralsX: NAMED AFTER THE MATCH WHEN THERE IS ONE.
-	 *
-	 * The wall clock is a fine unique name and a useless INDEX: it says when a file was written and
-	 * nothing about which match it belongs to, so the console can list a player's games and never
-	 * point at the replay of one. "<matchid>-s<slot>.rep" is the same id every peer in the match
-	 * computes for itself, so one player's file and another's line up with no exchange.
-	 *
-	 * THE TIMESTAMP REMAINS THE FALLBACK, and that is not laziness. A skirmish, a campaign mission
-	 * and a LAN game with no relay have no match id at all, and they are still worth keeping; a
-	 * blank or partial name would collide with every other one. gxMatchId answers false unless it
-	 * has a real room, which is the same gate the sampler uses.
-	 *
-	 * The clock format is unchanged where it is used: two matches finishing in the same second
-	 * still collide under it, which the test harness does routinely and humans essentially never.
-	 * That is the defect the match id closes for matches that have one.
+	 * Named after the match when there is one: "<matchid>-s<slot>.rep" is the same id every peer computes, so the
+	 * console can point at one match's replay. The timestamp is the fallback: a skirmish, campaign mission or
+	 * relay-less LAN game has no match id (gxMatchId answers false without a real room). Two matches finishing in
+	 * the same second still collide under the clock format.
 	 */
 	Bool named = FALSE;
 	// TheLAN owns the transport, not TheNetwork - the same lookup relayMatchTransport() makes.
@@ -1107,9 +1073,8 @@ Bool RecorderClass::readReplayHeader(ReplayHeader& header, const AsciiString& fi
 	}
 
 	// Read the GENREP header.
-	// GeneralsX: Four accepted magics (GENR14 added 25/09/2026, GENS14 01/10/2026), and the one we
-	// read decides how many disconnect flags the block below carries and whether a SimID follows iniCRC. All are six
-	// bytes, so this read is the same size either way.
+	// GeneralsX: Six accepted magics; the one read decides how many disconnect flags the block below carries and
+	// whether a SimID follows iniCRC. All are six bytes, so this read is the same size either way.
 	char genrep[sizeof(s_genrep) - 1] = {0};
 	m_file->read( &genrep, sizeof(s_genrep) - 1 );
 	Int fileDisconSlots = 0;
@@ -1203,7 +1168,7 @@ Bool RecorderClass::readReplayHeader(ReplayHeader& header, const AsciiString& fi
 	// Player of its own, and its commands carry that layout's Player indices; played back in the current one
 	// (observers share the ReplayObserver), a player seated after an observer would run as the wrong Player
 	// The magic says which layout the file holds, so the start rebuilds that one.
-	m_gameInfo.setLegacyObserverLayout(fileDisconSlots < REPLAY_DISCON_SLOTS_14);	// GeneralsX 06/11/2026: 14 and 34 share the layout
+	m_gameInfo.setLegacyObserverLayout(fileDisconSlots < REPLAY_DISCON_SLOTS_14);	// 14 and 34 share the layout
 
 	AsciiString playerIndex = readAsciiString();
 	header.localPlayerIndex = atoi(playerIndex.str());
@@ -1376,9 +1341,8 @@ void RecorderClass::handleCRCMessage(UnsignedInt newCRC, Int playerIndex, Bool f
 			//
 			// `-headless` substitutes GameWindowManagerDummy and MouseDummy (GameClient.cpp:326,352)
 			// but TheInGameUI->message still walks the real text/font path, and a mismatch during a
-			// headless `-replay` run died there with an access violation (0xC0000005) on Windows -
-			// measured on three separate replays, each stopping at the first mismatch with the last
-			// line of output being a font/window creation. A console run has nowhere to show a
+			// headless `-replay` run dies there with an access violation (0xC0000005) on Windows.
+			// A console run has nowhere to show a
 			// message anyway; the fprintf below is the report that actually reaches the operator.
 			const Bool headless = TheGlobalData && TheGlobalData->m_headless;
 
@@ -1406,7 +1370,7 @@ void RecorderClass::handleCRCMessage(UnsignedInt newCRC, Int playerIndex, Bool f
 				mismatchFrame, playbackCRC, newCRC);
 			fprintf(stderr, "[GeneralsX] This replay is incompatible with the current map/game-code state.\n");
 
-			// GeneralsX @diag /07/2026 In cross-platform mode, report and KEEP GOING.
+			// GeneralsX: In cross-platform mode, report and KEEP GOING.
 			//
 			// The default behaviour marks the mismatch seen, which pauses the game and makes the
 			// headless driver (ReplaySimulation.cpp) break out of its update loop at the FIRST
@@ -1437,25 +1401,10 @@ void RecorderClass::handleCRCMessage(UnsignedInt newCRC, Int playerIndex, Bool f
 	//DEBUG_LOG(("RecorderClass::handleCRCMessage() - Skipping CRC of %8.8X from %d (our index is %d)", newCRC, playerIndex, localPlayerIndex));
 }
 
-// GeneralsX @diag /07/2026 Cross-platform replay simulation, for lockstep debugging.
-//
-// WHY. Reproducing the cross-platform desync used to need a human at the Mac and a human at the
-// Windows PC playing a LAN match simultaneously - about an hour per iteration. But a .rep already
-// contains everything the simulation needs (map, seed, slot list, and BOTH players' command
-// streams), and `-headless -replay` re-runs it through the real GameLogic with no window and no
-// input. So the same match can be replayed offline on each platform and the two [GXCRC] streams
-// diffed, which turns an hour with two people into seconds with none.
-//
-// WHAT BLOCKED IT, until 01/10/2026: replayMatchesGameVersion compared exeCRC, versionString and versionNumber -
-// properties of the BINARY - so an arm64 Mac build and an x64 MSVC build refused each other's replays by construction.
-// It now keys on the SimID plus the commit (GENS14 header), equal across platforms for one commit and data, so a
-// same-build cross-platform replay needs no waiver at all.
-//
-// WHAT THE WAIVER STILL DOES. GX_REPLAY_XPLAT=1 (1) keeps playing past a CRC mismatch instead of latching it, so the
-// whole shape of a divergence is printed, and (2) opens a replay of another sim source or commit, or one made by a build
-// with uncommitted changes - engine (tick rate), data and name-key ordinal still enforced - or a pre-identity file whose
-// iniCRC matches, so an old corpus can be re-checked across a digest move. Every waived open is printed. Off unless set
-// in the environment; a player never has it.
+// Cross-platform replay simulation for lockstep debugging: `-headless -replay` re-runs a .rep on each platform
+// and the [GXCRC] streams are diffed. Replays key on the SimID plus the commit (GENS14 header).
+// GX_REPLAY_XPLAT=1 (env only, never set for a player) keeps playing past a CRC mismatch and waives source,
+// commit and uncommitted checks; engine, data and ordinal stay enforced.
 Bool RecorderClass::isCrossPlatformReplayEnabled()
 {
 	static Int s_enabled = -1;
@@ -1486,23 +1435,10 @@ Bool RecorderClass::replayMatchesGameVersion(AsciiString filename)
 	return FALSE;
 }
 
-// GeneralsX: Replays fail CLOSED on another simulation (ROADMAP_2027 M1, Determinism-1 item 4b).
-// The old key (version, exeCRC, iniCRC) was a property of the binary: it refused every cross-platform replay, yet it was
-// only advisory (the menu offered OK anyway) and -replay / -loadreplay never asked. playbackFile now asks on every path,
-// and the key is the build that simulated the match:
-//  - the SimID (SimIdCompare: engine, source, data, name-key ordinal - what two peers must share to play together), with
-//    an unknown sourceID (0, a build without git) refused (SimIdCompare refuses it at a live join too, since M1);
-//  - AND the commit, AND both builds committed. The SimID digest leaves GameClient out, yet GameClient refreshes shroud
-//    memo state that scripts read (PartitionManager::refreshShroudForLocalPlayer; GameLogicDispatch.cpp says it is not
-//    CRC'd), so two builds of one SimID can still simulate differently. One commit, built clean, cannot.
-// Platforms built from one commit agree on all of it, so a same-build replay still plays cross-platform.
-// Returns 0 when the replay may play, else why not. Two env-only waivers, never set for a player:
-//  - REPLAY_WAIVE_COMMIT (GX_REPLAY_ANY_COMMIT=1): the commit and uncommitted checks only - the whole SimID, with a known
-//    sourceID, still enforced and CRC mismatches still stop playback. A fixture lane needs exactly this: its fixtures
-//    are recorded by commit X and played by every later commit (the one that adds them first), so a commit key alone
-//    would refuse them forever. Their CRC checkpoints are then what catches a GameClient change that reached the sim.
-//  - REPLAY_WAIVE_XPLAT (GX_REPLAY_XPLAT=1, see isCrossPlatformReplayEnabled): source, commit and uncommitted waived;
-//    engine, data and ordinal still enforced; a pre-identity file judged by its iniCRC.
+// Replays fail closed on another simulation: the key is the SimID (SimIdCompare, known sourceID) plus the commit, both
+// builds committed. The SimID digest leaves GameClient out, yet it refreshes shroud state scripts read. Returns 0 when
+// the replay may play, else why not. Env-only waivers: REPLAY_WAIVE_COMMIT (GX_REPLAY_ANY_COMMIT=1) skips only the
+// commit checks; REPLAY_WAIVE_XPLAT (GX_REPLAY_XPLAT=1) also skips source; engine, data and ordinal stay enforced.
 enum { REPLAY_WAIVE_NONE, REPLAY_WAIVE_COMMIT, REPLAY_WAIVE_XPLAT };
 static const char *replayRefusal(const RecorderClass::ReplayHeader& header, Int waive)
 {
@@ -2133,7 +2069,7 @@ void RecorderClass::readArgument(GameMessageArgumentDataType type, GameMessage *
 		}
 		case ARGUMENTDATATYPE_BOOLEAN: {
 			// GeneralsX: The file's byte, normalised: reading 0x02 straight into a bool is undefined,
-			// so a crafted replay could play differently per compiler (as NetPacket::readGameMessage, batch0958).
+			// so a crafted replay could play differently per compiler.
 			UnsignedByte thebyte = 0;
 			m_file->read(&thebyte, sizeof(thebyte));
 			const Bool thebool = (thebyte != 0);

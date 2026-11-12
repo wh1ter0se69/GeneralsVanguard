@@ -96,22 +96,8 @@ DisconnectMenu::DisconnectMenu() {
 DisconnectMenu::~DisconnectMenu() {
 }
 
-// GeneralsX: A ROW WITH NO CONTROL NAME MUST NOT REACH nameToKey.
-//
-// The four tables below are declared [MAX_SLOTS] but defined with SEVEN names, so every entry from
-// index 7 upward is a null pointer - and NameKeyGenerator::nameToKey(const char*) dereferences its
-// argument with no null check (calcHashForString). Every lookup here already null-checks the
-// resulting GameWindow*, which is why this looked safe; the crash is one step earlier, on the NAME.
-//
-// MEASURED 2026-08-12: this killed all twelve peers of a twelve-player match within ~30 frames,
-// with an identical SIGSEGV in every one -
-//   nameToKey(name=0x0) <- DisconnectMenu::setPlayerName(playerNum=7) <- populateDisconnectScreen
-// - the moment the disconnect screen turned on. It is NOT caused by raising the slot count: index 7
-// is the EIGHTH player, so a stock eight-player game whose disconnect screen appears crashes the
-// same way. Raising MAX_SLOTS only makes it reachable more often, and a busy twelve-peer lobby
-// reaches it immediately.
-//
-// A missing row is a display limit of DisconnectScreen.wnd (it has seven), not an error: skip it.
+// A row with no control name must not reach nameToKey, which dereferences its argument unchecked.
+// The tables are declared [MAX_SLOTS] but name only seven rows (the .wnd has seven), so index 7 up is null.
 static NameKeyType rowKey( const char *controlName )
 {
 	return (controlName != nullptr) ? TheNameKeyGenerator->nameToKey( controlName ) : NAMEKEY_INVALID;
@@ -285,28 +271,9 @@ void DisconnectMenu::setPacketRouterTimeoutTime(time_t newTime) {
 }
 
 Bool DisconnectMenu::sendChat(UnicodeString text) {
-	// GeneralsX: THE SHARED CHAT COOLDOWN, WHICH THIS SCREEN WAS MISSING.
-	//
-	// ChatRateLimit.h's whole premise is that a limiter written into one chat box is not a chat
-	// limiter, it is a limiter on that screen and the next screen is a hole - and the disconnect
-	// screen was that hole. Measured by grep, unbounded: no ChatRate and no consumeShared anywhere
-	// in this file, while InGameChat.cpp:270 gates on it ahead of BOTH the native send and the
-	// record. So this was the one path in the game that could outrun the relay's match-record
-	// bucket (GX_MATCH_BURST = 4 refilling one per 700 ms, relay.js).
-	//
-	// WHAT THAT COST, precisely, because "it gets rate limited" undersells it in one direction and
-	// oversells it in the other. The relay's refusal happens BEFORE sinkEmit, so an over-budget line
-	// produces no record at all - not a truncated one, not a flagged one. It does increment
-	// stats.matchThrottled and write a logLimited line naming room and sender, so it is not silent
-	// to an operator watching the relay; but in the TRANSCRIPT it is an unmarked hole, and the text
-	// is gone for good. Evidence with invisible gaps is worse than evidence with visible ones.
-	//
-	// HERE, IN THE FUNNEL, rather than in DisconnectWindow.cpp's GEM_EDIT_DONE handler. This is the
-	// single point both sends pass through, so a second caller appearing later cannot route around
-	// the gate - and DisconnectMenu.h:56 is where a reviewer looks for it.
-	//
-	// AHEAD OF BOTH SENDS, exactly as InGameChat does it: a line that is not delivered must not be
-	// recorded either, or the transcript claims something was said that nobody heard.
+	// Shared chat cooldown (ChatRateLimit.h), applied ahead of both sends as InGameChat does, so this screen
+	// cannot outrun the relay's match-record bucket (GX_MATCH_BURST = 4, one refill per 700 ms).
+	// In this funnel, not the GEM_EDIT_DONE handler, so no later caller can route around it.
 	unsigned int gxChatWait = 0;
 	if (!ChatRate::consumeShared(timeGetTime(), &gxChatWait)) {
 		showChat(TheGameText->FETCH_OR_SUBSTITUTE_FORMAT(
@@ -318,25 +285,9 @@ Bool DisconnectMenu::sendChat(UnicodeString text) {
 
 	TheNetwork->sendDisconnectChat(text);
 
-	// GeneralsX: Channel 'd' of the GXM1 record envelope.
-	//
-	// THIS IS A SECOND SEND PATH AND AN InGameChat-ONLY HOOK MISSES IT ENTIRELY. Disconnect-screen
-	// chat goes through ConnectionManager::sendDisconnectChat (ConnectionManager.cpp:3282) and
-	// NetDisconnectChatCommandMsg, not through TheNetwork->sendChat - so without this line the
-	// transcript would silently omit the conversation players have while a match is falling apart,
-	// which is exactly the conversation an operator most wants to read.
-	//
-	// THE AUDIENCE IS EVERY SLOT, and that is a fact rather than a default: sendDisconnectChat
-	// carries no playerMask and relays to ALL_SLOTS_MASK ^ (1 << m_localSlot)
-	// (ConnectionManager.cpp:3295), so every remaining peer could see it. Taking the value from
-	// ALL_SLOTS_MASK rather than writing 0xfff means that when MAX_SLOTS grows the mask grows with it,
-	// and one that exceeds the envelope's width is REFUSED by gxMatchBuildEnvelope - a loud failure
-	// instead of a quietly wrong audience in evidence. (25/09/2026: MAX_SLOTS is 14, ALL_SLOTS_MASK is
-	// 0x3fff, and GXM2's four mask digits carry it.)
-	//
-	// The line is recorded even when the local peer is the one being dropped: gxMatchSendRecord
-	// writes to the 8086 relay socket, which is independent of the 8088 lockstep socket that is in
-	// trouble, and Transport::sendRelayChat writes to it directly rather than through the pump.
+	// Channel 'd' of the GXM1 record envelope: disconnect chat is a separate send path (sendDisconnectChat).
+	// The audience is ALL_SLOTS_MASK, so it grows with MAX_SLOTS; gxMatchBuildEnvelope refuses a too-wide mask.
+	// Recorded even if the local peer is being dropped: the record goes over the relay socket, not lockstep.
 	gxMatchSendRecord(text, (Int)ALL_SLOTS_MASK, 'd');
 	return TRUE;
 }

@@ -15,30 +15,10 @@
 **	You should have received a copy of the GNU General Public License
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-// GeneralsX: THE MATH OF THE SUPERWEAPON MISSILES' VISUAL FLIGHT, with no engine in it so
-// scripts/test/missile-visual-test.cpp can drive it standalone against a replica of the logic flight.
-//
-// WHAT IT IS FOR. The nuke (NeutronMissileUpdate) and the SCUD Storm missiles (MissileAIUpdate) fly in GAME LOGIC along
-// a path that is simple to simulate and wrong to look at: straight up, an instant corner, a flat line at ~500 height,
-// another corner and a straight drop. The simulation must not change (it is in the SimID digest and every peer runs it),
-// so the client DRAWS the missile along a different path: a real ballistic flight (vertical rise, pitch program, boost,
-// a coasting arc under gravity, a steep dive), time-compressed onto the logic's own launch-to-death timeline.
-//   V = lerp( C(u), P, b )
-//   C(u)  the canonical flight below, mapped from the launch point L to the logic death point E;
-//   u     the fraction of the flight flown, advanced by mvStepU from the logic's own remaining-time estimate;
-//   P     the logic position; b the terminal blend, 1 by the time the logic dies, so the missile is drawn exactly where
-//         the simulation detonates it, on the frame it does.
-//
-// THE PHYSICS (sources). A 2D point mass, gravity 1: thrust along a
-// pitch program (vertical, then a linear pitch-over to `pitchEnd` at burnout) with the thrust-to-weight ratio growing as
-// propellant burns (rocket equation mass loss), then a coast under gravity, with drag in an exponential atmosphere. It is
-// integrated once per profile and normalised to range 1, time 1. The profiles were tuned (proto in the missiles folder)
-// to a lofted ICBM (apogee 0.6 range, ~67 deg dive, 16% boost) that coasts in vacuum - drag is zero because an ICBM
-// spends almost its whole flight above the atmosphere, and a drag term there measurably changed nothing - and a lower
-// Scud-like flight (apogee 0.4 range, ~61 deg, 21% boost) that flies in the air, where drag steepens the dive from ~56
-// to ~61 deg as it does on a real re-entry. Real minimum-energy flights top out near range/4 and come in shallower; the
-// lofted shape is what reads as "a ballistic missile" from a game camera. The vertical rise is ~5% of the flight, longer
-// than a real one (~1-2%) so it can be seen.
+// Visual flight math for the superweapon missiles, engine-free so scripts/test/missile-visual-test.cpp drives it.
+// Logic flies the nuke and SCUD Storm on a simple path it must not change (SimID digest), so the client draws a
+// ballistic flight V = lerp( C(u), P, b ): C canonical flight, P logic position, b blend, 1 at logic death.
+// Two profiles: a lofted ICBM and a lower Scud-like flight.
 #pragma once
 
 #include <math.h>
@@ -67,7 +47,7 @@ struct MVProfile
 	float smoothing;			///< 1: thrust spools up and tails off and the pitch eases in and out; 0: the step thrust and constant pitch rate the flight had at first (the probe's RED arm)
 };
 
-// GeneralsX: the thrust spools up over the
+// the thrust spools up over the
 // first 20% of the burn from 60% of full and tails off over the last 30% (real motors do; a step to full thrust at
 // liftoff and a step to none at burnout were visible as a jump in the puff spacing), and the pitch program eases in and
 // out (smoothstep) instead of starting at a constant rate. The thrust and burnout angle were re-tuned so the flight

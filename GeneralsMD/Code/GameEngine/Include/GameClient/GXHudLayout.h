@@ -16,12 +16,12 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: The match timer never shares pixels with the readout row.
+// The match timer never shares pixels with the readout row.
 //
 // The row (latency, resends, fps, tps, system clock) starts at the GXHud.ini anchor and grows
 // rightward; the timer is right-aligned, inset from the RIGHT edge by the same anchor X. At the 50%
 // cap both therefore end at the screen centre, and large sizes at a small resolution meet at any X;
-// side by side they read as one string ("00:00:39.2060[max 60]60tps", device lane 25/09/2026). When
+// side by side they read as one string ("00:00:39.2060[max 60]60tps"). When
 // they would touch or overlap, the timer yields and drops one gap under the row - the row's position
 // is the one the player chose.
 //

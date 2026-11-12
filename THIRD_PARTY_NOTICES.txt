@@ -1,14 +1,15 @@
-THIRD-PARTY NOTICES - GeneralsX
+THIRD-PARTY NOTICES - Generals Vanguard
 ==============================================================================
-GeneralsX is licensed under the GNU General Public License, version 3 or later,
-with Electronic Arts' additional terms (see LICENSE.md, shipped next to this
-file). It includes, links, or ships alongside the third-party software listed
-below. Each component stays under its own licence; this file reproduces the
-required copyright notices and licence texts. Every licence text appears once,
-in section 4, and is referenced by number.
+Generals Vanguard is licensed under the GNU General Public License, version 3
+or later, with Electronic Arts' additional terms (see LICENSE.md, shipped next
+to this file). It includes, links, or ships alongside the third-party software
+listed below. Each component stays under its own licence; this file reproduces
+the required copyright notices and licence texts. Every licence text appears
+once, in section 4, and is referenced by number.
 
-The GeneralsX Launcher (GeneralsXLauncher.exe on Windows, the GeneralsX
-Launcher app on macOS, the launcher AppImage on Linux) is a separate program
+The Generals Vanguard launcher (GeneralsXLauncher.exe on Windows, the
+Generals Vanguard app on macOS - named GeneralsX Launcher in installs made
+before the rename - and the launcher AppImage on Linux) is a separate program
 that downloads and starts the game. The GPL does not cover it; its terms are
 in its own entry in section 1. The third-party software it is built from or
 ships with stays under its own licence, below. The Windows updater
@@ -17,9 +18,9 @@ GeneralsXUpdate.exe is not part of it: it is covered with the game.
 This file is generated (scripts/legal/third_party_notices.py generate) from
 resources/legal/third-party/. Do not edit it by hand.
 
-SOURCE CODE. The complete corresponding source of GeneralsX is available from
+SOURCE CODE. The complete corresponding source of Generals Vanguard is available from
 the project's source repository named in the release notes of the version you
-installed. For the GPL/LGPL-licensed libraries below that GeneralsX ships as
+installed. For the GPL/LGPL-licensed libraries below that Generals Vanguard ships as
 binaries but does not build from its own tree (FFmpeg and its codec libraries
 on macOS; the Debian/Ubuntu system libraries bundled in the Linux tarball and
 the Linux launcher AppImage), the corresponding source is the upstream release
@@ -32,7 +33,7 @@ years from the date of your download.
 LGPL libraries (OpenAL Soft, mpg123, LAME, FFmpeg's LGPL build on iOS and the
 LGPL Debian libraries) are used as separate shared libraries that you may
 replace with your own build, except where the component entry says it is
-statically linked; GeneralsX as a whole is GPL-3.0-or-later and its full source
+statically linked; Generals Vanguard as a whole is GPL-3.0-or-later and its full source
 is available, which is what the LGPL's relinking requirement asks for. The
 launcher's Linux AppImage uses its LGPL libraries the same way, as separate
 shared libraries, and its terms allow reverse engineering to debug that use.
@@ -50,10 +51,10 @@ Command & Conquer Generals / Zero Hour source (Electronic Arts), TheSuperHackers
   Text    : [L9]
   Note    : Your copy of LICENSE.md (GPL-3 plus EA's additional terms) travels next to this file and governs the program itself.
 
-GeneralsX Launcher this release
-  Licence : GeneralsX Launcher terms (below); a separate program, not covered by the GPL
+Generals Vanguard launcher this release
+  Licence : Generals Vanguard launcher terms (below); a separate program, not covered by the GPL
   Project : https://wh1ter0se.dev/generals/download/
-  Used in : the launcher: GeneralsXLauncher.exe on Windows, the GeneralsX Launcher app on macOS, the launcher AppImage (generals-x-launcher) on Linux. It downloads and starts the game; it is not part of the game. The Windows updater GeneralsXUpdate.exe is part of the game's entry above; platforms: macos, linux, windows
+  Used in : the launcher: GeneralsXLauncher.exe on Windows, the Generals Vanguard app on macOS (GeneralsX Launcher in installs made before the rename), the launcher AppImage on Linux. It downloads and starts the game; it is not part of the game. The Windows updater GeneralsXUpdate.exe is part of the game's entry above; platforms: macos, linux, windows
   Copyright 2026 GeneralsX contributors
   Note    : Free to use and to share unmodified. Source not published. You may reverse-engineer it to debug its use of the LGPL libraries it bundles. The Rust crates (section 3), fonts and, on Linux, Debian/Ubuntu packages (section 2) it is built from or bundles stay under their own licences.
 
@@ -695,16 +696,16 @@ libgssapi-krb5-2 1.20.1-6ubuntu2.7
   Source  : krb5 1.20.1-6ubuntu2.7 (Ubuntu source package)
   Files   : libgssapi_krb5.so.2, libgssapi_krb5.so.2.2
   Text    : [L56]
-libgstreamer-gl1.0-0 1.24.2-1ubuntu0.5
+libgstreamer-gl1.0-0 1.24.2-1ubuntu0.6
   Licences named in its copyright file: BSD (2 clause, BSD (3 clause, GPL-2+, LGPL-2+, MIT/X11 (BSD like) LGPL-2+
   Project : https://gstreamer.freedesktop.org
-  Source  : gst-plugins-base1.0 1.24.2-1ubuntu0.5 (Ubuntu source package)
+  Source  : gst-plugins-base1.0 1.24.2-1ubuntu0.6 (Ubuntu source package)
   Files   : libgstgl-1.0.so.0
   Text    : [L57]
-libgstreamer-plugins-base1.0-0 1.24.2-1ubuntu0.5
+libgstreamer-plugins-base1.0-0 1.24.2-1ubuntu0.6
   Licences named in its copyright file: BSD (2 clause, BSD (3 clause, GPL-2+, LGPL-2+, MIT/X11 (BSD like) LGPL-2+
   Project : https://gstreamer.freedesktop.org
-  Source  : gst-plugins-base1.0 1.24.2-1ubuntu0.5 (Ubuntu source package)
+  Source  : gst-plugins-base1.0 1.24.2-1ubuntu0.6 (Ubuntu source package)
   Files   : libgstallocators-1.0.so.0, libgstapp-1.0.so.0, libgstaudio-1.0.so.0, libgstfft-1.0.so.0, libgstpbutils-1.0.so.0, libgsttag-1.0.so.0 ...
   Text    : [L57]
 libgstreamer1.0-0 1.24.2-1ubuntu0.1
@@ -1055,10 +1056,10 @@ libsodium23 1.0.18-1ubuntu0.24.04.1
   Source  : libsodium 1.0.18-1ubuntu0.24.04.1 (Ubuntu source package)
   Files   : libsodium.so.23, libsodium.so.23.3.0
   Text    : [L106]
-libsoup-3.0-0 3.4.4-5ubuntu0.10
+libsoup-3.0-0 3.4.4-5ubuntu0.11
   Licences named in its copyright file: Expat, LGPL-2+, LGPL-2.1+, MPL-2.0, RSA-Other
   Project : https://wiki.gnome.org/Projects/libsoup
-  Source  : libsoup3 3.4.4-5ubuntu0.10 (Ubuntu source package)
+  Source  : libsoup3 3.4.4-5ubuntu0.11 (Ubuntu source package)
   Files   : libsoup-3.0.so.0
   Text    : [L107]
 libsoxr0 0.1.3-4build3
@@ -1442,7 +1443,7 @@ zlib1g 1:1.3.dfsg-3.1ubuntu2.3
   Files   : libz.so.1, libz.so.1.3
   Text    : [L153]
 
-3. RUST CRATES COMPILED INTO THE GENERALSX LAUNCHER (scripts/launcher-rs, Cargo.lock)
+3. RUST CRATES COMPILED INTO THE GENERALS VANGUARD LAUNCHER (scripts/launcher-rs, Cargo.lock)
 ==============================================================================
 
 Superset over all target platforms (the lock file also resolves Windows, macOS and Android-only

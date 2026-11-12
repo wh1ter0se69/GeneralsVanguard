@@ -18,7 +18,7 @@
 
 // FILE: GXPerfReport.cpp ////////////////////////////////////////////////////////////////////////
 //
-// GeneralsX: See GXPerfReport.h for why this owns a socket, why it is
+// See GXPerfReport.h for why this owns a socket, why it is
 // always on, and what it will never claim.
 
 #include "PreRTS.h"
@@ -40,7 +40,7 @@
 #include "GameNetwork/Transport.h"		// getRelayRoom(), getLocalVirtualIP(), isRelayEnabled()
 // ResolveIP is deliberately NOT included: see ensureSocket.
 #include "GameClient/GXLobbyPresence.h"	// the relay address it already resolved, off the frame path
-// GeneralsX: GXSTAT - the live per-player numbers. READ ONLY, all of it:
+// GXSTAT - the live per-player numbers. READ ONLY, all of it:
 // these are public accessors and exist at identical signatures in BOTH games' Common headers, which
 // is what lets one Core-side file compile into g_gameengine and z_gameengine alike.
 #include "Common/Player.h"
@@ -63,17 +63,13 @@ namespace
 // 8086 - so during a match the 8086 membership and the 8088 game socket are in the SAME ROOM. That
 // is what makes a report filed against the 8086 member join cleanly to the transcript, the roster
 // and the moderation record, which are all keyed on that same membership.
-// GeneralsX: S1-3: the DEFAULT only. The relay's real lobby port is data (the signed list's
+// S1-3: the DEFAULT only. The relay's real lobby port is data (the signed list's
 // home or a host:port pin) and is read from GXLobbyPresence together with the address, into s_relayPort.
 const UnsignedShort GX_PERF_RELAY_PORT = 8086;
 
-// One report per second. The design proposed 15 s; the owner asked for
-// 1 s explicitly - "every second, we delete old data or something". The consequence of that choice
-// is handled in the RELAY, not here: peers report at 1 Hz, and the relay aggregates ten of those
-// into one stored row (see tools/relay/relay.js, GX_PERF_ROLLUP_MS). MEASURED against the real
-// schema and indexes, 357.6 bytes a row: writing every 1 s sample straight to D1 would be 43 200
-// rows/hour for one 12-player room, 14.7 MB/hour, half a million rows in 11.6 hours and 10.6 GB
-// over thirty days - over D1's ceiling for ONE room.
+// One report per second. The cost is handled in the RELAY, not here: peers report at 1 Hz and the relay aggregates ten into
+// one stored row (tools/relay/relay.js, GX_PERF_ROLLUP_MS). At 357.6 bytes a row, writing every sample to D1 would be
+// 43 200 rows/hour for one 12-player room, 14.7 MB/hour, 10.6 GB over thirty days.
 const UnsignedInt GX_PERF_INTERVAL_MS = 1000;
 
 // Iteration periods kept for this window's percentiles, in microseconds. 2048 covers a peer running
@@ -111,7 +107,7 @@ Bool         s_frameReset  = FALSE;
 Int          s_cushionMin  = -1;
 Int          s_iterCount   = 0;
 UnsignedInt  s_iterUs[ GX_PERF_RING ];
-// GeneralsX: Worst iteration of the WHOLE window, not just the first GX_PERF_RING samples:
+// Worst iteration of the WHOLE window, not just the first GX_PERF_RING samples:
 // the ring bias above is acceptable for percentiles, but iter_max is how a hitching peer is identified.
 UnsignedInt  s_iterMaxUs   = 0;
 UnsignedInt  s_scratch[ GX_PERF_RING ];
@@ -143,41 +139,10 @@ Transport *relayMatchTransport( void )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** Open the reporting socket, once. A failure here is permanent for this match and SILENT: this is
-  * telemetry, and a player whose network refuses an extra socket must still be able to play.
-  *
-  * GeneralsX: THE ADDRESS IS TAKEN FROM THE TRANSPORT, NEVER RESOLVED HERE.
-  *
-  * This used to read the preference and call ResolveIP, and this function is reached from
-  * gxPerfSample, which runs in GameClient::update(). Under the default hostname-based relay config
-  * that is a blocking gethostbyname IN THE FRAME LOOP, and three separate failures stacked on it:
-  *
-  *   - IT CAN FREEZE THE MATCH. Under lockstep a stall on one peer is charged to every peer, so one
-  *     slow or unreachable resolver halts everybody, not just the machine that ran the lookup.
-  *   - IT MISATTRIBUTES ITS OWN FREEZE. The pause lands inside the very window this file is
-  *     measuring and is reported as that client's next hitch - the diagnostic manufacturing the
-  *     signal it exists to detect, on the page whose whole job is deciding whose fault the lag is.
-  *   - IT COULD STOP REPORTING FOR GOOD. A transient lookup failure latched s_sockTried, so one bad
-  *     resolve disabled telemetry for the rest of the match, silently.
-  *
-  * GXLobbyPresence resolved that same hostname once already, from enterLobby rather than from a
-  * frame, and holds it across the match - suspend() keeps its socket and closeSocket() never
-  * clears the address. Reusing it costs a field read. NOT a timeout on the lookup: a bounded
-  * freeze charged to every peer in the match is still a freeze, and this file has [E6-3]'s
-  * argument standing against measures that make a real stall harder to see rather than rarer.
-  *
-  * AND NOT FROM Transport, WHICH ALSO HAS IT. Core/GameEngine/Include/GameNetwork and
-  * .../Source/GameNetwork are both in SIMDIGEST_PATHS_CODE_SHARED: a getter added to Transport.h
-  * moved the ZH digest from 0x945E8B1D to 0x9F09F198, and this feature's entire deployment story
-  * (GXPerfReport.h) is that it stays OUT of the digest so it can ship alone and an unpatched peer
-  * is merely non-reporting. A digest move makes a patched and an unpatched client refuse each
-  * other on the SimID join check - the fix defeating the property it was fixing. Include/GameClient
-  * is in no digest list.
-  *
-  * s_sockTried now latches on a failed BIND and on nothing else. An address that is not there yet
-  * is not a failure, it is a transport that has not finished connecting, and the next frame asks
-  * again for free.
-  */
+/** Open the reporting socket, once. A failure is permanent for this match and SILENT: this is telemetry.
+  * The address is read from GXLobbyPresence, which resolved it off the frame path: a blocking lookup in
+  * GameClient::update() would freeze every peer under lockstep. Not read from Transport (in the SimID digest).
+  * s_sockTried latches on a failed BIND only; an address not there yet just means still connecting. */
 Bool ensureSocket( void )
 {
 	/* Read every call, so a re-resolve on the lobby side is followed rather than cached here. */
@@ -194,7 +159,7 @@ Bool ensureSocket( void )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX: The line ceilings of the relay a GXSTAT, GXEND or GXSEAT is
+/** The line ceilings of the relay a GXSTAT, GXEND or GXSEAT is
   * about to go to (GXStatFactionWire.h, gxRelayWireCeilings): the wide ones only while the lobby socket's latest
   * GXCAPS from THAT relay said seats34, the 0.9.69 ones otherwise. Read at every send, after ensureSocket(), and
   * judged against the endpoint ensureSocket() just took, so a failover is never read with the old relay's word. */
@@ -250,19 +215,10 @@ int usToFpsX10( UnsignedInt us )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** The player's own verdict, from their own numbers only.
-  *
-  * THREE SENTENCES AND NO FOURTH. Each one is a thing this machine can know about ITSELF:
-  *   - my loop is hitching            -> my CPU is the problem, and under lockstep everyone waits
-  *   - I am waiting on somebody else  -> NOT my fault, and the match is not waiting on me
-  *   - my render is slow but my logic keeps up -> local only, costs the match nothing
-  * The third is the single most valuable string in this design: it is the honest answer to a player
-  * who sees 24 fps and assumes they are ruining the game for everyone.
-  *
-  * "SHARED AND IRREDUCIBLE" IS LOAD-BEARING AND STAYS ON THE SCREEN. It is the honest answer to
-  * "why can't you just fix it": frame N executes nowhere until every peer's input for N has arrived,
-  * so the lobby runs at the slowest peer BY CONSTRUCTION. Softening that wording into "we're working
-  * on it" would be a promise this engine cannot keep without abandoning lockstep. */
+/** The player's own verdict, from their own numbers only: three sentences (my loop is hitching; I am waiting on
+  * somebody else; my render is slow but logic keeps up, costing the match nothing).
+  * "Shared and irreducible" stays on screen: frame N executes nowhere until every peer's input for N has arrived,
+  * so the lobby runs at the slowest peer by construction. Do not soften it into a promise lockstep cannot keep. */
 void buildVerdict( const GXPerfSample &s )
 {
 	// THE SENTENCES LIVE IN THE HEADER'S ENGINE-FREE HALF, so scripts/test/gxperf-line-test.cpp can
@@ -275,27 +231,10 @@ void buildVerdict( const GXPerfSample &s )
 } // namespace
 
 //-------------------------------------------------------------------------------------------------
-/** Open the reporting socket, once, from GameClient::init().
-  *
-  * GeneralsX: THE BIND WAS ON THE LOCKSTEP FRAME PATH.
-  *
-  * ensureSocket() used to do this on the first report of a match, and it is reached from
-  * gxPerfSample() inside GameClient::update(). UDP::Bind fprintf()s AND fflush(stderr)es on every
-  * failure - and udp.cpp is inside the simulation digest, so it cannot be fixed where it lives.
-  * That is the [GXCRC] shape exactly: a per-frame fflush took a host's iter_max from 18.0 ms to
-  * 153.4 ms, and under lockstep the host's hitch is charged to every peer. GXPerfReport.h's own
-  * contract is "NOTHING ON THIS PATH ALLOCATES AND NOTHING ON IT FLUSHES", so the bind moved here,
-  * before the main loop exists.
-  *
-  * UNCONDITIONAL, AND THAT IS THE CHEAP HALF OF THE TRADE. It costs one bound UDP descriptor for
-  * the life of the process, including a single-player launch that never reports. Gating it on a
-  * relay being configured would reintroduce the hole this same commit closed one layer up: the
-  * address can arrive LATER, when the player opens the Online screen, and a gate read at init would
-  * have decided against a player who had not gone online yet.
-  *
-  * A FAILURE IS PERMANENT AND SILENT, deliberately. Bind(INADDR_ANY, 0) fails on descriptor
-  * exhaustion and essentially nothing else, which is not a condition a retry improves - and this is
-  * telemetry, so a player whose machine refuses an extra socket must still be able to play. */
+/** Open the reporting socket, once, from GameClient::init() before the main loop. UDP::Bind fprintf()s and
+  * fflush(stderr)es on failure and udp.cpp is in the simulation digest, so it cannot live on the lockstep frame path.
+  * Unconditional: one UDP descriptor, since the relay address can arrive later. A failure is permanent and silent:
+  * Bind(INADDR_ANY, 0) fails only on descriptor exhaustion, and this is telemetry. */
 void gxPerfOpenSocket( void )
 {
 	if( s_sock != NULL || s_sockTried ) return;
@@ -315,7 +254,7 @@ void gxPerfOpenSocket( void )
 void gxPerfShutdown( void )
 {
 	/*
-	 * GeneralsX: THE SOCKET SURVIVES, THE WINDOW DOES NOT.
+	 * THE SOCKET SURVIVES, THE WINDOW DOES NOT.
 	 *
 	 * This is called from gxPerfSample on every frame that is not in a relay match, which is what
 	 * makes the reset correct: the point of it is that the first second of the NEXT match must not
@@ -334,24 +273,9 @@ void gxPerfShutdown( void )
 }
 
 //=================================================================================================
-// GXSTAT: what every player in this match has, once a second.
-//
-// GeneralsX: (live match view, plan 1 Task 3)
-//
-// IT LIVES HERE RATHER THAN IN A FILE OF ITS OWN because everything it needs is already here: the
-// socket, the relay address that GXLobbyPresence resolved off the frame path, and - the part that
-// matters - relayMatchTransport(), which is the ONLY correct guard. `TheGameLogic->isInGame()` is
-// not: the animated main-menu backdrop is a real game (GAME_SHELL) with a fully populated
-// ThePlayerList, so a sampler gated on it reports the menu as a match. `isInInteractiveGame()` is
-// not either - it admits campaign, skirmish and replay playback.
-//
-// OFF BY DEFAULT, behind GX_MATCH_STATS=1, exactly as GX_MATCH_RECORD is. A datagram nobody asked
-// for is a datagram that reaches a relay which may not parse it.
-//
-// EVERY VALUE IS A PLAIN READ. countMoney(), getCashPerMinute() and the ScoreKeeper getters are all
-// O(1) member reads; the colour lookup walks at most eight definitions. Nothing here allocates, and
-// nothing here calls into the simulation - this runs inside GameClient::update(), where under
-// lockstep a stall on one peer is charged to every peer in the match.
+// GXSTAT: what every player in this match has, once a second. relayMatchTransport() is the ONLY correct guard
+// (isInGame() is true for the shell-map backdrop, isInInteractiveGame() admits campaign, skirmish and replay).
+// Off by default, behind GX_MATCH_STATS=1. Every value is an O(1) plain read.
 //=================================================================================================
 namespace
 {
@@ -365,7 +289,7 @@ char         s_statMatchId[ GX_MATCH_ID_LEN + 1 ] = "";
 /// the id is now derived on demand at match end - see gxStatMatchEnd - so clearing the id can no
 /// longer double as "already reported".
 char         s_statEndedId[ GX_MATCH_ID_LEN + 1 ] = "";
-/// GeneralsX: Who took himself out while ALIVE and
+/// Who took himself out while ALIVE and
 /// before the end, by Player index - gxStatNoteSelfDestruct, from the self-destruct order every peer executes at the same
 /// frame. Read and cleared by gxStatMatchEnd, which every teardown calls.
 Bool         s_selfDestructed[ MAX_PLAYER_COUNT ] = {};
@@ -394,7 +318,7 @@ Bool gxStatEnabled( void )
 	return ( s_on != 0 ) ? TRUE : FALSE;
 }
 
-/// GeneralsX: The end-of-match record (GXEND + GXSEAT) is ON BY DEFAULT in a relay match
+/// The end-of-match record (GXEND + GXSEAT) is ON BY DEFAULT in a relay match
 /// exactly GX_MATCH_STATS=0 turns it off. The 1 Hz GXSTAT stays
 /// behind gxStatEnabled's opt-in.
 static Bool gxEndReportEnabled( void )
@@ -408,18 +332,10 @@ static Bool gxEndReportEnabled( void )
 	return ( s_on != 0 ) ? TRUE : FALSE;
 }
 
-/// The player's colour as an INDEX into the multiplayer colour list, or GX_STAT_ABSENT.
-///
-/// ABSENT RATHER THAN A GUESS. Player::getPlayerColor() is a packed Color, and the panel draws a
-/// swatch from an index; a player whose colour matches no definition - a mod, an observer, a
-/// not-yet-resolved random - has no index, and inventing 0 would paint it gold.
-///
-/// GeneralsX: THE SLOT'S OWN INDEX FIRST. Two definitions
-/// may share an RGB under different names, and a lookup by RGB returns the first - so the co<slot>= name
-/// taken from this index named the other colour. The game slot keeps the index the match chose (GameLogic
-/// builds the player's colour from TheMultiplayerSettings->getColor(slot->getColor()), a Random pick already
-/// resolved into it), so that index is used - but only while its definition IS the player's colour; anything
-/// else falls back to the lookup by RGB, as before.
+/// The player's colour as an INDEX into the multiplayer colour list, or GX_STAT_ABSENT: a colour matching no definition
+/// (a mod, an observer, an unresolved random) has no index, and inventing 0 would paint it gold.
+/// The slot's own index is tried first, since two definitions may share an RGB and an RGB lookup returns the first;
+/// it is used only while its definition IS the player's colour, otherwise the RGB lookup applies.
 Int gxStatColourIndex( Color c, Int slot )
 {
 	if( TheMultiplayerSettings == NULL )
@@ -495,11 +411,11 @@ void gxStatSample( void )
 		return;
 
 	GXStatPlayer players[ GX_STAT_SLOTS_MAX ];
-	/* GeneralsX: WHAT A RANDOM SEAT GOT. The Player's own template is the
+	/* WHAT A RANDOM SEAT GOT. The Player's own template is the
 	 * resolved one - a Random pick is settled before the players are built - so this is the faction being
 	 * played, not the lobby's "Random". Held as AsciiStrings so the names outlive the loop: a refcount, no heap. */
 	AsciiString factionNames[ GX_STAT_SLOTS_MAX ];
-	/* GeneralsX: AND ITS COLOUR BY NAME: the index below is a position in this
+	/* AND ITS COLOUR BY NAME: the index below is a position in this
 	 * client's Multiplayer.ini, which a mod may reorder; the TooltipName is the colour whatever its position. */
 	AsciiString colourNames[ GX_STAT_SLOTS_MAX ];
 	GXStatFaction factions[ GX_STAT_SLOTS_MAX ];
@@ -594,11 +510,11 @@ void gxStatSample( void )
 }
 
 //-------------------------------------------------------------------------------------------------
-/// GeneralsX: GXSEAT, right after this reporter's GXEND (GXStatFactionWire.h): every
+/// GXSEAT, right after this reporter's GXEND (GXStatFactionWire.h): every
 /// occupied slot as GXSLOT names it, resolved at the end - the army each player's Player was built with (after
 /// Random), the colour and team its slot held, and a human's or observer's member id. Read from TheGameInfo and
 /// ThePlayerList only; nothing here reaches the simulation.
-/// GeneralsX: And each human's or observer's lobby
+/// And each human's or observer's lobby
 /// name (n<slot>=, GXStatFactionWire.h): the name every player in the room already saw. Read from the slot, never sent
 /// anywhere the lobby did not already show it.
 static void gxSeatRecordSend( const char *room, const char *memberIp, const char *matchId, UnsignedInt endFrame,
@@ -684,27 +600,17 @@ void gxStatNoteSelfDestruct( const Player *player )
 void gxStatMatchEnd( void )
 {
 	/*
-	 * ONE GXEND FOR THE WHOLE MATCH, sent from wherever the match is being torn down.
-	 *
-	 * IT CANNOT USE relayMatchTransport() AS ITS GUARD the way gxStatSample does, because by the
-	 * time anything calls this the transport may already be going away - so the caller is
-	 * responsible for calling it while the match is still assembled, and this only re-checks what
-	 * it can. The match id computed by the sampler IS the guard that matters: it is non-empty only
-	 * after a real relay match produced at least one sample, so a shell-map teardown, a campaign
-	 * exit and a skirmish all fall out for free without this needing to know about any of them.
-	 *
-	 * ONCE: the id is cleared on the way out, so a second call for the same match sends nothing.
-	 * clearGameData is not an end-of-match hook - it is "unload whatever game is loaded", and the
-	 * animated menu backdrop is torn down through it at match START - so "once" has to be enforced
-	 * here rather than assumed of the caller.
+	 * ONE GXEND FOR THE WHOLE MATCH, sent from wherever the match is torn down. It cannot use relayMatchTransport() as
+	 * a guard (the transport may be going away): the sampler's match id is the guard, non-empty only after a real relay
+	 * match produced a sample. ONCE: the id is cleared on the way out; clearGameData also runs at match START.
 	 */
-	// GeneralsX: THIS match's quitters, and none for the
+	// THIS match's quitters, and none for the
 	// next: every teardown takes the latch, whatever it goes on to send.
 	Bool selfDestructed[ MAX_PLAYER_COUNT ];
 	memcpy( selfDestructed, s_selfDestructed, sizeof( selfDestructed ) );
 	memset( s_selfDestructed, 0, sizeof( s_selfDestructed ) );
 
-	// GeneralsX: ON BY DEFAULT now (gxEndReportEnabled). The DECLINE lines below stay
+	// ON BY DEFAULT now (gxEndReportEnabled). The DECLINE lines below stay
 	// behind the GX_MATCH_STATS=1 opt-in, for the reason the next note gives - clearGameData runs on every menu
 	// transition - so a default build prints only what it SENT, once per match.
 	if( !gxEndReportEnabled() )
@@ -712,25 +618,9 @@ void gxStatMatchEnd( void )
 	const Bool trace = gxStatEnabled();
 
 	/*
-	 * GeneralsX: [GXSTAT] - EVERY DECLINE BELOW SAYS WHICH ONE IT WAS.
-	 *
-	 * This function had six silent early returns and no logging, and from outside the process they
-	 * are indistinguishable: a real relay match on 22/09 sampled happily for 5 212 frames, ended
-	 * with a DESTROYPLAYER the network layer accepted, and filed no result at all - and nothing on
-	 * disk could say which guard declined it.
-	 *
-	 * BEHIND THE OPT-IN, WHICH IS THIS GUARD RIGHT ABOVE AND NOT A SECOND ONE. clearGameData is
-	 * reached ~35 times tree-wide INCLUDING at match START (the shell backdrop is a real
-	 * GAME_SHELL game), so an unconditional line would print on every menu transition of every
-	 * default build for ever - noise charged to players who never asked for telemetry. Under
-	 * GX_MATCH_STATS=1 the trace is total instead: past this point EVERY call emits exactly one
-	 * line, sent or declined. That is what makes silence itself diagnostic - with the opt-in on
-	 * and no [GXSTAT] line at teardown, gxStatMatchEnd was never CALLED, which is a different
-	 * defect from any of the guards below and was previously unreachable from the outside.
-	 *
-	 * fprintf ONLY, NEVER fflush, and one line per match teardown. [GXCRC] is the standing proof
-	 * of what a per-frame diagnostic with a blocking flush costs a lockstep lobby: 18.0 ms -> 153.4
-	 * ms of host iter_max, charged to every peer. Nothing here allocates.
+	 * [GXSTAT] - every decline below says which one it was. Behind the opt-in: clearGameData runs ~35 times tree-wide.
+	 * Under GX_MATCH_STATS=1 every call emits exactly one line, so silence means gxStatMatchEnd was never called.
+	 * fprintf ONLY, never fflush: a per-frame blocking flush cost a lockstep host 18.0 -> 153.4 ms of iter_max.
 	 */
 
 	/*
@@ -783,7 +673,7 @@ void gxStatMatchEnd( void )
 	 * match still running has not lost it, and recording that they did would be a confident answer
 	 * to the one question these rows exist to answer.
 	 *
-	 * GeneralsX: THE QUITTER'S LOSS IS RECORDED - BY
+	 * THE QUITTER'S LOSS IS RECORDED - BY
 	 * THE STAYERS, in their full result below (left, x). His own teardown still sends nothing: it has no end frame, and
 	 * neither does a desync's, which nobody chose - so no teardown without an end marks anyone.
 	 */
@@ -815,7 +705,7 @@ void gxStatMatchEnd( void )
 		/*
 		 * LEFT, WON OR LOST (GXStatFactionWire.h gxEndOutcome). Victory is ALLIANCE-derived and latched at the end
 		 * frame, so it is true for a whole team - every winner, AI teammates too - and survives a dead teammate.
-		 * GeneralsX: ...but not for a teammate who
+		 * ...but not for a teammate who
 		 * LEFT before the end: left comes first, and it is a loss whatever his side did after he went.
 		 */
 		const GameSlot *gs = ( TheGameInfo != NULL && slot < MAX_SLOTS ) ? TheGameInfo->getConstSlot( slot ) : NULL;
@@ -869,7 +759,7 @@ void gxStatMatchEnd( void )
 			if( reporterSlot < 0 || reporterSlot > GX_STAT_SLOT_MAX )
 				reporterSlot = -1;
 
-			// GeneralsX: sb=1 - the start rule's own verdict, from the lobby slot list every
+			// sb=1 - the start rule's own verdict, from the lobby slot list every
 			// peer shares, so every reporter marks the same matches (GXStatFactionWire.h).
 			const bool sandbox = ( TheGameInfo != NULL && TheGameInfo->getStartVerdict() == GameInfo::START_SANDBOX );
 			const GXRelayWireCeilings wire = relayCeilings();	// as `cap`: refused whole at the relay's ceiling
@@ -1007,54 +897,24 @@ void gxPerfSample( void )
 	// ---- window closed -------------------------------------------------------------------------
 
 	/*
-	 * THE SPAN THE COUNTERS ACTUALLY COVER, not the span the send deadline describes.
-	 *
-	 * These two used to be the same number and that was the defect. A window only closes on a
-	 * main-loop iteration, so it closes LATE by up to one iteration - and after a hitch, by the
-	 * length of the hitch. The epilogue then advanced s_windowStart by exactly one interval (right,
-	 * for the cadence) while zeroing every counter at `now` (also right, they start counting here),
-	 * which left the two baselines a full overshoot apart and made the NEXT report divide a short
-	 * span of counters by a long span of clock.
-	 *
-	 * Worked, because it is not a rounding error: a 900 ms hitch closes a window 1.9 s late. The
-	 * resync below only fires at a FULL interval behind, measured after the advance, so this case
-	 * falls straight through. The next window then closes after 100 ms of counting and reports
-	 * s_iterCount and the logic-frame delta as if they covered a second - a tick and an FPS at a
-	 * tenth of the truth, sent as a measurement, on the one screen an operator opens to find out
-	 * who is lagging. At an overshoot of 999 ms the very next iteration closes a window with one
-	 * frame in it and reports 1.0 fps.
+	 * The span the counters actually cover, not the span the send deadline describes. A window closes on a main-loop
+	 * iteration, so it closes late by up to one iteration (after a hitch, by the hitch). With two different baselines
+	 * the next report would divide a short span of counters by a long span of clock.
 	 */
 	const Int64  windowNs = now - s_spanStart;
 	const double secs     = (double)windowNs / 1000000000.0;
 	GXPerfSample s;
 
-	// frames / wall-seconds, NOT a mean of per-frame rates. A hitch cannot hide in this the way it
-	// hides in W3DDisplay's harmonic mean.
-	//
-	// NOT SENT AT ALL BY A HEADLESS PEER, and that is not tidiness. This counts MAIN-LOOP
-	// ITERATIONS, and the justification for calling it a render rate is "on a rendering peer one
-	// iteration IS one drawn frame" - which is exactly the sentence that stops being true under
-	// -headless: W3DDisplay::draw() returns before rendering, HeadlessMatch deliberately does not
-	// drive the frame pacer, and the project's own standing lobby host runs that way INSIDE a relay
-	// match, so relayMatchTransport() accepts it and it reports. Left alone it puts something like
-	// "1800 / 1600 fps" on the panel for the host, and the panel's local-render branch keys on that
-	// same field. A peer that renders nothing reports no render rate; the panel prints "--", which
-	// is true.
+	// frames / wall-seconds, NOT a mean of per-frame rates: a hitch cannot hide in this as it does in a harmonic mean.
+	// NOT SENT BY A HEADLESS PEER: this counts main-loop iterations, equal to drawn frames only on a rendering peer.
+	// A headless peer would report something like "1800 fps"; it reports none and the panel prints "--".
 	const Bool headless = ( TheGlobalData != NULL ) && ( TheGlobalData->m_headless == TRUE );
 	s.fpsAvgX10 = ( secs > 0.0 && !headless )
 		? (int)( ( (double)s_iterCount / secs ) * 10.0 + 0.5 ) : -1;
 
-	// p1 fps is 1/(p99 frame time). Getting this backwards is the single easiest mistake here: the
-	// WORST frames are the LONGEST ones.
-	//
-	// ONE SORT, TWO READERS (f1 and i9; f9 is retired, see below). iterPercentileUs copies the
-	// ring and std::sorts it on every call, and p99 was being asked for TWICE - here and again for iterP99Ms below - so closing a window did
-	// three copy-and-sort passes over up to 2048 UnsignedInt where one does. It is small, but it
-	// lands on GameClient::update()'s own loop once a second and it is charged to the NEXT
-	// iteration's sinceLastIter, so it inflated `im` and `i9` - the two numbers this whole feature
-	// exists to measure - by its own cost. [GXCRC] is the standing proof of what a diagnostic on the
-	// frame path costs (18.0 ms of host iter_max against 153.4 ms with the walk on), so paying it
-	// twice for nothing is worth closing.
+	// p1 fps is 1/(p99 frame time): the WORST frames are the LONGEST ones.
+	// One sort, two readers: iterPercentileUs copies and sorts the ring on every call, so p99 is computed once and
+	// reused for iterP99Ms below. This runs on GameClient::update()'s own loop, so its cost lands in sinceLastIter.
 	const UnsignedInt iterP99Us = iterPercentileUs( 99 );
 	s.fpsP1X10  = headless ? -1 : usToFpsX10( iterP99Us );
 
@@ -1106,15 +966,12 @@ void gxPerfSample( void )
 	// deliberately, and it renders as "--".
 	{
 		s.slot = ( TheNetwork != NULL ) ? (Int)TheNetwork->getLocalPlayerID() : -1;
-		// GeneralsX: GX_STAT_SLOT_MAX (13, MAX_PLAYER), not a literal 11: a peer in slot
+		// GX_STAT_SLOT_MAX (13, MAX_PLAYER), not a literal 11: a peer in slot
 		// 12 or 13 - an observer seat of the 14-slot lobby - sent no slot and no router RTT at all.
 		if( s.slot < 0 || s.slot > GX_STAT_SLOT_MAX ) s.slot = -1;
-		// THE ROUTER HAS NO ROUND TRIP TO ITSELF, and its own slot is therefore always 0 by
-		// construction. Sending that 0 would put a perfect, rock-steady "0 ms" on the panel for
-		// whichever peer happens to be routing - which is not a hypothetical failure mode: it is
-		// exactly what getMaximumLatency() did to the in-game readout for a whole match on
-		// 2026-08-04, and Diplomacy.cpp patches the same 0 in the UI rather than in the network
-		// layer, so every other reader has to patch it too.
+		// The router has no round trip to itself, so its own slot is always 0 by construction. Sending that 0 would put a
+		// perfect "0 ms" on the panel for whichever peer is routing; getMaximumLatency() did that to the in-game readout, and
+		// Diplomacy.cpp patches the same 0 in the UI, so every other reader has to patch it too.
 		const Bool iAmRouter = ( TheNetwork != NULL ) && ( TheNetwork->isPacketRouter() == TRUE );
 		s.pingRouterMs = ( TheNetwork != NULL && s.slot >= 0 && !iAmRouter )
 			? TheNetwork->getPeerPingMs( s.slot ) : -1;
@@ -1141,17 +998,9 @@ void gxPerfSample( void )
 		}
 	}
 
-	// THE DEBT IS CARRIED, not thrown away, and the counters' baseline is NOT the same instant as
-	// the cadence deadline. Both arguments - why the deadline advances by exactly one interval
-	// (the relay's `rj` column), why it resyncs rather than pays the debt back as a burst, and why
-	// setting the two to one instant reported a tick rate nobody achieved - live on
-	// gxPerfCloseWindow in GXPerfReport.h. They are there rather than here because that header
-	// compiles with no engine, which is what makes the arithmetic reachable by
-	// scripts/test/gxperf-line-test.cpp and armed there.
-	//
-	// Converted rather than pointer-cast: Int64 and long long are both 64-bit here but they are
-	// DISTINCT TYPES (Int64 is int64_t, which is `long` on LP64), and aliasing one through a
-	// pointer to the other is undefined however well it happens to work on this compiler.
+	// The debt is carried, and the counters' baseline is NOT the same instant as the cadence deadline; the reasoning
+	// lives on gxPerfCloseWindow in GXPerfReport.h, which compiles with no engine so gxperf-line-test.cpp can arm it.
+	// Converted rather than pointer-cast: Int64 and long long are distinct types (Int64 is `long` on LP64).
 	long long deadline = (long long)s_windowStart;
 	long long span     = (long long)s_spanStart;
 	gxPerfCloseWindow( (long long)now, (long long)GX_PERF_INTERVAL_MS * 1000000LL, &deadline, &span );

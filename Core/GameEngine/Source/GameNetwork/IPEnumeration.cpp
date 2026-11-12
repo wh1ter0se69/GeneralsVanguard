@@ -37,7 +37,7 @@
 #endif
 
 #ifndef _WIN32
-// GeneralsX @bugfix Darwin answers a limited broadcast (255.255.255.255) with EHOSTUNREACH no
+// GeneralsX: Darwin answers a limited broadcast (255.255.255.255) with EHOSTUNREACH no
 // matter what socket options are set, and Linux binds broadcast reception to the address the
 // datagram was actually sent to, so LAN discovery needs the subnet-directed broadcast of the
 // interface it is speaking from. getifaddrs already carries it; only ifa_addr was being read.
@@ -99,18 +99,10 @@ static Bool isCellularInterface( const struct ifaddrs *ifa )
 #endif
 
 #ifdef _WIN32
-// GeneralsX: The same fact on Windows, where the address list itself comes
-// from the hostname lookup and carries no interface at all. SIO_GET_INTERFACE_LIST returns one
-// INTERFACE_INFO per IPv4 address with its flags and mask. Neither the struct nor the code is
-// declared by the Winsock 1.1 header this engine builds against (<ws2ipdef.h> drags winsock2.h in
-// on top of winsock.h - see udp.h), so both are mirrored here, ABI-stable since NT 4, the same way
-// udp.cpp mirrors SIO_UDP_CONNRESET: ULONG iiFlags, then three sockaddr_gen unions. sockaddr_gen
-// is { sockaddr (16), sockaddr_in (16), sockaddr_in6_old (short, u_short, u_long, in6_addr = 24) }
-// - the OLD in6 form without sin6_scope_id, so 24 bytes, not sockaddr_in6's 28 - on Win32 and Win64
-// alike (checked against the SDK metadata as windows-sys generates it: INTERFACE_INFO, sockaddr_gen,
-// sockaddr_in6_old). The parse below still refuses any reply whose records do not all read as
-// AF_INET, so a layout mismatch degrades to retail order instead of marking the wrong address.
-// Measured 28/09/2026 on the owner's PC: the Tailscale adapter holds its 100.x address as /32.
+// SIO_GET_INTERFACE_LIST gives one INTERFACE_INFO per IPv4 address (flags, mask). The Winsock 1.1 header lacks the
+// struct and code (see udp.h), so they are mirrored here as udp.cpp does for SIO_UDP_CONNRESET: ULONG iiFlags,
+// then three sockaddr_gen unions (old in6 form without sin6_scope_id, 24 bytes).
+// Any non-AF_INET record makes the parse fall back to retail order.
 struct GxInterfaceInfo
 {
 	UnsignedInt flags;
@@ -180,7 +172,7 @@ static void gxWindowsTunnelLabel( UnsignedInt ip, const UnsignedInt *tunnels, co
 	Bool *tunnel, Bool *unpreferred )
 {
 	// The same address on an adapter that is up and one that is down is live: ANY matching interface up
-	// keeps it preferred, whatever order the list gives them - as gxWindowsVPNExtras reads it (q7-macupd-r5).
+	// keeps it preferred, whatever order the list gives them (as gxWindowsVPNExtras reads it).
 	Bool anyUp = FALSE;
 	*tunnel = FALSE;
 	for (Int t = 0; t < tunnelCount; ++t)
@@ -407,39 +399,10 @@ EnumeratedIP * IPEnumeration::getAddresses()
 	return finish();
 }
 
-// GeneralsX: A link-local (APIPA, 169.254.0.0/16) address must never win
-// the default interface election. The list is kept in ascending numeric order and LanLobbyMenuInit
-// takes the HEAD of it whenever Options.ini's IPAddress does not match a live interface, but
-// 169.254.x.x (0xA9FE....) sorts BELOW every private range a real LAN uses - 172.16 (0xAC10....),
-// 192.168 (0xC0A8....) - so any machine holding an idle second NIC announced an unroutable address
-// and broadcast to 169.254.255.255. The lobby then stayed empty with no diagnostic of any kind,
-// because every LAN log line in this path is DEBUG_LOG and compiles away in a shipping build.
-// Measured on the Mac mini: en10 held 169.254.77.30 while the real LAN was en0 <mini-ip>.
-// Rank by class first, then numerically within the class, so routable addresses always precede
-// link-local ones while a link-local host with nothing else still enumerates normally.
-//
-// GeneralsX: A tunnel must not win it either. Measured 27/09/2026 in a
-// Windows + Mac mini LAN lobby: both engines advertised their Tailscale address as their LAN address,
-// because 100.x (0x64......) sorts below 192.168 (0xC0A8....) exactly as 169.254 did. The lobby
-// joined and both peers then dropped at game start. So a middle class for an address on an interface
-// with no LAN segment (point-to-point or /32: isTunnelInterface, getWindowsTunnelAddresses). It is
-// decided by what the interface IS, never by the address range: 100.64.0.0/10 is also a real LAN on
-// some networks, and a VPN can hold any RFC 1918 block. Class 0 keeps retail's plain ascending
-// order, so a box without a tunnel elects exactly what it did before, and Options.ini IPAddress
-// still wins over all of this, which keeps LAN-over-VPN possible on purpose.
-// Trade-off: a VPN adapter that holds a real subnet mask and no point-to-point flag (NordLynx /16,
-// an OpenVPN TAP) still sorts by number; the upgrade is the adapter type from GetAdaptersAddresses
-// (iphlpapi) on Windows.
-//
-// GeneralsX: "Use my VPN for LAN" (UseVPNForLAN) swaps the first two
-// classes, for players who really do play over Tailscale. What it buys is DIRECT CONNECT by IP over
-// the tunnel (NetworkDirectConnect takes this election, and on Windows the socket is bound to it, so
-// a LAN-bound socket could not talk to a 100.x peer at all). It does NOT make the LAN game LIST work
-// over Tailscale: discovery is broadcast, and a point-to-point /32 has no broadcast address
-// (getInterfaceBroadcast -> 0 -> LANAPI falls back to 255.255.255.255, which a tailnet does not
-// carry). The launcher's hint says "join by IP" for that reason. An L2 VPN (ZeroTier) has a real
-// mask and broadcast, is not a tunnel here, and already behaves like a LAN either way.
-// Trade-off: directed (unicast) discovery to tailnet peers is the upgrade if the list must work too.
+// Election rank: routable LAN first, then tunnel interfaces (point-to-point or /32), then link-local 169.254/16,
+// each ascending by number. Decided by interface type, not address range. Options.ini IPAddress still wins.
+// UseVPNForLAN swaps the first two classes: direct connect by IP works over a tunnel, broadcast discovery does not.
+// A VPN adapter with a real mask and no point-to-point flag (NordLynx /16, OpenVPN TAP) still sorts by number.
 static Bool s_useVPNForLAN = FALSE;
 
 // This client's own synthetic loopback address in multi-instance mode (getAddresses adds it first), else 0.
@@ -494,7 +457,7 @@ static UnsignedInt ipSortClass( UnsignedInt ip, Bool tunnel, Bool cellular, Bool
 	}
 	// On: a multi-instance client's OWN 127.x first - what keeps two instances on one machine from binding
 	// the same address. Only that one: any other loopback, a 127.0.0.1 the hostname lookup
-	// returned included, ranks as a plain address (w49vpn-r4, q7-macupd-r9) - then the VPN, the LAN, an
+	// returned included, ranks as a plain address - then the VPN, the LAN, an
 	// unpreferred tunnel.
 	if (ip != 0 && ip == gxOwnInstanceIP())
 	{

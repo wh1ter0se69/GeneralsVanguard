@@ -1,23 +1,25 @@
-// GeneralsX: The REMASTERED ground's switch and quality steps (slice 1 of
-// = the direction, every look
-// feature ships with 2-4 quality steps a runtime governor can move).
-//
-// THE GROUND. W3DDevice/GameClient/TerrainTex.cpp draws EA's 2003 terrain tiles with height-aware edges, a baked sun relief
-// (BASE, replacing the retail terrain pixel shader) and a second MULT pass (the stock cloud and macro noise, a world detail
-// grain and a world macro variation). It is ON by default;
-// Options.ini `GXGround = no` turns it off. GX_GROUND overrides the key for A/B arms: `off`, or "shade,blend,detail,macro,noise" in percent (1-5 values, the
-// rest 100; the key's values are 100,100,100,100,50). Off draws today's ground byte for byte: nothing is built, nothing drawn.
-//
-// THE STEPS, one per drawn frame:
-//   0 = full: BASE + MULT with every layer;
-//   1 = MULT without the detail grain and the macro variation (a 2-texture program instead of 4); BASE's relief and edges stay;
-//   2 = the stock ground (the retail terrain shader, no second pass).
-// The look governor (GameClient/GXLookGovernor.h, knob GXK_GROUND) writes g_gxGroundGovStep after a frame commits; nothing else
-// does. A step change allocates nothing: every device object and the shade atlas stay built, so a raise draws at once.
-//
-// Header-only and pure (no engine include), so the rules below are tested without the engine: scripts/test/look-ground-test.sh.
-// Core/GameEngine/Include/GameClient is outside the SimID digest. It must stay that way: never include this from Common/,
-// GameLogic/ or GameNetwork/.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The REMASTERED ground (TerrainTex.cpp): EA's terrain tiles with height-aware edges, a baked sun relief (BASE)
+// and a second MULT pass. ON by default; `GXGround = no` turns it off; GX_GROUND overrides for A/B arms.
+// Steps: 0 = full; 1 = no detail grain or macro variation; 2 = stock ground. Only the look governor writes
+// g_gxGroundGovStep. Outside the SimID digest: never include from Common/, GameLogic/ or GameNetwork/.
 
 #pragma once
 

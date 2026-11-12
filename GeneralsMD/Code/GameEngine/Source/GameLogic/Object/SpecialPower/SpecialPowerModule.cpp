@@ -480,16 +480,10 @@ Bool SpecialPowerModule::initiateIntentToDoSpecialPower( const Object *targetObj
 		return false;
 	}
 #else
-	// GeneralsX: The same escape for a scaffold whose update module refused: without
-	// RETAIL_COMPATIBLE_CRC the 0xFFFFFFFF sentinel is the normal not-yet-ready value, so it cannot mark the
-	// MissileLauncherBuildingUpdate refusal (that module is unset until construction ends). A map script fires a named
-	// scaffold without ActionManager's gate. Fired at a location (or an object, which OCLSpecialPower turns into one),
-	// a launcher scaffold now does what retail did: nothing. Retail parity, not more: the no-target doSpecialPower
-	// variant still creates the OCL, and a particle cannon scaffold still schedules its scripted beam, as in retail.
-	// The two location escapes (doSpecialPowerAtLocation, OCLSpecialPower) cannot see valid and refuse any
-	// UNDER_CONSTRUCTION source; retail fired a non-launcher location power from one. In play nothing powered stays
-	// UNDER_CONSTRUCTION once built: buildObjectNow leaves it set only for line builds and the harness's
-	// GX_STRESS_BUILDINGS.
+	// GeneralsX: the same escape for a scaffold whose update module refused. Without RETAIL_COMPATIBLE_CRC the 0xFFFFFFFF
+	// sentinel is the normal not-yet-ready value, so it cannot mark the MissileLauncherBuildingUpdate refusal.
+	// Fired at a location (or an object, which OCLSpecialPower turns into one), a launcher scaffold does nothing: retail.
+	// The no-target variant still creates the OCL, as in retail.
 	if (!valid && getObject()->testStatus(OBJECT_STATUS_UNDER_CONSTRUCTION))
 		return false;
 #endif
@@ -519,7 +513,7 @@ void SpecialPowerModule::triggerSpecialPower( const Coord3D *location )
 
 	aboutToDoSpecialPower( location );	// do BEFORE recharge
 
-	// GeneralsX @feature Announce the use during replay playback, for GENERAL'S SKILLS ONLY.
+	// GeneralsX: Announce the use during replay playback, for GENERAL'S SKILLS ONLY.
 	// This function fires for every special power in the game - Ranger flashbangs, radar scans,
 	// ordinary unit abilities - so announcing it unfiltered would bury the interesting events.
 	// m_requiredScience is SCIENCE_INVALID unless an INI sets RequiredScience (SpecialPower.cpp:195,

@@ -75,18 +75,18 @@ DX8MeshRendererClass TheDX8MeshRenderer;
 thread_local GxCollectSink *GxCollectActiveSink = nullptr;
 bool GxCollectSinkArmed = false;
 
-void (*GxL2FlushHook)(bool end) = nullptr;	// WS-G (dx8renderer.h GxClassicDraw)
-void (*GxL2FlushClosedHook)() = nullptr;	// GeneralsX: WS-G Task 5 T3 (dx8renderer.h)
-bool (*GxL2SeatHook)(DX8TextureCategoryClass *, PolyRenderTaskClass *) = nullptr;	// GeneralsX: WS-G S1 seat (dx8renderer.h)
+void (*GxL2FlushHook)(bool end) = nullptr;	// dx8renderer.h GxClassicDraw
+void (*GxL2FlushClosedHook)() = nullptr;	// GeneralsX: dx8renderer.h
+bool (*GxL2SeatHook)(DX8TextureCategoryClass *, PolyRenderTaskClass *) = nullptr;	// GeneralsX: seat (dx8renderer.h)
 std::vector<GxClassicDraw> *GxL2Executed = nullptr;
 GxMotionHooks *GxMotion = nullptr;	// A35 (dx8renderer.h)
 GxShadowCastHooks *GxShadowCast = nullptr;	// S7 (dx8renderer.h)
 
-// GeneralsX: S7 PREREG A74 / A74a (TEST-ONLY GX_SEETHROUGH_PAINT=<RRGGBB>): M3's don't-care mask. Pass 0
+// GeneralsX: TEST-ONLY GX_SEETHROUGH_PAINT=<RRGGBB>: the don't-care mask. Pass 0
 // of an immediate (non-sorted), non-skin mesh whose category shader alpha-TESTS and whose model has CAST_SHADOW - the see-through casters
 // (camo nets, fences, cutouts) - is drawn as one flat opaque colour with its alpha test off, so a picture shows its whole footprint, holes
 // included. The paint REPLACES the mesh's draw (one Render inside the motion bridge's rigidBegin / rigidEnd; meshBegin still tags it):
-// valid only with GX_SHADOWMAP_CAST=none (printed; integrator A74 (a)). States only through the wrapper's setters; the next draw re-applies
+// valid only with GX_SHADOWMAP_CAST=none (printed). States only through the wrapper's setters; the next draw re-applies
 // the category's shader and material. Read once at static init; unset = one bool test per mesh.
 namespace
 {
@@ -97,6 +97,7 @@ namespace
 		unsigned hits = 0;	// the render thread only
 		GxSeeThroughPaint()
 		{
+#ifdef GX_TEST_INSTRUMENTS	// GeneralsX: this constructor runs before main's allow-list scrub (GXEnvAllowList.h): a test mode, off in a shipped build
 			const char *e = getenv("GX_SEETHROUGH_PAINT");
 			bool hex6 = e != nullptr && strlen(e) == 6;	// exactly RRGGBB (strtoul takes 0x, signs and spaces)
 			for (int i = 0; hex6 && i < 6; ++i)
@@ -112,6 +113,7 @@ namespace
 			}
 			else if (e)
 				fprintf(stderr, "[GXSHADOW] TEST-ONLY GX_SEETHROUGH_PAINT=%s refused (want RRGGBB): no paint\n", e);
+#endif
 		}
 	};
 	GxSeeThroughPaint s_gxPaint;	// hits counts on the render thread
@@ -161,7 +163,7 @@ static void Gx_Executed(int kind, DX8TextureCategoryClass *cat, DX8PolygonRender
 {
 	GxClassicDraw d = { kind, cat, pr, pass, mesh, decal, s_gxSkinBatch };
 	GxL2Executed->push_back(d);
-	if (DX8Wrapper::GxLogOn) {	// GeneralsX: WS-G Task 5: ENTRY, before the entry's setters
+	if (DX8Wrapper::GxLogOn) {	// ENTRY, before the entry's setters
 		DX8Wrapper::GxLogEntry = (unsigned)(GxL2Executed->size() - 1);
 		DX8Wrapper::Gx_Log(gxlog::ENTRY, DX8Wrapper::GxLogEntry, (unsigned)kind, nullptr, 0, 0);
 	}
@@ -505,7 +507,7 @@ void DX8RigidFVFCategoryContainer::Render_Delayed_Procedural_Material_Passes()
 		GxShadowCast->containerEnd();
 }
 
-// GeneralsX: WS-G: the Gx_List_* functions walk exactly what the Render functions next to them
+// GeneralsX: the Gx_List_* functions walk exactly what the Render functions next to them
 // draw, in the same order, and change nothing. skin_batches (a GxSkinBatchMap: skin containers only, empty when every
 // visible skin fits one dynamic VB) stands in for the VERTEX_BUFFER_OVERFLOW marks Render() sets while it fills.
 static bool Gx_In_Batch(const MeshClass *mesh, const void *skin_batches, int batch)
@@ -1466,23 +1468,10 @@ void DX8SkinFVFCategoryContainer::Log(bool only_visible)
 
 // ----------------------------------------------------------------------------
 
-// GeneralsX: (render-split lever "CPU skinning"): the skin container's
-// per-mesh deform + interleave (Get_Deformed_Vertices, VectorProcessorClass::Transform, the copy into the dynamic VB)
-// runs on the GXParallel pool. Render() first walks the visible skins on this thread exactly as before - the fit /
-// VERTEX_BUFFER_OVERFLOW logic, Set_Base_Vertex_Offset and the stats stay serial - and queues one job per fitted mesh
-// with its own disjoint slice of the locked buffer; gxParallelFor then fills the slices (each worker with its own
-// scratch, never the file-static _Temp buffers) and returns only after every write is visible here, before the lock
-// is released. Every input is read-only during the dispatch: the model's vertex/normal/bone-link/UV/colour arrays and
-// the container's bone transforms, all final before Flush. Same function, same inputs, so the bytes are the same
-// whichever thread fills a slice. GX_SKINPAR=0 keeps the original serial fill; 2 also re-fills every slice serially
-// and compares it (check mode, [GXSKIN] bad= every 600 calls); 3 is check mode with every 7th job left unfilled - the
-// TEST-ONLY negative control of both the check and the picture gate (a job that never ran); 4 is 1 plus a deliberate
-// data race in the jobs (TEST-ONLY: the ThreadSanitizer lane's mutant, as GX_COLLECTPAR=4). Client only: nothing here
-// feeds the simulation.
-// GeneralsX: on by default on Windows only - wh1ter0se's PC, G2 R1 frame
-// time ~-0.4 ms in two n=6+6 ABBA leases. The Mini
-// measured ~0 (-0.03 ms), so macOS, iOS and Linux stay on the serial fill. Unset or empty = GX_SKINPAR_DEFAULT;
-// GX_SKINPAR=0..4 overrides it on every platform.
+// GeneralsX: skin deform + interleave runs on the GXParallel pool, each job filling a disjoint slice of the locked VB.
+// Render() still walks the skins serially; gxParallelFor returns before unlock. Workers use their own scratch.
+// GX_SKINPAR=0 serial, 1 parallel, 2 also re-fills serially and compares; 3 and 4 are test-only mutants.
+// Default 1 on Windows only (GX_SKINPAR_DEFAULT); GX_SKINPAR overrides it. Client only.
 #ifdef _WIN32
 static constexpr int GX_SKINPAR_DEFAULT = 1;	// Windows
 #else
@@ -1541,7 +1530,13 @@ static struct GxSkinPar
 {
 	int mode;
 	unsigned calls, meshes, verts, bad;
-	GxSkinPar() : calls(0), meshes(0), verts(0), bad(0) { const char * v = getenv("GX_SKINPAR"); mode = (v == nullptr || *v == 0) ? GX_SKINPAR_DEFAULT : atoi(v); }
+	GxSkinPar() : calls(0), meshes(0), verts(0), bad(0) {
+#ifdef GX_TEST_INSTRUMENTS
+		const char * v = getenv("GX_SKINPAR");
+#else
+		const char * v = nullptr;	// GeneralsX: this constructor runs before main's allow-list scrub (GXEnvAllowList.h): the default fill in a shipped build
+#endif
+		mode = (v == nullptr || *v == 0) ? GX_SKINPAR_DEFAULT : atoi(v); }
 } s_gxSkinPar;
 static int s_gxSkinRacy;	// GX_SKINPAR=4 only: written by every job without a lock, for the ThreadSanitizer lane
 
@@ -1611,7 +1606,7 @@ void DX8SkinFVFCategoryContainer::Render()
 
 	MeshClass * mesh = VisibleSkinHead;
 	MeshClass * remainingMesh = VisibleSkinHead;
-	s_gxSkinBatch = -1;	// WS-G: counts the batches below (dx8renderer.h GxClassicDraw::batch)
+	s_gxSkinBatch = -1;	// counts the batches below (dx8renderer.h GxClassicDraw::batch)
 	while (renderedVertexCount < VisibleVertexCount)
 	{	mesh = remainingMesh;
 		++s_gxSkinBatch;
@@ -1996,7 +1991,7 @@ unsigned DX8TextureCategoryClass::Add_Mesh(
 
 void DX8TextureCategoryClass::Render()
 {
-	if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log_Ptr(gxlog::CAT_BEGIN, 0, 0, this, 0);	// GeneralsX: WS-G Task 5
+	if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log_Ptr(gxlog::CAT_BEGIN, 0, 0, this, 0);
 	#ifdef WWDEBUG
 	if (!WW3D::Expose_Prelit()) {
 	#endif
@@ -2061,7 +2056,7 @@ void DX8TextureCategoryClass::Render()
 			continue;
 		}
 		if (GxL2Executed) Gx_Executed(GxClassicDraw::TASK, this, renderer, nullptr, mesh, nullptr);
-		if (GxL2SeatHook && GxL2SeatHook(this, prt)) {	// GeneralsX: WS-G S1 seat: drawn by DrawRun in its run -
+		if (GxL2SeatHook && GxL2SeatHook(this, prt)) {	// GeneralsX: seat: drawn by DrawRun in its run -
 			PolyRenderTaskClass * next_prt = prt->Get_Next_Visible();	// unlinked and deleted exactly as at the end of this loop
 			if (last_prt == nullptr) {
 			   render_task_head = next_prt;
@@ -2273,7 +2268,7 @@ void DX8TextureCategoryClass::Render()
 
 
         }
-		if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log(gxlog::TASK_END, DX8Wrapper::GxLogEntry, 0, nullptr, 0, 0);	// GeneralsX: WS-G Task 5
+		if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log(gxlog::TASK_END, DX8Wrapper::GxLogEntry, 0, nullptr, 0, 0);
 
 		/*
 		** Move to the next render task.  Note that the delete should be fast because prt's are pooled
@@ -2298,7 +2293,7 @@ void DX8TextureCategoryClass::Render()
 	}
 }
 
-// GeneralsX: WS-G S1 seat (dx8renderer.h): the task walk, as DX8TextureCategoryClass::Render reads it.
+// GeneralsX: the seat (dx8renderer.h): the task walk, as DX8TextureCategoryClass::Render reads it.
 PolyRenderTaskClass *Gx_Task_Next(PolyRenderTaskClass *t) { return t->Get_Next_Visible(); }
 MeshClass *Gx_Task_Mesh(PolyRenderTaskClass *t) { return t->Peek_Mesh(); }
 DX8PolygonRendererClass *Gx_Task_Renderer(PolyRenderTaskClass *t) { return t->Peek_Polygon_Renderer(); }
@@ -2526,7 +2521,11 @@ static void Render_FVF_Category_Container_List_Delayed_Passes(FVFCategoryList& l
 
 DX8MeshRendererClass::GxBoundaryFn DX8MeshRendererClass::GxBoundary = nullptr;
 
+#ifdef GX_TEST_INSTRUMENTS
 const bool GxFlushProf::On = getenv("GX_FLUSHPROF") != nullptr;
+#else
+const bool GxFlushProf::On = false;	// GeneralsX: a static initializer runs before main's allow-list scrub (GXEnvAllowList.h)
+#endif
 bool GxFlushProf::InBracket = false;
 long long GxFlushProf::Ns[GxFlushProf::N] = {};
 long long GxFlushProf::Now() { return (long long)std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
@@ -2546,10 +2545,10 @@ void DX8MeshRendererClass::Flush()
 	int i;
 
 	WWPROFILE("DX8MeshRenderer::Flush");
-	GxFlushSite = GxFlushSiteNext;	// WS-G (dx8renderer.h GxFlushSite)
+	GxFlushSite = GxFlushSiteNext;	// dx8renderer.h GxFlushSite
 	GxFlushSiteNext = GXFS_UNSET;
 	if (!camera) return;
-	if (GxL2FlushHook) GxL2FlushHook(false);	// WS-G (dx8renderer.h GxClassicDraw)
+	if (GxL2FlushHook) GxL2FlushHook(false);	// dx8renderer.h GxClassicDraw
 	Log_Statistics_String(true);
 
 	/*
@@ -2588,10 +2587,10 @@ void DX8MeshRendererClass::Flush()
 		GxBoundary(GX_BOUNDARY_DELAYED, DX8Wrapper::Get_Draw_Calls_Total() - gxDraws);
 	}
 
-	if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log(gxlog::FLUSH_END, 0, 0, nullptr, 0, 0);	// GeneralsX: WS-G Task 5
+	if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log(gxlog::FLUSH_END, 0, 0, nullptr, 0, 0);
 	DX8Wrapper::Set_Vertex_Buffer(nullptr);
 	DX8Wrapper::Set_Index_Buffer(nullptr,0);
-	if (GxL2FlushClosedHook) GxL2FlushClosedHook();	// GeneralsX: WS-G Task 5 T3: the call log's close point
+	if (GxL2FlushClosedHook) GxL2FlushClosedHook();	// the call log's close point
 }
 
 

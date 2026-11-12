@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule ARMY.GLA_BUS_BARRACKS: Stealth GLA runs a second Barracks so
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule ARMY.GLA_BUS_BARRACKS: Stealth GLA runs a second Barracks so
 # its Battle Buses and Jarmen Kell army fill faster. Stock Stealth Hard builds one ("GLA Barracks - H"; the build list holds one, the RICH
 # copies wait for big cash). Here one-shot scripts "GX Barracks <k> - H", k = 2..barracks_n, each place Barracks k once the first one is
 # complete, the player owns k-1 and holds 1500, the way the stock RICH scripts place an extra one (AI_PLAYER_BUILD_SUPPLY_CENTER, minimum

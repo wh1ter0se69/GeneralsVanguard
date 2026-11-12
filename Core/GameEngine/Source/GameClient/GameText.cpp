@@ -1576,7 +1576,7 @@ UnicodeString GameTextManager::fetchOrSubstituteFormatVA( const Char *label, con
 	if (exists)
 	{
 		UnicodeString strFormat;
-		// GeneralsX @bugfix The format source was strFormat.str() - the freshly default-constructed
+		// GeneralsX: The format source was strFormat.str() - the freshly default-constructed
 		// destination, whose str() is the empty-string sentinel. vswprintf therefore formatted "" and
 		// succeeded, so str was overwritten with an empty string: the behaviour was exactly inverted,
 		// with the localized text rendering blank whenever the label EXISTS and only the substitute

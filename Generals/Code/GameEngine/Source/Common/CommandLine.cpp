@@ -514,11 +514,9 @@ Int parseYRes(char *args[], int num)
 
 //=============================================================================
 //=============================================================================
-// GeneralsX: THE max-FPS setting: the launcher composes -fps N from its one
-// field, and 0 means unlimited (Common/FpsLimitPolicy.h). A non-negative whole number or nothing: atoi()
-// turned "fast" or "-60" into 0, which is now a real value - unlimited - so a typo must not select it.
-// Lifted out of the RTS_DEBUG block below, as Zero Hour's was on 05/08/2026: a shipping base-game build
-// compiled in neither -fps nor -noFPSLimit, so the launcher's setting could not reach it.
+// GeneralsX: the max-FPS setting. The launcher composes -fps N from its one field; 0 means unlimited (Common/FpsLimitPolicy.h).
+// Only a non-negative whole number is accepted: atoi() turned a typo into 0, which now means unlimited.
+// Outside the RTS_DEBUG block below so shipping builds compile in -fps and -noFPSLimit.
 static bool s_fpsLimitArgument = false;
 
 bool CommandLine::hasFpsLimitArgument()
@@ -1092,8 +1090,7 @@ Int parseIgnoreStackTrace(char *args[], int num)
 }
 #endif
 
-// GeneralsX: The same setting as -fps 0: unlimited. It used to switch the
-// limiter off, a second setting beside the number. The launcher spells its "0 = Unlimited" this way,
+// GeneralsX: The same setting as -fps 0: unlimited. The launcher spells its "0 = Unlimited" this way,
 // because an engine from before this change caps -fps 0 at the tick rate but uncaps -noFPSLimit.
 Int parseNoFPSLimit(char *args[], int num)
 {

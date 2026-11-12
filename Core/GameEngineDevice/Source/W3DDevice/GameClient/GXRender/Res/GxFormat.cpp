@@ -1,4 +1,22 @@
-// GeneralsX: WS-C GXRES v0: D3D8 format -> Vulkan format, per device (see GxFormat.h).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GXRES: D3D8 format -> Vulkan format, per device (see GxFormat.h).
 #include "GxFormat.h"
 #include "GxD3D.h"
 #include "GxDecode.h"
@@ -80,7 +98,7 @@ void FormatTable::init(VkPhysicalDevice pd, const FormatCaps& caps)
 	m_formats.push_back(block(d3d::DXT3, "DXT3", VK_FORMAT_BC2_UNORM_BLOCK, 16));
 	m_formats.push_back(block(d3d::DXT4, "DXT4", VK_FORMAT_BC3_UNORM_BLOCK, 16));
 	m_formats.push_back(block(d3d::DXT5, "DXT5", VK_FORMAT_BC3_UNORM_BLOCK, 16));
-	// GXRES-private HD-art formats (not D3D8): BC7 on desktop GPUs, ASTC 4x4 on Apple's (PLAN §1b "+").
+	// GXRES-private HD-art formats (not D3D8): BC7 on desktop GPUs, ASTC 4x4 on Apple's.
 	m_formats.push_back(block(d3d::GX_BC7, "BC7", VK_FORMAT_BC7_UNORM_BLOCK, 16));
 	m_formats.push_back(block(d3d::GX_ASTC_4x4, "ASTC4x4", VK_FORMAT_ASTC_4x4_UNORM_BLOCK, 16));
 	// GXRES-private render target (not D3D8): the motion bridge's object-velocity image, key on only.

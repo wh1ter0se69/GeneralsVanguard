@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule ARMY.GLA_TOXIN_ECON: Toxin puts money into army - Angry Mobs out
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule ARMY.GLA_TOXIN_ECON: Toxin puts money into army - Angry Mobs out
 # early and on guard, more Barracks once rich (row 323). Stock Hard Toxin makes Angry Mobs only in its 5th-wave team (10 min+, a wave
 # gate that reads _ESCALATION) and that team attacks as soon as it exists. This: the Mob team "GLA H 5TH Wave Mob C. 3" is produced
 # from _GX_CLOCK 15 (150 s, a design constant), keeps only its stock OnCreate "GLA Guard Base" (no attack hook: guard mode), and at
@@ -13,15 +15,15 @@ MOB_TEAM, EARLY, STOCK_GATE, GROUP = 'GLA H 5TH Wave Mob C. 3', 'GX GLA Toxin Mo
 BARRACKS, RAX = 'GX GLA Mob Barracks %d - H', 'Chem_GLABarracks'
 MOB_FROM = 15                                 # _GX_CLOCK ticks (150 s)
 # the Mob team's build priority: stock 140 loses to a dozen Toxin teams (500 tech capture / expanders, 310-300 defenders, 215-210 CT
-# stealth), so eligible at 150 s it came at 416 s or never in the 30/10 smoke; 400 builds it ahead of the defenders, behind capture,
+# stealth), so eligible at 150 s it came at 416 s or never in the smoke; 400 builds it ahead of the defenders, behind capture,
 # expansion and the invasion alerts (1000)
 MOB_PRIORITY = 400
 # the Mob's prerequisites are Chem_GLABarracks + Chem_GLAPalace (INIZH ChemicalGeneral.ini, Chem_GLAInfantryAngryMobNexus) and stock's
-# "GLA Palace - H" waits for _ESCALATION 30 (Palace done at 385-395 s in the 30/10 smokes): an early Palace from the same clock, once the
+# "GLA Palace - H" waits for _ESCALATION 30 (Palace done at 385-395 s in the smokes): an early Palace from the same clock, once the
 # Arms Dealer (the Palace's own prerequisite, $2500 / 45 s) stands. Stock's gift script is untouched; its later SKIRMISH_BUILD_BUILDING
 # finds the Palace built and does nothing (AISkirmishPlayer::buildSpecificAIBuilding: "already built or queued"). Black Market 1's stock
 # gate (BUILT_BY_PLAYER Palace, a frozen gift script) therefore opens earlier too - its text and gift are unchanged.
-# LEAD RULING 31/10 (C59, lens-B P2): ACCEPTED. Black Market 1's $3,000 gift now comes earlier - about Palace time + 45 s, not ~390 s. Any
+# Black Market 1's $3,000 gift therefore comes earlier - about Palace time + 45 s, not ~390 s. Any
 # Toxin A/B, tune campaign or smoke reads that gift as PART OF THIS ARM (the arm = early Palace + early Mob + the earlier gift); do not
 # attribute a Toxin income change to the Mob alone. max_black_markets: Dominator's stand-in answer is "no cap", so UNUSED below is now
 # the intended behaviour (RULES.stand-in.tsv default 5 = the registry maximum), not a missing lever.

@@ -180,14 +180,8 @@ GameFont *FontLibrary::getFont( AsciiString name, Int pointSize, Bool bold )
 {
 	// TheSuperHackers @fix No longer creates fonts with zero size and clamps oversized fonts.
 	// The upper bound caps glyph buffer memory when a resolution-scaled point size gets very large.
-	// GeneralsX: Ported by hand from upstream PR #3051 (620a173c6), which lifted
-	// the old "anything over 100 is probably wrong" cap, together with the 512 clamp upstream added in
-	// PR #3268 (b57adac01). The cap made this return nullptr above 100, so such a font never loaded. The
-	// lift is only safe with the variable-length FontCharsBuffer (render2dsentence.h), which is why the
-	// clamp came with it: without it, a cell above CHAR_BUFFER_LEN (Arial 'W' from about 131 pt) is
-	// dropped, and the GDI path's PointSize*2 square DIB grows without bound. From about 170 pt a face is
-	// taller than the 256 px sentence texture; Render2DSentenceClass::Allocate_New_Surface grows the
-	// texture for it (upstream PR #3288, ported 25/09/2026), so every size accepted here can be drawn.
+	// GeneralsX: ported from upstream PR #3051 and #3268. The 512 clamp caps glyph buffer memory and is what makes lifting
+	// the old 100 cap safe: unclamped, oversized cells are dropped and the GDI PointSize*2 DIB grows without bound.
 	enum { FONT_POINT_SIZE_MAX = 512 };
 	if (pointSize < 1)
 	{

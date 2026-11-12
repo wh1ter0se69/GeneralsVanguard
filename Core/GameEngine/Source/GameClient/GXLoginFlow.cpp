@@ -11,7 +11,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: See GXLoginFlow.h for the flow and GXLoopback.h for why the
+// See GXLoginFlow.h for the flow and GXLoopback.h for why the
 // answer comes back to a local socket.
 
 #include "PreRTS.h"
@@ -24,7 +24,7 @@
 #include "GameClient/GXPrivateFile.h"	// the assertion is written owner-only
 #include "Common/GlobalData.h"
 
-// GeneralsX: Gate on SAGE_USE_SDL3, not SAGE_UPDATE_CHECK. SDL3 is what
+// Gate on SAGE_USE_SDL3, not SAGE_UPDATE_CHECK. SDL3 is what
 // supplies SDL_OpenURL; the update checker is an unrelated feature that merely happened to be on in
 // the same builds. The iOS preset sets SAGE_USE_SDL3=ON with SAGE_UPDATE_CHECK=OFF, so under the old
 // guard iPadOS compiled the "no browser opener" arm of openBrowser() and every login attempt died at
@@ -111,7 +111,7 @@ Bool mintNonce(char *out)
 
 Bool openBrowser(const char *url)
 {
-// GeneralsX: Must match the #include guard above, or a build with SDL3 but
+// Must match the #include guard above, or a build with SDL3 but
 // no update checker declares SDL_OpenURL nowhere and falls through to the FALSE arm.
 #if defined(SAGE_USE_SDL3)
 	return SDL_OpenURL(url) ? TRUE : FALSE;
@@ -168,13 +168,13 @@ Bool acceptDelivery(const char *assertion)
 	AsciiString tmp = path;
 	tmp.concat(".tmp");
 
-	// GeneralsX: The stream's buffer is OURS, and wiped. Left to itself stdio
+	// The stream's buffer is OURS, and wiped. Left to itself stdio
 	// allocates one, copies the whole assertion into it on fwrite, and frees it at fclose with the bytes
 	// still in it - a copy of the token in the heap that no sign-out can reach. setvbuf before any I/O
 	// hands the stream this array instead, and the guard wipes it on every way out of this function.
 	char iobuf[512];
 	GXScopedWipe wipeIo(iobuf, sizeof(iobuf));
-	FILE *fp = gxOpenPrivate(tmp.str(), "wb");	// GeneralsX @security 10/11/2026: owner-only, not 0644 (GXPrivateFile.h)
+	FILE *fp = gxOpenPrivate(tmp.str(), "wb");	// owner-only, not 0644 (GXPrivateFile.h)
 	Bool wrote = FALSE;
 	if (fp != NULL)
 	{
@@ -184,17 +184,10 @@ Bool acceptDelivery(const char *assertion)
 		if (fclose(fp) != 0)
 			wrote = FALSE;
 	}
-	// GeneralsX: REPLACE, do not rename. POSIX rename() overwrites an
-	// existing destination; the MSVCRT one REFUSES. So on Windows the very first login succeeded
-	// (no file yet) and every login after it failed at this line - which is every renewal, every
-	// account change, and every re-login after the 30-day expiry. The player got "the account
-	// could not be saved", kept the stale assertion, and /logout would not clear it either because
-	// that path refuses once the identity is no longer valid: a permanent lockout fixable only by
-	// deleting a file by hand.
-	//
-	// MoveFileExW with MOVEFILE_REPLACE_EXISTING is the atomic replace on Windows. Elsewhere plain
-	// rename() already has the semantics we want, and staying on it keeps the atomicity that the
-	// write-to-tmp-then-move dance exists for in the first place.
+	// REPLACE, do not rename: POSIX rename() overwrites an existing destination, the MSVCRT one REFUSES. Otherwise on
+	// Windows only the first login works and every renewal or account change fails, a permanent lockout.
+	// MoveFileExW with MOVEFILE_REPLACE_EXISTING is the atomic replace on Windows; elsewhere plain rename() already
+	// has these semantics and keeps the atomicity of the write-to-tmp-then-move.
 	Bool moved = FALSE;
 	if (wrote)
 	{
@@ -230,14 +223,13 @@ Bool acceptDelivery(const char *assertion)
 
 Bool GXLoginFlow::start(void)
 {
-	// GeneralsX: A bot never signs in to Discord: a browser login here would write a
-	// human's bearer token next to the bot's (GXPlayerIdentity.cpp botFileEnv). See
-	// docs/superpowers/plans/2026-09-23-bot-identity.md.
+	// A bot never signs in to Discord: a browser login here would write a human's bearer token next to the bot's
+	// (GXPlayerIdentity.cpp botFileEnv).
 	const char *botFile = getenv("GX_IDENTITY_FILE");
 	if (botFile != NULL && botFile[0] != '\0')						// the same test as botFileEnv()
 	{
 		fprintf(stderr, "[GXID] GX_IDENTITY_FILE is set - Discord sign-in is disabled in bot mode\n");
-		// GeneralsX: AND SAY SO IN THE LOBBY. gxHandleLogin ignores this
+		// AND SAY SO IN THE LOBBY. gxHandleLogin ignores this
 		// return because start() is documented to queue its own line - and a 24 h bot login reports 0 whole
 		// days left, so the second /login had just said "approve it in the browser" and nothing corrected it.
 		queue("Bot mode: the sign-in is GX_IDENTITY_FILE, renewed by the operator - not in a browser.", COLOR_REFUSE);
@@ -247,19 +239,10 @@ Bool GXLoginFlow::start(void)
 	if (s_state == GX_LOGIN_WAITING)
 		return FALSE;
 
-	// GeneralsX: DROP ANY UNDELIVERED MESSAGE FROM THE PREVIOUS ATTEMPT.
-	//
-	// This is a one-slot queue whose only consumer in the whole tree is the lobby
-	// (WOLLobbyMenu.cpp). While a failed login still entered the lobby, every queued line was
-	// drained on the way in. Now that a failed login keeps the player on the main menu, a line
-	// that nobody drained would SURVIVE - and the next attempt, the one that succeeds, would
-	// carry the previous failure into the lobby and show it in a session that worked. A leaked
-	// error is worse than a missing one: it makes a good login look broken.
-	//
-	// Cleared here rather than only at the point of display, so the invariant holds for every way
-	// an attempt can end - including the ones that never reach a refusal dialog at all, like the
-	// player walking away from the menu. It must come BEFORE the queue() calls below, which are
-	// this function's own failure reasons.
+	// Drop any undelivered message from the previous attempt. This one-slot queue's only consumer is the lobby
+	// (WOLLobbyMenu.cpp), and a failed login stays on the main menu, so an undrained line would leak into the next
+	// successful login. Cleared here so it holds however an attempt ends, and BEFORE the queue() calls below,
+	// which are this function's own failure reasons.
 	s_hasPending = FALSE;
 
 	if (!GXIdentityAssertion::keyIsPinned())
@@ -331,7 +314,7 @@ void GXLoginFlow::update(void)
 	if (s_state != GX_LOGIN_WAITING)
 		return;
 
-	// GeneralsX: WIPED ON EVERY PATH. A delivered assertion is a bearer token,
+	// WIPED ON EVERY PATH. A delivered assertion is a bearer token,
 	// and this frame used to return with it still in the stack. Not only after a delivery: a refused
 	// one can leave a partial copy here too, since the listener writes the field before it has decided.
 	char assertion[GX_ASSERTION_MAX + 2];

@@ -37,9 +37,9 @@
 class WorldHeightMap;
 #define TILE_OFFSET 8
 
-// GeneralsX: THE REMASTERED GROUND (from prototype, 14/10), see TerrainTex.cpp and
+// GeneralsX: THE REMASTERED GROUND, see TerrainTex.cpp and
 // GameClient/GXGroundSteps.h. Everything returns false and changes nothing while it is off (Options.ini GXGround = no - absent is ON,
-// GX_GROUND=off, -headless, or GX_GROUND_AT mode 0); governor step 2 draws the stock ground too. Both renderers draw it (R-G1).
+// GX_GROUND=off, -headless, or GX_GROUND_AT mode 0); governor step 2 draws the stock ground too. Both renderers draw it.
 Bool GXGround_Prepare(TextureClass *atlas);	///< map load / relight (HeightMap staticLightingChanged): build and bake now, not at the first frame
 Bool GXGround_Base(TextureClass *atlas);	///< right after the retail base-pass set(): replace its pixel shader (TRUE = replaced)
 Bool GXGround_MultBegin(TextureClass *cloud, TextureClass *noise);	///< after a replaced base pass: TRUE = draw it again, then MultEnd

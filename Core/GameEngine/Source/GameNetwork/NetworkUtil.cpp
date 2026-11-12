@@ -29,30 +29,8 @@
 
 // TheSuperHackers @tweak Mauller 26/08/2025 reduce the minimum runahead from 10
 // This lets network games run at latencies down to 133ms when the network conditions allow
-// GeneralsX: These are FRAME COUNTS standing in for WALL-CLOCK windows, so at
-// GX_LOGIC_60HZ a fixed count means half the real time. Expressed against the tick rate they hold
-// their meaning at either rate, and every one of them evaluates to its original value at 30 Hz:
-//
-//   MIN_LOGIC_FRAMES  5 frames  = 1/6 s   - the stall floor. Left ABSOLUTE: it is the worst-case
-//                                           rate the router will negotiate down to. CORRECTED
-//                                           23/09/2026 - the arithmetic here was inverted: 5 ticks/s
-//                                           is 1/6 of nominal game speed at 30 Hz but 1/12 at 60 Hz,
-//                                           so leaving it absolute is what deepens the worst case;
-//                                           (5 * LOGICFRAMES_PER_SECOND) / 30 == 10 would keep
-//                                           retail's 1/6. Unchanged pending an owner call - see
-//
-//   MAX_FRAMES_AHEAD  128 frames = 4.27 s - the frame-data ring. Scaled, because FRAME_DATA_LENGTH
-//                                           and FRAMES_TO_KEEP derive from it and FRAMES_TO_KEEP is
-//                                           the tolerance for a briefly-late peer (2.17 s). Halving
-//                                           that at 60 Hz would make late-peer drops twice as
-//                                           likely for no reason other than the unit change.
-//   MIN_RUNAHEAD      4 frames            - left ABSOLUTE. It is a floor on buffer DEPTH in frames,
-//                                           not a duration, and 4 is already the minimum that keeps
-//                                           the pipeline non-empty.
-//
-// NOTE the memory consequence of scaling MAX_FRAMES_AHEAD: FRAME_DATA_LENGTH doubles at 60 Hz, and
-// so does the m_pendingLatencies allocation in FrameMetrics. The `frame % MAX_FRAMES_AHEAD` indexing
-// in FrameMetrics.cpp stays correct because it reads the same symbol.
+// Frame counts standing in for wall-clock windows: MAX_FRAMES_AHEAD scales with the tick rate (FRAME_DATA_LENGTH and
+// FRAMES_TO_KEEP derive from it); MIN_LOGIC_FRAMES (rate floor) and MIN_RUNAHEAD (buffer depth) stay absolute.
 Int MIN_LOGIC_FRAMES = 5;
 Int MAX_FRAMES_AHEAD = (128 * LOGICFRAMES_PER_SECOND) / 30;
 Int MIN_RUNAHEAD = 4;

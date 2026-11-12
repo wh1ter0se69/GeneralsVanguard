@@ -1,6 +1,24 @@
-// gx_ffstate_test - GxPackFF's key rules without a GPU (WS-D week 2). Each check is written so that it
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// gx_ffstate_test - GxPackFF's key rules without a GPU. Each check is written so that it
 // can fail: the "differs" checks prove the key sees a live field, the "equal" checks prove a dead field is normalised away.
-// With GX_FF_HAVE_D3D8_HEADERS it also static_asserts GxFFState.h's D3D8 numbers against d3d8.h (rw1-C's d3d-values pattern).
+// With GX_FF_HAVE_D3D8_HEADERS it also static_asserts GxFFState.h's D3D8 numbers against d3d8.h.
 #include "GxFFState.h"
 #include "GxAlphaToCoverage.h"
 
@@ -100,8 +118,8 @@ int main() {
 	s = base; s.rs[RS_ALPHATESTENABLE] = 1; s.rs[RS_ALPHAFUNC] = 7;   // D3DCMP_GREATEREQUAL
 	CHECK(pack(s, &b) && (b.w[GxFFW_AlphaTestAndModeArgs] & 7u) == 6u, "alpha test GREATEREQUAL -> VkCompareOp 6");
 
-	// WS-E: a bound pixel shader reads stages the FF stage ops cut (here stage 2: camera-space position + COUNT2 + a texture matrix);
-	// the VS texcoord key must carry them. Without s.pixelShader the cut stage stays passthrough (the pre-WS-E behaviour = the fail arm).
+	// A bound pixel shader reads stages the FF stage ops cut (here stage 2: camera-space position + COUNT2 + a texture matrix);
+	// the VS texcoord key must carry them. Without s.pixelShader the cut stage stays passthrough (the fail arm).
 	s = base;
 	s.tss[2][TSS_TEXCOORDINDEX] = 0x20000u;   // D3DTSS_TCI_CAMERASPACEPOSITION | 0
 	s.tss[2][TSS_TEXTURETRANSFORMFLAGS] = 2;   // D3DTTFF_COUNT2
@@ -156,7 +174,7 @@ int main() {
 		CHECK(m[0] == m00 && m[1] == m10 && m[2] == m01 && m[3] == m11, "bump matrix packed (00, 10, 01, 11)");
 	}
 	// DXVK 2.6's stage cut (the classic path): an untextured stage whose COLOUR args do not read TEXTURE stays, even when
-	// its alpha args do (D3D's default ALPHAARG1 = TEXTURE) - DXVK 3.0 cut it (rw2-D adversarial review P3-6)
+	// its alpha args do (D3D's default ALPHAARG1 = TEXTURE) - DXVK 3.0 cut it
 	s = base; s.textureType[1] = GxTexNone;
 	s.tss[1][TSS_COLOROP] = TOP_SELECTARG1; s.tss[1][TSS_COLORARG1] = TA_DIFFUSE;
 	s.tss[1][TSS_ALPHAOP] = TOP_SELECTARG1; s.tss[1][TSS_ALPHAARG1] = TA_TEXTURE;
@@ -174,7 +192,7 @@ int main() {
 		CHECK(vs.PointSize == 0.0f && vs.PointSizeMin == 0.0f && vs.PointSizeMax == 8191.875f, "point sizes clamped [0, 8191.875], NaN -> 0");
 	}
 
-	// A25 pack-inputs (a FALSIFIER of GxPackFFReadsRS/TSS, design r1; the proof is the source audit + check mode): over
+	// A25 pack-inputs (a FALSIFIER of GxPackFFReadsRS/TSS; the proof is the source audit + check mode): over
 	// deliberately ACCEPTED states, perturbing an RS / TSS index the table does NOT list must leave acceptance and all three blocks
 	// byte-identical; every LISTED index must change acceptance or a block in at least one state and value (the table is not padded).
 	{

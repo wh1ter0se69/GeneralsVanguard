@@ -487,21 +487,10 @@ void NAT::establishConnectionPaths() {
 		return;
 	}
 
-	// GeneralsX: THE PAIRING TABLE ONLY AUTHORS 2..8 NODES, and past that
-	// it does not run out of entries - it silently produces a WRONG plan.
-	//
-	// m_connectionPairs is declared [MAX_SLOTS-1][MAX_SLOTS-1][MAX_SLOTS], which followed MAX_SLOTS
-	// to twelve, but its initializer still lists seven blocks of seven rounds of eight nodes. C++
-	// value-initialises everything the initializer does not cover - with ZERO. In this table -1 is
-	// "sit this round out" and 0 is "connect to node 0", so every unlisted entry reads as a real
-	// instruction. At nine or more nodes the whole block is unlisted, so every node is told to
-	// negotiate with node 0 in every round: a negotiation that cannot complete, with nothing out of
-	// range and no assert to fire.
-	//
-	// Not reachable from anything GeneralsX ships today - TheNAT is constructed only by the GameSpy
-	// staging room (StagingRoomGameInfo.cpp:672), and the LAN and relay paths never touch it - which
-	// is exactly why it needs to say so rather than wait. Refusing here is honest: NAT traversal is
-	// simply not available above eight until the table is generated instead of hand-written.
+	// The pairing table authors only 2..8 nodes. m_connectionPairs is sized by MAX_SLOTS but its initializer lists
+	// seven blocks of seven rounds of eight nodes; the rest is zero-initialised, and 0 means connect to node 0
+	// (-1 is sit out), so nine or more nodes yield a wrong plan with no assert. Only the GameSpy staging room
+	// constructs TheNAT (StagingRoomGameInfo.cpp:672), so refuse above eight.
 	static const Int NAT_MAX_AUTHORED_NODES = 8;
 	if (m_numNodes > NAT_MAX_AUTHORED_NODES)
 	{
@@ -924,9 +913,8 @@ void NAT::gotMangledPort(Int nodeNumber, UnsignedShort mangledPort) {
 		return;
 	}
 
-	// GeneralsX: Not our target: done, before anything is indexed. This test used to come
-	// after m_connectionNodes[m_targetNodeNumber] was read, and a node sitting a round out has target -1 - a PORT
-	// from another player then read m_connectionNodes[-1] (net-hardening nat-port-r1). nodeNumber is already
+	// GeneralsX: Not our target: done, before anything is indexed. A node sitting a round out has target -1, so a PORT
+	// from another player would read m_connectionNodes[-1] if this test came after the index. nodeNumber is already
 	// bounded by processGlobalMessage, so after this the target is a valid node.
 	if (nodeNumber != m_targetNodeNumber) {
 		DEBUG_LOG(("NAT::gotMangledPort - got a mangled port number for someone that isn't my target. node = %d, target node = %d", nodeNumber, m_targetNodeNumber));
@@ -1138,22 +1126,10 @@ void NAT::processGlobalMessage(Int slotNum, const char *options) {
 		while (*c == ' ') {
 			++c;
 		}
-*/		// GeneralsX: THREE defects on one wire-controlled index, and the
-		// third only becomes an out-of-bounds WRITE at twelve, which is why eight never caught it.
-		//
-		//   1. sscanf's return was not checked. On a malformed CONNDONE the two locals are left
-		//      UNINITIALISED and were then used as an array index - undefined behaviour reached
-		//      straight off the wire.
-		//   2. m_connectionPairs[...][node] was read BEFORE `node` was validated at all. The
-		//      sibling branches (CONNFAILED, PORT) both validate first; this one did not, so any
-		//      value atoi/sscanf could produce indexed a static Int[11][11][12].
-		//   3. The validation that did exist used `node <= m_numNodes`, and setConnectionState
-		//      writes m_connectionStates[node], declared [MAX_SLOTS]. At MAX_SLOTS == 12 a game
-		//      with twelve nodes lets node == m_numNodes == 12 write ONE PAST THE END. At eight
-		//      nodes the same off-by-one lands on an unused but in-bounds slot, so it was
-		//      invisible for the entire life of the eight-player wire.
-		//
-		// Validate once, before either use, and match the siblings' `<` bound.
+*/		// Three defects on one wire-controlled index; validate once before either use, with the siblings < bound:
+		//   1. sscanf return unchecked: on a malformed CONNDONE the locals stay uninitialised and were used as an index.
+		//   2. m_connectionPairs[...][node] was read before node was validated.
+		//   3. node <= m_numNodes let node == m_numNodes write one past m_connectionStates[MAX_SLOTS] (at MAX_SLOTS nodes).
 		Int node = -1;
 		Int sendingNode = -1;
 		if (sscanf(c, "%d %d\n", &node, &sendingNode) != 2) {

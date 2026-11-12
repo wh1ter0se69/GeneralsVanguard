@@ -1,7 +1,9 @@
 #!/bin/bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Refuse to ship a macOS bundle whose DXVK lacks the Retina present-rect fix.
 #
-# GeneralsX: THE OLD GATE PROVED THE SOURCE, NEVER THE ARTIFACT.
+# THE OLD GATE PROVED THE SOURCE, NEVER THE ARTIFACT.
 #
 # cmake/dx8.cmake applies Patches/dxvk-ios.patch to references/fbraz3-dxvk and checks itself with
 # `git apply --reverse --check`. That asks "is the SOURCE TREE patched". The question that decides
@@ -46,8 +48,6 @@ done
 
 # 1. IT MUST ACTUALLY BE A MACH-O. Without this the check is a substring search over arbitrary
 #    bytes, and any text file that happens to name the symbol - this script included - "passes".
-#    That is not hypothetical: a cross-model review fed the previous version of this check its own
-#    source and it reported the file as patched.
 MAGIC="$(od -An -tx1 -N4 "${DYLIB}" 2>/dev/null | tr -d ' \n')"
 case "${MAGIC}" in
     cffaedfe|cefaedfe|feedfacf|feedface|cafebabe|bebafeca|cafebabf|bfbafeca) ;;

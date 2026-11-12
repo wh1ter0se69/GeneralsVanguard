@@ -115,16 +115,9 @@ WindowMsgHandledType GadgetTabControlInput( GameWindow *tabControl, UnsignedInt 
 			if( ! tabData->subPaneDisabled[tabPressed]  &&  (tabPressed != tabData->activeTab) )
 				GadgetTabControlShowSubPane( tabControl, tabPressed );
 
-			// GeneralsX @bugfix: this case had no break, so it fell through into
-			// "default: return MSG_IGNORED" and the trailing "return MSG_HANDLED" was dead
-			// code.  A click that actually changed panes therefore reported the message as
-			// unhandled, while the click we deliberately swallow (outside the tab strip,
-			// above) reported MSG_HANDLED - exactly backwards.  The window manager's dispatch
-			// loop keeps re-sending an ignored click up the parent chain, so the parent also
-			// saw a click that belonged to the tab strip, m_grabWindow was never set,
-			// WIN_INPUT_USED was never returned (so the click leaked on to the rest of the
-			// game), and once the chain ran out the open-combo-box/lone-window teardown was
-			// skipped too.
+			// The break is required: without it a click that changed panes fell through to MSG_IGNORED (unhandled), the reverse of
+			// the swallowed click above. An ignored click is re-sent up the parent chain, m_grabWindow stays unset, WIN_INPUT_USED
+			// is not returned (the click leaks to the game) and the open-combo-box teardown is skipped.
 			break;
 		}
 

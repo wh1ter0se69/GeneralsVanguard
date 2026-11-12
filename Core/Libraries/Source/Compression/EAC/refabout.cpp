@@ -21,7 +21,7 @@
 /* ABSTRACT */
 /*------------------------------------------------------------------*/
 /*                                                                  */
-/*               RefPack - Backward Reference Codex                 */
+/*               RefPack - Backward Reference review                 */
 /*                                                                  */
 /*                    by FrANK G. Barchard, EAC                     */
 /*                                                                  */

@@ -89,23 +89,9 @@ endif()
 if(UNIX)
     target_compile_definitions(core_config INTERFACE _UNIX)
 
-    # GeneralsX: DETECT these instead of assuming them.
-    #
-    # This previously defined HAVE_STRLCPY/HAVE_STRLCAT/HAVE_WCSLCPY/HAVE_WCSLCAT unconditionally
-    # for every UNIX, with a comment saying "Ubuntu 24.04+ and macOS have" them. That is wrong on
-    # two counts and it breaks the Linux build outright:
-    #
-    #   * glibc only gained strlcpy/strlcat in 2.38 (Ubuntu 23.10+). On anything older - Ubuntu
-    #     20.04 ships glibc 2.31 - they do not exist.
-    #   * glibc has NEVER provided wcslcpy/wcslcat, at any version. They are BSD/macOS functions.
-    #     No future glibc release makes that define correct.
-    #
-    # Defining the macro suppresses the portable inline fallbacks in WWLib/stringex.h (guarded by
-    # #ifndef HAVE_*), so the symbol ends up neither supplied by libc nor by the fallback, and the
-    # build fails with "'wcslcpy' was not declared in this scope". It went unnoticed because macOS
-    # genuinely has all four, so the assumption held on the platform people build on.
-    #
-    # A compile check costs one configure step and is correct on every libc, now and later.
+    # Detect these instead of assuming them: glibc only has strlcpy/strlcat from 2.38 and never has wcslcpy/wcslcat.
+    # Defining HAVE_* unconditionally suppresses the portable fallbacks in WWLib/stringex.h (guarded by #ifndef HAVE_*)
+    # and breaks the Linux build. A compile check is correct on every libc.
     include(CheckSymbolExists)
     check_symbol_exists(strlcpy "string.h" GX_LIBC_HAS_STRLCPY)
     check_symbol_exists(strlcat "string.h" GX_LIBC_HAS_STRLCAT)
@@ -153,33 +139,10 @@ if(SAGE_USE_OPENAL)
     message(STATUS "OpenAL audio backend enabled")
 endif()
 
-# GeneralsX: Opt-in 60 Hz simulation tick.
-#
-# Defined here rather than edited into WWCommon.h so that a 60 Hz build is a reproducible build
-# switch and the two rates share one source tree. That matters for identity: sourceID is a hash of
-# the SOURCE, so a 30 Hz and a 60 Hz build of the same commit have the SAME sourceID. What separates
-# them is engineID, which hashes LOGICFRAMES_PER_SECOND (SimID epoch 3) - so a mismatched pair
-# refuses to join with ENGINE_DIFFERS rather than desyncing on contact. Do not "fix" that by adding
-# the flag to the digested path; engineID is the correct gate and it already works.
-#
-# GeneralsX: THIS IS WHAT SHIPS, and the presets now say so.
-#
-# The option defaults OFF, but every deployed build has it ON - verified on all four platforms:
-# macos-vulkan, ios-vulkan, win64/win64-openal and linux64-deploy all carried
-# GX_LOGIC_60HZ:BOOL=ON. Until now that lived ONLY as cached state in one build directory per
-# machine; nothing in the repo, no preset, no build script and no CI job set it. So a fresh
-# configure - a new machine, a cleaned build tree, CI, or an agent worktree - silently produced a
-# 30 Hz binary, and because engineID hashes LOGICFRAMES_PER_SECOND that binary is REFUSED by the
-# entire fleet with ENGINE_DIFFERS. Caught when a verification run rendered at 30 Hz while the
-# fleet ran at 60.
-#
-# The four shipping presets now set it explicitly, so the tick rate is a property of the repo
-# rather than of whichever cache a machine happens to hold. Do NOT "tidy" it back out: the presets
-# and the deployed fleet must agree, and engineID makes any disagreement a hard refusal.
-#
-# STILL OUTSTANDING AT 60 Hz, and none of it is fixed by the above - see WWCommon.h: roughly 20
-# gameplay constants are raw frame counts, so they halve in wall-clock duration; map script frame
-# literals are 30 Hz counts and cannot rescale; and the 30 Hz determinism corpus does not apply.
+# Opt-in 60 Hz simulation tick. sourceID hashes the source, so 30 Hz and 60 Hz builds of one commit share it; engineID
+# hashes LOGICFRAMES_PER_SECOND, so a mismatched pair is refused with ENGINE_DIFFERS. Do not add the flag to the digest.
+# Defaults OFF but every shipping preset sets it ON; keep presets and deployed fleet in agreement.
+# At 60 Hz about 20 gameplay constants are raw frame counts and halve in duration.
 option(GX_LOGIC_60HZ "Run the simulation at 60 Hz instead of 30 (see the note above - ON in every shipping preset)" OFF)
 if(GX_LOGIC_60HZ)
     target_compile_definitions(core_config INTERFACE GX_LOGIC_60HZ=1)
@@ -240,27 +203,10 @@ if(APPLE AND SAGE_USE_MOLTENVK)
             "-framework UIKit"
         )
 
-        # GeneralsX: The iPad black-screened because libMoltenVK.a was on
-        # the link line and contributed NOTHING. A static archive only yields the members that
-        # something references, and no engine translation unit calls Vulkan directly - SDL3 and
-        # DXVK both reach it at runtime. So the archive was silently dropped and the executable
-        # exported zero vk symbols (measured: 431 in the last working binary, 0 in the broken one,
-        # a 4.9 MB size difference).
-        #
-        # That is fatal specifically because of how SDL3 finds Vulkan on UIKit. Its loader
-        # (_deps/sdl3-src/src/video/uikit/SDL_uikitvulkan.m) tries exactly two things:
-        #   1. dlsym(RTLD_DEFAULT, "vkGetInstanceProcAddr") - the statically-linked case
-        #   2. dlopen of defaultPaths[], which on UIKit is the single entry "libvulkan.dylib"
-        # The app bundle ships MoltenVK as Frameworks/MoltenVK.framework/MoltenVK, which matches
-        # neither, so with the archive dropped step 1 fails, step 2 finds nothing, and the engine
-        # dies at "Failed to load Vulkan Portability library" before the first frame. DXVK is
-        # unaffected - Patches/dxvk-ios.patch teaches it the @executable_path framework path - so
-        # only the SDL3 side needs the symbols in the executable.
-        #
-        # -force_load is deliberate over "reference a vk symbol from our own code": an explicit
-        # reference is a dead-strip and refactor hazard that fails the same silent way, whereas
-        # this states the requirement where the requirement lives. Cost is ~4.9 MB, which is what
-        # every working iOS build has already carried.
+        # libMoltenVK.a is -force_load ed because no engine translation unit references Vulkan directly (SDL3 and DXVK reach
+        # it at runtime), so the archive would be dropped and the executable would export no vk symbols. SDL3's UIKit
+        # loader then finds neither vkGetInstanceProcAddr via dlsym nor a libvulkan.dylib to dlopen, and startup fails.
+        # DXVK is unaffected: Patches/dxvk-ios.patch gives it the bundle-relative framework path.
         set(_gx_moltenvk_archive "${Vulkan_MoltenVK_LIBRARY}")
         if(NOT _gx_moltenvk_archive)
             set(_gx_moltenvk_archive "${Vulkan_LIBRARY}")

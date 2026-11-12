@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: The simulation's half of the scripted camera: GameLogic/ScriptedCamera.h says why.
+// The simulation's half of the scripted camera: GameLogic/ScriptedCamera.h says why.
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
@@ -226,7 +226,7 @@ void ScriptedCamera::logicFrame()
 	const unsigned did = m_timeline.stepLogicFrame();
 	// a blur's TRUE ending can make a camera freeze in flight hold - the only way one starts after the update's own frozen
 	// check: GameEngine::updateLogic re-reads it after the client step, the rendered peer's draw loop runs the move out, and
-	// it ends before the next update's scripts here as well (camera-sim-B: the next update's scripts read FALSE)
+	// it ends before the next update's scripts here as well (the next update's scripts read FALSE)
 	if ((did & ScriptedCameraTimeline::BLUR_ENDED) && TheGameEngine != nullptr && TheGameEngine->isTimeFrozen()
 		&& !TheScriptEngine->isTimeFrozenScript() && !TheScriptEngine->isTimeFrozenDebug())
 		m_freezePending = TRUE;
@@ -234,7 +234,7 @@ void ScriptedCamera::logicFrame()
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: The scripted camera's in-game check (scripts/test/scripted-camera-clock-test.sh covers
+// The scripted camera's in-game check (scripts/test/scripted-camera-clock-test.sh covers
 // the model). GX_CAMTEST=<frame>:<ms>:<pan|rot>[,...] starts a scripted camera move in the logic step of that frame - where
 // a script action in the update before it would have started it - through this class, so the view moves too, and prints
 // "[GXCAMDONE] kind= start= end= ms=", end = the logic frame whose scripts first see CAMERA_MOVEMENT_FINISHED. It runs on

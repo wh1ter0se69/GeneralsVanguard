@@ -456,7 +456,7 @@ void MilesAudioManager::reset()
   // This must come after stopAllAudioImmediately() and removeAllAudioRequests(), to ensure that
   // sounds pointing to the temporary AudioEventInfo handles are deleted before their info is deleted
   removeLevelSpecificAudioEventInfos();
-  undoOverrideLoads();	// GeneralsX @bugfix: a map.ini's audio edits end with the map - after every sound stopped
+  undoOverrideLoads();	// GeneralsX: a map.ini's audio edits end with the map - after every sound stopped
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -2567,25 +2567,10 @@ Bool MilesAudioManager::isOnScreen( const Coord3D *pos ) const
 //-------------------------------------------------------------------------------------------------
 Real MilesAudioManager::getEffectiveVolume(AudioEventRTS *event, Bool applyShellMapScale) const
 {
-	// GeneralsX: Shell map world SFX attenuation. Every gain write for
-	// managed audio is computed here, so a single multiply covers the backend - including
-	// processFadingList(), so fading shell map SFX keep their attenuation for free. One path does
-	// bypass this function: the forced mission-briefing play calls AIL_quick_set_volume() directly
-	// against the speech slider. That is deliberate there and carries no world SFX, so nothing
-	// eligible for this scale misses it - but "every gain write" would be too strong a claim.
-	//
-	// This also feeds the m_minVolume cull in processPlayingList(), which RELEASES a sound rather
-	// than lowering it, so that one caller - and only that one - passes applyShellMapScale=FALSE.
-	// Computing the cull's value unscaled rather than dividing the scale back out also keeps a 0%
-	// ShellMapSoundVolumeScale expressible, which a division cannot.
-	//
-	// The OpenAL backend needs the same opt-out for the same reason: since its 25/08/2026 "ONE RULE
-	// FOR GAIN" change its getEffectiveVolume() is likewise the single gain chokepoint, so the scale
-	// is folded in there too and its cull passes FALSE as well.
-	//
-	// Miles is the DEFAULT Windows backend in this tree, not dead code: SAGE_USE_OPENAL defaults OFF
-	// and Core/GameEngineDevice/CMakeLists.txt compiles this file under if(NOT SAGE_USE_OPENAL)
-	// inside if(WIN32).
+	// Shell map world SFX attenuation. Every managed gain write is computed here, so one multiply covers the
+	// backend, including processFadingList(). The forced mission-briefing play sets its volume directly.
+	// The m_minVolume cull in processPlayingList() RELEASES a sound, so it passes applyShellMapScale=FALSE
+	// (unscaled, which keeps a 0% ShellMapSoundVolumeScale expressible). The OpenAL backend does the same.
 	Real volume = event->getVolume() * event->getVolumeShift();
 	if (applyShellMapScale)
 		volume *= getShellMapSoundVolumeScale( event );

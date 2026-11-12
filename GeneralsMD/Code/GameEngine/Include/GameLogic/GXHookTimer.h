@@ -16,32 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GXHookTimer.h ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// GeneralsX: ai-wh1ter0se-econ (7b, 4): the CPU bound of every
-// arm's new code - "never above 2 ms in one tick" - read from the code's OWN time, not inferred from [GXTICK]'s whole-tick cost.
-// GX_HOOK_TIMER("name") at the top of a hook's body (or GX_HOOK_TIMER_ON for several sites of one arm, below) times that scope with
-// this thread's CPU clock: what other processes on a shared box take is not the hook's cost (wall time is printed beside it).
-// Per hook, the calls of one logic frame are summed. A frame is COMPLETE when the first call of a later frame arrives, and only
-// complete frames enter a window (ke-*-r4: rolling the window inside a frame split its total). Lines:
-//   * "[GXHOOK] f=<last frame> hook=<name> us=<max per-frame CPU us> wall=<max per-frame wall us> calls=<n> total_us=<CPU sum>"
-//     once per 60 s of logic, when a complete frame closes the window (a window with no call prints nothing - it has no cost);
-//   * "[GXHOOK] f=<frame> hook=<name> slow us=<the frame's final CPU us> wall=<us>" for every complete frame over 1,000 us;
-//   * "[GXHOOK] f=<frame> hook=<name> over us=<CPU us so far> wall=<us>" AT ONCE when a frame's running sum passes the 2,000-us
-//     bound, so a violation is never lost to a game that ends before its frame completes.
-// A new match in this process restarts everything: GameLogic::startNewGame bumps g_gxMatchSerial (an explicit match boundary - a
-// sparse hook's first call in the next match can repeat its last call's frame and object-id counter, ke-*-r6); a frame number
-// lower than the last one (a load) restarts it too. The old match's last frame and window are printed first (below).
-// NOTHING IS LEFT OPEN (a hook's LAST frame used to close only on a later call, so a game's final frames went
-// unreported and two hooks at 1,900 us each in one final frame printed nothing): before a new-match reset, and at shutdown through
-// GX_HOOK_FLUSH_ALL() (SDL3Main.cpp before its _exit, WinMain.cpp before it returns - the engine runs NO static destructors on
-// either path, ke-timer-*-r1, so the flush is an explicit call, never a destructor), each hook's pending frame is closed (its
-// 'slow' line if over 1,000 us) and its window printed; at shutdown then
-//   * "[GXHOOK] f=<last frame> hook=<name> flushed" once per hook that was ever called (every hook links itself into one list on
-//     its first call), and
-//   * "[GXHOOK] exit" once per process, after every hook's lines.
-// A run that LAUNCHED and ended normally without the exit line did not flush, so its hook evidence is incomplete.
-// Test-instruments builds only; a release build compiles every GX_HOOK_TIMER to nothing. The clocks are read around the hook, never
-// inside it, and nothing here is read by the simulation.
+// GX_HOOK_TIMER(name) times a scope on this thread CPU clock, summing one hook calls per logic frame.
+// [GXHOOK] lines: per 60 s window, slow past 1,000 us per frame, over at once past 2,000 us, and a flush at shutdown.
+// A new match or a lower frame number restarts it; GX_HOOK_FLUSH_ALL() is explicit because no static destructors run.
+// Test-instruments builds only; compiled out in release, never read by the simulation.
 #pragma once
 
 #if defined(GX_TEST_INSTRUMENTS)
@@ -94,7 +72,7 @@ inline void gxHookFlush(GXHookStats &s)
 	s.calls = 0;
 }
 // shutdown: every hook's open frame and window, its 'flushed' line, then one 'exit' line (once per process; a second call prints nothing)
-/// GeneralsX: rb-core: what else must print before "[GXHOOK] exit" (the rule bank's ev=cost / ev=activity of
+/// rb-core: what else must print before "[GXHOOK] exit" (the rule bank's ev=cost / ev=activity of
 /// every bank still alive, GXRuleBank.cpp) - set by whoever needs it, nullptr otherwise
 extern void (*g_gxHookFlushExtra)();
 inline void GXHookFlushAll()

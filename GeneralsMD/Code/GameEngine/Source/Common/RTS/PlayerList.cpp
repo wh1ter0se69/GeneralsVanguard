@@ -44,6 +44,7 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
+#include <bit>	// GeneralsX: getPlayerFromMask
 #include <cstdio>	// GeneralsX: fprintf for the [GXCAP] capacity trace below
 
 #include "Common/Errors.h"
@@ -406,6 +407,19 @@ Player *PlayerList::getPlayerFromMask( PlayerMaskType mask )
 	Player *player = nullptr;
 	Int i;
 
+	// GeneralsX: Script conditions ask this constantly with 32 players (0.35% of the late tick).
+	// A player's mask is the one bit of its index, so a one-bit mask names its slot; every other mask takes the scan as before.
+	if( std::has_single_bit( (UnsignedInt64)mask ) )
+	{
+		i = std::countr_zero( (UnsignedInt64)mask );
+		if( i < MAX_PLAYER_COUNT )
+		{
+			player = getNthPlayer( i );
+			if( player && player->getPlayerMask() == mask )
+				return player;
+		}
+	}
+
 	for( i = 0; i < MAX_PLAYER_COUNT; i++ )
 	{
 
@@ -619,16 +633,10 @@ void PlayerList::assignSlotIndices(const GameInfo& gameInfo)
 		if (!slot || !slot->isOccupied())
 			continue;
 
-		// GeneralsX: Every observer slot maps onto the ONE ReplayObserver
-		// (GameLogic::startNewGame gives it no side of its own), so each observer's orders - its CRC
-		// reports above all - resolve to a Player (NetGameCommandMsg::constructGameMessage needs one).
-		// Forward only, written directly: setSlotIndex keeps one slot per Player and would unmap the
-		// previous observer. The ReplayObserver's own reverse entry stays -1 - many slots have no single
-		// answer - so it keeps no stats row, and CRC reports carry their slot instead (GameMessage).
-		// The capacity rule guarantees the ReplayObserver exists here (PlayerCapacity.h); the log is the
-		// tripwire if that ever stops holding, because an unmapped slot is a null Player at its first order.
-		// GeneralsX: ...in the current layout: a legacy replay or save (GENREP/GENR12, an
-		// older SkirmishGameInfo) gave the observer its own Player, found by name below like any other slot.
+		// Every observer slot maps onto the one ReplayObserver, so each observer's orders resolve to a Player
+		// (NetGameCommandMsg::constructGameMessage needs one). Forward mapping only: setSlotIndex keeps one slot per
+		// Player. The reverse entry stays -1; CRC reports carry their slot. A legacy replay or save (GENREP/GENR12) gave
+		// the observer its own Player, found by name below.
 		if (gameInfo.slotSharesReplayObserver(i))
 		{
 			if (replayObserver != nullptr)

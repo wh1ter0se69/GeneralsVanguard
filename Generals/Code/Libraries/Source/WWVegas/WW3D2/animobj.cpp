@@ -348,24 +348,9 @@ void Animatable3DObjClass::Special_Render(SpecialRenderInfoClass & rinfo)
 }
 
 
-// GeneralsX: R-CPU pose cache (modernize/render-split, render-split-4).
-// Render and Special_Render rebuilt a clock-driven SINGLE_ANIM pose on EVERY call: HTree Anim_Update over every pivot,
-// then Set_Transform on the sub-objects of every LOD - 9.2% of the main thread in the G0 whole-map Mini profile. An
-// object is often posed more than once at one clock reading: a Get_Bone_Transform in doDrawModule, then Render, a
-// second Render from the occlusion or shadow passes; and a paused game, or a ONCE animation parked on its last frame,
-// asks for the same frame every draw. Update_Sub_Object_Transforms is a function of the object transform, the motion,
-// the frame, the bone controls and the sub-object list. Every one of those clears IsTreeValid or dirties the
-// sub-objects when it changes (Set_Transform, Set_Position, Set_Animation, Control_Bone, sub-object adds/removes,
-// Get_Proxy and the bounding-volume rebuild, which pose the tree themselves), and PoseBuilt is also cleared by the
-// inputs that do not (Capture_Bone, Release_Bone, Set_HTree, Friend_Set_Hierarchy_Valid). The frame comes from the WW3D
-// clock (Compute_Current_Frame). So when PoseBuilt, IsTreeValid and clean sub-objects hold and the clock gives back the
-// frame and direction already built, the rebuild would write the bits already there. Keep them, and do what
-// Single_Anim_Progress and Trigger_Sound do for an unchanged frame: PrevFrame = Frame (Trigger_Sound(f, f) plays
-// nothing and returns f) and LastSyncTime = now. Render-side only: nothing here is read by the simulation (the
-// pristine bone positions pose a fresh render object through Update_Sub_Object_Transforms itself). GX_POSECACHE=2
-// proves it in a real match: every pose the cache would keep is rebuilt as before and compared bit for bit.
-// GX_POSECACHE=3 is that check's negative control: the frame test is dropped, so once the clock moves the compare
-// must count mismatches (bad= in [GXPOSE]); a check that never fails there is not checking anything.
+// GeneralsX: Pose cache. A clock-driven SINGLE_ANIM pose is kept when PoseBuilt, IsTreeValid and clean sub-objects hold
+// and the WW3D clock gives back the frame and direction already built. Render-side only. GX_POSECACHE=2 compares
+// a rebuild bit for bit; GX_POSECACHE=3 drops the frame test as a negative control (bad= in [GXPOSE]).
 int Animatable3DObjClass::Pose_Cache_Mode()
 {
 	static const int s_mode = [] {

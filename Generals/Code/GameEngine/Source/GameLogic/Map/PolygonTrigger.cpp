@@ -175,8 +175,8 @@ Bool PolygonTrigger::ParsePolygonTriggersDataChunk(DataChunkInput &file, DataChu
 		}
 		// A river is drawn as one triangle strip of numPoints/2 quads with a 16-bit index count
 		// (W3DWater.cpp drawRiverWater: (numPoints/2)*6 indices through DynamicIBAccessClass's unsigned short), so more
-		// than 21845 points wrapped the count and wrote past the index buffer (an odd count rounds down
-		// - mlv-r4 #5). Real rivers have up to a few hundred points.
+		// than 21845 points wrapped the count and wrote past the index buffer (an odd count rounds down).
+		// Real rivers have up to a few hundred points.
 		if (isRiver && numPoints / 2 > 65535 / 6) {
 			throw ERROR_CORRUPT_FILE_FORMAT;
 		}

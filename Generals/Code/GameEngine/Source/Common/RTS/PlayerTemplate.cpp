@@ -293,18 +293,10 @@ void PlayerTemplateStore::reset()
 	m_overrideBackupIdx.clear();
 	m_overrideBackups.clear();
 
-	// Templates a map.ini INVENTED go away entirely. Erased in DESCENDING index order so each
-	// erase cannot invalidate the next index. They were appended, so removing them cannot disturb
-	// the index of any startup template - and getTemplateNumByName hands out indices.
-	//
-	// DANGER, and it is not local to this file: Player::m_playerTemplate is a raw
-	// const PlayerTemplate* into m_playerTemplates, so this erase would dangle it. It does not,
-	// only because SubsystemInterfaceList::resetAll() iterates in REVERSE registration order
-	// (SubsystemInterface.cpp, a reverse_iterator) and ThePlayerList registers AFTER
-	// ThePlayerTemplateStore in GameEngine.cpp - so PlayerList is reset first and nulls every
-	// template pointer before control ever reaches this loop. Reordering subsystem registration
-	// would silently reintroduce a dangling pointer with no diagnostic. The same protection
-	// covers the OCL store against TheThingFactory.
+	// Templates a map.ini invented were appended, so erasing them in descending index order moves no startup index.
+	// DANGER: Player::m_playerTemplate is a raw pointer into m_playerTemplates. It is safe only because resetAll()
+	// runs in reverse registration order and ThePlayerList registers after ThePlayerTemplateStore, so it nulls them first.
+	// Reordering registration would silently dangle it. The OCL store relies on the same ordering.
 	std::sort(m_overrideAddedIdx.begin(), m_overrideAddedIdx.end());
 	for (std::vector<Int>::const_reverse_iterator r = m_overrideAddedIdx.rbegin(); r != m_overrideAddedIdx.rend(); ++r)
 	{

@@ -84,7 +84,7 @@ public:
 
 	unsigned							Get_Vertex_Offset()	{ return vertex_offset; }
 	unsigned							Get_Index_Offset()	{ return index_offset; }
-	// GeneralsX: WS-G: Render()'s draw parameters, for the L2 state-check's prediction (GXRender/Scene)
+	// GeneralsX: Render()'s draw parameters, for the L2 state-check's prediction (GXRender/Scene)
 	unsigned							Get_Index_Count() const	{ return index_count; }
 	unsigned							Get_Min_Vertex_Index() const	{ return min_vertex_index; }
 	unsigned							Get_Vertex_Index_Range() const	{ return vertex_index_range; }

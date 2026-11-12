@@ -1,16 +1,24 @@
-// GeneralsX: AI RULE BANK sense layer (2.2.6, 4.3; rb-core plan D2): the
-// ONLY way a rule reads other players' objects. HARD and SENTIENT see what a human in that seat would see, BRUTAL sees the whole map:
-//   * collection is PARTITION ITERATION ONLY - never a walk of a player's object list. A rider of an enclosing container is taken out of
-//     the partition (OpenContain.cpp) and Object::getShroudedStatus answers CLEAR for an object with no partition data (Object.cpp), so
-//     a list walk would pass hidden cargo through the fog test; the partition never hands it out;
-//   * own sight (rb-sense-2): a FAIR viewer sees an object only when its OWN units and buildings see it - markOwnEyes - never through a
-//     granted reveal (map or script reveal, a Spy Satellite ping, an ally's or a spied unit's eyes);
-//   * fog: PartitionFilterFreeOfFog for the viewer, except BRUTAL, which drops only that filter - what Brutal's own whole-map lever
-//     sees ('s PartitionManager::setWholeMapPlayers makes every cell CLEAR for the Brutal player; stealth is
-//     untouched by it, and here too);
-//   * stealth: a stealthed, undetected enemy is not seen (the stock rule, PartitionFilterStealthedAndUndetected's, with the viewer);
-//   * identity: a disguised object counts as its DISGUISE (template and owner) unless its real owner is allied to the viewer -
-//     InGameUI.cpp's rule - so a sighting never reveals a disguised unit's real owner or faction.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Sense layer of the AI rule bank: the only way a rule reads other players objects. BRUTAL sees the whole map.
+// Use partition iteration only, never an object-list walk: getShroudedStatus answers CLEAR for hidden cargo.
+// Fair viewers see what their own units see, minus undetected stealth; a disguise counts as its disguise.
 // Values are integers (build cost); no RNG, no state, no allocation the simulation can see.
 #pragma once
 
@@ -32,8 +40,8 @@ public:
 	/// stealth), owner (as seen) an enemy of the viewer, template (as seen) able to carry a weapon and not a dozer or harvester.
 	/// 0 for an anchor the viewer does not own.
 	Int enemyValueNear(const Object *ownAnchor, Real r) const;
-	/// SENSE.ENEMY_FACTION (GeneralsX 01/11/2026 rb-sense-1): ONE pass over every object the viewer fairly sees on the map - the filters
-	/// of enemyValueNear (alive, on the map, fog per tier, stealth as seen from the viewer's lowest-id own object) and identity as a human
+	/// SENSE.ENEMY_FACTION: ONE pass over every object the viewer fairly sees on the map - the filters
+	/// of enemyValueNear (alive, on the map, fog per tier, stealth as seen from the lowest-id own object of the viewer) and identity as a human
 	/// sees it. For every player index set in `track`, (*out)[index] gets {base side, template name} of each STRUCTURE / INFANTRY /
 	/// VEHICLE / AIRCRAFT (no projectile) it owns AS SEEN whose template's side is a playable faction's. out holds one entry per player
 	/// index. Returns the objects that reached the fog test (the pass's cost counter); 0 when the viewer owns nothing (it sees nothing).
@@ -45,14 +53,14 @@ public:
 	static const ThingTemplate *sightable(const ThingTemplate *t);
 	/// baseSideOf(sightable(t)): "" for anything the pass never records - the save check's catalog
 	std::string sightBaseOf(const ThingTemplate *t) const;
-	/// OWN SIGHT (GeneralsX 02/11/2026 rb-sense-2): mark in *mark (one byte
+	/// OWN SIGHT: mark in *mark (one byte
 	/// per partition cell, row-major) every cell the CURRENT look of one of the viewer's own units or buildings reveals - an object it
 	/// controls, alive, whose template is sightable() and whose look (Object::friend_getPartitionLastLook) reveals for it, marked as
 	/// doShroudReveal touches cells (PartitionManager::markLookCells). A satellite ping, a parachute, a reveal marker, an ally's or a spied
 	/// unit's look, and a reveal with no object (map, script) mark nothing. Returns the eyes counted. FAIR sight (enemyValueNear,
 	/// collectSightings and the FOG_CONDITIONS snapshot) needs one of a candidate's touched cells marked AND clear; BRUTAL never asks.
 	Int markOwnEyes(std::vector<UnsignedByte> *mark) const;
-	/// SENSE.FOG_CONDITIONS (GeneralsX 02/11/2026 rb-sense-2): one object the viewer sees now, as a human in its seat sees it
+	/// SENSE.FOG_CONDITIONS: one object the viewer sees now, as a human in its seat sees it
 	struct Seen
 	{
 		Int owner;					///< the owner's player index AS SEEN (a disguise shows its disguise's player)

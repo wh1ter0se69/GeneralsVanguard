@@ -49,15 +49,16 @@ SYSTEM = ["libc.so*", "libm.so*", "libpthread.so*", "librt.so*", "libdl.so*", "l
 
 
 HEADER = """
-GeneralsX is licensed under the GNU General Public License, version 3 or later,
-with Electronic Arts' additional terms (see LICENSE.md, shipped next to this
-file). It includes, links, or ships alongside the third-party software listed
-below. Each component stays under its own licence; this file reproduces the
-required copyright notices and licence texts. Every licence text appears once,
-in section 4, and is referenced by number.
+Generals Vanguard is licensed under the GNU General Public License, version 3
+or later, with Electronic Arts' additional terms (see LICENSE.md, shipped next
+to this file). It includes, links, or ships alongside the third-party software
+listed below. Each component stays under its own licence; this file reproduces
+the required copyright notices and licence texts. Every licence text appears
+once, in section 4, and is referenced by number.
 
-The GeneralsX Launcher (GeneralsXLauncher.exe on Windows, the GeneralsX
-Launcher app on macOS, the launcher AppImage on Linux) is a separate program
+The Generals Vanguard launcher (GeneralsXLauncher.exe on Windows, the
+Generals Vanguard app on macOS - named GeneralsX Launcher in installs made
+before the rename - and the launcher AppImage on Linux) is a separate program
 that downloads and starts the game. The GPL does not cover it; its terms are
 in its own entry in section 1. The third-party software it is built from or
 ships with stays under its own licence, below. The Windows updater
@@ -66,9 +67,9 @@ GeneralsXUpdate.exe is not part of it: it is covered with the game.
 This file is generated (scripts/legal/third_party_notices.py generate) from
 resources/legal/third-party/. Do not edit it by hand.
 
-SOURCE CODE. The complete corresponding source of GeneralsX is available from
+SOURCE CODE. The complete corresponding source of Generals Vanguard is available from
 the project's source repository named in the release notes of the version you
-installed. For the GPL/LGPL-licensed libraries below that GeneralsX ships as
+installed. For the GPL/LGPL-licensed libraries below that Generals Vanguard ships as
 binaries but does not build from its own tree (FFmpeg and its codec libraries
 on macOS; the Debian/Ubuntu system libraries bundled in the Linux tarball and
 the Linux launcher AppImage), the corresponding source is the upstream release
@@ -81,7 +82,7 @@ years from the date of your download.
 LGPL libraries (OpenAL Soft, mpg123, LAME, FFmpeg's LGPL build on iOS and the
 LGPL Debian libraries) are used as separate shared libraries that you may
 replace with your own build, except where the component entry says it is
-statically linked; GeneralsX as a whole is GPL-3.0-or-later and its full source
+statically linked; Generals Vanguard as a whole is GPL-3.0-or-later and its full source
 is available, which is what the LGPL's relinking requirement asks for. The
 launcher's Linux AppImage uses its LGPL libraries the same way, as separate
 shared libraries, and its terms allow reverse engineering to debug that use.
@@ -239,7 +240,7 @@ def gen():
 
     out = []
     w = out.append
-    w("THIRD-PARTY NOTICES - GeneralsX")
+    w("THIRD-PARTY NOTICES - Generals Vanguard")
     w("=" * 78)
     w(HEADER.strip("\n"))
     w("")
@@ -273,7 +274,7 @@ def gen():
         w("  Files   : %s" % (", ".join(v["files"][:6]) + (" ..." if len(v["files"]) > 6 else "")))
         w("  Text    : %s" % ("[L%d]" % num[v["_ref"]] if v["_ref"] else "(none shipped by Debian)"))
     w("")
-    w("3. RUST CRATES COMPILED INTO THE GENERALSX LAUNCHER (scripts/launcher-rs, Cargo.lock)")
+    w("3. RUST CRATES COMPILED INTO THE GENERALS VANGUARD LAUNCHER (scripts/launcher-rs, Cargo.lock)")
     w("=" * 78)
     w("\nSuperset over all target platforms (the lock file also resolves Windows, macOS and Android-only\n"
       "crates). Where a crate's SPDX expression offers a choice, the choice compatible with GPL-3.0 is\n"

@@ -108,6 +108,7 @@
 #include "GameNetwork/GameSpy/PersistentStorageThread.h"
 #include "GameClient/InGameUI.h"
 #include "GameClient/ChallengeGenerals.h"
+#include "GameClient/GXLobbyCommands.h"		// GXChatBoxUseTimeColumn: the chat box's gray time column
 
 
 //-----------------------------------------------------------------------------
@@ -144,6 +145,30 @@ static Bool overidePlayerDisplayName = FALSE;
 //External declarations
 NameKeyType listboxChatWindowScoreScreenID = NAMEKEY_INVALID;
 GameWindow *listboxChatWindowScoreScreen = nullptr;
+
+// GeneralsX @feature The score screen's chat runs the lobby screens' two passes. /help and /clear work here;
+// every other command, /me and the room settings included, is refused rather than sent, and "//x" says "/x".
+static void scoreChatNotice( const UnicodeString &line, Color color )
+{
+	if (listboxChatWindowScoreScreen != nullptr)
+		GXChatBoxAdd(listboxChatWindowScoreScreen, UnicodeString(L"[S]"), line, GXChatNoticeColor(color));
+}
+
+static void scoreChatSend( UnicodeString txtInput )
+{
+	if (txtInput.isEmpty() || TheLAN == nullptr)
+		return;
+	AsciiString ascii;
+	ascii.translate(txtInput);
+	Bool escaped = FALSE;
+	if (GXLobbyChatCommand(ascii, GX_LOBBY_SCREEN_SCORE, listboxChatWindowScoreScreen, scoreChatNotice))
+		return;
+	if (GXLobbyGuardUnknownCommand(ascii, GX_LOBBY_SCREEN_SCORE, scoreChatNotice, escaped))
+		return;
+	if (escaped)
+		txtInput = UnicodeString(txtInput.str() + 1);
+	TheLAN->RequestPlayerChat(txtInput);
+}
 
 NameKeyType listboxAcademyWindowScoreScreenID = NAMEKEY_INVALID;
 GameWindow *listboxAcademyWindowScoreScreen = nullptr;
@@ -335,21 +360,9 @@ void ScoreScreenInit( WindowLayout *layout, void *userData )
 
 	parent = TheWindowManager->winGetWindowFromId( nullptr, parentID );
 
-	// GeneralsX: SHOW ALL TWELVE, NOT THE EIGHT THE .WND AUTHORS.
-	//
-	// ScoreScreen.wnd authors every per-row control 0..7 - verified by extracting it from
-	// WindowZH.big and listing the indices on each of the nine column names below. MAX_SLOTS is
-	// 12, so the end-of-match table silently reported eight of twelve players. Observed on a real
-	// 12-slot match: eight rows of "Hard Army" and the human player missing entirely.
-	//
-	// 12/08/2026 added null guards to every dereference here, which stopped the crash; it did not
-	// make the rows exist. This creates them, in the band the authored rows occupy, with the same
-	// helper the lobby and the in-game player list use.
-	//
-	// HERE, not in initSkirmish/initLANMultiPlayer/initInternetMultiPlayer, because all three run
-	// after this and every one of them would otherwise need its own copy. CodeGuiRowsEnsure is a
-	// no-op measurement when the layout already covers MAX_SLOTS, and returns 0 for any column it
-	// cannot read a pitch from, so listing a column a future .wnd drops is safe.
+	// Show all MAX_SLOTS rows, not the eight the .wnd authors: CodeGuiRowsEnsure creates them in the authored band,
+	// as in the lobby. Done here because initSkirmish/initLANMultiPlayer/initInternetMultiPlayer run after this.
+	// It returns 0 for a column it cannot read a pitch from, so listing a column a future .wnd drops is safe.
 	if( parent != nullptr )
 	{
 		static const char *const scoreRowColumns[] = {
@@ -373,6 +386,7 @@ void ScoreScreenInit( WindowLayout *layout, void *userData )
 	textEntryChat = TheWindowManager->winGetWindowFromId( parent, textEntryChatID );
 	buttonEmote = TheWindowManager->winGetWindowFromId( parent,buttonEmoteID  );
 	listboxChatWindowScoreScreen = TheWindowManager->winGetWindowFromId( parent, listboxChatWindowScoreScreenID );
+	GXChatBoxUseTimeColumn( listboxChatWindowScoreScreen );	// GeneralsX @feature the gray time column, before the first row
 	listboxAcademyWindowScoreScreen = TheWindowManager->winGetWindowFromId( parent, listboxAcademyWindowScoreScreenID );
 	staticTextAcademyTitle = TheWindowManager->winGetWindowFromId( parent, staticTextAcademyTitleID );
 
@@ -695,10 +709,8 @@ WindowMsgHandledType ScoreScreenSystem( GameWindow *window, UnsignedInt msg,
 				// Clean up the text (remove leading/trailing chars, etc)
 				txtInput.trim();
 				// Echo the user's input to the chat window
-				if (!txtInput.isEmpty())
-					if(TheLAN)
-						TheLAN->RequestPlayerChat(txtInput);
-					//add the gamespy chat request here
+				scoreChatSend(txtInput);
+				//add the gamespy chat request here
 			}
 			for(Int i = 0; i < MAX_SLOTS; ++i)
 			{
@@ -753,10 +765,8 @@ WindowMsgHandledType ScoreScreenSystem( GameWindow *window, UnsignedInt msg,
 				// Clean up the text (remove leading/trailing chars, etc)
 				txtInput.trim();
 				// Echo the user's input to the chat window
-				if (!txtInput.isEmpty())
-					if(TheLAN)
-						TheLAN->RequestPlayerChat(txtInput);
-					//add the gamespy chat request here
+				scoreChatSend(txtInput);
+				//add the gamespy chat request here
 
 			}
 

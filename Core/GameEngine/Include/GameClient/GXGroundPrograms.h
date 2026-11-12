@@ -1,4 +1,22 @@
-// GeneralsX: THE REMASTERED GROUND's three ps.1.1 programs, created by W3DDevice/GameClient/TerrainTex.cpp
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// THE REMASTERED GROUND's three ps.1.1 programs, created by W3DDevice/GameClient/TerrainTex.cpp
 // (gxgEnsureDevice). Moved here from TerrainTex.cpp by (R-G1) so the native
 // renderer's catalogue test (GXRender/Pipeline/tests/gx_cs_test.cpp) compares its ports with these COMPILED arrays, as it does for
 // live water's (GXWaterLive.h) - a text reader of a .cpp can be fooled by an #if 0 copy or a commented-out token, a compiler cannot.
@@ -9,16 +27,10 @@
 // it from Common/, GameLogic/ or GameNetwork/.
 #pragma once
 
-// ps.1.1, hand-assembled (token encoding as the retail terrain*.pso; ground-2/tools/lg2_ps.py disassembles both for review).
-// BASE  tex t0..t3 (colour UV0, colour UV1, shade UV0, shade UV1)
-//       sub r1.a, t3, t2              h1 - h0
-//       mad r1.a, r1, c0, v0_bias     k*(h1 - h0) + (a - 0.5)
-//       mad_x4_sat r1.a, r1, c1, c2   a' = sat(4*(x*s/4 + 0.125)) = sat(s*x + 0.5)   (s <= 4)
-//       lrp r0, r1.a, t1, t0          colour, height-blended
-//       lrp r1.rgb, r1.a, t3, t2      shade/2, the same blend
-//       lrp r1.rgb, c3, r1, c4        shade strength (c4 = GXG_SHADE_ENC = the encoded neutral)
-//       mul_x2_sat r1.rgb, r1, v0     light = sat(vertex light x shade factor): <= 1.0, as doTheLight clamps it
-//       mul r0.rgb, r0, r1            colour x light (the retail shader: colour x vertex light)
+// ps.1.1, hand-assembled (token encoding as the retail terrain*.pso; ground-2/tools/lg2_ps.py disassembles both
+// for review). BASE: t0..t3 = colour UV0/UV1, shade UV0/UV1. alpha = sat(s*(k*(h1 - h0) + a - 0.5) + 0.5)
+// height-blends colour (t1, t0) and shade (t3, t2); shade strength by c3/c4 (c4 = GXG_SHADE_ENC). light = sat(2
+// * vertex light x shade) <= 1.0 as doTheLight clamps; r0.rgb = colour x light.
 static const unsigned kGxGroundBasePs[] = {
 	0xFFFF0101,
 	0x00000042, 0xB00F0000,
@@ -57,7 +69,7 @@ static const unsigned kGxGroundMultPs[] = {
 	0x00000005, 0x810F0000, 0x80E40000, 0x80E40001,
 	0x0000FFFF
 };
-// GeneralsX: MULT_LITE, governor step 1 (GXGroundSteps.h): MULT's t0/t1 declarations and its first two
+// MULT_LITE, governor step 1 (GXGroundSteps.h): MULT's t0/t1 declarations and its first two
 // instructions, token for token, and nothing else - no detail grain, no macro variation, half the samples of the extra pass.
 // Drawn with the blend DESTCOLOR/ZERO (dest *= src), it is the product step 0 draws with those two layers at neutral: step 0's
 // dest *= cloud*noise' x (2 x detail') x (2 x macro'), and (2 x 0.5) x (2 x 0.5) = 1.

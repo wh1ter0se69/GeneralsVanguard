@@ -24,7 +24,7 @@
 
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
-#include "Common/FramePacer.h"	// GeneralsX @feature -maxspeed
+#include "Common/FramePacer.h"	// GeneralsX: -maxspeed
 
 #include "Common/ArchiveFileSystem.h"
 #include "Common/CommandLine.h"
@@ -35,7 +35,7 @@
 #include "Common/version.h"
 #include "Common/WorkingDirectory.h"
 #include "GameClient/ClientInstance.h"
-#include "GameClient/GXUserDataDir.h"	// GeneralsX: -mod in the pre-23/09 folder
+#include "GameClient/GXUserDataDir.h"	// GeneralsX: -mod in the legacy folder
 #include "GameClient/TerrainVisual.h" // for TERRAIN_LOD_MIN definition
 #include "GameClient/GameText.h"
 #include "GameNetwork/NetworkDefs.h"
@@ -440,7 +440,7 @@ Int parseMaxSpeed(char *args[], int num)
 // its own 127.x address, so N bind the same two ports. setUpHeadlessLanRole refuses that mode because the peer then
 // advertises itself on loopback, out of reach of any other machine - which is exactly why it is limited to a match
 // that waits for no other machine: a host expecting a joiner, or a joiner, keeps the real NIC. macOS
-// cannot bind 127.0.0.2, so parallel Mac runs keep scripts/ai/gx-portshift.dylib.
+// cannot bind 127.0.0.2, so parallel Mac runs use a port-shifting library instead.
 static void applyMaxSpeed()
 {
 	if (!s_maxSpeedAsked)
@@ -539,27 +539,14 @@ Int parseSetCwd(char *args[], int num)
 	return 1;
 }
 
-// GeneralsX: Headless LAN host/join. See Common/HeadlessMatch.h.
-//
-// These share parseReplay's preamble - no intro, no shell map - but deliberately NOT its
-// setMultiInstance(TRUE).
-//
-// Multi-instance makes IPEnumeration::getAddresses inject a synthetic 127.<instance> address
-// (IPEnumeration.cpp:118-126) so parallel replay workers get distinct identities. For a LAN
-// peer that is actively wrong twice over: ipSortClass only deprioritises 169.254 link-local,
-// so 127.x sorts ahead of 192.168.x and the peer advertises itself on loopback where nobody
-// can reach it; and on macOS 127.0.0.2 is not a configured alias at all, so the bind simply
-// fails. A headless LAN peer wants the real NIC.
-//
-// The consequence is that two headless peers cannot share one box. That is not a loss worth
-// paying for here: same-platform peers agree by construction and have never desynced across
-// 80,000+ frames. The soak test that finds determinism bugs is Mac vs Windows, on two
-// machines, which is exactly the case this supports.
+// Headless LAN host/join (see Common/HeadlessMatch.h). Shares parseReplay's preamble but not its
+// setMultiInstance(TRUE): that injects a 127.<instance> address that sorts ahead of the real NIC, so the peer
+// would advertise on loopback. Consequence: two headless peers cannot share one box.
 static void setUpHeadlessLanRole(LanRole role)
 {
 	TheWritableGlobalData->m_lanRole = role;
 
-	// GeneralsX @build m_afterIntro is gone upstream (Intro class refactor); with both of these
+	// GeneralsX: m_afterIntro is gone upstream (Intro class refactor); with both of these
 	// FALSE the Intro object allows no states and completes on its first update, which is what
 	// the old m_afterIntro = TRUE was arranging by hand.
 	TheWritableGlobalData->m_playIntro = FALSE;
@@ -661,7 +648,7 @@ Int parseLanAI(char *args[], int num)
 			printf("Invalid -lanai count in \"%s\"\n", spec);
 			exit(1);
 		}
-		// GeneralsX @feature: optional faction pin for A/B harness runs, e.g. Hx2:FactionChina.
+		// GeneralsX: optional faction pin for A/B harness runs, e.g. Hx2:FactionChina.
 		// atoi above stops at the ':' so the count still parses.
 		const char *colon = strchr(spec + 2, ':');
 		if (colon != nullptr && colon[1] != '\0')
@@ -810,21 +797,11 @@ Int parseYRes(char *args[], int num)
 	return 1;
 }
 
-// GeneralsX @bugfix -fps had no effect in any shipping build. Both this handler and
-// its "-fps" table entry sat inside "#if defined(RTS_DEBUG)", and every macOS/iOS preset
-// builds with RTS_BUILD_OPTION_DEBUG=OFF (-DRTS_RELEASE -DNDEBUG). The string literal was
-// therefore absent from the binary entirely - confirmed with `strings` on CommandLine.cpp.o,
-// which lists -nologo/-noshaders/-quickstart/-xres but no -fps - so parseCommandLine's
-// linear match never hit and the unknown-argument fallback silently dropped both "-fps"
-// and its value. m_framesPerSecondLimit kept its default of 0, GameEngine::init then
-// clamped it up to BaseFps (30), and the "[30]" the player sees is genuinely the render
-// cap (InGameUI::drawRenderFps), not the logic rate being misreported.
-//
-// Lifted out of the debug block rather than duplicated so there is one definition.
+// -fps must be parsed in release builds: the handler and its table entry sit outside RTS_DEBUG, otherwise the
+// argument is silently dropped.
 //=============================================================================
-// GeneralsX: THE max-FPS setting: the launcher composes -fps N from its one
-// field, and 0 means unlimited (Common/FpsLimitPolicy.h). A non-negative whole number or nothing: atoi()
-// turned "fast" or "-60" into 0, which is now a real value - unlimited - so a typo must not select it.
+// THE max-FPS setting: the launcher composes -fps N, and 0 means unlimited (Common/FpsLimitPolicy.h). Accept
+// only a non-negative whole number: atoi() turned a typo into 0, which is a real value (unlimited).
 static bool s_fpsLimitArgument = false;
 
 bool CommandLine::hasFpsLimitArgument()
@@ -1199,7 +1176,7 @@ Int parseWinCursors(char *args[], int num)
 	return 1;
 }
 
-// GeneralsX @feature -autoload: skip the menus and resume the most recent save.
+// GeneralsX: -autoload: skip the menus and resume the most recent save.
 // Testing aid — reproducing an in-game bug otherwise means clicking through the
 // shell into a match every single time.
 Int parseAutoLoad( char *args[], int num )
@@ -1409,8 +1386,7 @@ Int parseIgnoreStackTrace(char *args[], int num)
 }
 #endif
 
-// GeneralsX: The same setting as -fps 0: unlimited. It used to switch the
-// limiter off, a second setting beside the number. The launcher spells its "0 = Unlimited" this way,
+// GeneralsX: The same setting as -fps 0: unlimited. The launcher spells its "0 = Unlimited" this way,
 // because an engine from before this change caps -fps 0 at the tick rate but uncaps -noFPSLimit.
 Int parseNoFPSLimit(char *args[], int num)
 {
@@ -1457,7 +1433,7 @@ Int parseMod(char *args[], Int num)
 		else
 		{
 			modPath.format("%s%s", TheGlobalData->getPath_UserData().str(), args[1]);
-			// GeneralsX: A mod still in the pre-23/09 Windows folder, which the
+			// GeneralsX: A mod still in the older Windows folder, which the
 			// migration does not copy. Read only; empty off Windows. See GameClient/GXUserDataDir.h.
 			const std::string &legacy = gxLegacyUserDataDirForMods();
 			if (!legacy.empty() && !TheLocalFileSystem->doesFileExist(modPath.str()))
@@ -1548,7 +1524,7 @@ static CommandLineParam paramsForStartup[] =
 	// TheSuperHackers @feature helmutbuhler 11/04/2025
 	// This runs the game without a window, graphics, input and audio. You can combine this with -replay
 	{ "-headless", parseHeadless },
-	{ "-maxspeed", parseMaxSpeed },	// GeneralsX @feature with -headless: see applyMaxSpeed
+	{ "-maxspeed", parseMaxSpeed },	// GeneralsX: with -headless: see applyMaxSpeed
 
 	// TheSuperHackers @feature helmutbuhler 13/04/2025
 	// Play back a replay. Pass the filename including .rep afterwards.
@@ -1616,7 +1592,7 @@ static CommandLineParam paramsForEngineInit[] =
 	// TheSuperHackers @feature xezon 03/08/2025 Force full viewport for 'Control Bar Pro' Addons like GenTool did it.
 	{ "-forcefullviewport", parseFullViewport },
 
-	// GeneralsX @bugfix Render frame rate overrides must exist in release builds too;
+	// GeneralsX: Render frame rate overrides must exist in release builds too;
 	// these two were registered only under RTS_DEBUG. See parseFPSLimit above.
 	{ "-fps", parseFPSLimit },
 	{ "-noFPSLimit", parseNoFPSLimit },
@@ -1941,7 +1917,7 @@ void CommandLine::parseCommandLineForStartup()
 
 	parseCommandLine(paramsForStartup, ARRAY_SIZE(paramsForStartup),
 		TheWritableGlobalData->m_commandLineData.m_parsedArguments);
-	applyMaxSpeed();	// GeneralsX @feature before ClientInstance::initialize (WinMain), which fixes the instance mode
+	applyMaxSpeed();	// GeneralsX: before ClientInstance::initialize (WinMain), which fixes the instance mode
 
 	// GeneralsX: Windows only, deliberately diverging from upstream.
 	//

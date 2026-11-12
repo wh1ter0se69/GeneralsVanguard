@@ -94,7 +94,7 @@ void DoShadows(RenderInfoClass & rinfo, Bool stencilPass)
 	}
 
 	if (stencilPass == TRUE)
-		W3DShadowMapStencilBoundary();	// GeneralsX: S7 P2: the shadow map's receivers end here
+		W3DShadowMapStencilBoundary();	// GeneralsX: the shadow map's receivers end here
 
 	if (stencilPass == TRUE && TheW3DVolumetricShadowManager)
 	{

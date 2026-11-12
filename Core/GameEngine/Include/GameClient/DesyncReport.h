@@ -1,29 +1,26 @@
 /*
-** GeneralsX: who the desync report says agrees, disagrees or was silent,
-** and the order it lists them in, as a pure function (scripts/test/desync-report-test.cpp).
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
 **
-** The window that uses it is DesyncReportShow (DesyncReport.cpp). This half holds the decisions
-** that make the report true or false, so they can be checked with no engine and no display.
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
 **
-** EVERY PLAYER IS LISTED, not only the ones who disagree: Generals Online prints the minority alone
-** (references/generals-online-client, GameLogic.cpp:2795-2805), which cannot tell "eleven agree and
-** one machine is broken" from "the lobby split six against six" - two situations that call for
-** opposite actions. The counts ARE the diagnosis.
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
 **
-** NO MAJORITY, NO CULPRIT. Generals Online takes the most frequent CRC with a bare `>`, so an even
-** split blames whichever half std::map walked first. A tie for the largest group is reported as a
-** split, with nobody named.
-**
-** A SILENT PEER IS NOT A GUILTY ONE. A CRC that has not arrived within the interval is the ordinary
-** condition of a lockstep peer (GameLogic.cpp's shortfall note), so it gets its own verdict and is
-** counted apart from the players that disagree.
-**
-** EVERY COUNT COMES FROM THE ROWS, so the header can never disagree with the table under it (quoting
-** "2 of 4 agree" over a table with a silent row invites reading the silent one as a dissenter).
-**
-** ROW ORDER groups the players that are in the same game: the smallest group first (the likeliest
-** broken machine is at the top), ties by lowest slot, lobby order inside a group, silent rows last.
-** The Slot column keeps every row findable against the lobby.
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+** Who the desync report says agrees, disagrees or was silent, and the order it lists them in, as a pure function
+** (scripts/test/desync-report-test.cpp). EVERY PLAYER IS LISTED: the counts are the diagnosis. NO MAJORITY, NO
+** CULPRIT: a tie for the largest group is a split with nobody named. A SILENT PEER IS NOT A GUILTY ONE (an
+** unarrived CRC is ordinary in lockstep). Rows group players in the same game, smallest group first.
 */
 
 #pragma once

@@ -1,4 +1,6 @@
-# GeneralsX: WS-C provenance: run at BUILD time (cmake -P), not configure time, so an incremental
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# WS-C provenance: run at BUILD time (cmake -P), not configure time, so an incremental
 # rebuild after a commit prints the new sha - a configure-time define would stay at the sha the tree was configured on.
 #   cmake -DREPO=<repo root> -DOUT=<header> -P gx_res_sha.cmake
 execute_process(COMMAND git -C "${REPO}" rev-parse HEAD OUTPUT_VARIABLE sha OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE rc)

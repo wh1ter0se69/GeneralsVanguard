@@ -1,3 +1,5 @@
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Build GeneralsX-Setup.exe from GeneralsX.iss with the payload pinned. Mirrors .github/workflows/build-launcher.yml.
 param(
   [string]$Iss = "C:\dev\GeneralsX.iss",

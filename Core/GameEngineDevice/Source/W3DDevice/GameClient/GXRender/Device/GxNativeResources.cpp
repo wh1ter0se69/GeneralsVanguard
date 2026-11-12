@@ -1,4 +1,22 @@
-// GeneralsX: L1: the native d3d8 resource objects (GxNativeDevice.h; §6).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// L1: the native d3d8 resource objects (GxNativeDevice.h; §6).
 #include "GxNativeDevice.h"
 
 #include "GxD3D.h"
@@ -277,9 +295,9 @@ HRESULT GxNativeSurface::GetDesc(D3DSURFACE_DESC* d)
 	d->Usage = usage();
 	if (m_kind != Kind::TextureLevel && m_kind != Kind::Image && m_front.hasImage)
 		d->MultiSampleType = D3DMULTISAMPLE_TYPE(m_front.requestedSamples > 1 ? m_front.requestedSamples : 0);
-	// X' (rw3-X-3): the immutable format table, never the draining resources() - every game GetDesc / GetLevelDesc drained the
-	// worker (5.35 ms per frame at wh1ter0se's camera on Windows, gate 2). Everything read here is fixed at creation on the front: m_kind,
-	// m_front (initFront, every constructor) and the format table (GxResources::init, before the worker starts).
+	// The immutable format table, never the draining resources(): every game GetDesc / GetLevelDesc would drain the worker (5.35 ms
+	// per frame measured). Everything read here is fixed at creation on the front: m_kind, m_front (initFront, every constructor)
+	// and the format table (GxResources::init, before the worker starts).
 	const R::FormatTable& ft = m_dev.dbg().csGetDescDrains ? m_dev.resources().formats() : m_dev.formats();   // (the plant)
 	d->Size = UINT(ft.levelBytes(d3dFormat(), d->Width, d->Height));
 	if (m_dev.dbg().csGetDescRace && m_kind == Kind::TextureLevel) {   // the plant (TSan-judged)

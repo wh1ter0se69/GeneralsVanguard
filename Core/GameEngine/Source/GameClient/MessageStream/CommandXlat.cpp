@@ -117,22 +117,10 @@ static void gxPickProject( const Coord3D &world, ICoord2D &px, const char *&tag 
 	tag = (r == View::WTS_INSIDE_FRUSTUM) ? "" : (r == View::WTS_OUTSIDE_FRUSTUM ? "!off" : "!bad");
 }
 
-/** One line per issued location special power. What each pair can and cannot show:
-	* - send_px vs click: NOT a render check. send is screenToTerrain(click) and send_px reprojects it
-	*   through the same m_3DCamera and the same View width/height/origin (getPickRay Un_Project ->
-	*   worldToScreenTriReturn Project), so it equals click by construction. It only flags a stale
-	*   screenToTerrain cache or a pick that missed the terrain.
-	* - drawn_px vs click: the pick against the RENDERED camera. drawn_px is where the last rendered frame
-	*   put the decal centre, from the camera state it rendered with and the D3D viewport CameraClass::Apply
-	*   set (camera Viewport x render target, rt/rvp below). With the mouse still on the decal centre, a
-	*   gap here is a pick-vs-render camera fault (a general one: every targeted power and move order).
-	*   It stops at the 3D pass: the pillarbox blit and HiDPI scaling after it are only visible through
-	*   viewport/win/winpx, which the mouse mapping (SDL3Mouse::scaleMouseCoordinates) must agree with.
-	* - preview_w vs send (d_world): the preview pick and the send pick disagree.
-	* - up90_px: the send point raised 90 - the retail Spy Drone locomotor's PreferredHeight - i.e. where a
-	*   drone hovering exactly over the target is drawn (draw-height parallax).
-	* The conclusive render test stays the rendered repro: the drawn pixel of the decal or a spawned ground
-	* object, read off the screen, against click. */
+/** One line per issued location special power. What each pair shows:
+	* - send_px vs click: not a render check (same camera both ways); flags a stale screenToTerrain cache or a missed pick.
+	* - drawn_px vs click: the pick against the RENDERED camera; a gap with the mouse on the decal centre is a camera fault.
+	* - preview_w vs send (d_world): the picks disagree. up90_px: the send point raised 90 (Spy Drone PreferredHeight). */
 static void gxPickLog( const CommandButton *command, const Coord3D *pos )
 {
 	if( TheTacticalView == nullptr || pos == nullptr )
@@ -374,7 +362,6 @@ bool changeLogicTimeScale(FpsValueChange change)
 
 // GeneralsX: Fast forward - who may, and the steps.
 //
-//
 // The rule is the cheats' sandbox rule, GameLogic::gxCheatsAllowed: at most one human in the match, observers counted,
 // decided from simulation state. With one human there is one network peer, so no other machine's pace is involved -
 // with two, a peer that ran ahead would only stall on the other's input, and the other human never asked for 10x. A
@@ -385,8 +372,8 @@ const WideChar *gxFastForwardRefusal()
 	if (TheGameLogic == nullptr || TheFramePacer == nullptr || !TheGameLogic->isInGame() || TheGameLogic->isInShellGame())
 		return L"no match is running";
 	// Frame 0 is still the start: a LAN match is "in game" before its map loads, the roster asked below can still be the
-	// last match's, and GameLogic::tryStartNewGame then resets the speed anyway. Measured: a speed set there was logged
-	// and then ran at 1x (Mini rec10, 30/09).
+	// last match's, and GameLogic::tryStartNewGame then resets the speed anyway. A speed set there was logged
+	// and then ran at 1x.
 	if (TheGameLogic->getFrame() == 0)
 		return L"the match has not started yet";
 	if (TheGlobalData->m_headless)
@@ -396,10 +383,10 @@ const WideChar *gxFastForwardRefusal()
 	return nullptr;
 }
 
-// GeneralsX: A replay seek race holds the pacer at 1x and lands at the speed it began at
-// (GXReplayStrip.inl). A speed key pressed meanwhile used to read that suspended 1x: a decrease was a no-op, an increase
-// always chose 2x, and the landing speed never heard of either. The strip sets these two hooks: while a race runs the
-// first answers the speed it lands at (0 = no race), the second takes the one chosen.
+// A replay seek race holds the pacer at 1x and lands at the speed it began at (GXReplayStrip.inl). A speed key pressed
+// meanwhile would read that suspended 1x: a decrease is a no-op, an increase always chooses 2x, and the landing speed never
+// hears of either. The strip sets these two hooks: while a race runs the first answers the speed it lands at (0 = no race),
+// the second takes the one chosen.
 Int (*gxRaceLandingSpeed)() = nullptr;
 void (*gxRaceChooseSpeed)(Int) = nullptr;
 
@@ -3522,7 +3509,7 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 			break;
 
 		//-----------------------------------------------------------------------------------------
-		// GeneralsX @note The temporary probe that logged the arrival of this meta message (and the
+		// GeneralsX: The temporary probe that logged the arrival of this meta message (and the
 		// two multiplayer predicates that disagree by design) was removed for release; recover it
 		// from af881e0bd if the chat key path needs re-instrumenting.
 		case GameMessage::MSG_META_CHAT_EVERYONE:
@@ -3642,7 +3629,7 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 				static Bool oldCloudMap = TRUE;
 				static Bool oldBehindBuildingMarkers = TRUE;
 				static Int oldMaxParticleCount = 0;
-				// GeneralsX @bugfix 25/07/2026 isLowDetails was read here but never assigned anywhere, so the
+				// GeneralsX: isLowDetails was read here but never assigned anywhere, so the
 				// restore branch was dead code and every press took the "lower details" path below. That path
 				// re-snapshotted the *already lowered* values over the saved originals, so the first press
 				// disabled shadows/lightmap/cloudmap/building markers and clamped particles to
@@ -3718,23 +3705,10 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 			break;
 		}
 
-		//-----------------------------------------------------------------------------------------
-		// GeneralsX: THE SPECTATOR HUD - the readouts this project added:
-		// ping, resends, fps, tps, the game clock, the per-player cash/income table. Bound in
-		// CommandMap as TOGGLE_HUD_OVERLAY.
-		//
-		// THE NAME IS KEPT DELIBERATELY. It is now half of a pair and "HUD_OVERLAY" no longer says
-		// which half, but renaming it would silently change the meaning of a binding somebody already
-		// wrote into Data\INI\CommandMap\GXUserKeys.ini - the key would keep working and start hiding
-		// a different set of things. The launcher relabels it on screen instead, where a rename costs
-		// nobody anything.
-		//
-		// Not gated on being in a game or on being an observer: the readouts it hides already gate
-		// themselves (latency and resends are multiplayer-only, tps is excluded from the shell), and
-		// a toggle that silently refuses in some contexts is worse than one that is simply a no-op
-		// where there is nothing on screen to hide.
-		//
-		// The message is consumed either way, so the key cannot fall through to anything else.
+		// The spectator HUD toggle: the readouts this project added (ping, resends, fps, tps, game clock, cash/income table),
+		// bound in CommandMap as TOGGLE_HUD_OVERLAY. The name is kept: renaming it would change the meaning of a binding
+		// already in Data\INI\CommandMap\GXUserKeys.ini. Not gated on being in a game or an observer: the readouts gate
+		// themselves. The message is consumed either way.
 		case GameMessage::MSG_META_TOGGLE_HUD_OVERLAY:
 		{
 			if (TheInGameUI)
@@ -5946,7 +5920,7 @@ static Bool isSystemMessage( const GameMessage *msg )
 		case GameMessage::MSG_SET_REPLAY_CAMERA:
 		case GameMessage::MSG_FRAME_TICK:
 		case GameMessage::MSG_META_DEMO_INSTANT_QUIT:
-		// GeneralsX @feature LAN-safe cheats must survive a scripted no-input window.
+		// GeneralsX: LAN-safe cheats must survive a scripted no-input window.
 		// CommandTranslator::translateGameMessage (:2476, gate at :2481) runs at priority 70,
 		// BEFORE the network gate, and returns DESTROY_MESSAGE for anything at all while
 		// !TheInGameUI->getInputEnabled(). Without these cases the Debug screen's cheat buttons
@@ -5967,21 +5941,10 @@ static Bool isSystemMessage( const GameMessage *msg )
 			return TRUE;
 #endif
 
-		// GeneralsX: NARROWED 21/09/2026 A KICK's surrender is a system message.
-		// The in-match kick appends one from the engine, and without an exemption the no-input gate above
-		// destroys it during a cinematic, leaving the kick to the relay's backstop.
-		//
-		// NARROWED because the bare `case` this used to be exempted EVERY surrender, the Surrender button's
-		// included, in both Generals and Zero Hour - so a player could surrender inside a scripted no-input
-		// window, which nobody asked for and which the comment above did not describe. Raised by a review
-		// review of this branch.
-		//
-		// The discriminator already exists and costs nothing new: a kick's order carries its ticket packed
-		// into the message (GXKick.h), and a player's Surrender button appends one with no ticket at all.
-		// gxKickUnpackOrder returns -1 for "none, or malformed", which is exactly the test wanted here - a
-		// forged or truncated ticket is not a kick and gets the ordinary gate. This is DISPLAY-SIDE
-		// provenance only; the ticket is verified for real in Common/GXKickTicket.h before anything acts
-		// on it.
+		// A KICK's surrender is a system message: the in-match kick appends one from the engine, and the no-input gate
+		// above would destroy it during a cinematic. Only a kick is exempt, not the Surrender button: a kick's order carries
+		// its ticket (GXKick.h); gxKickUnpackOrder returns -1 for none or malformed, which gets the ordinary gate.
+		// Display-side provenance only; the ticket is verified in Common/GXKickTicket.h.
 		case GameMessage::MSG_SELF_DESTRUCT:
 		{
 			unsigned char ticket[GX_KICK_BYTES_MAX];

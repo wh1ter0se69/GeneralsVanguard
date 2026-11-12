@@ -463,7 +463,7 @@ void GameLogic::init()
 //-------------------------------------------------------------------------------------------------
 void GameLogic::reset()
 {
-	gxCheatResetRevealState();	// GeneralsX @bugfix a load restores it from its save block, or finds it cleared
+	gxCheatResetRevealState();	// GeneralsX: a load restores it from its save block, or finds it cleared
 
 	m_thingTemplateBuildableOverrides.clear();
 	m_controlBarOverrides.clear();
@@ -477,19 +477,9 @@ void GameLogic::reset()
 	pauseGameLogic(FALSE);
 	pauseGameInput(FALSE);
 
-	// GeneralsX: Base Generals never switched the logic time scale on
-	// outside a solo start with a cap, so with the limiter off (Options.ini "FPSLimit = no", which
-	// the presets no longer override - see Common/FpsLimitPolicy.h) the startup shell, and every
-	// shell after clearGameData(), ticked the simulation once per RENDERED frame. reset() runs at
-	// init and on the way back to the shell. ONLY with the limiter off: with it on this stays as
-	// before, because a campaign start (3-arg MSG_NEW_GAME) never touches the scale and relies on it
-	// being off - SET_VISUAL_SPEED_MULTIPLIER lifts the render cap and speeds up only a coupled logic.
-	//
-	// GeneralsX: ...and whenever the cap lets rendering run faster than the tick
-	// rate. The max-FPS default is now the display's refresh rate (Common/FpsLimitPolicy.h), so a 120 Hz
-	// screen would otherwise run a coupled campaign at 120 ticks a second. At a cap at or under the tick
-	// rate - a 60 Hz screen - nothing changes. SET_VISUAL_SPEED_MULTIPLIER keeps its speed-up at any cap: it
-	// steps the logic with the loop whatever the scale (FramePacer::isScriptFastForward).
+	// GeneralsX: With the limiter off (Options.ini FPSLimit = no) the shell would tick once per rendered frame, so reset()
+	// turns the time scale on. With the limiter on it stays off: a 3-arg MSG_NEW_GAME campaign start relies on that.
+	// It is also enabled whenever the cap exceeds the tick rate, so a coupled campaign does not run at the refresh rate.
 	if (TheFramePacer != nullptr && TheGlobalData != nullptr
 		&& (!TheGlobalData->m_useFpsLimit
 			|| FpsLimitPolicy::needsLogicTimeScale(TheFramePacer->getFramesPerSecondLimit(), LOGICFRAMES_PER_SECOND)))
@@ -564,13 +554,13 @@ void GameLogic::reset()
 	WaterTransparencySetting *wt = (WaterTransparencySetting*) TheWaterTransparency.getNonOverloadedPointer();
 	TheWaterTransparency = (WaterTransparencySetting*) wt->deleteOverrides();
 
-	// GeneralsX: And the weather overrides, as Zero Hour does: kept, the next map's Weather block hung
-	// off this map's (until this fix, copying the master closed a loop there). Generals loads no Weather INI at startup, so
+	// GeneralsX: And the weather overrides, as Zero Hour does: kept, the next map's Weather block would hang
+	// off this map's. Generals loads no Weather INI at startup, so
 	// there is none until a map.ini makes one (GameLogic::init calls this first).
 	WeatherSetting *ws = (WeatherSetting*) TheWeatherSetting.getNonOverloadedPointer();
 	if (ws != nullptr)
 		TheWeatherSetting = (WeatherSetting*) ws->deleteOverrides();
-	gxRestoreMapWaterSettings();	// GeneralsX @bugfix: and the map's WaterSet edits (INIWater.cpp)
+	gxRestoreMapWaterSettings();	// GeneralsX: and the map's WaterSet edits (INIWater.cpp)
 
 	m_rankPointsToAddAtGameStart = 0;
 }
@@ -892,42 +882,11 @@ static void populateRandomSideAndColor( GameInfo *game )
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: START-POSITION ASSIGNMENT MUST NOT TOUCH FLOATING POINT.
-//
-// MEASURED, three peers, one lobby, same map and seed, 2026-08-19. The synchronised RNG pick agreed
-// everywhere; the first DETERMINISTIC distance did not:
-//
-//   mac   (arm64)  slot=1 dist=3788.802734 (456CCCD8)  runnerUp=8
-//   ipad  (arm64)  slot=1 dist=3788.802734 (456CCCD8)  runnerUp=8
-//   linux (x86_64) slot=1 dist=3788.800049 (456CCCCD)  runnerUp=6
-//
-// Eleven ULPs - not rounding noise. The two arm64 builds agree bit for bit and the x86_64 build does
-// not, which is the signature of `sqr(dx)+sqr(dy)` being contracted into an FMA on one target and not
-// the other. From slot 4 the assignments diverge completely and the match desyncs at the first
-// NET_CRC_INTERVAL, two peers agreeing and one differing.
-//
-// That divergence exists at FRAME 0, before a single input is processed. It is why this never looked
-// like a network fault, and why it never reproduced from a replay file: a replay rebuilds GameInfo
-// from the .rep header, so both platforms re-derive the same assignment and agree.
-//
-// WHY NOT "make the float reproducible". Because it cannot be KEPT reproducible. Forcing double, or
-// disabling contraction here, fixes the builds that exist today and silently un-fixes them the next
-// time an optimisation flag moves on one platform - and that failure surfaces as a desync eight
-// seconds into a match, which is the most expensive way this project has to learn anything.
-// Integers cannot drift.
-//
-// EXACTNESS ARGUMENT. Waypoints are the loaded map's own floats (they used to be MapCache.ini text,
-// which turned out NOT to be identical across peers - see populateRandomStartPosition), and the map
-// file is identical on every peer, so every peer starts from the same float bits. float->double is exact, one multiply by 100.0 is correctly
-// rounded and therefore identical on every IEEE-754 target, and the rounding below is a compare and
-// an add. After that nothing is floating point: differences, squares, the sum and the square root are
-// integer operations with a single defined result. Map extents are bounded well under 2^20 centi
-// units, so d2 <= 2*(2^20)^2 = 2^41 and a sum over MAX_SLOTS terms cannot approach the Int64 range.
-//
-// This CHANGES which player starts where relative to the old float path, on every platform. The two
-// architectures already disagreed, so there was no behaviour left that was correct on both. Old
-// replays of matches with RANDOM start positions will no longer reproduce; SIMID_EPOCH is bumped so
-// they are refused with a clear message instead of desyncing at frame 208.
+// GeneralsX: Start-position assignment must not touch floating point: sqr(dx)+sqr(dy) was contracted into an FMA on one
+// target and not the other, so slots were assigned differently (11 ULPs apart) and the match desynced at the first
+// NET_CRC_INTERVAL. Forcing double or disabling contraction cannot be kept reproducible; integers cannot drift.
+// Waypoint floats are identical on every peer; after one rounded multiply by 100.0 everything is integer (d2 <= 2^41).
+// SIMID_EPOCH separates old random-start replays, which are refused.
 static const Int64 GX_DIST_MAX = (Int64)0x7FFFFFFFFFFFFFFFLL;
 
 // llround is avoided deliberately: this needs one defined result on three toolchains, and a compare
@@ -960,23 +919,10 @@ static void populateRandomStartPosition( GameInfo *game )
 		return;
 
 	Int i;
-	// GeneralsX: START POSITIONS COME FROM THE MAP THAT WAS JUST LOADED.
-	//
-	// This read numPlayers and every Player_N_Start from TheMapCache, i.e. MapCache.ini: a
-	// per-machine file that no join check and no SimID hashes. A Windows peer whose cache held
-	// corrupt Player_9..12_Start values for a byte-identical map (rewritten by an 8-slot reader that
-	// shares the retail user-data folder) agreed on the random pick, took different FARTHEST picks
-	// and desynced at the first CRC check. See
-	//
-	//
-	// tryStartNewGame now calls this AFTER TheTerrainLogic->loadMap(), so these are the Waypoint objects
-	// built from the map file every peer loaded - the same ones placeNetworkBuildingsForPlayer()
-	// builds on - counted by WaypointMap::update()'s rule, contiguous from Player_1_Start, but WITHOUT its
-	// floor of 1: a map with no start waypoint seats nobody (see the validation below).
-	// No logic-RNG draw sits between the old call site and the new one, so the random pick sees the
-	// same stream. The coordinates are the map's own floats rather than their %2.2f MapCache.ini round
-	// trip; the two can only differ where a coordinate sits on a centi-unit rounding boundary, and
-	// there the old code already let a warm-cache peer and a cold-cache peer disagree.
+	// GeneralsX: Start positions come from the map just loaded, not MapCache.ini, a per-machine file that no join check or
+	// SimID hashes (a stale cache gave different FARTHEST picks and a desync). They are the Waypoint objects built from the
+	// map file, counted as WaypointMap::update does but without its floor of 1: a map with no start waypoint seats nobody.
+	// No logic-RNG draw sits between this and the random pick.
 	Int numPlayers = 0;
 	Waypoint *startSpot[MAX_SLOTS] = {};
 	for (; numPlayers < MAX_SLOTS; ++numPlayers)
@@ -1137,10 +1083,9 @@ static void populateRandomStartPosition( GameInfo *game )
 				}
 				DEBUG_ASSERTCRASH(farthestIndex >= 0, ("Couldn't find a farthest spot!"));
 				slot->setStartPos(farthestIndex);
-				// GeneralsX: farthestIndex is -1 once every position is taken
-				// (the over-capacity case above), and DEBUG_ASSERTCRASH is nothing in release, so this
-				// wrote taken[-1] - outside the array. Zero Hour has guarded it since 29/07/2026.
-				// setStartPos(-1) stays outside the guard: -1 is what the engine reads as "no position".
+				// GeneralsX: farthestIndex is -1 once every position is taken (the over-capacity case above), and
+				// DEBUG_ASSERTCRASH is nothing in release, so this wrote taken[-1]. Zero Hour guards it too.
+				// setStartPos(-1) stays outside the guard: -1 is what the engine reads as no position.
 				if (farthestIndex >= 0)
 					taken[farthestIndex] = TRUE;
 				else
@@ -1665,14 +1610,10 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 					DEBUG_CRASH(("Human player in non-wire-addressable slot %d", capSlot));
 				}
 			}
-			// GeneralsX: REFUSE an over-capacity start (owner decision,
-			// 23/09/2026: refuse, never drop a civilian side). Counted from the side table as
-			// prepareForMP_or_Skirmish left it and from the slot list - the same map and the same
-			// slots on every peer - so every peer refuses together. The old check counted a kept
-			// nameless neutral side as a civilian AND again in its +2, one too strict.
-			// Refused here, before a single side is added, because past this point an overflow
-			// drops the ReplayObserver (or worse) and PlayerList::newGame / map object creation
-			// dereference the missing player.
+			// GeneralsX: Refuse an over-capacity start rather than drop a civilian side. Counted from the side table as
+			// prepareForMP_or_Skirmish left it and from the slot list - the same on every peer - so every peer refuses together.
+			// Refused before any side is added, because past this point an overflow drops the ReplayObserver (or worse) and
+			// PlayerList::newGame / map object creation dereference the missing player.
 			KeptMapSides kept = { TheSidesList->getNumSides(), 0 };
 			for (Int keptSide = 0; keptSide < kept.total; ++keptSide)
 			{
@@ -1706,14 +1647,10 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 			if (!slot || !slot->isOccupied())
 				continue;
 
-			// GeneralsX: An OBSERVER slot takes no side and no Player of its own
-			// (PlayerCapacity.h slotTakesPlayer): PlayerList::assignSlotIndices maps it onto the
-			// ReplayObserver added below, which is made local here when this peer is that observer.
-			// Without that, no side is local on an observer peer, and PlayerList::newGame's fallback makes
-			// the first non-neutral player - the map's civilian side - PLAYER_HUMAN on that peer alone and
-			// runs the observer as it. Measured with this line reverted (24/09/2026): every observer ran
-			// as PlyrCivilian and saw 0 of the map's cells. No CRC split showed in 3600 frames, but a
-			// Player type that differs between peers is simulation state that should never differ.
+			// GeneralsX: An OBSERVER slot takes no side and no Player of its own (PlayerCapacity.h slotTakesPlayer):
+			// PlayerList::assignSlotIndices maps it onto the ReplayObserver added below, made local here when this peer is that
+			// observer. Without that, no side is local on an observer peer and the PlayerList::newGame fallback makes the first
+			// non-neutral player (the map civilian side) PLAYER_HUMAN on that peer alone, and the observer runs as it.
 			if (!slotTakesPlayer(slot->isOccupied(), TheGameInfo->slotSharesReplayObserver(i)))
 			{
 				if (slot->isHuman() && i == TheGameInfo->getLocalSlotNum())
@@ -2546,23 +2483,9 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 	{
 		if (!TheGlobalData->m_headless)
 		{
-			// GeneralsX: Base Generals never enabled the logic time scale for
-			// the shell game, so with a render cap above the tick rate canUpdateRegularGameLogic() ticked
-			// the menu backdrop once per RENDERED frame (600 ticks over 600 frames at a 120 cap on a
-			// 60 Hz build, against 300 paired - scripts/test/generals-logic-time-scale-test.sh).
-			//
-			// HERE, at the start of every shell game, not once in GameEngine::init as Zero Hour does.
-			// clearGameData() switches the scale off whenever a game ends, and base Generals' reset()
-			// switches it back on only with the limiter off (Common/FpsLimitPolicy.h), so an init-time
-			// pairing covered the first shell only - never the shell after a match or the credits. And
-			// it leaked: with no shell map (-noshellmap, a low-spec box, -loadsave) nothing clears it
-			// before a campaign or save-load start, whose 3-argument MSG_NEW_GAME relies on the scale
-			// being off for SET_VISUAL_SPEED_MULTIPLIER. The shell game is always torn down through
-			// clearGameData() before another game starts, so this never outlives the shell.
-			//
-			// Unconditional on the cap: at or below the tick rate the gate's `logicTimeScaleFps >=
-			// maxRenderFps` branch still steps once per rendered frame, so it changes nothing there.
-			// Headless is excluded: no renderer, and it wants its shell at full speed.
+			// GeneralsX: Enable the logic time scale for the shell game; with a render cap above the tick rate the menu backdrop
+			// would tick once per rendered frame. Done at every shell start because clearGameData() switches the scale off when a
+			// game ends, and reset() re-enables it only with the limiter off. Headless is excluded: no renderer, full-speed shell.
 			TheFramePacer->setLogicTimeScaleFps(LOGICFRAMES_PER_SECOND);
 			TheFramePacer->enableLogicTimeScale(TRUE);
 

@@ -750,20 +750,10 @@ void Mouse::createStreamMessages()
 	{
 		processMouseEvent(i);
 
-		// GeneralsX: Tooltip persistence.
-		//
-		// Stock restarted the hover wait on ANY movement, in both directions: you had to hold the
-		// cursor perfectly still to make a tooltip appear, and one pixel of drift then took it away
-		// again and made you wait out the whole delay a second time. Reading a tooltip while the
-		// hand is on the mouse was effectively impossible.
-		//
-		// Only the appearance half needs stillness, and only that half keeps it. Once the card is
-		// up it stays up until the cursor moves to a different target, which is what
-		// setTooltipTarget() below decides. Every desktop toolkit behaves this way.
-		//
-		// Deliberately NOT keyed on the tooltip TEXT changing: a tooltip that updates live (a
-		// latency readout, say) would then reset its own wait on every tick and could never be
-		// read at all.
+		// Tooltip persistence. Stock restarted the hover wait on ANY movement, so one pixel of drift took the tooltip away.
+		// Only the appearance half needs stillness: once up, a tooltip stays until the cursor moves to a different target
+		// (setTooltipTarget() below). Not keyed on the tooltip TEXT changing: a live tooltip (a latency readout) would
+		// reset its own wait on every tick.
 		if ((m_currMouse.deltaPos.x || m_currMouse.deltaPos.y) && !m_displayTooltip)
 			m_stillTime = now;
 
@@ -937,7 +927,7 @@ void Mouse::setCursorTooltip( UnicodeString tooltip, Int delay, const RGBColor *
 				m_tooltipTextColor.blue  = REAL_TO_INT(color->blue  * 255.0f);
 			}
 			m_tooltipTextColor.alpha = m_tooltipColorText.alpha;
-			// GeneralsX @bugfix: this colour is the hovered owner's (house) colour; a near-black one (Black) is lifted. Configured
+			// GeneralsX: this colour is the hovered owner's (house) colour; a near-black one (Black) is lifted. Configured
 			// TooltipTextColor (no rgb passed) is never touched, so a mod's dark-on-light tooltip keeps its palette.
 			{
 				const Color lifted = gxPlayerTextColor( GameMakeColor( m_tooltipTextColor.red, m_tooltipTextColor.green, m_tooltipTextColor.blue, m_tooltipTextColor.alpha ) );
@@ -1066,7 +1056,7 @@ void Mouse::loseFocus()
 	// Free the cursor when losing window focus.
 	blockCapture(CursorCaptureBlockReason_Unfocused);
 
-	// GeneralsX @feature tilt-thumb-buttons 06/10/2026 A thumb button released while unfocused never sends its UP: drop the held state.
+	// A thumb button released while unfocused never sends its UP: drop the held state.
 	m_thumbBack = FALSE;
 	m_thumbForward = FALSE;
 }

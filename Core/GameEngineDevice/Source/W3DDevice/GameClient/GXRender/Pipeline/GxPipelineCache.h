@@ -1,12 +1,30 @@
-// GxPipelineCache.h - the native renderer's pipeline cache (WS-D).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GxPipelineCache.h - the native renderer's pipeline cache.
 //
 // Holds every VkPipeline the session creates, keyed by GxPipelineKey, over one VkPipelineCache persisted per device + driver.
 // The GENERIC set (census draw parts x the session's attachment configurations, plus every key this machine missed before)
 // is pre-built on worker threads before gameplay; a lookup that finds no generic pipeline is a GENERIC MISS - counted, logged
 // ([GXPIPE] MISS), compiled on the calling thread and recorded so the next launch prebuilds it. A SPECIALISED FF variant
 // (getFF: the same ubershader with the FF key as specialisation constants) is compiled on background workers the first time
-// its {key, FF key} is drawn; until it is published the generic pipeline draws (DESIGN §3, PLAN §1 cache-miss policy).
-// Custom (WS-E) keys have no generic stand-in.
+// its {key, FF key} is drawn; until it is published the generic pipeline draws.
+// Custom keys have no generic stand-in.
 #pragma once
 
 #include "VkCommon.h"
@@ -30,22 +48,22 @@ namespace GXRender {
 
 namespace Vk { class VkCtx; }
 
-// The shaders + layout every FF pipeline shares (DESIGN §3): the FF ubershader's vertex shader and its smooth and flat
-// fragment shaders (shaders/gx_ff*), one layout (rw2-F1's GxRecordLayout). Generic and specialised pipelines use the SAME
+// The shaders + layout every FF pipeline shares: the FF ubershader's vertex shader and its smooth and flat
+// fragment shaders (shaders/gx_ff*), one layout (GxRecordLayout). Generic and specialised pipelines use the SAME
 // modules: a specialised one only adds VkSpecializationInfo.
 struct GxGenericShaders {
 	VkShaderModule   vs = VK_NULL_HANDLE;
 	VkShaderModule   fs = VK_NULL_HANDLE;
 	VkShaderModule   fsFlat = VK_NULL_HANDLE;
 	VkPipelineLayout layout = VK_NULL_HANDLE;
-	// (A108; the integrator's ruling after): the alpha-to-coverage family (gx_ff[_flat][.sm].a2c.frag),
+	// The alpha-to-coverage family (gx_ff[_flat][.sm].a2c.frag),
 	// null unless the session runs A2C. createPipeline() uses it for a key with alphaToCoverage = 1 and ONLY for one: every other key
 	// keeps fs / fsFlat (today's module), so a plain draw in an A2C session is today's pipeline exactly.
 	VkShaderModule   fsA2c = VK_NULL_HANDLE;
 	VkShaderModule   fsFlatA2c = VK_NULL_HANDLE;
 };
 
-// WS-E (rw2-E): the custom-program modules (GxCustomCatalog.h ids). `ps` is gx_cs_ps.frag (program = spec constant 40; the TEST-ONLY
+// The custom-program modules (GxCustomCatalog.h ids). `ps` is gx_cs_ps.frag (program = spec constant 40; the TEST-ONLY
 // mutant build of it also reads constant 41 = the program to perturb), `vsTrees` is gx_cs_trees.vert, `vsWave` gx_cs_wave.vert. A custom pipeline uses the
 // FF layout (set 0 b0 = VS block - a custom VS reads its constants c0-c95 from the first 1536 B of it, b1 = PS block, set 1 = 8
 // samplers, push = the FF key), the FF vertex shader unless the key names a custom VS, and the FF generic fragment shader unless
@@ -72,7 +90,7 @@ struct GxPipeStats {
 	uint32_t a2cTwins = 0;         // (A108): A2C twins prebuild() added (setA2CTwins on)
 	uint32_t a2cRecordedSkipped = 0; // recorded A2C keys a session WITHOUT A2C skipped (an earlier key-on session's): not queued
 	uint32_t a2cPlainTwins = 0;    // ...of them, the PLAIN twins queued instead (new candidates only)
-	uint32_t prebuildRuns = 0;     // (the integrator's condition a): prebuild() calls - a key-off session makes exactly one
+	uint32_t prebuildRuns = 0;     // prebuild() calls - a key-off session makes exactly one
 	uint32_t a2cFirstUseFailed = 0; // (a): an alphaToCoverage = 1 key whose pipeline failed OUTSIDE a
 	                                // prebuild (a draw-time get() miss, buildCustom): its draw is refused - a stated limit, counted
 	uint32_t failed = 0;           // vkCreateGraphicsPipelines errors or refused keys (any path)
@@ -87,9 +105,9 @@ struct GxPipeStats {
 	double   specMaxMs = 0.0;      // the slowest specialised compile (background)
 	uint64_t specHandoverDeferred = 0; // getFF() found a worker holding the handover lock and moved on (never waits)
 	double   specTotalMs = 0.0;
-	uint32_t customBuilt = 0;      // buildCustom(): custom pipelines built (WS-E)
+	uint32_t customBuilt = 0;      // buildCustom(): custom pipelines built
 	double   customMs = 0.0;       // ...their total build time
-	uint32_t customMiss = 0;       // Custom (WS-E) keys not prebuilt: no generic fallback exists for them
+	uint32_t customMiss = 0;       // Custom keys not prebuilt: no generic fallback exists for them
 	double   prebuildMs = 0.0;     // wall time of the last prebuild, first key to last
 	double   missMs = 0.0;         // total time get() spent compiling misses
 	bool     cacheLoaded = false;  // a persisted VkPipelineCache passed every check and was handed to the driver
@@ -107,7 +125,7 @@ struct GxPipeTestMutants {
 	unsigned lastWorkerDelayMs = 0;   // ...and waits this long between counting it and decrementing (the race window)
 	bool failMisses = false;          // get() discards what it compiled: the key is published as failed (caller-fail-first)
 	void (*afterMissClaim)() = nullptr; // get() calls it after claiming a miss, before compiling (caller-in-flight)
-	bool syncCustom = false;          // get() compiles a custom (WS-E) miss on the CALLER (replay tools only: production prebuilds)
+	bool syncCustom = false;          // get() compiles a custom miss on the CALLER (replay tools only: production prebuilds)
 	bool syncSpec = false;            // getFF() compiles a new specialised variant on the CALLER (the cold-cache fail arm)
 	VkShaderModule specFs = VK_NULL_HANDLE; // every specialised pipeline uses this FS (the identity gate's mutant arm)
 	VkShaderModule specFsFlat = VK_NULL_HANDLE; // ...and a FLAT-shaded key this one when set (gx_ff_test --a2c-family)
@@ -174,7 +192,7 @@ public:
 	// session - reads exactly what it read before; a later prebuild is not failed forever by an earlier one's key).
 	bool prebuildComplete() const;
 	void waitPrebuild();
-	// (the integrator's ruling after): after waitPrebuild(), un-publish the keys the LAST prebuild's
+	// After waitPrebuild(), un-publish the keys the LAST prebuild's
 	// workers failed (still null), so nothing of a failed A2C prewarm stays behind: a later draw of such a key takes today's first-use path
 	// (get() compiles it) instead of a stale null. Returns how many were dropped. Never called in a key-off session.
 	size_t dropPrebuildFailures();
@@ -186,7 +204,7 @@ public:
 	// sight, never compiled here. It never waits for a worker: the specialised map is this thread's own, and keys/results
 	// cross to/from the workers under a try_lock (deferred to the next call when a worker holds it). *specialised says which
 	// came back. The FF key must also be pushed (GxFFState.h): the generic pipeline reads it.
-	// WS-E. The module set createPipeline() uses for a GxShaderCustom key (key.shader.reserved[0] = GxCsVsId, [1] = GxCsPsId).
+	// The module set createPipeline() uses for a GxShaderCustom key (key.shader.reserved[0] = GxCsVsId, [1] = GxCsPsId).
 	void setCustomShaders(const GxCustomShaders& c) { m_custom = c; }
 	// (A108): the session runs alpha-to-coverage (the device's a2c family is loaded). Then prebuild() also queues the A2C twin
 	// (alphaToCoverage = 1) of every candidate a GxAlphaToCoverage.h draw can turn on - multisampled, blending off, colour writes on, not a

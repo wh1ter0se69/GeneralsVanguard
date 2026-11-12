@@ -1,4 +1,22 @@
-// GeneralsX: AI RULE BANK: the registry as tables. Pure:
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// AI RULE BANK: the registry as tables. Pure:
 // no engine type, no state, no I/O - scripts/test/gx-rulebank-test.cpp builds it with plain c++17 and feeds it fake registries.
 // GXRuleTable.inl is the source of truth; this header turns its rows into constexpr arrays and refuses to compile a registry that
 // breaks a rule of the bank (ids unique, keys unique per rule, defaults inside their box, VISION rules Brutal only, claims well formed).

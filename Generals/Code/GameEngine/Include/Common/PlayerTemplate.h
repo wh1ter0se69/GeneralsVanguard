@@ -213,25 +213,9 @@ private:
 
 	PlayerTemplateVector m_playerTemplates;
 
-	// GeneralsX: TheSuperHackers/GeneralsGameCode#1972
-	//
-	// reset() is a deliberate no-op - "we want to retain this info" - which is right for the
-	// templates parsed at startup and wrong for the ones a map.ini overwrites, because an
-	// override load mutates the existing template IN PLACE. Its edits therefore outlived the
-	// match, and every later game in the same process ran with the previous map's player
-	// templates. Only a restart cleared it.
-	//
-	// Snapshot-and-restore rather than the Overridable chain that ScienceStore and ThingTemplate
-	// use: PlayerTemplate is not Overridable, and making it so would mean routing every reader
-	// through getFinalOverride() - changing simulation read paths to fix a between-matches bug.
-	// These two lists stay empty unless a map actually overrides something.
-	// Keyed by INDEX into m_playerTemplates, never by name. findPlayerTemplate() canonicalizes
-	// twelve legacy faction aliases onto three keys (see its "ugly, hokey code" block), and the
-	// parser then calls setNameKey() with the ALIAS - so overriding FactionAmericaTankCommand
-	// renames the FactionAmerica template. A name-keyed backup then looks up a key nothing carries
-	// any more, the restore silently does nothing, and the override survives every later match
-	// while this code claims to have undone it. An index is immune to both the aliasing and the
-	// rename.
+	// TheSuperHackers/GeneralsGameCode#1972: reset() is a no-op, so map.ini overrides would outlive the match.
+	// These lists snapshot and restore; an Overridable chain would reroute every reader through getFinalOverride().
+	// Keyed by index into m_playerTemplates, never by name: aliases rename the template, so a name lookup misses it.
 	std::vector<Int>            m_overrideBackupIdx;  ///< where each pristine copy belongs
 	PlayerTemplateVector        m_overrideBackups;    ///< pristine copies, parallel to the above
 	std::vector<Int>            m_overrideAddedIdx;   ///< templates an override load appended

@@ -1608,11 +1608,11 @@ void Player::onStructureConstructionComplete( Object *builder, Object *structure
 		m_ai->onStructureProduced( builder, structure );
 
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX: A built structure's special powers became usable never. Without
+	// GeneralsX: A built structure's special powers must become usable. Without
 	// RETAIL_COMPATIBLE_CRC every SpecialPowerModule starts at the 0xFFFFFFFF ready frame (TheSuperHackers #1218), and a
 	// structure built UNDER_CONSTRUCTION skips startPowerRecharge in that constructor, so only a SpecialPowerCreate module
-	// (the superweapons) ever moved it. The Strategy Center has none: its battle plans and CIA Intelligence stayed
-	// "not ready" for the whole match - drawn in colour, dead to every click and key (live report, 0.9.54, 04/10).
+	// (the superweapons) ever moved it. The Strategy Center has none: its battle plans and CIA Intelligence would stay
+	// "not ready" for the whole match - drawn in colour, dead to every click and key.
 	// Charge any power still at the sentinel to ready now, as retail's 0 did. Ported from TheSuperHackers PR #2781
 	// (bobtista, closed upstream in favour of the larger, still-open #1461); adopt #1461 if it merges.
 	// A shared-sync power (a general's power) is skipped before getReadyFrame: its timer lives on the Player, and asking

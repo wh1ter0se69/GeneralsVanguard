@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G Task 5: gxl2m::shaderApply, a line-faithful port of ShaderClass::Apply
+// gxl2m::shaderApply, a line-faithful port of ShaderClass::Apply
 // (ZW/shader.cpp:409-1062; ZW = GeneralsMD/Code/Libraries/Source/WWVegas/WW3D2/). Engine-free: the bit layout (ZW/shader.h:48-228)
 // and the D3D8 numbers are copied below. Set_DX8_Render_State -> sendRS, Set_DX8_Texture_Stage_State -> sendTSS, ShaderClass::
 // CurrentShader / ShaderDirty -> State::curShader / shaderDirty, every global and caps read -> State::sg. Debug-only lines

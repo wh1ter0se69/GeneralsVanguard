@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-# GeneralsX: Data/INI/Weapon.ini: the Community Patch's Weapon.ini plus
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Data/INI/Weapon.ini: the Community Patch's Weapon.ini plus
 # GeneralsX's balance edits. A RECIPE, NOT A COPY.
 #
 #   make-weapon-ini.py --out <Data/INI/Weapon.ini> --search <dir> [--search <dir>]...
 #   make-weapon-ini.py --root <game folder> [--root <game folder>]... [--search <dir>]... [--if-archive]
 #   make-weapon-ini.py --selftest
 #
-# --root is the ship-time step for a folder a peer runs from (a deploy's runtime folder, a
-# harness peer's game-data folder): it writes
+# --root is the ship-time step for a folder a peer runs from (a deploy's runtime folder, the VPS
+# harness peer's /root/gamedata, the Windows harness peer's C:\dev\gxdata): it writes
 # <root>/Data/INI/Weapon.ini, taking the archive from where that peer's engine mounts it, in the
 # engine's order (root_search): the --search dirs, then the primary asset root ($CNC_GENERALS_ZH_PATH
 # when it holds archives, else <root>), then the overlay ($GENERALSX_PATCH_PATH when set, else
@@ -179,7 +181,7 @@ def edit_block(text, head, pairs, what):
     return text[:start] + block[:-2] + text[stop:]
 
 
-# GeneralsX: Flares you can read (owner GO 05/10: "must look like the 2003 game, only better").
+# Flares you can read.
 # A missile turning onto a flare is the whole point of the Countermeasures upgrade and was hard to see: five to ten small
 # short-lived sparks and a thin faint smoke thread. Same effect, same textures, same colour family: bigger and more
 # numerous sparks, a hotter white core, a smoke trail that lives about twice as long and is denser. Client-only: particles
@@ -226,14 +228,14 @@ RECIPE_FILES = [
     ("Data\\INI\\Object\\Shared\\Weapon\\SupW_AuroraFuelAirGas.ini",
      "2a2ee8c1a332586e0504493c0645d5df2aab0d0e7d76fcf73544b3d7c5953f2f", edit_aurora_gas),
 ]
-# GeneralsX: The skirmish-AI script file rides the same call sites: every packager and
+# The skirmish-AI script file rides the same call sites: every packager and
 # deploy step that already runs this recipe and stages `--list` now also gets Data/Scripts/SkirmishScripts.scb, cut
 # from the retail loose copy by scripts/tooling/make-skirmish-scripts.py (sha256-pinned, deterministic, moves dataID).
 import importlib.util as _ilu
 _spec = _ilu.spec_from_file_location("make_skirmish_scripts", os.path.join(os.path.dirname(os.path.abspath(__file__)), "make-skirmish-scripts.py"))
 SKIRMISH = _ilu.module_from_spec(_spec)
 _spec.loader.exec_module(SKIRMISH)
-# GeneralsX: The skirmish AI's base layouts (Data/INI/AIData.ini, doors facing the base front) ride the same call
+# The skirmish AI's base layouts (Data/INI/AIData.ini, doors facing the base front) ride the same call
 # sites: cut from the SAME CoreINI archive by scripts/tooling/make-aidata-layouts.py (its source member sha256-pinned, its default = the
 # shipped file, both keys on every list but SHIP_OFF). It moves dataID, so a package without it is refused by one that has it (DATA_DIFFERS).
 # Before this, nothing staged it and the base-layout engine half shipped with no layouts to read.

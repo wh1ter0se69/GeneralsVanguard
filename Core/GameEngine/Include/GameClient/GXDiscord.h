@@ -1,33 +1,25 @@
-/* Discord Rich Presence for GeneralsX.
- *
- * GeneralsX:
- *
- * WHY IT LIVES UNDER GameClient. `resources/gitinfo/simsourcedigest_watcher.cmake` digests only
- * `{Include,Source}/{Common,GameLogic,GameNetwork}` plus WWMath and the build config. `GameClient`
- * appears in none of those lists, so everything here is OUTSIDE the SimID source digest. That is
- * not tidiness - it is the difference between "change the wording of a presence string" costing an
- * atomic four-platform rebuild and redeploy, and costing one platform's build. A cosmetic feature
- * must never be able to force a lockstep-atomic release.
- *
- * The same rule constrains what this file may DO: it reads the engine's state, and it writes
- * nothing that any simulation can observe. Reading a digested header is free; editing one is not,
- * which is why the preference below is read through OptionPreferences' existing map interface
- * rather than by adding a typed accessor to it.
- *
- * NO LIBRARY, NO NETWORK. Rich Presence is a local IPC protocol: length-prefixed JSON over a named
- * pipe on Windows (\\.\pipe\discord-ipc-N) and a unix socket in the runtime directory elsewhere.
- * That is a few hundred lines with no dependency, which matters in a project whose vcpkg manifest
- * gates curl off Windows entirely. Discord's own SDK would be a third-party binary on four
- * platforms for a feature nobody needs in order to play.
- *
- * IT IS DESKTOP-ONLY, and iPadOS is the reason rather than an oversight: iOS has no local Discord
- * client to talk to, so there is no socket to open. Every entry point below compiles everywhere and
- * does nothing where there is no Discord.
- *
- * IT FAILS SILENT. Discord not installed, not running, closed mid-match, a refused connection, a
- * half-written frame - all of them end in "no presence", never in a log line per frame and never in
- * anything a player notices. A cosmetic feature that can degrade a match is a bug.
- */
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/* Discord Rich Presence. Under GameClient, outside the SimID source digest: it writes nothing the simulation observes.
+ * NO LIBRARY, NO NETWORK: a local IPC protocol (JSON over a named pipe on Windows, a unix socket elsewhere).
+ * Desktop-only (iOS has no Discord client). IT FAILS SILENT: any failure ends in "no presence", never a per-frame
+ * log line. */
 
 #pragma once
 

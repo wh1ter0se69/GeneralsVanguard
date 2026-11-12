@@ -34,7 +34,7 @@
 #include "Common/GameMemory.h"
 #include "GameClient/View.h"
 #include "GameClient/Display.h"
-#include "GameClient/GXGfxProbe.h"	// [GXGFXF] (graphics P2 c3-12)
+#include "GameClient/GXGfxProbe.h"	// [GXGFXF]
 #include "WW3D2/texture.h"
 #include "WW3D2/dx8indexbuffer.h"
 #include "WW3D2/dx8wrapper.h"
@@ -268,7 +268,7 @@ Bool W3DSmudgeManager::testHardwareSupport()
 		pDev->SetVertexShader(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1);
 
 		pDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(_TRANS_LIT_TEX_VERTEX));
-		DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+		DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 
 		DWORD refData[BLOCK_SIZE*BLOCK_SIZE];
 		memset(refData,0,sizeof(refData));
@@ -290,7 +290,7 @@ Bool W3DSmudgeManager::testHardwareSupport()
 		v[3].color = 0xffffffff;
 
 		pDev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, v, sizeof(_TRANS_LIT_TEX_VERTEX));
-		DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc= (graphics P2 i-02)
+		DX8Wrapper::Record_Direct_Draw();	// [GXGFX] dc=
 		bufSize=copyRect((unsigned char *)testData,sizeof(testData),0,0,BLOCK_SIZE,BLOCK_SIZE);
 
 		if (!bufSize)

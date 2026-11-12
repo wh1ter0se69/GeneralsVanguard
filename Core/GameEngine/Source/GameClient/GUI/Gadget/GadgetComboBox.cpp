@@ -87,33 +87,10 @@
 void HideListBox(GameWindow * window);
 static void ShowListBox(GameWindow * window);
 
-// GeneralsX: LETTER KEYS ON AN OPEN DROP-DOWN.
-//
-// Asked for on the game-setup slot lists: with Open / Closed / Easy Army / Medium Army / Hard Army
-// showing, O / C / E / M / H picks that entry at once. Done here, for every NON-EDITABLE combo,
-// rather than in each menu, because the key never reaches a menu: keyboard focus is usually on the
-// lobby chat box, which eats the letter first. Clicking a combo does not move focus (stock), so the
-// open drop-down is tracked here and offered the keystroke before the focus window gets it.
-//
-// A keystroke can arrive twice: as a CHARACTER (GWM_IME_CHAR to the focused text field - SDL's
-// SDL_EVENT_TEXT_INPUT, Win32's WM_CHAR through IMEManager) and as a KEY (WindowXlat). With a text
-// field focused THE CHARACTER PICKS, when it arrives (GadgetComboBoxDropDownOwnsText), and the key
-// does nothing: only the character knows the keyboard layout, it needs no partner (a key and its
-// character come in no fixed order - Win32's DirectInput can read the key a frame before WM_CHAR,
-// and two letters typed inside one SDL pump pass both precede their key-downs), and it says whether
-// a key typed it at all (GWM_IME_CHAR_COUNT_MASK: IME and dead-key composition output is chat, never a
-// pick) and whether it is an auto-repeat (GWM_IME_CHAR_REPEAT: never a second pick - kept out of chat
-// when its first press picked, chat when that press was chat). Only a character naming an entry of the
-// open list picks. With no text field focused (Skirmish) no character comes, and the KEY picks, named
-// by the active layout (Keyboard::getLayoutKey) rather than the key table - a fresh press only
-// (ComboKeyPressPicks); its auto-repeats and key-ups go on to the focus window as they always did.
-//
-// Editable combos are excluded - typing into them is their point. On the key path letters with
-// Ctrl/Alt pass through untouched, as do non-letter keys (Esc still backs out of the screen, arrows
-// still tab); on the text path the character is the truth, whatever modifier made it. Only a combo
-// that is enabled and actually on screen takes keys, so a list left open under a hidden shell layout
-// cannot swallow in-game hotkeys - and only one in the UI that has the keyboard: not behind a modal,
-// not while the keystroke goes to another layout (ComboListHasKeyboard).
+// Letter keys on an open drop-down (non-editable combos): it is offered keystrokes before the focus window,
+// since lobby chat usually has focus. With a text field focused the CHARACTER picks (GWM_IME_CHAR knows the layout);
+// else a fresh KEY press picks, via Keyboard::getLayoutKey. Auto-repeats never pick twice.
+// Ctrl/Alt and non-letter keys pass through; only an enabled, visible combo in the UI holding the keyboard takes keys.
 static GameWindow *s_openDropDown = nullptr;	///< the combo whose list is showing, if any
 static GameWindow *s_keyPickCombo = nullptr;	///< set only while a letter's GCM_SELECTED is being delivered
 /// The text path's held-key memory: the folded letter whose key's first press picked (0 = the last press did

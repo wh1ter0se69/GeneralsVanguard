@@ -86,20 +86,11 @@ if(MSVC)
     target_link_options(g_generals PRIVATE "/NODEFAULTLIB:libci.lib")
 endif()
 
-# GeneralsX: Drop code and data nothing can reach from the game executable (cleanup Batch 2,
-# measured on macOS: about -2 MB per game). Link options only: no object file changes, and this file is not on the
-# SimID digest's build-config list, so the simulation identity cannot move.
-# Nothing looks a symbol up in the executable at run time except one: on iOS, SDL's UIKit Vulkan loader falls back to
-# dlsym(RTLD_DEFAULT, "vkGetInstanceProcAddr") in the statically linked MoltenVK (cmake/config-build.cmake). -dead_strip
-# keeps that symbol exported, because MoltenVK reaches it (measured with nm -gU).
-# GeneralsX: NEVER restrict the export list (-exported_symbol / -exported_symbols_list). The game
-# replaces the global operator new/delete (GameMemory.cpp), and dyld binds libc++ and the dylibs to that replacement only
-# while the executable exports it. An iOS-only `-exported_symbol _vkGetInstanceProcAddr` removed that export, so memory
-# allocated by one allocator was freed by the other and the iPad aborted at launch ("pointer being freed was not allocated").
-# Windows ships RelWithDebInfo, whose /DEBUG makes the linker default /OPT:NOREF,NOICF, so REF is asked for here. ICF
-# stays off: identical-COMDAT folding gives different functions one address, which breaks code that compares them.
-# Linux is left out on purpose: without -ffunction-sections (a compile flag, in the digested cmake/) --gc-sections
-# measured -81 KB of 232 MB.
+# GeneralsX: drop code and data nothing can reach. Link options only; no object file changes.
+# Never restrict exports (-exported_symbol): dyld binds libc++ to the game's operator new/delete only if exported.
+# iOS: SDL falls back to dlsym(vkGetInstanceProcAddr) in static MoltenVK; -dead_strip keeps it as MoltenVK reaches it.
+# Windows RelWithDebInfo defaults to /OPT:NOREF,NOICF, so REF is requested; ICF stays off (it merges addresses).
+# Linux is left out: without -ffunction-sections, --gc-sections saves almost nothing.
 if(APPLE)
     target_link_options(g_generals PRIVATE "LINKER:-dead_strip")
     # GeneralsX: Keep the whole set of operator new/delete overloads GameMemory.cpp replaces alive

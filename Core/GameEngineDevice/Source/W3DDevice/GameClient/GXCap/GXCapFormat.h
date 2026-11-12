@@ -1,4 +1,22 @@
-// GeneralsX: GXCAP capture format (WS-I).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GXCAP capture format.
 // Shared by the recorder (GXCapRecorder.cpp, inside the game) and gxcap-replay (Core/Tools/gxcap-replay). A window file
 // is a header followed by call records; the window's start state is itself a run of records (CREATE / GET / UPLOAD / SET)
 // flagged F_SNAPSHOT, so one decoder replays both. Bulk bytes live in a content-addressed blob store shared by the run.

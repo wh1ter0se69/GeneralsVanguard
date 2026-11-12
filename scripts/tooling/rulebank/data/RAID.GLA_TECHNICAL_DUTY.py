@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule RAID.GLA_TECHNICAL_DUTY: a Technical raider kept on duty, hunting
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule RAID.GLA_TECHNICAL_DUTY: a Technical raider kept on duty, hunting
 # workers, trucks and dozers round the back of the enemy base, plus later diversion raiders (rows 276, 310). Stock Hard GLA's early
 # raider is 2 Quad Cannons; a Technical only comes inside the 2nd-wave Fast Attack team. Per GLA general this adds:
 #   team "GX Raider A <g>" (tech_n Technicals, at most 1 at a time) and, with raiders >= 2, "GX Raider B <g>" (raiders - 1 at a time,
@@ -84,6 +86,6 @@ def activation(obs, me, params=None):
     fa = ob.first_frame(obs, me, ob.ends_with('GLAArmsDealer'), 1, complete=True)
     end = ob.last_frame(obs)
     triggered = fa is not None and fa <= 150 * hz and end is not None and end >= 180 * hz
-    ft = ob.first_frame(obs, me, lambda n: 'GLAVehicleTechnical' in n)       # it spawns as ...TechnicalChassisOne/Two/Three (smoke 30/10)
+    ft = ob.first_frame(obs, me, lambda n: 'GLAVehicleTechnical' in n)       # it spawns as ...TechnicalChassisOne/Two/Three
     fired = triggered and ft is not None and ft <= 180 * hz
     return {'triggered': bool(triggered), 'fired': bool(fired), 'detail': 'armsdealer_f=%s technical_f=%s' % (fa, ft)}

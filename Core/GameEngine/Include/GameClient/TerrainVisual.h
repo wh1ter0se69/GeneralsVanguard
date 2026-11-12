@@ -205,18 +205,9 @@ public:
 
 	virtual Bool load( AsciiString filename );
 
-	// GeneralsX: CAN THIS INSTALL BUILD EVERY BRIDGE THE INI DEFINES?
-	//
-	// A bridge's footprint - its logic bounds and so its pathfind layer - comes from its W3D model
-	// (W3DBridge::getBridgeInfo), so a peer that cannot load a bridge model simulates a different
-	// bridge from every peer that can, and must not play a network game. That is the whole reason
-	// network play cares about the base-Generals archives, and this asks it directly: every bridge in
-	// TheTerrainRoads, loaded exactly as W3DBridgeBuffer::addBridge loads it. The versions before
-	// asked a proxy - "are Textures.big, W3D.big and Terrain.big mounted" - and review of
-	// fix/bridge-assets-desync-r2 found the proxy wrong both ways: a merged install, a -mod, a mod
-	// archive under another name and base archives split across two sources all have the models and
-	// were refused; a W3D.big that does not open, and a Windows install found through the working
-	// directory, lack them and were admitted.
+	// A bridge footprint (logic bounds, pathfind layer) comes from its W3D model (W3DBridge::getBridgeInfo), so a peer
+	// that cannot load a bridge model simulates a different bridge and must not play a network game. Checks every
+	// bridge in TheTerrainRoads, loaded as W3DBridgeBuffer::addBridge loads it.
 	/// TRUE when every bridge template's pristine model loads. Answered by the device.
 	virtual Bool canLoadEveryBridgeModel( AsciiString *firstMissingModel ) { return TRUE; }
 	/// canLoadEveryBridgeModel, asked once and remembered. The one time it is FALSE it prints the

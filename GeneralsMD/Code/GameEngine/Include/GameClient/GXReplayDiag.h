@@ -1,6 +1,24 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 // FILE: GXReplayDiag.h ///////////////////////////////////////////////////////////////////////////
 //
-// GeneralsX: Writes the replay diagnostics block (GXReplayDiagFormat.h) while a match records.
+// Writes the replay diagnostics block (GXReplayDiagFormat.h) while a match records.
 //
 // Here in GameClient/, on the client side of the SimID digest: nothing in this module is read by the simulation, and
 // resources/gitinfo/simdigest_exclusions.txt names the two calls the Recorder makes into it, with that reason.
@@ -32,15 +50,17 @@ void gxReplayDiagDrawSpan( long long ns );
 typedef void (*GXReplayDiagPutFn)( const char *key, const char *value );
 typedef void (*GXReplayDiagDeviceFn)( GXReplayDiagPutFn put );
 void gxReplayDiagSetDeviceFacts( GXReplayDiagDeviceFn fn );
+/// What only the hardware report (GameClient/GXHwReport.h) carries: never written to a replay.
+void gxReplayDiagSetHwExtras( GXReplayDiagDeviceFn fn );
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: TELEMETRY: a per-second PERF row (fps, frame-time
+// TELEMETRY: a per-second PERF row (fps, frame-time
 // percentiles, TPS, stall, hold, network, own CPU) on the same comment-record path, batched once per window. Bytes and arithmetic:
 // GXReplayDiagFormat.h. Nothing here is read by the simulation, sent on the wire or a CRC input.
 // ------------------------------------------------------------------------------------------------
 
 /// Options.ini GXReplayTelemetry = full | perf | off, read once when a recording starts (anything else: perf). OFF MEANS OFF: no
-/// settings snapshot, no timeline, no telemetry - the replay is the retail one plus its header identity (lead ruling 05/11). Phase 1
+/// settings snapshot, no timeline, no telemetry - the replay is the retail one plus its header identity. Phase 1
 /// records PERF only, so full writes what perf writes until VIEW and INPUT exist.
 enum GxTelLevel { GX_TEL_OFF = 0, GX_TEL_PERF = 1, GX_TEL_FULL = 2 };
 GxTelLevel gxReplayTelemetryLevel( void );
@@ -50,7 +70,7 @@ GxTelLevel gxReplayTelemetryLevel( void );
 /// hitch stays a measured frame. Idempotent; a no-op while nothing records.
 void gxReplayTelSuspend( bool suspended );
 
-/// GeneralsX: The player is away (true) or back (false) while the loop keeps running: iOS inactive or
+/// The player is away (true) or back (false) while the loop keeps running: iOS inactive or
 /// in the background, a Windows window that is minimised or lost focus, an SDL desktop window that lost focus. Every PERF row that
 /// overlaps it is flagged unfocused (U), so a match that ran on unwatched - fps 0 at 60 TPS - says so. Idempotent; a flag only (never
 /// closes a row, never touches what the simulation does); harmless while nothing records - a recording that starts away begins flagged.
@@ -86,14 +106,14 @@ inline bool gxTelOsUsable( const GxTelOsSnapshot &os, bool haveSeq, uint32_t las
 #endif
 		&& os.startNs >= rowStartNs - 2500000000LL
 #ifndef GX_TEL_RED_STAMP_BARRIER	// fail arm: the base sample's stamp, not its pass's start, is held against the barrier
-		&& os.beginNs >= notBeforeNs;	// a pass begun before a resume read some counter before it, however late it was stamped (r9)
+		&& os.beginNs >= notBeforeNs;	// a pass begun before a resume read some counter before it, however late it was stamped
 #else
 		&& os.startNs >= notBeforeNs;
 #endif
 }
 void gxReplayTelSetOsReader( GXReplayTelOsFn fn );
 
-/// GeneralsX: Phase 2: the device layer's sampler thread, started and idled by the recording. start 1
+/// Phase 2: the device layer's sampler thread, started and idled by the recording. start 1
 /// (gxReplayDiagRecordingStarted, level not off): creates the thread on first use, then wakes it. start 0 (gxReplayDiagRecordingEnding):
 /// a flag store, returns at once - the thread is detached and never joined, so a recording never waits on an OS or driver query.
 typedef void (*GXReplayTelControlFn)( int start );

@@ -1,4 +1,6 @@
-# GeneralsX: rule bank, DATA half: the refusals.
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank, DATA half: the refusals.
 # Run after EACH module on the scb it left behind, against the scb it was given; every refusal names the module, the script and why.
 #  scope       only the entry's generals' lists and the teams they own move; nothing outside the script lists and ScriptTeams
 #  difficulty  a changed stock script must be a Hard script (a 011 one is listed as normal_also); a new script is Hard-only; no stock
@@ -37,10 +39,10 @@ FAIR = {'CONDITION_TRUE', 'CONDITION_FALSE', 'COUNTER', 'FLAG', 'TIMER_EXPIRED',
         # frame; check_module enforces both (tech_near_ok)
         'SKIRMISH_TECH_BUILDING_WITHIN_DISTANCE',
         'TEAM_CREATED', 'TEAM_STATE_IS', 'TEAM_STATE_IS_NOT',
-        # rb-data-12: the fair enemy-faction sensor (rb-sense-1) - only as <This Player> asking about <This Player's Enemy> for one of
+        # The fair enemy-faction sensor - only as <This Player> asking about <This Player's Enemy> for one of
         # the factions it answers (reads_other refuses every other form); a rule that emits it must declare SENSE.ENEMY_FACTION
         'AI_PLAYER_GX_SENSE',
-        # rb-sense-3: the fair twins of PLAYER_HAS_OBJECT_COMPARISON and SKIRMISH_VALUE_IN_AREA (rb-sense-2) - the same one form, and seen_why's rules
+        # The fair twins of PLAYER_HAS_OBJECT_COMPARISON and SKIRMISH_VALUE_IN_AREA - the same one form, and seen_why's rules
         'AI_PLAYER_GX_SEEN_COUNT', 'AI_PLAYER_GX_SEEN_VALUE'}
 SENSE = 'AI_PLAYER_GX_SENSE'
 SEEN = {'AI_PLAYER_GX_SEEN_COUNT', 'AI_PLAYER_GX_SEEN_VALUE'}
@@ -65,9 +67,9 @@ SWITCH = {'ENABLE_SCRIPT', 'DISABLE_SCRIPT'}       # the actions that change ano
 STATE_TYPES = ('FLAG', 'COUNTER', 'TEAM_STATE')   # flags, counters (timers share them) and team states carry decisions between scripts
 MONEY = {'PLAYER_GIVE_MONEY', 'PLAYER_SET_MONEY', 'WAREHOUSE_SET_VALUE'}      # every action that makes money
 # The line between the two lists (README "What a DATA rule may KEEP"): an action whose OWN code picks a specific object or place by
-# enemy value or by proximity among objects a human may not see is HIDDEN - never ADDED by a DATA rule (1,
-# rbd-r3-lensB 3); an order to my own units or buildings whose engine side (unit AI, placement) is fog-blind is ENGINE_READS - the stock
-# AI's own omniscience (AIUpdate adds UNFOGGED only for humans, plan 4.3), allowed and listed for rb-sentient's audit.
+# enemy value or by proximity among objects a human may not see is HIDDEN - never ADDED by a DATA rule; an order to my own
+# units or buildings whose engine side (unit AI, placement) is fog-blind is ENGINE_READS - the stock AI's own omniscience
+# (AIUpdate adds UNFOGGED only for humans), allowed and listed for audit.
 HIDDEN = {'SKIRMISH_ATTACK_NEAREST_GROUP_WITH_VALUE': 'targets the most valuable enemy group through fog',
           'TEAM_ALL_USE_COMMANDBUTTON_ON_NEAREST_ENEMY_UNIT': 'targets the nearest enemy unit through fog',
           'TEAM_ALL_USE_COMMANDBUTTON_ON_NEAREST_ENEMY_BUILDING': 'targets the nearest enemy building through fog',
@@ -309,7 +311,7 @@ def reads_other(rb, scb, leaf):
             return '%s%r reads another player: only %s asking about %s for one of the sensor\'s factions (%s) is fair' % (
                 name, tuple(v for _t, v in ps), SIDE_ME, rb.SIDE_ENEMY, ', '.join(rb.SENSE_FACTIONS))
         return None                     # its types are checked by the signature rule
-    if name in SEEN:                    # the same exception: own sight only, so only my own enemy is asked about (rb-sense-3)
+    if name in SEEN:                    # the same exception: own sight only, so only my own enemy is asked about
         sides = [v for t, v in ps if t == 'SIDE']
         if sides != [SIDE_ME, rb.SIDE_ENEMY]:
             return '%s%r reads another player: only %s asking about %s is fair' % (name, tuple(sides), SIDE_ME, rb.SIDE_ENEMY)
@@ -942,7 +944,6 @@ def check_module(rb, before, after, entry, mod, base_ctx):
         if n not in ct:
             raise bad('touched team %r, which its CLAIMS do not name' % n)
     # a script or group a new ENABLE / DISABLE switches is this module's too: two modules switching one script are an overlap
-    #
     for o, x, by in switched:
         if (o, x) not in cs and (o, x) not in cg:
             raise bad('%s switches %s/%r (ENABLE_SCRIPT / DISABLE_SCRIPT), which its CLAIMS do not name' % (by, o, x))
@@ -1312,7 +1313,7 @@ def team_hooks(rb, before, after, entry, Refused):
         launches = [scripts[rb.team_get(d, k)] for k in GENERIC if rb.team_get(d, k) in scripts]
         for u, _lo, hi in rb.team_slots(d):
             if (hi or 0) > 0 and str(u).endswith(NO_GROUND_WEAPON):
-                for k in ['teamOnCreateScript'] + GENERIC:       # the slots or the hook may be what changed (rbd19 r1)
+                for k in ['teamOnCreateScript'] + GENERIC:       # the slots or the hook may be what changed
                     v = rb.team_get(d, k)
                     if v in scripts and hunt in hook_shape(rb, after, scripts[v])[3] and (old is None or rb.team_slots(old) != rb.team_slots(d) or fresh(k)):
                         raise Refused('%s: team %r launches by TEAM_HUNT with %s in it: an empty one has no ground weapon and stays home. Stock runs its Buses down an attack path (rb-data-19, smoke17: 5 of 131 left home)' % (entry['id'], n, u))

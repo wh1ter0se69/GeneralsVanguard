@@ -86,25 +86,9 @@ void Win32GameEngine::init()
 		TheGXLobbyPresence = NEW GXLobbyPresence;
 
 		/*
-		 * GeneralsX: A DIRECT MATCH LAUNCH NEVER LEARNED WHERE THE RELAY
-		 * WAS, so it filed no telemetry at all - and one silent member turns the panel's
-		 * attribution off for its whole room, because it will not name a player unless everybody in
-		 * the room is reporting. The standing lobby host is a `-lanhost`, so that was production.
-		 *
-		 * HERE, IN init(), AND DELIBERATELY NOT IN update(). ResolveIP on a hostname is a blocking
-		 * gethostbyname, and under lockstep a stall on one peer is charged to every peer;
-		 * tools/relay/test-perf.js [B2-1] is the standing scan against that call being reachable
-		 * from a frame. This runs once, before the main loop exists.
-		 *
-		 * FOR EVERY LAUNCH WITH A RELAY CONFIGURED, AND THE GATE THAT USED TO BE HERE WAS WRONG.
-		 * It read `m_lanRole != LANROLE_NONE` on the theory that everything else reaches the Online
-		 * screen, which calls enterLobby(). It does not: Transport::initRelay turns relay mode on
-		 * for ANY launch that has a RelayAddress and opens the lobby or game port, so a GUI LAN or
-		 * Direct Connect match is relay-backed without ever having visited Online - and under that
-		 * gate it never acquired the address, reported nothing, and took its whole room's
-		 * attribution down with it. The right gate is "a relay is configured", and
-		 * acquireRelayAddr() applies that itself: an empty RelayAddress returns before ResolveIP,
-		 * so a single-player start on a machine that has never played online still pays nothing.
+		 * Acquire the relay address on every launch with a relay configured, so a direct match launch files
+		 * telemetry too: the panel names no player unless everybody in the room is reporting.
+		 * Here in init(), NOT update(): ResolveIP is a blocking gethostbyname, and under lockstep one stalled peer stalls all.
 		 */
 		TheGXLobbyPresence->acquireRelayAddr();
 	}
@@ -141,54 +125,10 @@ void Win32GameEngine::update()
 	// The keyboard is DirectInput, polled in Keyboard::UPDATE, and was never affected.
 	serviceWindowsOS();
 
-	// GeneralsX: Windows never got the engine-level LANAPI pump.
-	//
-	// THIS is why ACCEPT and BACK did nothing on Windows while the identical build worked on
-	// iPadOS. LANAPI::update() was not running slowly on the game-options screen - it was not
-	// running at all.
-	//
-	// eebae98ea ("pump LANAPI from the engine, not from whichever menu happens to be on the
-	// stack") diagnosed this correctly and then shipped to ONE engine: `1 file changed, 40
-	// insertions(+)`, all of it in SDL3GameEngine.cpp. macOS, Linux and iPadOS run SDL3GameEngine
-	// and were fixed. Windows runs Win32GameEngine (WinMain.cpp CreateGameEngine) and was not.
-	// The only TheLAN->update() in this file is the one below, inside the IsIconic branch, which
-	// runs solely while the window is MINIMISED.
-	//
-	// So on Windows the sole live pump on the relay path was WOLLobbyMenu's
-	//   if (s_relayLobby && !isShuttingDown && !buttonPushed) { relayLobbyUpdate(); }
-	// and joining a game destroys exactly that: Shell::push runs WOLLobbyMenuShutdown first, which
-	// sets s_relayLobby = FALSE and isShuttingDown = true, so the guard fails forever after. The
-	// destination screen cannot take over either - LanGameOptionsMenu's update reads
-	// `//TheLAN->update(); // this is handled in the lobby`, commented out.
-	//
-	// With nothing pumping: Transport::update() never runs, so recvfrom() is never issued and the
-	// host's replies rot in the socket unread; the periodic RequestGameOptions("HELLO") never
-	// goes out, so the host evicts the slot after s_resendDelta*8 = 80s and logs every subsequent
-	// reply as "went to NOBODY". ACCEPT and BACK transmit and nothing ever comes back.
-	//
-	// Measured, and the measurement is exhaustive rather than suggestive: both of update()'s
-	// suppression traces are throttled but unconditional on first hit, so ANY call reaching the
-	// top of update() must log via one of them. After the push into the game-options screen,
-	// "update() SUPPRESSED" fired 0 times where ~30 were due, and the keepalive-gate trace fired
-	// 0 times where ~150 were due. Zero calls, not slow calls.
-	//
-	// Conditions copied verbatim from the SDL3 pump so the two platforms cannot drift: not pumped
-	// once a networked match is live, because from then on ConnectionManager owns the wire. This
-	// can only ADD pumping during the menu phase.
-	//
-	// GameEngineDevice/ is not digested by simsourcedigest_watcher.cmake, so this ships to Windows
-	// alone - no atomic four-platform rebuild, and sourceID does not move.
-	// GeneralsX: Pump during a match as well - see the long note on the
-	// same change in SDL3GameEngine.cpp. Short version: LANAPI::update() holds the host's periodic
-	// re-advertisement, including a branch written specifically for the in-progress case
-	// (LANAPI.cpp:697-702), and excluding the match phase means that branch can never run. The host
-	// stops advertising when the match starts, the relay ages the listing out, and the game
-	// disappears from every browser while it is still being played.
-	//
-	// Safe by the code's own guards: the destructive half of update() - player timeouts and
-	// synthesised leave messages - is already gated on !m_currentGame->isGameInProgress()
-	// (LANAPI.cpp:746). Kept identical to the SDL3 engine deliberately; the last time this pair
-	// drifted, the fix shipped to three platforms and left Windows silently broken (d19090d14).
+	// Pump LANAPI from the engine, as SDL3GameEngine.cpp does. Without it ACCEPT and BACK do nothing on Windows:
+	// no other live pump survives joining a game, so Transport::update() never runs.
+	// It also pumps during a match: LANAPI::update() holds the host's re-advertisement, or the listing ages out.
+	// Safe because player timeouts are gated on !isGameInProgress(). Keep identical to the SDL3 pump.
 	if (TheLAN != nullptr && TheGameLogic != nullptr)
 	{
 		TheLAN->update();
@@ -322,7 +262,7 @@ void Win32GameEngine::serviceWindowsOS()
 */
 
 		TheMessageTime = msg.time;
-		// GeneralsX: (PREREG A39b): before dispatch - PCL Stats' ping can be a thread message that no window
+		// GeneralsX: before dispatch - PCL Stats' ping can be a thread message that no window
 		// procedure sees. Two atomics in the native device; nothing without Reflex.
 		GxNative::NoteWindowsMessage(msg.message);
 		// translate and dispatch the message

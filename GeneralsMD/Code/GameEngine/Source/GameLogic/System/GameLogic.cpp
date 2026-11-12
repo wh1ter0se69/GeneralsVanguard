@@ -128,8 +128,8 @@
 #include <rts/profile.h>
 
 struct QuitGameException {};
-// GeneralsX: A start refused because the lobby does not fit the map, or
-// (25/09/2026) because Limit Armies is on and a slot holds a general's sub-faction.
+// A start refused because the lobby does not fit the map, or because Limit Armies is on
+// and a slot holds a general's sub-faction.
 struct StartRefusedException {};
 // GeneralsX: TRUE while a networked start refused because this peer's map.ini/solo.ini differ
 // from the host's (M1 step 2b) is being unwound - the same lifetime as m_refusedStartCapacity. A file static rather than a
@@ -157,6 +157,17 @@ FILE *g_UT_commaLog=nullptr;
 #define BRUTAL_TIMING_HACK
 #include "../../GameEngineDevice/Include/W3DDevice/GameClient/Module/W3DModelDraw.h"
 extern void externalAddTree(Coord3D location, Real scale, Real angle, AsciiString name);
+#endif
+
+// GeneralsX: A prefetch is a hint with no architectural effect, so it cannot change what the
+// simulation computes on any platform - including the one where it expands to nothing.
+#if defined(__GNUC__) || defined(__clang__)
+	#define GX_PREFETCH(p) __builtin_prefetch((const void *)(p))
+#elif defined(_MSC_VER) && _MSC_VER >= 1400 && (defined(_M_IX86) || defined(_M_X64))
+	#include <xmmintrin.h>
+	#define GX_PREFETCH(p) _mm_prefetch((const char *)(p), _MM_HINT_T0)
+#else
+	#define GX_PREFETCH(p) ((void)0)
 #endif
 
 
@@ -477,7 +488,7 @@ void GameLogic::init()
 //-------------------------------------------------------------------------------------------------
 void GameLogic::reset()
 {
-	gxCheatResetRevealState();	// GeneralsX @bugfix a load restores it from its save block, or finds it cleared
+	gxCheatResetRevealState();	// GeneralsX: a load restores it from its save block, or finds it cleared
 
 	m_thingTemplateBuildableOverrides.clear();
 	m_controlBarOverrides.clear();
@@ -487,14 +498,9 @@ void GameLogic::reset()
 	m_pauseMusic = FALSE;
 	m_inputEnabledMemory = TRUE;
 	m_mouseVisibleMemory = TRUE;
-	// GeneralsX @bugfix Order matters here, and it was wrong. pauseGameLogic(FALSE) only restores
-	// the logic time scale "if (!paused && m_logicTimeScaleEnabledMemory)", so clearing that flag
-	// on the line ABOVE the call made the restore structurally unreachable. Any match that ended
-	// while paused-with-time-scale-disabled (CommandXlat.cpp:3505 takes that path) therefore left
-	// the pacer with the time scale OFF while the render cap stayed at whatever the match set --
-	// up to 1000 when the game-speed slider was at maximum. Back in the shell,
-	// canUpdateRegularGameLogic() then ticks once per RENDERED frame, so menus and lobby
-	// animations run at roughly 33x. Restore first, then clear.
+	// Restore first, then clear: pauseGameLogic(FALSE) only restores the logic time scale while
+	// m_logicTimeScaleEnabledMemory is still set. Clearing it first left the pacer with the time scale off, so the shell
+	// ticked once per rendered frame.
 	pauseGameLogic(FALSE);
 	m_logicTimeScaleEnabledMemory = FALSE;
 	pauseGameInput(FALSE);
@@ -510,23 +516,13 @@ void GameLogic::reset()
 		// every shell after the first match.
 		TheFramePacer->setFramesPerSecondLimit(TheGlobalData->m_framesPerSecondLimit);
 
-		// Enable the time scale unconditionally, NOT just when the cap exceeds BaseFps. Keying off
-		// the cap is wrong because the cap is only honoured while the limiter is on: with
-		// m_useFpsLimit false the pacer renders as fast as the panel allows no matter what the cap
-		// says. Observed on an iPad reporting "Max render FPS 30 (limiter off, running uncapped)"
-		// with the shell at 59.9 fps -- a cap of 30 would have failed this test, left the scale off,
-		// and menus kept running at exactly 2.00x.
-		//
-		// The correct invariant is "if the render rate CAN exceed the base rate, the logic must be
-		// decoupled from it", and in the shell that is always worth doing: pinning logic to 30 while
-		// rendering free gives smooth menus at the right speed, and the shell has no lockstep peer
-		// to stay in step with. Cheaper and more robust than trying to keep cap and limiter in sync.
-		// GeneralsX: Was BaseFps - see GameLogicDispatch.cpp. BaseFps is the
-		// historic constant that must never change, not the tick rate; at GX_LOGIC_60HZ the two
-		// differ and the shell would run at half speed. Identical at the default 30 Hz.
+		// Enable the time scale unconditionally, not only when the cap exceeds the base rate: the cap is honoured only while
+		// the limiter is on, so with it off the pacer renders uncapped and the shell would run too fast. Logic is pinned to
+		// the tick rate (LOGICFRAMES_PER_SECOND, not the historic BaseFps constant); the shell has no lockstep peer to stay
+		// in step with.
 		TheFramePacer->setLogicTimeScaleFps(LOGICFRAMES_PER_SECOND);
 		TheFramePacer->enableLogicTimeScale(TRUE);
-		TheFramePacer->setFastForward(1);	// GeneralsX @feature the shell never runs fast-forwarded
+		TheFramePacer->setFastForward(1);	// GeneralsX: the shell never runs fast-forwarded
 	}
 
 	setFPMode();
@@ -579,12 +575,17 @@ void GameLogic::reset()
 #ifdef ALLOW_NONSLEEPY_UPDATES
 	m_normalUpdates.clear();
 #endif
-	for (std::vector<UpdateModulePtr>::iterator it = m_sleepyUpdates.begin(); it != m_sleepyUpdates.end(); ++it)
+	m_sleepyWheel.clear();
+	m_sleepyWheel.rebase(0);
+#if defined(GX_TEST_INSTRUMENTS)
 	{
-		(*it)->friend_setIndexInLogic(-1);
+		// GeneralsX: GX_HEAP_ORACLE=1 checks every wake against an ordered set on (key, seq); GX_HEAP_ORACLE_BREAK=<n>
+		// is its red arm (the wheel hands out one module out of order at the first pop >= n that can be swapped).
+		static const bool s_oracle = getenv("GX_HEAP_ORACLE") && getenv("GX_HEAP_ORACLE")[0] == '1';
+		static const unsigned long long s_break = getenv("GX_HEAP_ORACLE_BREAK") ? strtoull(getenv("GX_HEAP_ORACLE_BREAK"), nullptr, 10) : 0;
+		m_sleepyWheel.setOracle(s_oracle, s_break);
 	}
-	m_sleepyUpdates.clear();
-	m_sleepyKeys.clear();
+#endif
 	m_curUpdateModule = nullptr;
 
 	m_isScoringEnabled = TRUE;
@@ -600,7 +601,7 @@ void GameLogic::reset()
 	// Clean up any weather overrides that were generated for this map.
 	WeatherSetting *ws = (WeatherSetting*) TheWeatherSetting.getNonOverloadedPointer();
 	TheWeatherSetting = (WeatherSetting*) ws->deleteOverrides();
-	gxRestoreMapWaterSettings();	// GeneralsX @bugfix: and the map's WaterSet edits (INIWater.cpp)
+	gxRestoreMapWaterSettings();	// GeneralsX: and the map's WaterSet edits (INIWater.cpp)
 
 	m_rankPointsToAddAtGameStart = 0;
 }
@@ -950,42 +951,10 @@ static void populateRandomSideAndColor( GameInfo *game )
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: START-POSITION ASSIGNMENT MUST NOT TOUCH FLOATING POINT.
-//
-// MEASURED, three peers, one lobby, same map and seed, 2026-08-19. The synchronised RNG pick agreed
-// everywhere; the first DETERMINISTIC distance did not:
-//
-//   mac   (arm64)  slot=1 dist=3788.802734 (456CCCD8)  runnerUp=8
-//   ipad  (arm64)  slot=1 dist=3788.802734 (456CCCD8)  runnerUp=8
-//   linux (x86_64) slot=1 dist=3788.800049 (456CCCCD)  runnerUp=6
-//
-// Eleven ULPs - not rounding noise. The two arm64 builds agree bit for bit and the x86_64 build does
-// not, which is the signature of `sqr(dx)+sqr(dy)` being contracted into an FMA on one target and not
-// the other. From slot 4 the assignments diverge completely and the match desyncs at the first
-// NET_CRC_INTERVAL, two peers agreeing and one differing.
-//
-// That divergence exists at FRAME 0, before a single input is processed. It is why this never looked
-// like a network fault, and why it never reproduced from a replay file: a replay rebuilds GameInfo
-// from the .rep header, so both platforms re-derive the same assignment and agree.
-//
-// WHY NOT "make the float reproducible". Because it cannot be KEPT reproducible. Forcing double, or
-// disabling contraction here, fixes the builds that exist today and silently un-fixes them the next
-// time an optimisation flag moves on one platform - and that failure surfaces as a desync eight
-// seconds into a match, which is the most expensive way this project has to learn anything.
-// Integers cannot drift.
-//
-// EXACTNESS ARGUMENT. Waypoints are the loaded map's own floats (they used to be MapCache.ini text,
-// which turned out NOT to be identical across peers - see populateRandomStartPosition), and the map
-// file is identical on every peer, so every peer starts from the same float bits. float->double is exact, one multiply by 100.0 is correctly
-// rounded and therefore identical on every IEEE-754 target, and the rounding below is a compare and
-// an add. After that nothing is floating point: differences, squares, the sum and the square root are
-// integer operations with a single defined result. Map extents are bounded well under 2^20 centi
-// units, so d2 <= 2*(2^20)^2 = 2^41 and a sum over MAX_SLOTS terms cannot approach the Int64 range.
-//
-// This CHANGES which player starts where relative to the old float path, on every platform. The two
-// architectures already disagreed, so there was no behaviour left that was correct on both. Old
-// replays of matches with RANDOM start positions will no longer reproduce; SIMID_EPOCH is bumped so
-// they are refused with a clear message instead of desyncing at frame 208.
+// Start-position assignment must not touch floating point: sqr(dx)+sqr(dy) can contract to an FMA on one target only,
+// which gave different distances on arm64 and x86_64 and a desync at frame 0. Waypoints are the map's own floats, and
+// float->double plus one multiply by 100.0 is exact, so the rest is integer math (d2 <= 2^41, far from Int64
+// overflow). Replays with RANDOM start positions from before this are refused via SIMID_EPOCH.
 static const Int64 GX_DIST_MAX = (Int64)0x7FFFFFFFFFFFFFFFLL;
 
 // llround is avoided deliberately: this needs one defined result on three toolchains, and a compare
@@ -1018,23 +987,9 @@ static void populateRandomStartPosition( GameInfo *game )
 		return;
 
 	Int i;
-	// GeneralsX: START POSITIONS COME FROM THE MAP THAT WAS JUST LOADED.
-	//
-	// This read numPlayers and every Player_N_Start from TheMapCache, i.e. MapCache.ini: a
-	// per-machine file that no join check and no SimID hashes. A Windows peer whose cache held
-	// corrupt Player_9..12_Start values for a byte-identical map (rewritten by an 8-slot reader that
-	// shares the retail user-data folder) agreed on the random pick, took different FARTHEST picks
-	// and desynced at the first CRC check. See
-	//
-	//
-	// tryStartNewGame now calls this AFTER TheTerrainLogic->loadMap(), so these are the Waypoint objects
-	// built from the map file every peer loaded - the same ones placeNetworkBuildingsForPlayer()
-	// builds on - counted by WaypointMap::update()'s rule, contiguous from Player_1_Start, but WITHOUT its
+	// Start positions come from the map that was just loaded, not from MapCache.ini (a per-machine file that no join
+	// check or SimID hashes). Counted by WaypointMap::update()'s rule, contiguous from Player_1_Start, but without its
 	// floor of 1: a map with no start waypoint seats nobody (see the validation below).
-	// No logic-RNG draw sits between the old call site and the new one, so the random pick sees the
-	// same stream. The coordinates are the map's own floats rather than their %2.2f MapCache.ini round
-	// trip; the two can only differ where a coordinate sits on a centi-unit rounding boundary, and
-	// there the old code already let a warm-cache peer and a cold-cache peer disagree.
 	Int numPlayers = 0;
 	Waypoint *startSpot[MAX_SLOTS] = {};
 	for (; numPlayers < MAX_SLOTS; ++numPlayers)
@@ -1122,21 +1077,8 @@ static void populateRandomStartPosition( GameInfo *game )
 		}
 	}
 
-	// GeneralsX @diag /08/2026 The per-slot GameInfo every peer entered the match with.
-	//
-	// WHY THIS AND NOT MORE [GXPOS]. The frame-208 desync of 2026-08-19 was a start-position
-	// disagreement: three peers walked out of this function with different player->position
-	// assignments, and the divergence was already present in the frame-0 object CRC. The existing
-	// [GXPOS] line covers only the RANDOM branch, which AGREED on all three peers - so the inputs
-	// to the deterministic branch are what actually differ, and none of them was ever printed.
-	//
-	// Replaying the recording on both macOS and iOS reproduces the SAME assignment as each other,
-	// so the divergence is not in this algorithm and not in the platform: it is in the GameInfo the
-	// peers arrived with. That is exactly what this prints, before a single decision is taken.
-	//
-	// Unconditional, because a desync is not reproducible on demand and a peer that had to be
-	// relaunched with a variable set has already lost the run being investigated. It is MAX_SLOTS
-	// lines once per match - the [SIMID] dump above it is three hundred.
+	// Log the per-slot GameInfo every peer entered the match with, before any start decision. Unconditional, because a
+	// desync is not reproducible on demand. MAX_SLOTS lines once per match.
 	fprintf(stderr, "[GXSLOT] map='%s' numPlayers=%d (start waypoints in the loaded map)\n",
 		game->getMap().str(), numPlayers);
 	for (i = 0; i < MAX_SLOTS; ++i)
@@ -1281,17 +1223,9 @@ static void populateRandomStartPosition( GameInfo *game )
 		Int team = slot->getTeamNumber();
 		if( !hasStartSpotBeenPicked )
 		{	// We're the first real spot.  Pick randomly.
-			// GeneralsX @diag /07/2026 Start positions decide where every player's opening
-			// units are placed, and they are drawn from the SYNCHRONISED logic RNG - so both peers
-			// must pick the same index. Measured with the trig fix in place: all 320 map-scenery
-			// objects hash identically while objects 321-323 (the players' starting units) sit at
-			// MIRRORED coordinates, mac (2903.8, 367.9) vs win (389.2, 2944.3). That is a swapped
-			// start spot, not a rounding difference - the deltas are ~24 million ULP, and only the
-			// translation components of the transform differ.
-			//
-			// Printing the seed alongside the choice separates the two possible causes: if the seed
-			// already differs the RNG diverged earlier and this is a symptom, but if the seed
-			// matches and the index does not, the fault is here.
+			// Start positions are drawn from the SYNCHRONISED logic RNG, so every peer must pick the same index.
+			// The seed is printed beside the choice: a differing seed means the RNG diverged earlier, a matching seed with a
+			// differing index means the fault is here.
 			fprintf(stderr, "[GXPOS] slot=%d numPlayers=%d seedCRC=%u (before random pick)\n",
 				i, numPlayers, (unsigned)GetGameLogicRandomSeedCRC());
 			fflush(stderr);
@@ -1351,22 +1285,9 @@ static void populateRandomStartPosition( GameInfo *game )
 
 				DEBUG_ASSERTCRASH(farthestIndex >= 0, ("Couldn't find a farthest spot!"));
 
-				// GeneralsX @diag /08/2026 Trace the DETERMINISTIC branch too.
-				//
-				// [GXPOS] has only ever covered the random pick, which is the one branch observed
-				// to AGREE across peers - it draws from the synchronised logic RNG. Every slot
-				// after the first is placed HERE instead, by an argmax over startSpotDistance, and
-				// until now that decision left no trace at all. A desync report showing the random
-				// pick agreeing therefore proved nothing about where the peers parted company.
-				//
-				// The runner-up prints beside the winner because on a rotationally symmetric map
-				// this argmax is EXACTLY TIED - measured on GXCircle12ZHv1, whose twelve starts sit
-				// 30 degrees apart on one circle: with {7,1} taken, indices 4 and 10 both score
-				// 5358.17578125 in float32, bit for bit. A tied `dist > farthestDistance` is settled
-				// by iteration order alone, so "which index won" is not enough; the gap to the
-				// runner-up is what says whether the decision was ever robust. Hex as well as
-				// decimal, because a true tie and a one-ULP margin print identically in decimal and
-				// telling those apart is the entire point of the line.
+				// Trace the deterministic branch: every slot after the first is placed here by an argmax over startSpotDistance. The
+				// runner-up prints beside the winner because on a symmetric map the argmax can tie exactly, settled by iteration
+				// order alone. Hex as well as decimal, to tell a true tie from a one-ULP margin.
 				{
 					Int64 runnerUpDistance = 0;
 					Int runnerUpIndex = -1;
@@ -1399,33 +1320,10 @@ static void populateRandomStartPosition( GameInfo *game )
 
 				slot->setStartPos(farthestIndex);
 
-				// GeneralsX: GUARD ONLY - this must never reassign a start
-				// position. farthestIndex is still -1 when every one of the map's numPlayers
-				// positions is already taken, i.e. whenever the lobby holds more players than the
-				// map supports. DEBUG_ASSERTCRASH is ((void)0) in release (Debug.h:206), so today
-				// that case is silent and then executes taken[-1] = TRUE - an out-of-bounds stack
-				// write, once per surplus player, on all three toolchains.
-				//
-				// It has been empirically harmless, and there is a plausible reason: hasStartSpotBeenPicked
-				// is declared immediately before taken[] (:924-925), so under declaration-order
-				// layout taken[-1] aliases it - and it is already TRUE by the time this line runs
-				// (set at :1060, in the sibling branch that must execute first). The write is then
-				// idempotent. That is a coincidence of stack layout, not a guarantee.
-				//
-				// Skipping the two writes below when the index is negative is provably equivalent
-				// to performing them, so this changes no match, legal or otherwise:
-				//   - taken[-1] = TRUE is undefined behaviour and has no defined effect to preserve.
-				//   - teamPosIdx[team] = -1 is a no-op here: this branch was entered via
-				//     ( team < 0 || teamPosIdx[team] == -1 ), so either team < 0 and the write is
-				//     already skipped by its own guard, or teamPosIdx[team] is -1 already.
-				// setStartPos(farthestIndex) is deliberately left OUTSIDE the guard, storing -1
-				// exactly as before, because that value is what the rest of the engine reads.
-				//
-				// Once HeadlessMatch refuses an over-capacity lobby this branch is unreachable in
-				// any legal match, so a re-run of an existing soak must diff byte-for-byte against
-				// its committed baseline. Reassigning, wrapping to 0 or sharing a position would
-				// move the frame-0 world CRC and break both and, with
-				// RETAIL_COMPATIBLE_CRC defaulting to 1, retail 1.04 replay compatibility.
+				// Guard only, never reassigns a start position. farthestIndex is -1 when every map position is taken (more lobby
+				// players than the map supports), and taken[-1] = TRUE would write out of bounds. Skipping the two writes is
+				// equivalent: teamPosIdx[team] = -1 is already a no-op here. setStartPos(farthestIndex) stays outside the guard,
+				// storing -1 as before; reassigning or sharing a position would move the frame-0 world CRC.
 				if (farthestIndex >= 0)
 				{
 					taken[farthestIndex] = TRUE;
@@ -1559,7 +1457,7 @@ static Bool gxGLDiag(void)
 }
 
 #if defined(GX_TEST_INSTRUMENTS)
-unsigned g_gxMatchSerial = 0;	///< GeneralsX 23/10/2026 ai-wh1ter0se-econ: +1 per startNewGame - GXHookTimer.h's explicit match boundary
+unsigned g_gxMatchSerial = 0;	///< +1 per startNewGame - GXHookTimer.h's explicit match boundary
 #endif
 void GameLogic::startNewGame( Bool loadingSaveGame )
 {
@@ -1754,7 +1652,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 
 	TheWritableGlobalData->m_loadScreenRender = TRUE;	///< mark it so only a few select things are rendered during load
 	TheWritableGlobalData->m_TiVOFastMode = FALSE;	//always disable the TIVO fast-forward mode at the start of a new game.
-	if (TheFramePacer != nullptr) TheFramePacer->setFastForward(1);	// GeneralsX @feature ...and fast forward: a match starts at 1x, a load and a replay too
+	if (TheFramePacer != nullptr) TheFramePacer->setFastForward(1);	// GeneralsX: ...and fast forward: a match starts at 1x, a load and a replay too
 
 	Campaign* currentCampaign = TheCampaignManager->getCurrentCampaign();
 	Bool isChallengeCampaign = m_gameMode == GAME_SINGLE_PLAYER && currentCampaign && currentCampaign->m_isChallengeCampaign;
@@ -1811,7 +1709,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 	// field, parsed identically by every peer and by a replay - and never on a save load.
 	gxStressClear( &m_gxStress );
 	m_gxStressUnits.clear();
-	gxVoteKickReset( &m_gxVoteKick );	// GeneralsX @feature IN-MATCH VOTE KICK: every game starts with no vote and no cooldown
+	gxVoteKickReset( &m_gxVoteKick );	// GeneralsX: IN-MATCH VOTE KICK: every game starts with no vote and no cooldown
 	if ( !loadingSaveGame && TheGameInfo != nullptr && gxStressIsOn( TheGameInfo->getGxStress() ) )
 	{
 		m_gxStress = TheGameInfo->getGxStress();
@@ -2005,8 +1903,8 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 	}
 
 	// GeneralsX: If 'reached map load section' prints and this does not, then
-	// loadMapINI did not return - control was lost inside it, which is exactly the gap measured on
-	// iOS for a user map (loadMap's own entry probe never fires).
+	// loadMapINI did not return - control was lost inside it, so loadMap's own entry probe never fires
+	// (seen on iOS for a user map).
 	if (gxGLDiag())
 	{
 		fprintf(stderr, "[GLDIAG] loadMapINI RETURNED, about to call TerrainLogic::loadMap\n");
@@ -2014,18 +1912,9 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 	}
 
 	// load a map
-	// GeneralsX: A MAP THAT DID NOT OPEN IS NEVER SIMULATED. loadMap returns FALSE when the
-	// resolved file does not open (W3DTerrainLogic::loadMap) and this used to ignore it: with no waypoints,
-	// placeNetworkBuildingsForPlayer returns early, so the peer played the match with no Command Centers and desynced
-	// at the first CRC check against every peer whose copy opened. The lobby cannot catch it - it admits a peer on
-	// MapCache.ini's cached CRC, and a cache hit never opens the file (a moved, unreadable or case-mangled path).
-	// Every start that has a GameInfo is refused here, before anything is simulated, through the same teardown as the
-	// other refusals: a network game (that peer leaves; the others drop it as a vanished player), a replay (the
-	// replay viewer already refuses a replay whose map is missing - Recorder.cpp loadQueuedReplay - and an empty map
-	// is the same case one step later; -simReplay counts it as a failed replay) and skirmish or a challenge (no other
-	// peer, but an empty map is an unplayable match with no explanation). A campaign mission (no GameInfo, so no
-	// setup screen the refusal could return to - that path has never run there) and a save load (the rest of the save
-	// is restored after this returns) keep the old behaviour; they only gain the log line.
+	// A map that did not open is never simulated: with no waypoints the peer has no Command Centers and desyncs at the
+	// first CRC check, and the lobby cannot catch it (it admits a peer on MapCache.ini's cached CRC). Starts with a
+	// GameInfo are refused here; a campaign mission and a save load only gain the log line.
 	if (!TheTerrainLogic->loadMap( TheGlobalData->m_mapName, false ))
 	{
 		const Bool refuse = !loadingSaveGame && TheGameInfo != nullptr;
@@ -2089,14 +1978,10 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 					DEBUG_CRASH(("Human player in non-wire-addressable slot %d", capSlot));
 				}
 			}
-			// GeneralsX: REFUSE an over-capacity start (owner decision,
-			// 23/09/2026: refuse, never drop a civilian side). Counted from the side table as
-			// prepareForMP_or_Skirmish left it and from the slot list - the same map and the same
-			// slots on every peer - so every peer refuses together. The old check counted a kept
-			// nameless neutral side as a civilian AND again in its +2, one too strict.
-			// Refused here, before a single side is added, because past this point an overflow
-			// drops the ReplayObserver (or worse) and PlayerList::newGame / map object creation
-			// dereference the missing player.
+			// Refuse an over-capacity start, never drop a civilian side. Counted from the side table as prepareForMP_or_Skirmish
+			// left it and from the slot list (the same on every peer), so every peer refuses together. Refused before any side is
+			// added: past this point an overflow drops the ReplayObserver and PlayerList::newGame dereferences the missing
+			// player.
 			KeptMapSides kept = { TheSidesList->getNumSides(), 0 };
 			for (Int keptSide = 0; keptSide < kept.total; ++keptSide)
 			{
@@ -2115,17 +2000,10 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 			}
 		}
 
-		// GeneralsX: LIMIT ARMIES: when the host's "O=Y"
-		// is on, every slot - human and AI - must be USA, China or GLA (PlayerTemplate OldFaction). The
-		// lobby already filters the faction list and Random already draws only from those three
-		// (populateRandomSideAndColor, above); this is the backstop for a slot list that got past the
-		// lobby anyway - a modified client, a hand-built headless host. Decided from TheGameInfo alone
-		// (the same options string on every peer), so every peer refuses together, before a single side
-		// is added. Refused, not repaired: coercing a slot here would draw from the logic RNG only on
-		// the peers that saw the bad slot. The retail rule it replaces for new games skipped the
-		// offender's buildings in internet games only. Replay playback and save loads are left exactly
-		// as recorded: a save does not carry O= (GameInfo::xfer), so the flag here would be whatever the
-		// skirmish screen last held, not the saved game's. With the option off nothing here runs.
+		// Limit Armies (host option O=Y): every slot must be USA, China or GLA (PlayerTemplate OldFaction). Backstop for a
+		// slot list that got past the lobby filter. Decided from TheGameInfo alone, so every peer refuses together before any
+		// side is added; refused, not repaired, since coercing a slot would draw the logic RNG only on peers that saw it.
+		// Replays and save loads are left as recorded (a save does not carry O=).
 		if (TheGameInfo->oldFactionsOnly() && !loadingSaveGame && m_gameMode != GAME_REPLAY)
 		{
 			Bool armiesOk = TRUE;
@@ -2168,14 +2046,10 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 			if (!slot || !slot->isOccupied())
 				continue;
 
-			// GeneralsX: An OBSERVER slot takes no side and no Player of its own
-			// (PlayerCapacity.h slotTakesPlayer): PlayerList::assignSlotIndices maps it onto the
-			// ReplayObserver added below, which is made local here when this peer is that observer.
-			// Without that, no side is local on an observer peer, and PlayerList::newGame's fallback makes
-			// the first non-neutral player - the map's civilian side - PLAYER_HUMAN on that peer alone and
-			// runs the observer as it. Measured with this line reverted (24/09/2026): every observer ran
-			// as PlyrCivilian and saw 0 of the map's cells. No CRC split showed in 3600 frames, but a
-			// Player type that differs between peers is simulation state that should never differ.
+			// An OBSERVER slot takes no side and no Player of its own (PlayerCapacity.h slotTakesPlayer):
+			// PlayerList::assignSlotIndices maps it onto the ReplayObserver added below, made local here when this peer is that
+			// observer. Otherwise PlayerList::newGame makes the map's civilian side PLAYER_HUMAN on that peer alone, a Player
+			// type that differs between peers.
 			if (!slotTakesPlayer(slot->isOccupied(), TheGameInfo->slotSharesReplayObserver(i)))
 			{
 				if (slot->isHuman() && i == TheGameInfo->getLocalSlotNum())
@@ -2376,30 +2250,10 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 	// Tell the script engine that a newe set of scripts is loaded.
 	TheScriptEngine->newMap();
 
-	// GeneralsX @diag /07/2026 Bisect the AI-only frame-0 desync in ONE line.
-	//
-	// Measured: every LAN match containing an AI player diverges at frame 0 (3 of 3); every AI-free
-	// match is clean for tens of thousands of frames, including with players on Random armies. At
-	// frame 0 the peers' object COUNTS differ by exactly the number of AI players, objects 1..212 are
-	// byte-identical, every Command Center is identical, and every randomly-placed STARTING UNIT
-	// differs - at the SAME radius from its Command Center but a different angle. Same ring, same
-	// radius, different angle means the shared logic RNG was out of step, not that a float drifted.
-	//
-	// The suspected amplifier is directly above: ThePlayerList->newGame() attaches a duplicated
-	// skirmish ScriptList to every AI player's side, and TheScriptEngine->newMap() then draws
-	// GameLogicRandomValue once for every script with getDelayEvalSeconds()>0
-	// (ScriptEngine.cpp:6889). N more AI players means N more script lists means a different number
-	// of draws, so every later draw differs - starting with the placement angle at
-	// PartitionManager.cpp:3989.
-	//
-	// [GXPOS] already proves the streams still agree at populateRandomStartPosition (:1397), so the
-	// divergence is strictly between there and here. This print closes the window:
-	//   aiPlayers differs      -> one peer never constructed the AI. skirmishSides then says why:
-	//                             matching => Player.cpp:806-820 forceHuman fired silently
-	//                             (DEBUG_ASSERTCRASH is a no-op in release); differing => the slot
-	//                             never reached TheKey_playerIsSkirmish (GameLogic.cpp:1384).
-	//   aiPlayers same, seed differs -> the amplifier theory is wrong and the RNG split elsewhere.
-	//   both same              -> the divergence is downstream of this line entirely.
+	// Bisect an AI-only frame-0 desync: ThePlayerList->newGame() attaches a skirmish ScriptList to every AI player's
+	// side, and TheScriptEngine->newMap() draws GameLogicRandomValue once per script with a delay, so peers that built a
+	// different number of AIs draw different counts and split the shared RNG stream. This prints the AI counts and seed
+	// to tell the causes apart.
 	{
 		// isSkirmishAIPlayer() is m_ai && m_ai->isSkirmishAI(), i.e. "this peer actually built an AI
 		// brain for this player". computerCount counts PLAYER_COMPUTER separately, because the
@@ -3436,25 +3290,10 @@ void GameLogic::loadMapINI( AsciiString mapName, Bool refusable )
 		? TheGameState->getSaveGameInfo()->pristineMapName.str()
 		: mapName.str();
 
-	// GeneralsX: EVERY MAP-DERIVED PATH, NOT JUST THE TERRAIN.
-	//
-	// W3DTerrainLogic::loadMap translates the lowercased map identity back to its real on-disk path
-	// before opening the terrain, which is what made iOS user maps load at all. But loadMapINI runs
-	// BEFORE that (GameLogic.cpp:1689) and derives map.ini, solo.ini, map.str and AssetUsage.txt
-	// from the SAME lowercased identity - and did not translate it. On iOS, where the container
-	// path holds an uppercase UUID on a case-sensitive volume, the result was a map whose terrain
-	// loaded and whose overrides silently did not.
-	//
-	// That is worse than the bug it followed. A map that fails to load is obvious; a map that loads
-	// WITHOUT its map.ini runs different rules from the same map on another platform, and this is a
-	// lockstep game - 's determinism rule is explicit that map-derived data must be
-	// identical on every peer.
-	//
-	// Raised by a cross-model review of the merge candidate, then confirmed here: loadMapINI called
-	// getPathOnDisk exactly zero times.
-	//
-	// getPathOnDisk returns its argument unchanged when the cache has no on-disk path for it, so no
-	// other platform and no other code path changes behaviour.
+	// Every map-derived path (map.ini, solo.ini, map.str, AssetUsage.txt) must use the real on-disk map path, not the
+	// lowercased identity: on a case-sensitive volume (iOS) the terrain loaded but its overrides silently did not, and a
+	// map running without its map.ini plays different rules than on another peer. getPathOnDisk returns its argument
+	// unchanged when nothing is cached.
 	AsciiString gxRealMapPath( pristineMapName );
 	if (TheMapCache != nullptr)
 	{
@@ -3578,26 +3417,8 @@ void GameLogic::processDestroyList()
 		}
 #endif
 
-		/*
-			this looks odd, but is necessary; since erasing a single entry can shuffle others in the list
-			(in order to maintain its heap-ness), we must do two passes: one to find the updates for this
-			object, another to actually erase 'em.
-
-			(in case you're wondering: yes, this is still more efficient than just deleting them
-			and rebalancing the entire heap afterwards, at least for real-world maps, since an individual
-			rebalance is O(log N) and a full rebalance is O(N)... so unless you are deleting the majority
-			of the objects in the world every frame, we come out well ahead this way.)
-		*/
-
-		const Int MAX_SUO = 256;
-		UpdateModulePtr sleepyUpdatesForThisObject[MAX_SUO];
-		Int numSUO = 0;
-
-		// GeneralsX: Collect from the object's own modules instead of scanning the whole heap
-		// (was O(destroyed x all sleepy updates) per frame). Sorted by heap index ascending, this is
-		// exactly the list the old scan produced, so the erase sequence and the resulting heap are
-		// bit-identical. Every heap entry has a valid index, and only registerObject/loadPostProcess
-		// push, both from getBehaviorModules().
+		// GeneralsX: Take the object's update modules out of the sleepy wheel. Unlike the heap (whose
+		// erase moved the last entry into the hole, so the erase order shaped the heap), the order does not matter here.
 		for (BehaviorModule** b = currentObject->getBehaviorModules(); *b; ++b)
 		{
 #ifdef DIRECT_UPDATEMODULE_ACCESS
@@ -3605,23 +3426,9 @@ void GameLogic::processDestroyList()
 #else
 			UpdateModulePtr u = (*b)->getUpdate();
 #endif
-			if (!u || u->friend_getIndexInLogic() < 0 || numSUO >= MAX_SUO)
-				continue;
-			Int j = numSUO++;
-			for (; j > 0 && sleepyUpdatesForThisObject[j-1]->friend_getIndexInLogic() > u->friend_getIndexInLogic(); --j)
-				sleepyUpdatesForThisObject[j] = sleepyUpdatesForThisObject[j-1];
-			sleepyUpdatesForThisObject[j] = u;
+			if (u && u->friend_getIndexInLogic() >= 0)
+				m_sleepyWheel.unschedule(u);
 		}
-
-		for (--numSUO; numSUO >= 0; --numSUO)
-		{
-			// have to re-get idx each time since each call to erase might change others.
-			Int idx = sleepyUpdatesForThisObject[numSUO]->friend_getIndexInLogic();
-			DEBUG_ASSERTCRASH(m_sleepyUpdates[idx] == sleepyUpdatesForThisObject[numSUO], ("Hmm, expected update mismatch here"));
-			eraseSleepyUpdate(idx);
-			DEBUG_ASSERTCRASH(sleepyUpdatesForThisObject[numSUO]->friend_getIndexInLogic() == -1, ("Hmm, expected index to be -1 here"));
-		}
-
 
 		currentObject->removeFromList(&m_objList);//remove from object list
 
@@ -3673,37 +3480,10 @@ void GameLogic::processCommandList( CommandList *list )
 					++numPlayers;
 			}
 
-			// GeneralsX: A CRC SHORTFALL IS NOT A DESYNC, and it must not
-			// end the match.
-			//
-			// MEASURED, not theorised. A healthy three-peer LAN match was killed at frame 5211 with
-			// "Game has detected a mismatch" while EVERY peer that reported held the IDENTICAL value
-			// 1D351145 (linux,win}.err).
-			// One peer's CRC message simply had not arrived within the interval. The simulations
-			// never disagreed about anything.
-			//
-			// The previous shape got this wrong twice:
-			//
-			//  1. FALSE POSITIVE. The shortfall branch set sawCRCMismatch, which reaches
-			//     Network::setSawCRCMismatch and ends the game. A transient delivery hiccup - the
-			//     ordinary condition on a lockstep peer whose packets are drained once per main-loop
-			//     iteration with no network thread - was promoted to a fatal, unrecoverable verdict.
-			//     Its own comment already said the two cases "must not share a message"; they did not
-			//     share a message, but they shared the ACTION, which is the half that matters.
-			//
-			//  2. FALSE NEGATIVE, and this one is worse. Because the value comparison lived in the
-			//     else, a shortfall skipped it ENTIRELY. If three peers are connected, two report and
-			//     those two genuinely disagree, the old code compared nothing and reported the
-			//     shortfall instead. A real divergence was invisible precisely when partial data
-			//     would have proved it.
-			//
-			// So: report the shortfall, do not act on it, and ALWAYS compare whatever did arrive.
-			// Two peers that disagree are a real divergence whether or not a third one answered.
-			//
-			// Nothing is lost by not acting. A peer that is genuinely gone is the disconnect
-			// machinery's job (DisconnectManager), not the CRC validator's - and a peer that is
-			// merely late gets validated on the interval its CRC does arrive in, because
-			// m_cachedCRCs is cleared per interval at the top of this function.
+			// A CRC shortfall is not a desync and must not end the match: a peer whose CRC message was merely late is validated
+			// on the interval it arrives in (m_cachedCRCs is cleared per interval), and a gone peer is DisconnectManager's job.
+			// Report the shortfall, do not act on it, and always compare whatever did arrive: two peers that disagree are a real
+			// divergence whether or not a third answered.
 			crcShortfall = (m_cachedCRCs.size() < numPlayers);
 			if (crcShortfall)
 			{
@@ -3919,290 +3699,39 @@ void GameLogic::deselectObject(Object *obj, PlayerMaskType playerMask, Bool affe
 }
 
 // ------------------------------------------------------------------------------------------------
+// GeneralsX: The heap's push/pop/erase/rebalance/remake are gone: m_sleepyWheel (GameLogic/SleepyWheel.h).
 inline void GameLogic::validateSleepyUpdate() const
 {
 // pretty slow, so do only for DEBUG_CRASHING for now. turn on if you suspect wonkiness.
 #ifdef DEBUG_CRASHING
-	#define SLEEPY_DEBUG
+	DEBUG_ASSERTCRASH(m_sleepyWheel.validate() == 0, ("sleepy wheel invariants broken"));
 #endif
-#ifdef SLEEPY_DEBUG
-	int sz = m_sleepyUpdates.size();
-	if (sz == 0)
+}
+
+#if defined(GX_TEST_INSTRUMENTS)
+// ------------------------------------------------------------------------------------------------
+// GeneralsX: One line per 600 frames: [GXHEAPORACLE] when GX_HEAP_ORACLE=1, [GXHEAPSTATS] when GX_HEAP_STATS=1.
+void GameLogic::gxSleepyTestTick(UnsignedInt now)
+{
+	static const bool s_stats = getenv("GX_HEAP_STATS") && getenv("GX_HEAP_STATS")[0] == '1';
+	if (now % 600 != 0 || (!s_stats && !m_sleepyWheel.oracleOn()))
 		return;
-
-	int i;
-	//DEBUG_LOG(("\n"));
-	//for (i = 0; i < sz; ++i)
-	//{
-	//	DEBUG_LOG(("u %04d: %08lx %08lx",i,m_sleepyUpdates[i],m_sleepyUpdates[i]->friend_getNextCallFrame()));
-	//}
-	for (i = 0; i < sz; ++i)
+	if (m_sleepyWheel.oracleOn())
+		fprintf(stderr, "[GXHEAPORACLE] f=%u checks=%llu fails=%llu\n", now,
+			(unsigned long long)m_sleepyWheel.oracleChecks(), (unsigned long long)m_sleepyWheel.oracleFails());
+	if (s_stats)
 	{
-		DEBUG_ASSERTCRASH(m_sleepyUpdates[i]->friend_getIndexInLogic() == i, ("index mismatch: expected %d, got %d",i,m_sleepyUpdates[i]->friend_getIndexInLogic()));
-		UnsignedInt pri = m_sleepyUpdates[i]->friend_getPriority();
-		DEBUG_ASSERTCRASH((Int)m_sleepyKeys.size() == sz && m_sleepyKeys[i] == pri, ("sleepy key mirror is stale at %d",i));
-		if (i > 0)
-		{
-			Int i0 = (i+1)/2-1;
-			UnsignedInt pri0 = m_sleepyUpdates[i0]->friend_getPriority();
-			DEBUG_ASSERTCRASH(pri >= pri0, ("sleepyUpdates are munged (0)"));
-		}
-		Int i1 = 2*(i+1)-1;
-		Int i2 = 2*(i+1);
-		if (i1 < sz)
-		{
-			UnsignedInt pri1 = m_sleepyUpdates[i1]->friend_getPriority();
-			DEBUG_ASSERTCRASH(pri <= pri1, ("sleepyUpdates are munged (1)"));
-		}
-		if (i2 < sz)
-		{
-			UnsignedInt pri2 = m_sleepyUpdates[i2]->friend_getPriority();
-			DEBUG_ASSERTCRASH(pri <= pri2, ("sleepyUpdates are munged (2)"));
-		}
+		const SleepyWheel<UpdateModule, SleepyWheelOps>::Stats& st = m_sleepyWheel.stats();
+		fprintf(stderr, "[GXHEAPSTATS] f=%u size=%d late=%d far=%d parked=%d chunks=%d pops=%llu schedules=%llu tombstones=%llu lateIn=%llu farIn=%llu migrated=%llu leftovers=%llu rewinds=%llu seq=%llu\n",
+			now, m_sleepyWheel.size(), m_sleepyWheel.lateSize(), m_sleepyWheel.farSize(), m_sleepyWheel.parkedSize(), m_sleepyWheel.chunksInUse(),
+			(unsigned long long)st.pops, (unsigned long long)st.schedules, (unsigned long long)st.tombstones, (unsigned long long)st.lateIn,
+			(unsigned long long)st.farIn, (unsigned long long)st.farMigrated, (unsigned long long)st.leftovers, (unsigned long long)st.rewinds,
+			(unsigned long long)m_sleepyWheel.lastSeq());
+		m_sleepyWheel.resetStats();
 	}
+	fflush(stderr);
+}
 #endif
-}
-
-// ------------------------------------------------------------------------------------------------
-void GameLogic::eraseSleepyUpdate(Int i)
-{
-	USE_PERF_TIMER(SleepyMaintenance)
-
-	DEBUG_ASSERTCRASH(i >= 0 && i < m_sleepyUpdates.size(), ("bad sleepy idx"));
-
-	// swap with the final item, toss the final item, then rebalance
-	m_sleepyUpdates[i]->friend_setIndexInLogic(-1);
-
-	Int last = m_sleepyUpdates.size() - 1;
-	if (i < last)
-	{
-		m_sleepyUpdates[i] = m_sleepyUpdates[last];
-		m_sleepyKeys[i] = m_sleepyKeys[last];
-		m_sleepyUpdates[i]->friend_setIndexInLogic(i);
-		m_sleepyUpdates.pop_back();
-		m_sleepyKeys.pop_back();
-		rebalanceSleepyUpdate(i);
-	}
-	else
-	{
-		m_sleepyUpdates.pop_back();
-		m_sleepyKeys.pop_back();
-	}
-}
-
-// ------------------------------------------------------------------------------------------------
-// GeneralsX: takes the two priorities (m_sleepyKeys), not the two modules.
-inline Bool isLowerPriority(UnsignedInt f1, UnsignedInt f2)
-{
-	// return true iff a is lower pri than b.
-	// remember: lower ordinal value means higher priority.
-	// therefore, higher ordinal value means lower priority.
-	return f1 > f2;
-}
-
-// ------------------------------------------------------------------------------------------------
-Int GameLogic::rebalanceParentSleepyUpdate(Int i)
-{
-	USE_PERF_TIMER(SleepyMaintenance)
-
-	DEBUG_ASSERTCRASH(i >= 0 && i < m_sleepyUpdates.size(), ("bad sleepy idx"));
-
-	Int parent = ((i+1)>>1)-1;
-	while (parent >= 0 && isLowerPriority(m_sleepyKeys[parent], m_sleepyKeys[i]))
-	{
-		UpdateModulePtr a = m_sleepyUpdates[parent];
-		UpdateModulePtr b = m_sleepyUpdates[i];
-
-		m_sleepyUpdates[i] = a;
-		m_sleepyUpdates[parent] = b;
-		std::swap(m_sleepyKeys[i], m_sleepyKeys[parent]);
-
-		a->friend_setIndexInLogic(i);
-		b->friend_setIndexInLogic(parent);
-
-		i = parent;
-		parent = ((parent+1)>>1)-1;
-	}
-
-	return i;
-}
-
-// ------------------------------------------------------------------------------------------------
-Int GameLogic::rebalanceChildSleepyUpdate(Int i)
-{
-	USE_PERF_TIMER(SleepyMaintenance)
-
-	DEBUG_ASSERTCRASH(i >= 0 && i < m_sleepyUpdates.size(), ("bad sleepy idx"));
-
-	// GeneralsX: no child, nothing to sink: return before reading keys[i]. With an empty
-	// heap (remakeSleepyUpdate after loading a save with no update modules, or the reschedule's
-	// rebalanceSleepyUpdate(0) if an update emptied the heap) keys is null. Retail returns i here too: its
-	// loop below never runs without a child.
-	if (((i)<<1)+1 >= (Int)m_sleepyUpdates.size())
-		return i;
-
-// this function gets the brunt of the work (we frequently
-// balance down, not up), so this one is hand-unrolled for
-// max efficiency. I have left the pristine non-unrolled
-// version present for clarity. (Yes, this is worth doing.) (srj)
-#if 1
-	UpdateModulePtr* pI = &m_sleepyUpdates[i];
-	UnsignedInt* keys = m_sleepyKeys.data();
-	const UnsignedInt keyI = keys[i];	// *pI's key; *pI is the same module all the way down
-
-	// our children are i*2 and i*2+1
-  Int child = ((i)<<1)+1;
-	UpdateModulePtr* pChild = &m_sleepyUpdates[0] + child;
-	UpdateModulePtr* pSZ = &m_sleepyUpdates[0] + m_sleepyUpdates.size();	// yes, this is off the end.
-
-  while (pChild < pSZ)
-	{
-		// choose the higher-priority of the two children; we must be higher-pri than that.
-		if (pChild < pSZ-1 && isLowerPriority(keys[child], keys[child+1]))
-		{
-      ++pChild;
-			++child;
-		}
-
-		// if we're higher-pri than our children, we're done.
-		if (!isLowerPriority(keyI, keys[child]))
-		{
-			break;
-		}
-
-		// doh. swap with the highest-pri child we have.
-		UpdateModulePtr a = *pChild;
-		UpdateModulePtr b = *pI;
-
-		*pI = a;
-		*pChild = b;
-		keys[i] = keys[child];
-		keys[child] = keyI;
-
-		a->friend_setIndexInLogic(i);
-		b->friend_setIndexInLogic(child);
-
-		i = child;
-		pI = pChild;
-
-		child = ((i)<<1)+1;
-		pChild = &m_sleepyUpdates[0] + child;
-  }
-#else
-	// our children are i*2 and i*2+1
-	Int sz = m_sleepyUpdates.size();
-  Int child = ((i)<<1)+1;
-  while (child < sz)
-	{
-		// choose the higher-priority of the two children; we must be higher-pri than that.
-		if (child < sz-1 && isLowerPriority(m_sleepyKeys[child], m_sleepyKeys[child+1]))
-      ++child;
-
-		// if we're higher-pri than our children, we're done.
-		if (!isLowerPriority(m_sleepyKeys[i], m_sleepyKeys[child]))
-		{
-			break;
-		}
-
-		// doh. swap with the highest-pri child we have.
-		UpdateModulePtr a = m_sleepyUpdates[child];
-		UpdateModulePtr b = m_sleepyUpdates[i];
-
-		m_sleepyUpdates[i] = a;
-		m_sleepyUpdates[child] = b;
-		std::swap(m_sleepyKeys[i], m_sleepyKeys[child]);
-
-		a->friend_setIndexInLogic(i);
-		b->friend_setIndexInLogic(child);
-		i = child;
-		child = ((i)<<1)+1;
-  }
-#endif
-	return i;
-}
-
-// ------------------------------------------------------------------------------------------------
-void GameLogic::rebalanceSleepyUpdate(Int i)
-{
-	USE_PERF_TIMER(SleepyMaintenance)
-
-	i = rebalanceParentSleepyUpdate(i);
-	i = rebalanceChildSleepyUpdate(i);
-}
-
-// ------------------------------------------------------------------------------------------------
-void GameLogic::remakeSleepyUpdate()
-{
-	USE_PERF_TIMER(SleepyMaintenance)
-
-	Int parent = m_sleepyUpdates.size() / 2;
-  while (true)
-	{
-    rebalanceChildSleepyUpdate(parent);
-    if (parent == 0)
-			break;
-    --parent;
-  }
-
-	validateSleepyUpdate();
-}
-
-// ------------------------------------------------------------------------------------------------
-void GameLogic::pushSleepyUpdate(UpdateModulePtr u)
-{
-	USE_PERF_TIMER(SleepyMaintenance)
-
-	DEBUG_ASSERTCRASH(u != nullptr, ("You may not pass null for sleepy update info"));
-
-	m_sleepyUpdates.push_back(u);
-	m_sleepyKeys.push_back(u->friend_getPriority());
-	u->friend_setIndexInLogic(m_sleepyUpdates.size() - 1);
-
-	rebalanceParentSleepyUpdate(m_sleepyUpdates.size()-1);
-}
-
-// ------------------------------------------------------------------------------------------------
-UpdateModulePtr GameLogic::peekSleepyUpdate() const
-{
-	USE_PERF_TIMER(SleepyMaintenance)
-
-	UpdateModulePtr u = m_sleepyUpdates.front();
-	// GeneralsX: A null top is the update loop's to drop (it pops it); in a debug build this
-	// assertion dereferenced it first.
-	DEBUG_ASSERTCRASH(u == nullptr || u->friend_getIndexInLogic() == 0, ("index mismatch: expected %d, got %d",0,u ? u->friend_getIndexInLogic() : -1));
-	return u;
-}
-
-// ------------------------------------------------------------------------------------------------
-void GameLogic::popSleepyUpdate()
-{
-	USE_PERF_TIMER(SleepyMaintenance)
-
-	Int sz = m_sleepyUpdates.size();
-	if (sz == 0)
-	{
-		DEBUG_CRASH(("should not happen"));
-		return;
-	}
-
-	// GeneralsX: The update loop pops a null top with this, so it may not dereference one.
-	if (m_sleepyUpdates[0])
-		m_sleepyUpdates[0]->friend_setIndexInLogic(-1);
-	if (sz > 1)
-	{
-		m_sleepyUpdates[0] = m_sleepyUpdates[sz-1];
-		m_sleepyKeys[0] = m_sleepyKeys[sz-1];
-		m_sleepyUpdates[0]->friend_setIndexInLogic(0);
-		m_sleepyUpdates.pop_back();
-		m_sleepyKeys.pop_back();
-		rebalanceChildSleepyUpdate(0);
-	}
-	else
-	{
-		m_sleepyUpdates.pop_back();
-		m_sleepyKeys.pop_back();
-	}
-}
 
 // ------------------------------------------------------------------------------------------------
 // this should be called only by UpdateModule, thanks.
@@ -4236,13 +3765,13 @@ void GameLogic::friend_awakenUpdateModule(Object* obj, UpdateModulePtr u, Unsign
 	Int idx = u->friend_getIndexInLogic();
 	if (obj->isInList(&m_objList))
 	{
-		if (idx < 0 || idx >= m_sleepyUpdates.size())
+		if (idx < 0)
 		{
 			RELEASE_CRASH("fatal error! sleepy update module illegal index.");
 			return;
 		}
 
-		if (m_sleepyUpdates[idx] != u)
+		if (!m_sleepyWheel.isAtItsPlace(u))
 		{
 			RELEASE_CRASH("fatal error! sleepy update module index mismatch.");
 			return;
@@ -4250,10 +3779,10 @@ void GameLogic::friend_awakenUpdateModule(Object* obj, UpdateModulePtr u, Unsign
 
 		// update the value.
 		u->friend_setNextCallFrame(whenToWakeUp);
-		m_sleepyKeys[idx] = u->friend_getPriority();
 
-		// rebalance.
-		rebalanceSleepyUpdate(idx);
+		// GeneralsX: re-queue at the new key with a fresh seq (it now runs after the modules
+		// already queued on that key).
+		m_sleepyWheel.schedule(u);
 
 		// validate. (harmless except in debug mode)
 		validateSleepyUpdate();
@@ -4796,22 +4325,10 @@ extern __int64 Total_Load_3D_Assets;
 #endif
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: GX_VICTORY_PROBE - the multiplayer victory repro and post-mortem
-// (scripts/test/victory-probe.sh). OFF unless set; called once per frame of a multiplayer match or
-// replay, at the same point of GameLogic::update on every peer.
-//
-//   GX_VICTORY_PROBE=<frame>[:<spareTemplate>]  from <frame>, every 30 frames, kill every object a
-//       skirmish AI controls except instances of <spareTemplate>, then report. The kill set is
-//       simulation state only (player type), so every peer of a match kills the same objects.
-//   GX_VICTORY_PROBE=report[:<period>]  report only, every <period> frames (default 300) - for a
-//       replay: which player VictoryConditions has not defeated, and what keeps it alive.
-//
-// The report: the local alliance's victory flag, then per playable player its kind (Human/AI), its
-// relation to the local player (Self/Ally/Enemy) and dead/alive by hasSinglePlayerBeenDefeated;
-// for a living one, the first object that keeps it so under the ACTIVE rule, mirroring
-// VictoryConditions::hasSinglePlayerBeenDefeated: NOBUILDINGS (what startNewGame sets) is a live
-// STRUCTURE carrying MP_COUNT_FOR_VICTORY (Team::hasAnyBuildings(kindOf)); NOUNITS alone is any
-// non-structure (Team::hasAnyUnits); both is any object at all (Team::hasAnyObjects).
+// GX_VICTORY_PROBE (scripts/test/victory-probe.sh): victory repro and post-mortem, off unless set, run once per frame
+// at the same point of GameLogic::update on every peer. =<frame>[:<spareTemplate>] kills every skirmish-AI object
+// (but the spare template) every 30 frames from <frame> and reports; =report[:<period>] only reports which players
+// are alive and what keeps them so.
 // ------------------------------------------------------------------------------------------------
 static void gxVictoryProbe(UnsignedInt frame)
 {
@@ -4902,16 +4419,10 @@ static void gxVictoryProbe(UnsignedInt frame)
 }
 
 #if defined(GX_TEST_INSTRUMENTS)
-// GeneralsX: rb-core: ported from 584f24dc9a (PROBE ai-smartcheap), now compiled into TEST-INSTRUMENTS builds only - the
-// autotuner's role-coverage gate needs it in every campaign binary; a release build has none of it.
-// GeneralsX @test PROBE ai-smartcheap (never ships): GX_AICOMP=<n> prints every n logic frames the army COMPOSITION of
-// every player that owns a live unit, for the "smarter, not fewer" strength gate (role coverage) and ai-autotune's
-// fitness: "[GXAICOMP] f= p<i>=u/inf/veh/air/aa/ai/av/tr/trl/pas/gar/cap/det" = live units (not structures), infantry,
-// vehicles, aircraft; units with an anti-air weapon, an anti-infantry (small arms, gattling, flame, sniper, poison,
-// radiation, microwave, vulcan, molotov) or anti-vehicle (armour piercing, infantry/jet missiles) ground weapon;
-// transports (KINDOF_TRANSPORT), loaded transports, passengers in them; infantry garrisoned in structures; units able
-// to capture buildings; stealth detectors. Reads object state only; never writes, draws no random number, mints no
-// name key. The weapon classes are a proxy by damage type (tank shells of type EXPLOSION count in neither).
+// Test-instruments builds only. GX_AICOMP=<n> prints every n logic frames the army composition of each player owning
+// a live unit: [GXAICOMP] f= p<i>=u/inf/veh/air/aa/ai/av/tr/trl/pas/gar/cap/det (units, infantry, vehicles, aircraft,
+// anti-air, anti-infantry, anti-vehicle, transports, loaded, passengers, garrisoned, capturers, detectors). Reads
+// object state only.
 #include "GameLogic/Weapon.h"
 #include "GameLogic/Module/ContainModule.h"
 #include "GameLogic/Module/StealthDetectorUpdate.h"
@@ -5052,7 +4563,7 @@ void GameLogic::update()
 
 	PROFILER_PLOT("LogicFrame", static_cast<int64_t>(now));
 #if defined(GX_TEST_INSTRUMENTS)
-	gxAiCompProbe(now);	// GeneralsX @test PROBE ai-smartcheap: GX_AICOMP army composition (test-instruments builds only)
+	gxAiCompProbe(now);	// GeneralsX: GX_AICOMP army composition (test-instruments builds only)
 #endif
 
 	// GeneralsX: The scripted camera is simulation state (GameLogic/ScriptedCamera.h): a camera-only
@@ -5104,65 +4615,15 @@ void GameLogic::update()
 	Bool generateForSolo = isSoloGameOrReplay && ((m_frame % REPLAY_CRC_INTERVAL) == 0);
 #endif // DEBUG_CRC
 
-	// GeneralsX @diag /07/2026 Per-frame LOCAL CRC, printed but never sent.
-	//
-	// Mac and Windows desync inside the first 100 logic frames, and the network CRC is exchanged
-	// only every 100 frames, so the reported frame is simply the first time anyone looked - the
-	// divergence could be at frame 1. Printing the same value every frame on both peers lets the
-	// two logs be diffed offline to find the EXACT first differing frame.
-	//
-	// Deliberately NOT done by lowering the CRC interval. The interval is host->client only
-	// (GameInfo.cpp:934 serialise, :1615 parse) and silently defaults to 100 if the field is
-	// dropped, so a mismatched interval makes the peers emit CRCs on different frames, which trips
-	// `m_cachedCRCs.size() < numPlayers` and reports a FAKE desync indistinguishable from a real
-	// one. The interval is left at 100 on purpose, so the existing frame-105 network comparison
-	// survives untouched as a control: if these prints perturbed anything, that comparison moves.
-	//
-	// Safe to call every frame in a release build: XferCRC is pure integer shift/add, snapshot crc
-	// methods are non-mutating by contract (Object.cpp:4004-4006), GetGameLogicRandomSeedCRC hashes
-	// the seed WITHOUT advancing it (RandomValue.cpp:72-77), and m_CRC's only other reader is
-	// getCRC(CRC_CACHED), which has no callers. The one real side effect is that getCRC calls
-	// setFPMode() mid-frame, which now happens every frame rather than every hundredth; it is
-	// idempotent, and the control above is what proves it inert.
+	// Per-frame local CRC, printed but never sent, so two peers' logs can be diffed offline for the first differing
+	// frame. The network CRC interval stays at 100: it is host-to-client only, and a mismatched interval makes peers emit
+	// CRCs on different frames and report a fake desync. Safe every frame: XferCRC is integer-only, the seed CRC does not
+	// advance the seed, and the setFPMode() call in getCRC is idempotent.
 	if (isMPGameOrReplay)
 	{
-		// GeneralsX: Gate the per-frame CRC. It was the stutter.
-		//
-		// This diagnostic did its job - it is how the four-platform desync was found - but it was
-		// left on unconditionally in EVERY multiplayer match, and it is not cheap. getCRC(CRC_RECALC)
-		// walks the whole object list with xferSnapshot (:4568-4571), plus ThePartitionManager,
-		// ThePlayerList and TheAI, allocating and freeing an XferCRC each time, and then blocks on a
-		// synchronous fflush(stderr).
-		//
-		// That is FRAME-TIME VARIANCE, not merely a lower mean, for three reasons:
-		//   * its cost is proportional to live object count, which swings in bursts during combat;
-		//   * fflush is a blocking write(2), and on a headless peer stderr is redirected, so it has
-		//     unbounded tail latency whenever writeback intervenes;
-		//   * on every frame where m_frame % 100 == 0 the walk runs TWICE - once here and once for
-		//     the real network CRC below - a deterministic cost spike every ~3.3 s at 30 fps.
-		// In lockstep, one peer's frame-time excursion stalls EVERY peer, so a saturated host turns
-		// this into lobby-wide stutter. Measured: a 4-platform match with ~850 objects held only
-		// 19 logic fps against a 30 target, with the host at 86% of one core.
-		//
-		// THE setFPMode() CALL IS DELIBERATELY PRESERVED, and this is the part not to "simplify".
-		// getCRC's first act is setFPMode() (:4488). Running it per frame rather than per hundredth
-		// was an accidental side effect of this diagnostic, but the four-platform determinism result
-		// was measured WITH that behaviour. Dropping it would change how often the FP control word
-		// is re-armed mid-update, which is exactly the class of change that surfaces a latent
-		// cross-platform divergence. Keep the side effect identical; change only the cost.
-		//
-		// THE DEFAULT FOLLOWS m_headless, deliberately, so that no determinism harness has to be
-		// edited to keep working: a headless peer IS a test peer and still emits every frame, while
-		// a rendered peer is somebody playing and does not. GX_CRC_EVERY_FRAME=1 forces it on (a
-		// rendered peer joining a desync hunt), =0 forces it off (timing a headless soak). Read
-		// once into a static: it must not become a per-frame getenv and it must not vary mid-match.
-		//
-		// The one harness that gated on a RENDERED peer's [GXCRC] is xplat-4platform-play.sh, which
-		// polls mac.err to detect the first simulated frame. It does NOT force the variable on -
-		// that is the harness people actually play through, so re-enabling the per-frame CRC there
-		// would hand the stutter straight back. It now accepts [GXACT] as well, and defaults
-		// GX_ACTIVITY so that marker is always present. Every other harness in scripts/test/ runs
-		// -headless and is therefore unaffected (verified: none passes -win).
+		// Gate the per-frame CRC: getCRC(CRC_RECALC) walks the whole object list and blocks on fflush(stderr), a cost that
+		// scales with object count and stalls every peer under lockstep. The setFPMode() call inside getCRC is preserved
+		// deliberately. The default follows m_headless; GX_CRC_EVERY_FRAME=1 forces it on, =0 off, read once into a static.
 		static const char *s_crcEnv        = getenv("GX_CRC_EVERY_FRAME");
 		static const Bool  s_crcEveryFrame = (s_crcEnv != nullptr)
 		                                     ? (s_crcEnv[0] != '0')
@@ -5178,28 +4639,9 @@ void GameLogic::update()
 			setFPMode();
 		}
 
-		// GeneralsX: Per-player activity trace, for task 61.
-		//
-		// WHY THIS EXISTS. Every harness in this project judged "the simulation was active" by
-		// counting DISTINCT [GXCRC] values, and that number is satisfied by any moving object
-		// whatsoever. alpine assault carries a scripted train that drives itself with no player
-		// and no AI attached, and Object::crc hashes the transform, so alpine scored 1499 of 1500
-		// distinct while every AI in the match owned nothing at all. It was the control every
-		// other map was judged against. Measured again on 29/07/2026 after the capacity guard
-		// landed: alpine + Hx2 with one AI provably inert scored 60 distinct of 60, identical to
-		// alpine + Hx1. The distinct count cannot tell those apart and never could.
-		//
-		// A verdict has to attribute change to PLAYERS. This line does: it reports, per player,
-		// how many objects and how many structures that player owns. A starved player - one that
-		// got startPos=-1 and no Command Center - reads 0/0 for the entire match no matter how
-		// much ambient scenery is moving, and an AI that is genuinely playing shows its counts
-		// change as it builds and loses things.
-		//
-		// OFF unless GX_ACTIVITY is set to a positive frame period, so it costs one integer
-		// compare per frame otherwise. Reads only: no RNG is touched, nothing is mutated, and
-		// no logic state is consulted that is not already being hashed a few lines above - so
-		// enabling it cannot move the CRC stream. Verify that the same way everything else here
-		// is verified: run once with it and once without and diff the [GXCRC] lines.
+		// Per-player activity trace (GX_ACTIVITY=<frame period>, off otherwise): objects and structures owned per player.
+		// Counting distinct [GXCRC] values cannot judge activity, since any moving object (a scripted train) satisfies it. A
+		// starved player (no start position, no Command Center) reads 0/0 all match. Reads only: no RNG, no mutation.
 		static Int s_actPeriod = -1;
 		if (s_actPeriod < 0)
 		{
@@ -5245,8 +4687,7 @@ void GameLogic::update()
 				// lobby: it always carries a neutral/civilian entry that owns the map's scenery,
 				// plus an entry per unoccupied slot. Both legitimately own nothing, so a harness
 				// that flagged every 0/0 entry as starved would call a perfectly healthy match
-				// INCONCLUSIVE. Measured on a legal twilight flame + Hx5 run: 9 entries, of which
-				// p8 is an empty slot sitting at 0/0 for the whole match.
+				// INCONCLUSIVE (an empty slot sits at 0/0 for the whole match).
 				//
 				//   A  skirmish AI          - these MUST own something, or their AI is inert
 				//   H  human, playable      - ditto
@@ -5310,7 +4751,7 @@ void GameLogic::update()
 	// this frame), after this frame's orders - on every peer and in a replay alike. One compare while no vote runs.
 	gxVoteKickUpdate();
 #if defined(GX_TEST_INSTRUMENTS)
-	gxTestEnterQueueFrame();	// GeneralsX @test WAYPOINT ENTER @frame actions (GX_TEST_ENTERQ_SIM), after this frame's orders
+	gxTestEnterQueueFrame();	// GeneralsX: WAYPOINT ENTER @frame actions (GX_TEST_ENTERQ_SIM), after this frame's orders
 #endif
 
 #ifdef ALLOW_NONSLEEPY_UPDATES
@@ -5347,25 +4788,11 @@ void GameLogic::update()
 #endif
 
 	{
-		while (!m_sleepyUpdates.empty())
+		// GeneralsX: popDue hands out every module due by now in (key, seq) order: the heap's
+		// "peek, stop if the top sleeps past now" is inside it, and it has no null entries to drop.
+		UpdateModulePtr u;
+		while ((u = m_sleepyWheel.popDue(now)) != nullptr)
 		{
-			UpdateModulePtr u = peekSleepyUpdate();
-
-			if (!u)
-			{
-				DEBUG_CRASH(("Null update. should not happen."));
-				// GeneralsX: Drop it: the bare continue peeked the same null forever.
-				popSleepyUpdate();
-				continue;
-			}
-
-			// we're done, everyone else is sleeping.
-			// break from the loop BEFORE we pop this item off.
-			if (u->friend_getNextCallFrame() > now)
-			{
-				break;
-			}
-
 			UpdateSleepTime sleepLen = UPDATE_SLEEP_NONE;	// default, if it is disabled.
 
 			DisabledMaskType dis = u->friend_getObject()->getDisabledFlags();
@@ -5395,17 +4822,17 @@ void GameLogic::update()
 
 			// else defer it till next frame and re-push it
 			u->friend_setNextCallFrame(now + sleepLen);
-			// GeneralsX: keep the key mirror exact. u is normally still at 0, but its own
-			// update can push or wake modules that pass it, so write the key where u is; the rebalance of
-			// index 0 is retail's, unchanged.
-			const Int uIdx = u->friend_getIndexInLogic();
-			if (uIdx >= 0)
-				m_sleepyKeys[uIdx] = u->friend_getPriority();
-			rebalanceSleepyUpdate(0);
+			// GeneralsX: back into the wheel at its new key, with a fresh seq. A module still out of
+			// the logic (index -1) stays out.
+			if (u->friend_getIndexInLogic() >= 0)
+				m_sleepyWheel.schedule(u);
 		}
 	}
 
 	validateSleepyUpdate();
+#if defined(GX_TEST_INSTRUMENTS)
+	gxSleepyTestTick(now);
+#endif
 
 	// update the Artificial Intelligence system
 	{
@@ -5420,7 +4847,7 @@ void GameLogic::update()
 	// update partition info
 	{
 #if defined(GX_TEST_INSTRUMENTS)
-		gxTestEnterQueueBeforePartition();	// GeneralsX @test WAYPOINT ENTER touch-unman: after every object update, before collisions
+		gxTestEnterQueueBeforePartition();	// GeneralsX: WAYPOINT ENTER touch-unman: after every object update, before collisions
 #endif
 		ThePartitionManager->UPDATE();
 	}
@@ -5474,21 +4901,10 @@ void GameLogic::update()
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: THE LOBBY-AGREED STRESS BATTLEFIELD - the simulation half.
-//
-// The settings are the host's "ST=" lobby option (GameLogic/GXStress.h), which every peer parsed from
-// the same string. Everything below reads only synchronised state - the object list in list order,
-// players in index order, template data every peer must share (dataID), the terrain and the
-// pathfinder - and runs at a fixed point in update(). No client state, no RNG of its own (buildObjectNow's
-// moveObjectsForConstruction draws the SYNCHRONISED logic RNG for units under a footprint, and a HUMAN
-// owner gets no building where a unit will not move - so humans can end up with fewer than AIs), no
-// unordered walk. That
-// is what lets it run in a match with more than one human, where the old client-side GX_STRESS spawn
-// went through MSG_GX_CHEAT_SPAWN_UNIT and was refused by gxCheatsAllowed on every peer.
-//
-// It is an instrument: it changes the simulation by construction, so a CRC compared across an arm
-// with it and one without is meaningless. Each spawn logs a [GXSTRESS] plan digest; two peers of the
-// same match must print the same one.
+// Lobby-agreed stress battlefield, simulation half. Settings are the host's ST= lobby option (GameLogic/GXStress.h),
+// parsed by every peer from the same string; everything reads only synchronised state in a fixed order, with no RNG
+// of its own (buildObjectNow draws the synchronised logic RNG). It changes the simulation by construction, so CRCs
+// are not comparable with an arm without it; each spawn logs a [GXSTRESS] plan digest.
 // ------------------------------------------------------------------------------------------------
 namespace
 {
@@ -5992,7 +5408,7 @@ void GameLogic::registerObject( Object *obj )
 #endif
 		{
 			DEBUG_ASSERTCRASH(u->friend_getNextCallFrame() >= now, ("you may not specify a zero initial sleep time for sleepy modules (%d %d)",u->friend_getNextCallFrame(),now));
-			pushSleepyUpdate(u);
+			m_sleepyWheel.schedule(u);
 		}
 	}
 
@@ -6125,28 +5541,8 @@ UnsignedInt GameLogic::getCRC( Int mode, AsciiString deepCRCFileName )
 		CRCGEN_LOG(("CRC at start of frame %d is 0x%8.8X", m_frame, xferCRC->getCRC()));
 	}
 
-	// GeneralsX @diag /07/2026 Per-object CRC trace, scoped to a narrow frame window.
-	//
-	// Frames 0-8 are byte-identical between Mac and Windows and frame 9 is the first divergence
-	// (mac=9C17AE57 win=E3C73FFE), so dumping the running CRC
-	// after every object across a few frames around it names the exact object that differs. The
-	// window keeps the volume sane - unscoped this would emit one line per object per frame for a
-	// whole match.
-	//
-	// Release-visible by necessity: the CRCGEN_LOG calls that already bracket these sections are
-	// {} in every shipping preset, and DEBUG_CRC cannot be turned on to reach them because it
-	// changes what is hashed (the TheModuleFactory block below) and would desync by construction.
-	// Widened to start at frame 0. The first window (7..10) was chosen from Alpine Assault, where
-	// frames 7 and 8 were clean and a TrainTank diverged at 9 - which made it look like a moving
-	// object was to blame. On a second map the FIRST traced frame already differed, and in a
-	// GenericTree: static scenery that never moves. So the divergence starts earlier than 7 and is
-	// not about movement at all, and the window has to reach frame 0 to find its real origin.
-	// GeneralsX @diag /07/2026 Window is env-controlled because the frame of interest
-	// MOVES between matches. Load-time divergence is fixed (frame 0 now hashes 0 of 323 objects
-	// differing), so what is left begins mid-match - observed at frame 255 in one run, 377 in
-	// another. Hardcoding the window meant a full rebuild of both peers per attempt; now the same
-	// binary can be aimed at whatever frame the per-frame diff reports.
-	//
+	// Per-object CRC trace over a frame window: dumps the running CRC after every object so a divergence names the object.
+	// Release-visible because CRCGEN_LOG is empty in shipping presets and DEBUG_CRC changes what is hashed.
 	//   GX_TRACE_LO / GX_TRACE_HI   inclusive frame window; unset = off, either set = default 0..10
 	static Int s_traceLo = -1, s_traceHi = -1;
 	if (s_traceLo < 0)
@@ -6180,18 +5576,8 @@ UnsignedInt GameLogic::getCRC( Int mode, AsciiString deepCRCFileName )
 				tmpl ? tmpl->getName().str() : "<none>",
 				xferCRC->getCRC());
 
-			// GeneralsX @diag /07/2026 Dump the raw transform bits at frame 0.
-			//
-			// Object::crc hashes the transform matrix as 48 raw bytes with no epsilon
-			// (Object.cpp:4007), and Thing::setOrientation builds it from Cos(angle)/Sin(angle)
-			// (Thing.cpp:232-241). So a single-ULP disagreement between Apple libm and MSVC's
-			// UCRT at one placement angle is indistinguishable, in the CRC, from a structurally
-			// different value. Printing the bit patterns tells those apart: 1 ULP shows as a
-			// last-hex-digit difference, anything else points at a different code path entirely.
-			//
-			// Frame 0 only, so this is 12 extra floats per object exactly once per match.
-			// Dump transforms on the FIRST traced frame, whatever that is - not literally frame 0 -
-			// so the window can be aimed at a mid-match divergence and still get the raw bits.
+			// Dump the raw transform bits on the first traced frame. Object::crc hashes the transform as 48 raw bytes with no
+			// epsilon, so a one-ULP libm difference looks like a structural one in the CRC; the bit patterns tell them apart.
 			if ((Int)m_frame == s_traceLo)
 			{
 				const Real *mtx = (const Real *)obj->getTransformMatrix();
@@ -7413,12 +6799,10 @@ void GameLogic::loadPostProcess()
 			m_nextObjID = (ObjectID)((UnsignedInt)obj->getID() + 1);
 
 	// blow away the sleepy update and normal update module lists
-	for (std::vector<UpdateModulePtr>::iterator it = m_sleepyUpdates.begin(); it != m_sleepyUpdates.end(); ++it)
-	{
-		(*it)->friend_setIndexInLogic(-1);
-	}
-	m_sleepyUpdates.clear();
-	m_sleepyKeys.clear();
+	// GeneralsX: the wheel restarts at this frame; seq restarts too, so ties run in object-list
+	// order after a load (the heap's rebuild was also in object-list order, then heapified).
+	m_sleepyWheel.clear();
+	m_sleepyWheel.rebase(getFrame());
 #ifdef ALLOW_NONSLEEPY_UPDATES
 	m_normalUpdates.clear();
 #else
@@ -7460,16 +6844,11 @@ void GameLogic::loadPostProcess()
 				u->friend_setNextCallFrame(now);
 #endif
 			{
-				m_sleepyUpdates.push_back(u);
-				m_sleepyKeys.push_back(u->friend_getPriority());
-				u->friend_setIndexInLogic(m_sleepyUpdates.size() - 1);
+				m_sleepyWheel.schedule(u);
 			}
 
 		}
 
 	}
-
-	// re-sort the priority queue all at once now that all modules are on it
-	remakeSleepyUpdate();
 
 }

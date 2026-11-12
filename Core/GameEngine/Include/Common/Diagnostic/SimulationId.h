@@ -18,34 +18,19 @@
 
 #pragma once
 
-// GeneralsX:
-// Join-time build/data compatibility identity ("SimID").
-//
-// SCOPE: validated for Apple targets only in this pass - macOS arm64 and iOS arm64.
-// Both are the same path separators, line endings, wchar_t width and pointer size.
-// Cross-platform correctness against Windows is explicitly out of scope; the places
-// that will need Windows work are marked "WINDOWS HOOK" in SimulationId.cpp.
-//
-// This is a Core-level immutable snapshot rather than new GlobalData members: it
-// avoids duplicating fields in both GlobalData copies, avoids reset()/newOverride()
-// semantics, and cannot be clobbered by the RTS_DEBUG backdoor in WOLLobbyMenu that
-// overwrites m_exeCRC and m_iniCRC with a remote peer's advertised values.
+// Join-time build/data compatibility identity (SimID). Validated on Apple targets only (macOS, iOS arm64);
+// places needing Windows work are marked WINDOWS HOOK in SimulationId.cpp. An immutable Core-level snapshot, not
+// GlobalData members: no duplicated fields, and the RTS_DEBUG backdoor in WOLLobbyMenu that overwrites
+// m_exeCRC and m_iniCRC cannot clobber it.
 
 struct SimIdWire;   // defined in GameNetwork/LANAPI.h inside its pack(1) region
 
 struct SimulationId
 {
 	Bool        valid;       // false until initialize() has run to completion
-	// GeneralsX: This slot used to carry GitRevision, which is
-	// `git rev-list --count`. That value cannot order two builds, measured on this repository:
-	// it is not monotonic across lineages (three coexisting lineages report 27, 1656 and 2200,
-	// and main has no common ancestor with legacy/pre-fork-main), it is not unique per commit
-	// (e3395c44b and 86a63092d both report 1649; four counts collide inside main's own history),
-	// and a shallow clone destroys it - which has already happened here, with evidence recording
-	// WIN 3 against MAC/LIN 2200. GitCommitTimeStamp survives all three: a re-root does not reset
-	// it, a merge does not duplicate it, and a shallow clone still knows HEAD's own commit date.
-	// Same 32-bit slot and same 'SID1' tag, so this is not a wire change. Still never compared
-	// for accept/deny - it answers "who should update", never "may we play".
+	// The slot after this one holds GitCommitTimeStamp, not a commit count: rev-list --count is not monotonic across
+	// lineages, not unique per commit, and a shallow clone destroys it. Same 32-bit slot and 'SID1' tag; not a wire change.
+	// Never compared for accept/deny: it answers who should update, never may we play.
 	UnsignedInt buildTime;   // GitCommitTimeStamp, unix UTC seconds; informational only, never compared
 	UnsignedInt engineID;    // tier1 deny
 	UnsignedInt sourceID;    // tier1 deny; 0 == unknown provenance, never compared
@@ -85,7 +70,7 @@ enum SimIdVerdict
 	SIMID_SOURCE_DIFFERS,
 	SIMID_DATA_DIFFERS,
 	SIMID_ORDINAL_DIFFERS,
-	// GeneralsX: M1 Determinism-1: one side's sourceID is the 0 "built without git" sentinel,
+	// M1 Determinism-1: one side's sourceID is the 0 "built without git" sentinel,
 	// so nothing can tell whether the two sources match. Refused since then; before, the pair played with a warning.
 	SIMID_SOURCE_UNKNOWN
 };
@@ -100,7 +85,7 @@ enum
 
 // tier1 only, evaluated in exactly this precedence so the message is always specific.
 SimIdVerdict SimIdCompare( const SimIdWire &peer );
-/// GeneralsX: this build's engineID computed with the lobby-wire sizes every build before 34 slots had
+/// this build's engineID computed with the lobby-wire sizes every build before 34 slots had
 /// (SimulationId.cpp). A REPLAY's engineID equal to it is this simulation engine with the older lobby wire: replay checks map it to
 /// the current engineID before SimIdCompare. Never used for joins (the lobby wire really differs there).
 UnsignedInt SimIdReplayLegacyEngineID( void );
@@ -108,10 +93,10 @@ UnsignedInt SimIdReplayLegacyEngineID( void );
 // tier2 bitmask. Returns 0 when the peer is not a valid SimID peer.
 UnsignedInt  SimIdWarnFlags( const SimIdWire &peer );
 
-// GeneralsX: Diagnostics for refused joins.
+// Diagnostics for refused joins.
 //
 // Both write to stderr, NOT through DEBUG_LOG - DEBUG_LOG is ((void)0) in every shipping
-// preset (Debug.h:165-173), which is why a refused join previously produced no evidence
+// preset (Debug.h:165-173), so a refused join would otherwise leave no evidence
 // on either side. `side` is a short caller tag such as "HOST" or "JOINER".
 const char *SimIdVerdictName( SimIdVerdict v );
 void        SimIdLogMismatch( const char *side, const char *peerAddr, SimIdVerdict verdict, const SimIdWire &peer );

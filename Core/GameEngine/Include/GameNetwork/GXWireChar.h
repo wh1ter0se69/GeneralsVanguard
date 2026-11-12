@@ -18,39 +18,10 @@
 
 #pragma once
 
-// GeneralsX: THE WIDE CHARACTER IS 16 BITS ON THE WIRE AND IN THE .rep,
-// ON EVERY PLATFORM.
-//
-// `WideChar` is a bare `typedef wchar_t` (Lib/BaseType.h:36) with no platform guard, and wchar_t is
-// 2 bytes under MSVC and 4 under clang/gcc. MEASURED on this tree, not assumed: no `-fshort-wchar`
-// appears anywhere in the repository or in either build/*/compile_commands.json, and a probe built
-// with the project's own macOS flags prints sizeof(wchar_t)=4.
-//
-// Four sites serialised a wide character at the HOST's width:
-//
-//   NetPacketGameCommandData::getSize / ::copyBytes   (NetPacketStructs.cpp) - the LOCKSTEP wire
-//   NetPacket::readGameMessageArgumentFromPacket      (NetPacket.cpp)        - its reader
-//   RecorderClass::writeArgument / ::readArgument     (Recorder.cpp, x2 games) - the .rep body
-//
-// so a macOS/Linux/iPadOS peer emitted 4 bytes per character where a Windows peer emitted 2. The
-// harm is not mojibake. NetPacket::getCommandList walks ONE shared cursor `i` through the datagram
-// and every reader advances it; readGameMessage is not even handed a bound. A game command whose
-// payload is 2n bytes on the wire but consumed as 4n leaves the cursor 2n bytes away from the next
-// command's type byte, so every command packed behind it in that datagram - all of which are
-// NETCOMMANDTYPE_GAMECOMMAND, the lockstep-critical kind - is decoded from the wrong offset.
-//
-// The chat payloads were given exactly this treatment on 17/08/2026 (network::NetWireChar, which is
-// now an alias of the type below) and the LAN lobby before that (`typedef uint16_t
-// WideCharWindows`, LANAPI.h:239). The game-command and replay paths were simply never included.
-// Sixteen bits is the retail-compatible choice: it is what the Windows build has always written, so
-// the three clang platforms conform to Windows rather than inventing a third format.
-//
-// WHY THIS LIVES IN ITS OWN HEADER RATHER THAN BESIDE NetWireChar. NetPacketStructs.h cannot be
-// included on its own - it pulls NetworkDefs.h -> MessageStream.h -> GameCommon.h -> WWCommon.h and
-// then the CompatLib/dxvk windows headers, i.e. most of the engine. A width bug is exactly the kind
-// that needs a two-arm `-fshort-wchar` test (scripts/test/widechar-wire-test.sh), and that test has
-// to be able to include the REAL code it grades rather than a copy of the rule. Same reason
-// GXChatLine.h exists.
+// The wide character is 16 bits on the wire and in the .rep, on every platform. wchar_t is 2 bytes under MSVC and
+// 4 under clang/gcc. One shared cursor walks the datagram, so a writer using the host width misaligns every command
+// packed behind it, all of them lockstep GAMECOMMANDs. 16 bits is the retail Windows format.
+// Own header so the width test can include the real code without pulling in the engine.
 
 #include <stddef.h>
 #include <stdint.h>
@@ -61,21 +32,10 @@ typedef uint16_t GXWireChar;
 
 enum { GX_WIRECHAR_BYTES = sizeof(GXWireChar) };
 
-/// Fold a host wide character down to the 16-bit wire unit. Anything outside the BMP becomes '?'
-/// so that the count of units written always equals the count getSize() billed - a writer that can
-/// emit fewer units than its estimator promised is the boundary overrun fixed in 3c340511f.
-///
-/// The mask keeps a SIGNED wchar_t (gcc on Linux makes it `int`) from sign-extending into the '?'
-/// branch through the widening cast; it is a no-op for every valid code point on 32-bit hosts.
-///
-/// GeneralsX: SURROGATE UNITS FOLD TOO, ON BOTH SIDES. A 16-bit host has no
-/// out-of-BMP value to fold: a Windows edit box holds U+1F600 as the pair 0xD83D 0xDE00
-/// (IMEManager forwards WM_CHAR one UTF-16 unit at a time), and each unit is <= 0xFFFF, so the test
-/// above let both through. A 32-bit peer then rebuilt them as two standalone surrogate values -
-/// not characters in UTF-32 - while a 32-bit writer folded the same emoji to '?'. Folding every unit
-/// in 0xD800-0xDFFF gives one rule on every width: the wire never carries a surrogate. The count of
-/// units still equals the count billed; an emoji typed on Windows reads "??" rather than "?".
-/// Chat needs no change: GXSanitizeChatText already drops surrogates at its reader.
+/// Fold a host wide character to the 16-bit wire unit. Anything outside the BMP, and every surrogate unit
+/// (0xD800-0xDFFF), becomes a question mark, so the units written always equal the count getSize() billed and the
+/// wire never carries a surrogate on any host width. The mask keeps a signed wchar_t from sign-extending into the
+/// fold branch.
 inline bool gxWireCharIsSurrogate(unsigned long long cp)
 {
 	return cp >= 0xD800ull && cp <= 0xDFFFull;

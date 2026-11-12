@@ -46,26 +46,9 @@ class VideoBuffer;
 class VideoStreamInterface;
 class WindowVideoManager;
 
-// GeneralsX: A hook, because this file is Core and the row builder is not.
-//
-// The load screens' .wnd files author their player rows 0..7 (verified by extracting
-// MultiplayerLoadScreen.wnd and GameSpyLoadScreen.wnd from WindowZH.big), while MAX_SLOTS is 12 -
-// so both show eight of twelve. The lobby, the in-game player list and the score screen solve this
-// with CodeGuiRowsEnsure, which clones a column's missing rows into the band the authored ones
-// occupy. That function lives in GeneralsMD and reaches GeneralsMD's own widget factories, so this
-// file cannot call it: LoadScreen.cpp is shared with the Generals twin, which has no CodeGui at
-// all, and this repository does not add #if gates to Core - that is how the Generals side got
-// broken during the re-root.
-//
-// So Core declares the shape of the favour it wants and GeneralsMD grants it. A twin that never
-// registers a builder keeps today's behaviour EXACTLY: the call site below is a null check.
-//
-// Deliberately not a virtual on LoadScreen: the row building has to happen inside init(), which is
-// Core code, before Core binds the pointers - a subclass override would run too late to help.
-//
-// GeneralsX: `placedByCaller` is for the map start markers, which are placed
-// on the map's own waypoints by positionStartSpots rather than laid out in a column: TRUE creates the
-// missing ones and positions nothing (CODEGUI_ROWS_FREE), FALSE fits a column into its band.
+// Row-builder hook: the load-screen .wnd files author player rows 0..7, but MAX_SLOTS is larger.
+// CodeGuiRowsEnsure is in GeneralsMD, which Core cannot call, so GeneralsMD registers a builder (the twin: none).
+// placedByCaller TRUE: create missing rows, position nothing (map start markers); FALSE: fit a column into its band.
 typedef Int (*LoadScreenRowBuilder)( GameWindow *parent, const char *idFormat, Int rowCount, Bool placedByCaller );
 
 /// Register the row builder. Called once by the game that has one; never called by the twin.

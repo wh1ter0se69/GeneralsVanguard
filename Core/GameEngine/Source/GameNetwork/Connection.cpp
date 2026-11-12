@@ -154,12 +154,12 @@ void Connection::sendNetCommandMsg(NetCommandMsg *msg, RelayMaskType relay) {
 		// one wrapper command at a time.
 
 		NetCommandRef *tempref = NEW_NETCOMMANDREF(msg);
-		// GeneralsX: The probe carries the relay the queued command will carry. It used to be set only
-		// after the probe, so the probe ref's relay was the constructor's (never set: 0 from the zeroed pool) - and against a
-		// fresh packet's m_lastRelay of 0, NetPacket::addCommand left the relay field (sizeof(NetPacketRelayField) bytes) out
-		// of the size. A command up to that many bytes over MAX_PACKET_SIZE was judged to fit and queued unwrapped; doSend's
-		// fresh packet then counted the real relay and addCommand refused it in every packet, so it was skipped on every pass
-		// and never sent: a synchronized command held every peer at its frame, a FILE never finished (an honest map sidecar can
+		// GeneralsX: The probe carries the relay the queued command will carry. Set only
+		// after the probe, the probe ref's relay would be the constructor's (never set: 0 from the zeroed pool) - and against a
+		// fresh packet's m_lastRelay of 0, NetPacket::addCommand would leave the relay field (sizeof(NetPacketRelayField) bytes) out
+		// of the size. A command up to that many bytes over MAX_PACKET_SIZE would be judged to fit and queued unwrapped; doSend's
+		// fresh packet then counts the real relay and addCommand refuses it in every packet, so it is skipped on every pass
+		// and never sent: a synchronized command holds every peer at its frame, a FILE never finishes (an honest map sidecar can
 		// land in that window). Upstream (TheSuperHackers main) probes the same way.
 		tempref->setRelay(relay);
 		if (packet.addCommand(tempref)) {
@@ -256,26 +256,9 @@ static UnsignedInt s_xferPacked = 0;
 static UnsignedInt s_xferRetried = 0;
 static time_t s_xferLastPrint = 0;
 
-// GeneralsX: [GXPKT] packet-occupancy accounting.
-//
-// The question this exists to answer: widening the relay destination mask from one byte to two
-// for twelve human slots grows the 'R' field by one byte. Is that affordable against
-// MAX_PACKET_SIZE (476)? The answer is NOT sizeof arithmetic. Two things decide it:
-//
-//   1. The 'R' field is delta-encoded (NetPacket::addCommand: useRelay &= m_lastRelay != relay),
-//      so the cost is one byte per mask CHANGE within a packet, not per command.
-//   2. A packet that fills does not drop anything - addCommand returns FALSE, doSend closes the
-//      packet and opens another. So the real cost of a bigger field is MORE PACKETS, and it is
-//      zero unless packets are actually reaching the limit.
-//
-// So s_pktSpills is the load-bearing counter: it is how often addCommand refused, i.e. how often
-// a packet genuinely ran out of room. If that stays at zero on a full lobby, the extra byte is
-// free and no arithmetic is needed. The histogram is there so that "zero spills" cannot be
-// confused with "the probe never ran" - a run must show where the occupancy actually sat.
-//
-// Statics are per-process, not per-connection: at twelve peers a per-connection line every second
-// would be twelve lines a second, and the aggregate is what the budget question is about. The
-// printed address names whichever connection happened to flush the window.
+// [GXPKT] packet-occupancy accounting. The R (relay mask) field is delta-encoded, so a wider mask costs one byte per
+// mask change; a full packet is not dropped (addCommand returns FALSE, doSend opens another), so it costs packets.
+// s_pktSpills counts those refusals. Statics are per-process, not per-connection.
 static UnsignedInt s_pktCount    = 0;   // packets handed to the transport
 static UnsignedInt s_pktCmds     = 0;   // commands packed into them
 static UnsignedInt s_pktBytes    = 0;   // total payload bytes
@@ -361,13 +344,10 @@ UnsignedInt Connection::doSend() {
 					if (CommandRequiresAck(msg->getCommand())) {
 						if (timeLastSent != -1) {
 							++m_numRetries;
-							// GeneralsX: rewritten 01/10/2026 [GXNET] retries = commands
-							// that were LIKELY LOST: each counts once (latched), the first time it is resent after
-							// being outstanding past the adaptive timer (updateRetryTime). A fast resend of frame
-							// data (retryTimeFor) is routine, not loss, and is not counted.
-							// m_numRetries cannot serve: doRetryMetrics zeroes it every 10 s. A transport-queue
-							// refusal is not counted here either: GX_MAPDBG logs each one ([GXXFER] QUEUE-FULL).
-							// A first send the transport refused carries no stamp (see firstSends below).
+							// [GXNET] retries = commands that were likely lost: each counts once (latched), the first time it is resent
+							// after being outstanding past the adaptive timer (updateRetryTime). A fast resend of frame data (retryTimeFor)
+							// is routine, not loss. m_numRetries cannot serve: doRetryMetrics zeroes it every 10 s. A transport-queue
+							// refusal is not counted (GX_MAPDBG logs it). A first send the transport refused carries no stamp (see firstSends).
 							if (msg->getTimeFirstSent() == -1) {
 								msg->setTimeFirstSent(curtime);
 								if (numFirstSends < MAX_PACKET_SIZE)
@@ -725,7 +705,7 @@ void Connection::wrapNow(const GXPendingWrap &w) {
 			if (NetCommandRef *ref2 = m_netCommandList->addMessage(chunk)) {
 				ref2->setRelay(w.relay);
 				// A chunk carries no type of its own: it retries fast when the command it splits is frame data
-				// (ffr-adv1 P2 - a big group order is wrapped, and one lost chunk holds the frame).
+				// (a big group order is wrapped, and one lost chunk holds the frame).
 				ref2->setFastRetry(IsCommandSynchronized(w.msg->getNetCommandType()));
 				++state.unacked;	// only what was actually queued can be acked (design v16 section 3)
 			}
@@ -830,41 +810,9 @@ void Connection::doRetryMetrics() {
 	}
 }
 
-// GeneralsX: The retry timer is what the stutter actually is.
-//
-// MEASURED, on live mac+linux peers with [GXSTALL]:
-// across four runs, 79% of ALL blocked time was 10 events, and every one of them lasted 1847-2016
-// ms. That is not a distribution, it is a constant - m_retryTime, set to 2000 in the constructor
-// and, until now, written nowhere else. The events pair across peers with retries>0 on the SENDING
-// side, which is why reading one peer's counter in isolation made them look causeless.
-//
-// The recovery is blind because there is no NACK for the ordinary loss: FrameData::allCommandsReady
-// only reaches FRAMEDATA_RESEND when there are too MANY commands (FrameData.cpp:117), and
-// m_frameCommandCount is an UnsignedInt initialised to -1, so before the FRAMEINFO arrives that
-// comparison is against 0xFFFFFFFF and cannot fire. [GXSTALL] confirms it in live data: every
-// stall reports want=4294967295. So one lost datagram costs a full 2 s of lockstep, for everyone.
-//
-// 2000 ms was never tuned to anything. Measured RTT on this relay path is 112 ms, so the timer is
-// ~18x the round trip. Both lines the original author left to fix this are commented out just
-// above: setFrameGrouping's `m_retryTime = frameGrouping * 4` and doRetryMetrics's
-// `m_retryTime = m_averageLatency * 1.5`.
-//
-// Why 3x and not the author's 1.5x: m_averageLatency is a MEAN over CONNECTION_LATENCY_HISTORY_LENGTH
-// samples, not a smoothed RTT with a variance term, so 1.5x a mean will fire on ordinary jitter and
-// spend bandwidth on duplicates. 3x a mean is roughly the classic mean + 4*deviation for this kind
-// of path and still cuts a 2000 ms stall to ~340 ms.
-//
-// Duplicates are safe if it does misfire: NetCommandList dedups by command ID on receipt and
-// FrameData::addCommand refuses a command it already holds, so an early retransmit costs one
-// datagram and nothing else. That asymmetry - a late retry costs 2 s of everyone's match, an early
-// one costs 300 bytes - is the whole argument for erring low.
-//
-// The floor is not decoration. m_averageLatency is 0 until the first ack lands, and an unfloored
-// timer would retransmit every queued command on every doSend for the first second of the match.
-//
-// GX_RETRY_MS overrides it outright for sweeping, exactly like GX_GROUPING_DIV. Changing WHEN a
-// packet is sent cannot affect determinism, and this value is not negotiated, so peers may hold
-// different settings and still agree frame for frame.
+// Ordinary loss has no NACK, so a fixed 2000 ms retry stalled every peer 2 s per loss. The timer is 3x the mean
+// ack latency (a plain mean, so 1.5x fires on jitter), with a floor as the mean is 0 until the first ack.
+// Duplicates are safe: NetCommandList dedups by command ID. GX_RETRY_MS overrides; it is not negotiated.
 void Connection::updateRetryTime() {
 	static const Int s_forced = (getenv("GX_RETRY_MS") != NULL) ? atoi(getenv("GX_RETRY_MS")) : 0;
 	if (s_forced > 0) {
@@ -881,16 +829,10 @@ void Connection::updateRetryTime() {
 	m_retryTime = t;
 }
 
-// GeneralsX: FRAME-DATA FAST RETRANSMIT (m1-net-lab-2). A lost datagram that carried frame
-// input stalled every peer until this connection's retry timer fired - clamp(3 x mean ack latency, 120, 2000) ms, so
-// ~300 ms per loss on a relayed path, and with every leg able to lose a datagram the stalls add up: at 2% bursty loss
-// per leg the lobby was blocked 48% (4 peers) and 51% (6 peers) of the time, every dip a loss repair. A synchronized
-// command (the ones FrameData counts before a frame may run: IsCommandSynchronized), or a wrapper chunk of one (flagged
-// at enqueue, sendNetCommandMsg), now re-rides every grouped send once FRAME_RETRY_MS has passed without its ack. doSend never sends more often than m_frameGrouping (two frames, one
-// on the router), so the datagram rate does not change, only what the datagrams carry; receivers already discard a
-// command they hold, so nothing changes on the wire or for an older reader. Measured with GX_RETRY_MS=30 at 2% loss,
-// burst 2: blocked 1.0-1.2%, no stall over 250 ms. File transfer, chat, votes and the disconnect traffic keep the
-// adaptive timer. GX_RETRY_MS (a lab knob) still forces ONE timer for everything.
+// Frame-data fast retransmit: a lost datagram with frame input otherwise stalls every peer until the retry timer fires.
+// A synchronized command (IsCommandSynchronized) or a wrapper chunk of one re-rides every grouped send once
+// FRAME_RETRY_MS passes without its ack; the datagram rate is unchanged and receivers discard held commands.
+// Other traffic keeps the adaptive timer; GX_RETRY_MS forces one timer for all.
 time_t Connection::retryTimeFor(const NetCommandRef *msg) const {
 	// Same test as updateRetryTime: only a POSITIVE GX_RETRY_MS forces one timer ("=0" used to turn
 	// the fast path off while leaving the adaptive timer on).

@@ -1,24 +1,25 @@
-// GeneralsX: TEST-ONLY recorded-stream tap (A22's equality gate). Linked into the
-// record / translate / native / proxy test executables; does nothing unless GX_CMDTAP=<file> is set. Then, after every
-// volkLoadDevice (Vk::g_testAfterLoadDevice), the vkCmd* and vkUpdateDescriptorSets pointers the GXRender code calls through are
-// swapped for shims that fold each command - its arguments, the structs they point to, and every descriptor write - into an FNV-1a
-// digest before calling the real entry point. Handles are numbered by first use per device, so two runs that record the same
-// commands in the same order get the same digest whatever addresses the driver hands out. One line per vkQueueSubmit2:
-//   D<device> S<submit> n=<commands since the device loaded> d=<running digest>
-// so two files from the same suite diff to the first submission that differs. GX_A22_SLOW=1 sets Rec::g_recTest.exactSlowPaths
-// (the writer's pre-A22 paths), GX_A22_PLANT=1 the planted stale-world-stamp defect. Run each suite twice and diff the files.
-// What it digests: every vkCmd* GXRender records, command-buffer begin/end/reset, pool resets and frees,
-// every descriptor write (the payload its type reads) and set allocation, every submission and present with their semaphores,
-// values and pNext chains (an unknown chain aborts), and - on the recording thread - every creation (arguments field by field,
-// unknown pNext aborts), memory allocation and binding, plus the writer's streamed uniform bytes and their destination
-// (Rec::g_recTest.onStream). Identity: objects are numbered per type in creation order on the recording thread (else at first use);
-// a swapchain image is "an image of swapchain S" (the acquire order is the driver's); a pipeline is the digest of its creation
-// (SPIR-V of its shader modules included), whichever thread compiled it. Specialised FF pipelines are compiled synchronously under
-// the tap (GxPipeTestMutants::syncSpec) - otherwise the worker timing decides which pipeline a draw binds. Real entry points are typed atomics; VMA reaches the shims
-// through the hooked vkGetDeviceProcAddr. Any write or close error aborts. Limits: two threads recording at once would interleave
-// nondeterministically (the suites record on one); query results are not digested; a run whose driver acquires swapchain images in
-// another order may use another per-image semaphore and then digest differently - a false MISMATCH (it fails safe, and shows in
-// the F vs F2 floor), never a false match.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// TEST-ONLY recorded-stream tap: inactive unless GX_CMDTAP=<file> is set. It shims the vkCmd* and
+// vkUpdateDescriptorSets pointers and folds each command into an FNV-1a digest; handles are numbered by first
+// use. One line per vkQueueSubmit2: D<device> S<submit> n=<commands> d=<digest>.
+// Limits: one recording thread; a different swapchain acquire order gives a false MISMATCH.
 
 #include "VkCommon.h"
 #include "GxPacketWriter.h"

@@ -412,20 +412,10 @@ void ControlBarScheme::validate() const
 	}
 }
 
-// GeneralsX: Place one scheme-positioned control, through LayoutScale.h.
-//
-// This replaces ten copies of the same twelve lines. The copies were not merely repetitive: they
-// scaled x and y by independent ratios derived from ControlBarScheme.ini's own ScreenCreationRes,
-// which has never had to agree with ControlBar.wnd's CREATIONRESOLUTION, so under GX_UI_LAYOUT=
-// uniform these ~10 HUD controls would have kept stretching while every control around them went
-// uniform. Raised by a cross-model review.
-//
-// The STRETCH branch reproduces the original arithmetic including its rounding: the position was
-// computed as (Int)( coord * scale - parentScreenPos ), truncating AFTER the subtraction, and
-// truncating before it instead differs by one pixel whenever the result crosses zero - which it
-// does here, ButtonLarge sits at y = -740. So the subtraction stays inside the cast.
-// The effective per-axis factor for this scheme: the two ratios in STRETCH, one shared factor in
-// UNIFORM. For sizes that have no upper-left to map through LayoutScaleMapRect.
+// Place one scheme-positioned control through LayoutScale.h so it follows GX_UI_LAYOUT; the scheme's own creation
+// resolution need not match ControlBar.wnd's CREATIONRESOLUTION, so per-control ratios would not.
+// STRETCH keeps the original rounding: truncate AFTER subtracting parentScreenPos (ButtonLarge sits at y = -740).
+// Per-axis factor below: the two ratios in STRETCH, one shared factor in UNIFORM.
 static Coord2D gxSchemeScale( const ICoord2D &createRes )
 {
 	Coord2D s;

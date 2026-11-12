@@ -16,8 +16,8 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G Task 5: the device-less model of the classic DX8Wrapper state machine
-// (CONTRACT_L2 §4.3 C5/C6 r9b). ENGINE-FREE: no WW3D2 header, so scripts/test/l2-model-test.cpp drives it
+// The device-less model of the classic DX8Wrapper state machine
+// (§4.3). ENGINE-FREE: no WW3D2 header, so scripts/test/l2-model-test.cpp drives it
 // with hand-made call streams. Every ported function cites the wrapper code it mirrors AT 3a59e5b2a (W/ = Core/Libraries/Source/
 // WWVegas/WW3D2/); scripts/test/l2-model-drift.sh pins those ranges, so a wrapper edit forces a re-port.
 //
@@ -81,7 +81,7 @@ enum : uint32_t { WORLD_CHANGED = 1u << 0, VIEW_CHANGED = 1u << 1, LIGHT0_CHANGE
 // A light environment as Set_Light_Environment reads it (W/dx8wrapper.cpp:4656-4769; GX_Lenv_Same's fields, :4596-4633) - logged by value.
 
 
-// C6 MODEL_CALL (CONTRACT_L2 r9b): every low-level setter INVOCATION, sent or skipped by its cache.
+// MODEL_CALL: every low-level setter INVOCATION, sent or skipped by its cache.
 enum CallOp : unsigned { C_RS = 1, C_TSS, C_TEXTURE, C_MATERIAL, C_LIGHT, C_XFORM, C_STREAM, C_INDICES, C_VSHADER };
 struct CallSink {
 	virtual ~CallSink() {}
@@ -197,7 +197,7 @@ struct ReplayHooks {
 // replayed through its send function; TEXTURE / MATERIAL brackets are INPUTS (Inputs), never predicted.
 void replay(State &s, const gxlog::Log &log, ReplayHooks &h);
 
-// ---- C5 INVARIANCE (CONTRACT_L2 §4.3 C5; the boundary replay of §3.4 in its DrawRun form S1-DR, r10) ---------------
+// ---- C5 INVARIANCE (CONTRACT_L2 §4.3 C5; the boundary replay of §3.4 in its DrawRun form S1-DR) ---------------
 // A claimed run: its first / last TASK's classic seq (the ENTRY records' `a`), in flush order.
 struct Run { uint32_t first, last; };
 constexpr uint32_t kEntryTask = 0;	// an ENTRY record's `b` for a TASK: GxClassicDraw::TASK (W/dx8renderer.h:110; GxScene static_asserts it)

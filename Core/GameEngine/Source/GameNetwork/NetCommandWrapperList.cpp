@@ -413,7 +413,7 @@ void NetCommandWrapperList::complete(Int source, UnsignedInt wrapSeq, GXEntry &e
 		fflush(stderr);
 	}
 	NetCommandRef *msg = NetPacket::ConstructNetCommandMsgFromRawData(node->getRawData(), node->getRawDataLength());
-	// GeneralsX @bugfix ConstructNetCommandMsgFromRawData returns null for a packet it cannot parse - an unrecognised command type,
+	// GeneralsX: ConstructNetCommandMsgFromRawData returns null for a packet it cannot parse - an unrecognised command type,
 	// or a 'Z' repeat with nothing to repeat. Both are remotely supplied.
 	// GeneralsX: This is the one place a reassembled command's sender can be checked, as it has no
 	// datagram of its own. Every honest wrapper carries its command's own sender and ID (NetPacket::ConstructBigCommandList),

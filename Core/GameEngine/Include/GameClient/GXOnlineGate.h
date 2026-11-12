@@ -1,25 +1,25 @@
 /*
-**	GeneralsX: who may open the Online lobby.
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
 **
-**	WHY THIS IS A HEADER OF ITS OWN, AND PURE.
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
 **
-**	The Online gate is decided in two places that must never disagree: the ONLINE button, and the
-**	navigation that runs after a login finishes. They drifted apart the first time this was written
-**	and the result was a bypass - the button refused an unauthenticated player, and then the
-**	post-login path let the same player straight in the moment their login FAILED, on the grounds
-**	that "being unable to sign in is not a reason to be unable to play". Press Online, answer Yes,
-**	cancel in the browser, and you were in. Found by cross-model review, not by us.
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
 **
-**	So the decision lives here, once, as a function of the two inputs it actually depends on, and
-**	both call sites ask it. It takes no engine types on purpose: the whole point is that
-**	scripts/test/online-gate-test.cpp can drive every state with
-**	`c++ -std=c++17 -I Core/GameEngine/Include` and no engine, no window, no network - the class of
-**	bug above is invisible to the Worker's 109 checks and has to be testable somewhere.
-**
-**	The enum below MIRRORS GXLoginState. It is duplicated rather than included because
-**	GameClient/GXLoginFlow.h pulls in UnicodeString and Color and would drag the engine into a
-**	standalone test. MainMenu.cpp static_asserts the two against each other, so a value added or
-**	reordered in one is a COMPILE ERROR rather than a silent mismatch.
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+**	Who may open the Online lobby, decided once for two callers that must never disagree: the ONLINE button and the
+**	navigation after a login finishes (they once drifted into a bypass when login FAILED). Pure:
+**	scripts/test/online-gate-test.cpp. The enum MIRRORS GXLoginState; MainMenu.cpp static_asserts the two.
 */
 
 #pragma once

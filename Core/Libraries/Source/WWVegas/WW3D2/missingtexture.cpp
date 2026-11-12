@@ -126,7 +126,7 @@ void MissingTexture::_Init()
 			//*buffer++=missing_image_palette[*pixels++];
 			*buffer++=0x7FFF00FF;
 		}
-		// GeneralsX @bugfix The rebase at the end of pass y has to position the write
+		// GeneralsX: The rebase at the end of pass y has to position the write
 		// pointer at the START OF THE NEXT ROW, so it must scale the pitch by y+1, not y.
 		// With the old *y the pointer was reset to the row just written: row 0 was filled
 		// twice and the last row (y = missing_image_height-1) was never filled at all.

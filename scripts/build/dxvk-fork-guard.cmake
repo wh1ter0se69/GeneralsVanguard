@@ -1,6 +1,8 @@
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # dxvk-fork-guard.cmake - the Apple DXVK is the patched fork, or the configure fails.
 #
-# GeneralsX: A FRESH WORKTREE BUILT AN UNPATCHED DXVK, SILENTLY.
+# A FRESH WORKTREE BUILT AN UNPATCHED DXVK, SILENTLY.
 #
 # cmake/dx8.cmake takes references/fbraz3-dxvk only when that path has a .git, and falls through to a
 # GitHub clone at DXVK_REMOTE_REF otherwise - a clone whose wsi_window_sdl3.cpp still calls
@@ -58,20 +60,9 @@ function(gx_dxvk_assert_patched root src)
     endif()
 endfunction()
 
-# GeneralsX: A FORK CHANGE NEVER REBUILT DXVK IN AN EXISTING BUILD DIRECTORY.
-#
-# dx8.cmake's ExternalProject has no BUILD_ALWAYS, so its build step (ninja inside _deps/dxvk-build-macos) depends on its
-# configure stamp alone: moving the references/fbraz3-dxvk gitlink (A2's pipeline warm-up, 01/10/2026) left every existing
-# build/<preset> - the verify trees the releases are bundled from - on the old libdxvk_d3d9, and the game resolves the
-# warm-up by dlsym, so the bundle would have shipped without it and said nothing. Measured in build.ninja: the
-# dxvk_macos_build-build edge's only input was dxvk_macos_build-configure.
-#
-# So the step depends on the fork's own sources: an edit, a checkout or a gitlink move makes it dirty, the ninja inside
-# DXVK then rebuilds what changed, and an unchanged fork costs ninja a few hundred stats. CONFIGURE_DEPENDS re-globs at
-# build time, so a file added or removed by a gitlink move reconfigures even under build-macos-zh.sh --build-only (
-# a2-r2: a configure-time snapshot of the fork's HEAD missed exactly that path). An always-dirty input does NOT work
-# here, measured: CMake gives custom commands restat = 1, so a command that never writes its output leaves the step
-# clean. Here and not in dx8.cmake for the reason in this file's header.
+# Rebuild DXVK when the fork changes. dx8.cmake's ExternalProject has no BUILD_ALWAYS, so a moved fbraz3-dxvk
+# gitlink left build/<preset> on the old libdxvk_d3d9. The step depends on the fork's sources (CONFIGURE_DEPENDS).
+# An always-dirty input does not work: CMake's restat = 1 leaves the step clean when nothing is written.
 function(gx_dxvk_rebuild_on_fork_change src)
     if(NOT TARGET dxvk_macos_build)
         return()

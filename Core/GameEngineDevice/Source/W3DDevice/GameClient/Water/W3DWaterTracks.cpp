@@ -63,7 +63,7 @@
 #include "WW3D2/camera.h"
 #include "WW3D2/assetmgr.h"
 #include "WW3D2/dx8wrapper.h"
-#include "GameClient/GXWaterLive.h"	// GeneralsX @feature live water: the crests' colour and alpha (flush)
+#include "GameClient/GXWaterLive.h"	// GeneralsX: live water: the crests' colour and alpha (flush)
 
 // GeneralsX: The crests' colour this frame: retail's pure white unless live water lights them
 // (flush sets it from gxWaterLiveWaveFrame; GXWaterLiveGlue.inl). The render below ORs it under the wave's alpha.
@@ -318,8 +318,8 @@ Int WaterTracksObj::render(DX8VertexBufferClass	*vertexBuffer, Int batchStart)
 
 	// GeneralsX: Live water grows the crests in.
 	// The retail pose below gives every crest of the map one clock (SYNC_WAVES) and a
-	// crest is a sliver at full alpha the moment it starts to surge, so the whole coast drew a white line in one frame (Mini
-	// 22/10, TournamentB frame 855). With live water's waves part the crest is posed here instead, before the lock, so a crest
+	// crest is a sliver at full alpha the moment it starts to surge, so the whole coast drew a white line in one frame.
+	// With live water's waves part the crest is posed here instead, before the lock, so a crest
 	// between two breaks costs no draw: it breaks when the live swell reaches it and rides in from offshore, building smoothly
 	// (GXWaterLive.h, EA'S CRESTS). Off, or a type the .wak cannot hold: retail, untouched.
 	const Bool gxGrown = s_gxWave.on && m_type >= WaveTypeFirst && m_type <= WaveTypeLast;
@@ -965,7 +965,7 @@ Try improving the fit to vertical surfaces like cliffs.
 
 	// GeneralsX: Live water: the crests lit by the map (EA's diffuseLight above, never used) and
 	// their thin wave256 alpha doubled - else they read as faint lines. Off: white, alpha as retail.
-	gxWaterLiveWaveFrame(&s_gxWave);	// 22/10: and grown in on the swell's time (WaterTracksObj::render)
+	gxWaterLiveWaveFrame(&s_gxWave);	// and grown in on the swell's time (WaterTracksObj::render)
 	s_gxWaveRgb = s_gxWave.rgb;
 	const bool gxLive = s_gxWave.on;
 	const int gxAlphaGain = s_gxWave.alphaGain;
@@ -1065,7 +1065,7 @@ void WaterTracksRenderSystem::saveTracks()
 
 void WaterTracksRenderSystem::loadTracks()
 {
-	gxWaterLiveCrestsBegin();	// GeneralsX @bugfix live water's foam goes only where these crests break (GXWaterLive.h THE SURF)
+	gxWaterLiveCrestsBegin();	// GeneralsX: live water's foam goes only where these crests break (GXWaterLive.h THE SURF)
 
 	if (!TheTerrainLogic)
 		return;

@@ -214,7 +214,7 @@ inline void OutputDebugString(const char* lpOutputString) {
 }
 #endif
 
-// GeneralsX: strlcpy/strlcat come from WWLib/stringex.h only. The weak copies that sat
+// strlcpy/strlcat come from WWLib/stringex.h only. The weak copies that sat
 // here, behind a GX_COMPAT_PROVIDE_STRLCPY nothing defined, clashed with it on glibc < 2.38.
 
 #endif // !_WIN32

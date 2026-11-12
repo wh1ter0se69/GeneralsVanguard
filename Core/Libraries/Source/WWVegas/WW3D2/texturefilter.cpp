@@ -58,23 +58,10 @@ TextureFilterClass::TextureFilterMode TextureFilterClass::getTextureFilterMode(c
 	return TextureFilterClass::TEXTURE_FILTER_NONE;
 }
 
-// GeneralsX: THE DEFAULT IS WHAT PLAYERS ACTUALLY SAW: ANISOTROPIC 16X.
-//
-// Every shipped dxvk.conf forced d3d9.samplerAnisotropy = 16, which DXVK applies to every mipped
-// sampler above POINT whatever the game asked for (d3d9_device.cpp, BindSampler). So Bilinear,
-// Trilinear and Anisotropic 2x-8x all drew as 16x, and that force was the only anisotropy the
-// terrain ever got - its shaders set LINEAR themselves (W3DShaderManager.cpp TerrainShader2Stage::set).
-// W3DDisplay::init now hands DXVK the chosen level instead, so every choice draws as named - which
-// would have blurred the far ground for everyone on the default, because "Bilinear" was only sharp
-// through that force.
-//
-// So only a pick the launcher wrote is honoured - it writes GXTextureFilterPicked beside every one - and
-// any other file draws as the 16x it always drew as. The game's own Options screen has no filter
-// control and saves back whatever the file held, Bilinear when it held nothing (OptionsMenu.cpp,
-// "texture filter mode"), and the iOS seed says Anisotropic with no level (ios/config/Options.ini),
-// which the getter reads as 2x. Picks made in the 0.9.52-0.9.56 launchers carry no marker either: they
-// too draw as the 16x they drew as before, and the launcher shows the default until picked again -
-// which only changes the picture for Point and None, the two filters the old force left alone.
+// GeneralsX: the default is anisotropic 16x: every shipped dxvk.conf forced d3d9.samplerAnisotropy = 16, so Bilinear,
+// Trilinear and Anisotropic 2x-8x all drew as 16x. W3DDisplay::init now passes DXVK the chosen level, which would
+// blur far ground for everyone on the default, so only a pick the launcher wrote (GXTextureFilterPicked) is honoured;
+// any other file draws as 16x.
 void TextureFilterClass::Resolve_Launch_Choice(bool picked_in_launcher, TextureFilterMode& mode, AnisotropicFilterMode& level)
 {
 	if (!picked_in_launcher)

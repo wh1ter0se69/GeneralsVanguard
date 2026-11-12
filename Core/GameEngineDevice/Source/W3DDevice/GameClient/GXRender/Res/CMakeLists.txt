@@ -1,4 +1,6 @@
-# GeneralsX: WS-C GXRES v0: D3D8-semantics textures, buffers and render targets over VkCtx v0.
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# WS-C GXRES v0: D3D8-semantics textures, buffers and render targets over VkCtx v0.
 # Render-only and outside every digested path (resources/gitinfo/simsourcedigest_watcher.cmake): never list these sources in
 # a WW3D2 CMakeLists. Standalone: cmake -S <this dir> -B <dir> -G Ninja && cmake --build <dir>  ->  libgx_res.a + gx_res_test.
 cmake_minimum_required(VERSION 3.20)
@@ -43,7 +45,7 @@ option(GX_RES_TESTS "Build gx_res_test (the WS-C gates and fail arms)" ${GX_RES_
 if(GX_RES_TESTS)
     add_executable(gx_res_test tests/gx_res_test.cpp tests/gx_res_d3dvalues.cpp)
     target_link_libraries(gx_res_test PRIVATE gx_res)
-    # Provenance (rw2-C): every log's first line names the commit it was built from. Regenerated on EVERY build (ALL target,
+    # Provenance: every log's first line names the commit it was built from. Regenerated on EVERY build (ALL target,
     # copy_if_different), so a rebuild after a commit cannot keep printing the old sha.
     get_filename_component(GX_RES_REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../.." ABSOLUTE)
     add_custom_target(gx_res_build_sha ALL
@@ -68,7 +70,7 @@ if(GX_RES_TESTS)
     else()
         message(STATUS "gx_res: no D3D8 headers found - the d3d-values arm reports SKIPPED")
     endif()
-    # gx_res_mem (rw2-C): the phys_footprint A/B, native GXRES vs classic DXVK d3d8 on one texture set. macOS only
+    # gx_res_mem: the phys_footprint A/B, native GXRES vs classic DXVK d3d8 on one texture set. macOS only
     # (task_vm_info, footprint); its classic half needs the D3D8 headers and dlopens SDL3 + DXVK at run time (links neither).
     if(APPLE AND NOT IOS AND GX_RES_D3D8_DIR AND GX_RES_WINDOWS_DIR)
         add_executable(gx_res_mem tests/gx_res_mem.cpp tests/gx_res_mem_d3d8.cpp)

@@ -1,24 +1,25 @@
-// GeneralsX: removing a saved sign-in from disk, as a PURE function.
-//
-// PURE ON PURPOSE, the same way GXOnlineGate.h is: no engine, no AsciiString, no TheGlobalData, so
-// scripts/test/signout-files-test.cpp can drive it against real files in a scratch directory. The
-// properties it exists to hold are the ones a sign-out is judged by, and none of them is visible
-// from inside the running game:
-//
-//   1. NO COPY IS LEFT UNREPORTED. GXLoginFlow writes "<file>.tmp" and renames it into place, so a
-//      crash between the two leaves a complete, valid assertion in the .tmp. Nothing reads it back,
-//      so it signs nobody in - but it is a bearer token on disk, and a sign-out that leaves it has
-//      not removed the sign-in from the computer. Both files go, and if EITHER survives the answer
-//      says so. (A first version returned "gone" whenever the main file went, whatever happened to
-//      the .tmp - found by cross-model review, 18/09/2026.)
-//
-//   2. THE ANSWER IS TRUE. The two survivals are different facts and are kept apart, because the
-//      sentence each one produces is different: a surviving GXLogin.txt signs the player back in at
-//      the next launch, a surviving .tmp never does. A file that was ALREADY absent - deleted by
-//      hand, or a second sign-out - is GONE, not a failure: remove() alone reports it as a failure,
-//      which is what the code did before this existed.
-//
-// Not in the simulation digest: Core/GameEngine/Include/GameClient is not a digested root.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Removing a saved sign-in from disk, as a PURE function (scripts/test/signout-files-test.cpp drives it on real files).
+// NO COPY IS LEFT UNREPORTED: a crash between GXLoginFlow's write and rename leaves a bearer token in "<file>.tmp".
+// Both files go; if EITHER survives the answer says which: GXLogin.txt signs back in, a .tmp never does.
+// A file ALREADY absent is GONE, not a failure. Not in the simulation digest.
 #pragma once
 
 #include <cerrno>

@@ -99,9 +99,9 @@ OCLUpdateModuleData::OCLUpdateModuleData()
   p.add(dataFieldParse);
 }
 
-// GeneralsX: THE OWNER IS A PLAYER, NOT A COLOUR. An ownership change used to be found by comparing
-// player colours, so a capture between two players in one colour went unseen: the timer kept running and its random number was
-// never drawn. Two players can share a colour: a 32-seat game on fewer colours reuses them ([GXCAP] in GameLogic.cpp).
+// GeneralsX: THE OWNER IS A PLAYER, NOT A COLOUR. An ownership change is found by comparing owning players: comparing
+// player colours would miss a capture between two players in one colour, the timer would keep running and its random number would
+// never be drawn. Two players can share a colour: a 32-seat game on fewer colours reuses them ([GXCAP] in GameLogic.cpp).
 // A version 1 save holds only the colour. Its index stays OCL_OWNER_UNKNOWN until the first ownership check, which adopts the
 // owner if the colour still matches. If it does not, -1 equals no player, so the check reads as a change and re-arms the timer,
 // which is what the colour compare did.

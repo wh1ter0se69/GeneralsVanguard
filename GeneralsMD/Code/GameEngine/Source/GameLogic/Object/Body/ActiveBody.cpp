@@ -489,16 +489,9 @@ void ActiveBody::attemptDamage( DamageInfo *damageInfo )
 
 				}
 
-				// GeneralsX @bugfix The academy "cleared a garrisoned building" stat was being credited
-				// to thingToKill->getControllingPlayer() -- the *victim* -- and bumped once per occupant
-				// killed. The counter is only ever read as a boolean (AcademyStats::calculateAcademyAdvice
-				// tip 19, "ACADEMY:ClearBuildings"), so crediting the victim inverted the score-screen
-				// advice: the attacker who actually cleared the building was still told to go clear
-				// garrisoned buildings, while the defender who lost the occupants was told they already
-				// had. It also dereferenced getControllingPlayer() unchecked, and that returns NULL for
-				// a teamless object. Credit the damager's player instead, once per cleared building,
-				// matching DumbProjectileBehavior::projectileHandleCollision(), which handles the vast
-				// majority of garrison slayings and already does it this way.
+				// GeneralsX: credit the damaging player, not the victim, once per cleared building. The stat is only read as a boolean
+				// (AcademyStats tip 19, ClearBuildings), so crediting the victim inverted the advice. Matches
+				// DumbProjectileBehavior::projectileHandleCollision(). getControllingPlayer() can be NULL for a teamless object.
 				if( numKilled > 0 && damager )
 				{
 					Player* damagerPlayer = damager->getControllingPlayer();
@@ -514,8 +507,8 @@ void ActiveBody::attemptDamage( DamageInfo *damageInfo )
 		case DAMAGE_STATUS:
 		{
 			// Damage amount is msec time we set the status given in damageStatusType
-			// GeneralsX: rounded on the tick-rate grid at 60 Hz too, as Generals Online (was the retail grid,
-			// 23/09): e.g. an Avenger's faerie fire, which gives every attacker of the marked target a rate-of-fire bonus, lasts GO's frames.
+			// GeneralsX: rounded on the tick-rate grid at 60 Hz too, as Generals Online does:
+			// e.g. an Avenger's faerie fire, which gives every attacker of the marked target a rate-of-fire bonus, lasts GO's frames.
 			Real realFramesToStatusFor = ConvertDurationFromMsecsToFrames(amount);
 			obj->doStatusDamage( damageInfo->in.m_damageStatusType , REAL_TO_INT_CEIL(realFramesToStatusFor) );
 			alreadyHandled = TRUE;

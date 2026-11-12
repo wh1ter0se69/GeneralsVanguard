@@ -422,7 +422,6 @@ void W3DPropBuffer::drawProps(RenderInfoClass &rinfo)
 		// GeneralsX: ... or while the drawn fog under a CLEAR prop is still fading (fog interpolation,
 		// W3DShroud::isFadingUnder). ss is cached until the next logical change; the fade is not. The
 		// test uses the scale-aware footprint of the CLEAR test above: a mesh's cached sphere keeps its unscaled radius
-		//
 		Bool fading = FALSE;
 		if (TheTerrainRenderObject->getShroud() && m_props[i].ss == OBJECTSHROUD_CLEAR && TheGlobalData->m_clearAlpha == 255) {
 			SphereClass footprint = m_props[i].m_robj->Get_Bounding_Sphere();

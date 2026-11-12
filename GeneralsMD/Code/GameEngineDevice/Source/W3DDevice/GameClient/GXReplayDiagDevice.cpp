@@ -1,6 +1,24 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 // FILE: GXReplayDiagDevice.cpp ///////////////////////////////////////////////////////////////////
 //
-// GeneralsX: What only the device layer knows, for the replay diagnostics block (GameClient/GXReplayDiag.h).
+// What only the device layer knows, for the replay diagnostics block (GameClient/GXReplayDiag.h).
 //
 // Every native call the block needs lives here (platform code stays in the device layer). Of D3DADAPTER_IDENTIFIER8
 // only the model and the driver version leave: DeviceIdentifier is a GUID, SubSysId names the board, and Driver can be a path on
@@ -14,6 +32,7 @@
 #include "WW3D2/dx8wrapper.h"
 #include "WW3D2/ww3d.h"
 #include "W3DDevice/GameClient/GxNativeInstall.h"
+#include "W3DDevice/GameClient/GxDeviceSummary.h"
 
 #include <ctype.h>
 #include <stdlib.h>
@@ -112,7 +131,7 @@ static void putMachine( GXReplayDiagPutFn put )
 	{
 		while( fgets( line, sizeof( line ), f ) != NULL )
 		{
-			// ID and VERSION_ID, never PRETTY_NAME: this file is the owner's to edit, so only a known name and a number get out of it.
+			// ID and VERSION_ID, never PRETTY_NAME: this file is user-editable, so only a known name and a number get out of it.
 			const Bool isId = strncmp( line, "ID=", 3 ) == 0, isVersion = strncmp( line, "VERSION_ID=", 11 ) == 0;
 			if( !isId && !isVersion )
 				continue;
@@ -210,29 +229,37 @@ static void gxReplayDiagDeviceFacts( GXReplayDiagPutFn put )
 	}
 }
 
+/// The hardware report's extras (GameClient/GXHwReport.h), not written to replays: physical cores, and the Vulkan device's driver,
+/// device-local memory and API version, which D3D8's adapter identifier cannot give through DXVK.
+static void gxReplayDiagHwExtras( GXReplayDiagPutFn put )
+{
+	const int cores = GxPhysicalCores();
+	if( cores > 0 )
+		putNumber( put, "cpu.cores", cores );
+	if( DX8Wrapper::_Get_D3D8() == nullptr )
+		return;
+	GxDeviceSummary s;
+	if( !GxDeviceSummaryRead( DX8Wrapper::_Get_D3D_Device8(), &s ) )
+		return;
+	if( s.driver[ 0 ] != 0 )
+		put( "gpu.driver_info", s.driver );
+	if( s.vramMb > 0 )
+		putNumber( put, "gpu.vram_mb", (int)s.vramMb );
+	if( s.apiVersion != 0 )
+	{
+		char vk[ 24 ];
+		snprintf( vk, sizeof( vk ), "%u.%u.%u", ( s.apiVersion >> 22 ) & 0x7Fu, ( s.apiVersion >> 12 ) & 0x3FFu, s.apiVersion & 0xFFFu );
+		put( "gpu.vk", vk );
+	}
+}
+
 // GX-TEL-SAMPLER-BEGIN
-// ------------------------------------------------------------------------------------------------
-// GeneralsX: TELEMETRY PHASE 2: the game's own CPU and memory beside the machine's,
-// for the PERF row (GXReplayDiagFormat.h kind 3), from a sampler thread. 2.4 is the table of sources. Phase 2
-// reads NO GPU and walks no thread: per-thread class CPU, process GPU and machine GPU are cut to a phase 2b on every platform,
-// so cpu_render / cpu_audio / gpu_proc / sys_gpu are always UNKNOWN.
-//
-// PRIVACY IS AN ALLOW-LIST here too. This span calls OS APIs only, never engine code. It reads THIS process's totals and the machine's;
-// no thread list, never another process's name, never a serial, UUID, PCI id, MAC, host or user name. It resolves and loads NOTHING at
-// run time and defines no macro: scripts/test/replay-tel-device-allowlist-test.py greps this span, comments stripped, and fails any
-// forbidden name, any resolver / IOKit / PDH name, any #define, ## or line splice in it.
-//
-// THE THREAD is detached and never joined: a join in stopRecording (GameLogic.cpp:6334) could wait on an in-flight OS query. Its
-// shared block is heap-allocated once and never freed, so neither exit nor static destruction can take a mutex out from under it. It
-// runs at NORMAL priority on purpose: it has to keep sampling when the machine is saturated, which is exactly when a lowest-priority
-// thread starves and the rows that matter would read "sampler late".
-//
-// PUBLICATION: the sampler builds a CUMULATIVE sample with no lock held and copies it in under `pub`; the main thread try_locks, copies
-// the newest two and unlocks. If the lock is held, or nothing new arrived, the row says UNKNOWN + sampler late (fillRow) - the main
-// thread never waits. A row's numbers are the difference between the sample the previous row used and the newest one, normalised to
-// their interval, so every second is covered once whatever the phase between the two clocks; the sampler aims each sample 150 ms
-// before the main thread's next read, so a row normally sees exactly one new sample.
-// ------------------------------------------------------------------------------------------------
+// Telemetry phase 2: the game's CPU and memory beside the machine's, for the PERF row (GXReplayDiagFormat.h kind 3).
+// No GPU is read, so cpu_render / cpu_audio / gpu_proc / sys_gpu are always UNKNOWN. Privacy allow-list: OS APIs
+// only, totals only, never a serial, UUID, MAC, host or user name; defines no macro (a test greps this span).
+// The sampler thread is detached and never joined (a join could wait on an in-flight OS query); its shared block is
+// heap-allocated and never freed. Normal priority, so it keeps sampling when the machine is saturated.
+// The main thread try_locks and never waits.
 #include "GameClient/GXPerfReport.h"	// gxPerfMonoNs: the rows' clock, so a snapshot's interval compares with theirs
 
 #include <atomic>
@@ -315,7 +342,7 @@ inline void osDelta( const Raw &a, const Raw &b, GxTelOsSnapshot &out )
 	out.cpuRenderMs = GX_TEL_U16_UNKNOWN;
 	out.cpuAudioMs = GX_TEL_U16_UNKNOWN;
 	out.cpuPcoreMs = gxTelNarrowU16( perSecond( a.pcoreNs, b.pcoreNs, dt ) );
-	// No GPU reader on any platform in phase 2 (cut to a phase 2b, 06/11): both GPU fields are always UNKNOWN
+	// No GPU reader on any platform in phase 2: both GPU fields are always UNKNOWN
 	out.gpuProcMs = GX_TEL_U16_UNKNOWN;
 	out.sysGpuPct = GX_TEL_U8_UNKNOWN;
 	long long x10 = -1;
@@ -342,7 +369,7 @@ struct ProcStatCpu
 /// /proc/stat's all-cores line into the sample: total = the first eight fields, iowait INCLUDED (it is elapsed time the CPUs spent idle,
 /// waiting), busy = total - idle - iowait. A field may go DOWN between two reads (proc(5): iowait is not reliable); a delta across that
 /// would read the fall as busy time, and leaving iowait out of total instead counts a waiting second as busy
-/// (replay-tel-7-r12) - so a read with any field below the previous read's breaks the machine CPU's continuity and no delta spans it.
+/// - so a read with any field below the previous read's breaks the machine CPU's continuity and no delta spans it.
 /// EVERY field the line reports is watched, guest and guest_nice included; only the first eight are summed, since guest time is already
 /// inside user / nice.
 inline bool procStatSample( const char *line, ProcStatCpu &st, Raw &r )
@@ -474,7 +501,7 @@ static void sampleOs( Sampler &s, Raw &r, long long now )
 	// The process's CPU counters LAST, then their stamp at once: nothing read between them can stretch their interval.
 	// Machine CPU is a ratio and memory a level, so their own read time does not enter a row's numbers.
 #if !TARGET_OS_IPHONE && defined( __arm64__ )
-	// Time on P-cores. rusage_info's times are mach ticks, not ns (measured 06/11 on an M5: ri_user_time + ri_system_time x 125/3 =
+	// Time on P-cores. rusage_info's times are mach ticks, not ns (ri_user_time + ri_system_time x 125/3 =
 	// getrusage's total), so they go through the timebase.
 	rusage_info_v6 ri;
 	if( proc_pid_rusage( getpid(), RUSAGE_INFO_V6, (rusage_info_t *)&ri ) == 0 && s.timebase.denom != 0 )
@@ -779,5 +806,6 @@ static void gxReplayTelRegisterSampler( void )
 void gxReplayDiagRegisterDevice( void )
 {
 	gxReplayDiagSetDeviceFacts( gxReplayDiagDeviceFacts );
+	gxReplayDiagSetHwExtras( gxReplayDiagHwExtras );
 	gxReplayTelRegisterSampler();
 }

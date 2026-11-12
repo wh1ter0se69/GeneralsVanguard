@@ -145,16 +145,10 @@ Bool OverlordContain::isSpecificRiderFreeToExit(Object* obj)
 	return TransportContain::isSpecificRiderFreeToExit(obj);
 }
 
-// GeneralsX: Block instant-exit path for portable structures.
-// AIExitInstantlyState::onEnter() calls exitObjectViaDoor(obj, DOOR_1) directly, bypassing
-// reserveDoorForExit and isSpecificRiderFreeToExit entirely. The Gatling Cannon enters
-// AI_EXIT_INSTANTLY because it has attack weapons and its attack state machine transitions
-// through CHASE_TARGET (ContinueState) -> EXIT_MACHINE_WITH_FAILURE -> AI_EXIT_INSTANTLY
-// when force-attacking empty terrain. Propaganda Tower never hits this path (no weapons).
-// GeneralsX: Issue #95: redeployOccupants calls putObjAtNextFirePoint on
-// PORTABLE_STRUCTURE riders which triggers Object::reactToTransformChange and destroys them.
-// The portable position is managed exclusively by syncPortablePosition().
-// Non-portable occupants (if any) are still redeployed via the parent.
+// GeneralsX: block the instant-exit path for portable structures: AIExitInstantlyState::onEnter calls exitObjectViaDoor
+// directly, bypassing reserveDoorForExit and isSpecificRiderFreeToExit (a force-attacking Gatling Cannon reaches it).
+// redeployOccupants must not call putObjAtNextFirePoint on PORTABLE_STRUCTURE riders: it destroys them.
+// syncPortablePosition() owns their position; other occupants are redeployed via the parent.
 void OverlordContain::redeployOccupants()
 {
 	// In practice the Overlord's own contain list only ever has a single portable upgrade,

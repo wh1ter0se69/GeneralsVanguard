@@ -1,32 +1,25 @@
-// GeneralsX: the shipped maps, installed by the ENGINE where no launcher runs (iOS).
-//
-// Every payload carries the maps in
-// scripts/build/overlay-maps.txt as loose files in <GeneralsXPatch>/ShippedMaps/<Name>/, and on the desktop the
-// launcher's PLAY copies them into <userdata>/Maps (scripts/launcher-rs/gxio/src/shippedmaps.rs). An iPad has no
-// launcher, so nothing did, and its player saw them only by lobby transfer. This is that copy, for the engine.
-//
-// INTO <userdata>/Maps AND NOWHERE ELSE, which is the whole design. MapCache scans that folder from disk on every
-// updateCache (MapUtil.cpp) as user maps, and GameState::realMapPathToPortableMapPath names anything under it
-// PORTABLE_USER_MAPS - the same lobby path a desktop that PLAYed gives the same map, so an iPad and a PC in one lobby
-// agree on it. The OFFICIAL root (getMapDir, "Maps" in the game folder) is never touched: it is read from a prebuilt
-// MapCache.ini, so a map put there would not even show, and if it did it would carry a different lobby path.
-//
-// NOT SHOWN TWICE: one map, one folder. The destination is <Maps>/<Name>/, exactly where the launcher writes, and a
-// map whose .map bytes already match is left alone; MapCache keys a map by its path, so a folder the launcher (or an
-// earlier start) already filled is the same entry, not a second one.
-//
-// THE RULE IS THE LAUNCHER'S, so the two can never disagree about what a player has:
-//   * installed when <Maps>/<Name>/<Name>.map is missing, replaced when its bytes differ, left alone when equal
-//     (equal bytes is shippedmaps.rs's "same sha256" without hashing);
-//   * only the shipped folder's own regular files are written, the .map LAST, each through a temp name + rename, so an
-//     interrupted install leaves the old .map and the next start sees the difference again;
-//   * nothing is ever deleted; a folder the player made under any other name is never opened;
-//   * a symlink, a folder without <Name>.map, or a name that is not one plain path segment is skipped;
-//   * a map that cannot be written is listed in `failed` and the others still install. Nothing here throws.
-//
-// Header-only and engine-free on purpose, like GXUserDataDir.h: scripts/test/shipped-maps-test.cpp runs it on any host.
-// Outside the simulation: maps are not in dataID or the sim digest (SimulationId.cpp), and this header is in no
-// digested directory.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The shipped maps, installed by the ENGINE where no launcher runs (iOS); desktop launchers copy them on PLAY.
+// Into <userdata>/Maps/<Name>/ only: MapCache scans it as user maps, so an iPad and a PC agree on the lobby path.
+// Install if <Name>.map is missing, replace if bytes differ; the .map is written LAST (temp + rename).
+// Nothing is deleted; symlinks and odd names are skipped; a map that cannot be written is listed in `failed`.
 
 #pragma once
 

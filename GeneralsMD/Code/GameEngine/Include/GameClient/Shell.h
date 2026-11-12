@@ -180,7 +180,7 @@ protected:
 	AsciiString m_pendingPushName;													///< layout name to be pushed
 	Bool m_isShellActive;																		///< TRUE when the shell is active
 	Bool m_shellMapOn;																			///< TRUE when the shell map is on
-	Bool m_isDeconstructing;									///< GeneralsX @bugfix (issue #2777) TRUE during shell teardown; revealed screens must not re-init then
+	Bool m_isDeconstructing;									///< GeneralsX: (issue #2777) TRUE during shell teardown; revealed screens must not re-init then
 	AnimateWindowManager *m_animateWindowManager;						///< The animate Window Manager
 	ShellMenuSchemeManager *m_schemeManager;								///< The Shell Scheme Manager
 

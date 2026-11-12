@@ -26,7 +26,7 @@ extern "C" {
 #include "codex.h"
 
 /****************************************************************/
-/*  REF Codex                                                   */
+/*  REF review                                                   */
 /****************************************************************/
 
 /* Information Functions */
@@ -42,7 +42,7 @@ int        GCALL REF_decode(void *dest, const void *compresseddata, int *compres
 #else
 int        GCALL REF_decode(void *dest, const void *compresseddata, int *compressedsize);
 #endif
-/* GeneralsX @bugfix Bounds-checked variant; see refdecode.cpp. Returns 0 if the
+/* GeneralsX: Bounds-checked variant; see refdecode.cpp. Returns 0 if the
  * stream would read past compresseddata+compressedsize or write past dest+destsize. */
 int        GCALL REF_decode_bounded(void *dest, int destsize, const void *compresseddata, int compressedsize, int *compressedsizeout);
 

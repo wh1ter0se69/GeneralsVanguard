@@ -16,21 +16,9 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: One number parser for INI data on every platform.
-//
-// INI values feed the simulation, so every peer must turn the same text into the same bits. INI.cpp used
-// std::from_chars on Windows and Linux but sscanf on Apple, because Apple's libc++ only ships float
-// from_chars from macOS/iOS 26 (we target 15 and 16). The two agree on every number in the shipped data,
-// but not on the grammar at the edges: sscanf reads "0x1p3" as 8 where from_chars reads 0, accepts
-// out-of-range values that from_chars rejects (INI.cpp then throws on one platform only), and rejects
-// "+-1" that the '+' strip lets from_chars read. A custom map's map.ini is enough to hit any of these.
-//
-// Floats now go through fast_float (header-only, the same code libstdc++'s from_chars is built on) on
-// every platform, so grammar and rounding are identical by construction. inf and nan are rejected, as retail did. Integers use std::from_chars,
-// which is header-only and available on every target. scripts/test/ini-numbers checks this function
-// against a golden corpus of every number in the retail and GeneralsX INI data.
-//
-// Kept free of engine headers so that test can compile it alone.
+// One INI number parser for every platform, so every peer turns the same text into the same bits. Apple libc++
+// lacks float from_chars before macOS/iOS 26 and sscanf differs at the edges, so floats use fast_float everywhere.
+// inf and nan are rejected as in retail; integers use std::from_chars. Engine-free: scripts/test/ini-numbers.
 
 #pragma once
 

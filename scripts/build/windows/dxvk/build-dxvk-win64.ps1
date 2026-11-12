@@ -1,4 +1,6 @@
-# GeneralsX: Build the Windows DXVK pair (d3d8.dll + d3d9.dll) players get - reproducibly.
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Build the Windows DXVK pair (d3d8.dll + d3d9.dll) players get - reproducibly.
 #
 # WHAT: upstream DXVK v2.6 + patches\*.patch, in name order:
 #   0001-0002  build fixes only: the <cstddef> include and upstream 62b99d7b0f. v2.6 does not compile with GCC 16 and
@@ -120,7 +122,7 @@ try {
 	# env, not -c user.*: GIT_COMMITTER_* in this box's environment would beat -c and move every sha
 	$env:GIT_COMMITTER_NAME = 'GeneralsX'; $env:GIT_COMMITTER_EMAIL = 'dxvk-build@generalsx.invalid'
 	Remove-Item Env:GIT_COMMITTER_DATE -ErrorAction SilentlyContinue
-	# GeneralsX: countermand the user-level settings that change what git am
+	# countermand the user-level settings that change what git am
 	# commits - commit.gpgSign (a signature, or no key = failure), am.messageid (a Message-Id line), mailinfo.scissors.
 	Native "git -C $src am -q --no-gpg-sign --no-message-id --no-scissors --committer-date-is-author-date $(($patches | ForEach-Object FullName) -join ' ')" 'git am patches'
 	$head = (git -C $src rev-parse HEAD).Trim()

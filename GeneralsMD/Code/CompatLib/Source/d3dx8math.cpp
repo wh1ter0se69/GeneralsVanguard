@@ -1,3 +1,21 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 // GLM_ENABLE_EXPERIMENTAL is passed via target_compile_definitions in CMakeLists.txt.
 // Do NOT redefine it here -- that causes -Wmacro-redefined with Clang.
 
@@ -13,7 +31,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-// GeneralsX: Match the real D3DX8 contract (checked by scripts/test/d3dx-math-contract-test.sh).
+// Match the real D3DX8 contract (checked by scripts/test/d3dx-math-contract-test.sh).
 // The two converters copy the SAME mathematical matrix across (row r, column c <-> _rc), which is right for the
 // convention-free operations (Multiply, Inverse, Transpose). D3DX is ROW-vector ([x y z 1] * M, translation in
 // _41/_42/_43) while GLM's builders are COLUMN-vector (M * v, translation in column 3), so a GLM-built transform must

@@ -209,38 +209,39 @@ public: // AIPlayer interface, may be overridden by AISkirmishPlayer.  jba.
 	virtual void recruitSpecificAITeam(TeamPrototype *teamProto, Real recruitRadius); ///< Builds this team immediately.
 
 	virtual Bool isSkirmishAI() {return false;}
-	/// GeneralsX 22/10/2026 (ai-wh1ter0se-econ R, 6): AI_PLAYER_FACE_FRONT turned on; the point the doors face (FALSE: none).
+	/// AI_PLAYER_FACE_FRONT turned on; the point the doors face (FALSE: none).
 	void gxSetFaceFront(Bool on) { m_gxFaceFront = on; }
 	Bool gxFaceFront() const { return m_gxFaceFront; }
 	virtual Bool gxFrontPoint(Coord3D *out) { (void)out; return FALSE; }
-	/// GeneralsX 22/10/2026 (ai-wh1ter0se-econ T, 7): AI_PLAYER_TUNNEL_AIR_WATCH's radius; 0 = off (stock).
-	/// GeneralsX 27/10/2026 (ai-pro-rules-2 T2): a NEGATIVE radius is the observe-only watch of the ablation arm T0 - the same AA team,
-	/// lifetime rule and [GXTAA] engageable lines, and no assignment, exit, attack or return order. gxAirWatchRadius() is the ACTING
-	/// radius (0 in T0, so every "watch on" test elsewhere stays T's); gxAirWatchScanRadius() is the radius both arms scan with.
+	/// Radius of AI_PLAYER_TUNNEL_AIR_WATCH; 0 = off (stock).
+	/// A NEGATIVE radius is the observe-only watch: the same AA team, lifetime rule and [GXTAA] engageable lines, and no assignment,
+	/// exit, attack or return order. gxAirWatchRadius() is the ACTING radius (0 when observe-only); gxAirWatchScanRadius() is the
+	/// radius both modes scan with.
 	void gxSetAirWatchRadius(Int r) { m_gxAirWatchRadius = r; }
 	Int gxAirWatchRadius() const { return m_gxAirWatchRadius > 0 ? m_gxAirWatchRadius : 0; }
+	Bool gxAirWatchTeamKeyKnown() const;	///< GeneralsX: rw-1: looking the watch's team up by name cannot allocate a name key
 	Int gxAirWatchScanRadius() const { return m_gxAirWatchRadius < 0 ? -m_gxAirWatchRadius : m_gxAirWatchRadius; }
 	void gxSetAirWatchTeam(const AsciiString& team) { m_gxAirWatchTeam = team; }
-	/// GeneralsX 27/10/2026 (ai-pro-rules-2 T2 lifetime): may this AI build (reinforce = FALSE) or reinforce the air-watch team now?
-	/// Every other team: TRUE. Build needs C's airfield term, reinforcement needs C (AIPlayer.cpp).
+	/// May this AI build (reinforce = FALSE) or reinforce the air-watch team now? Every other team: TRUE.
+	/// Build needs the airfield term of condition C, reinforcement needs condition C (AIPlayer.cpp).
 	Bool gxAirTeamAllowed(const TeamPrototype *proto, Bool reinforce) const;
-	/// GeneralsX 27/10/2026 (ai-pro-rules-2 T2): an AA guard on its way back into the tunnels after its assigned aircraft (the tunnel
-	/// guard's Return state then turns back for nothing).
+	/// An AA guard on its way back into the tunnels after its assigned aircraft (the tunnel guard Return state would
+	/// otherwise turn back for nothing).
 	Bool gxAirReturning(ObjectID unit) const;
-	/// GeneralsX 27/10/2026 (ai-pro-rules-2 T2): with the ACTING watch on, a member of the air-watch team never
-	/// takes an aircraft as its own idle-mood attack target (AIIdleState) - every attack order at an aircraft is an assignment
+	/// With the ACTING watch on, a member of the air-watch team never takes an aircraft as its own idle-mood attack target
+	/// (AIIdleState); every attack order at an aircraft is an assignment.
 	Bool gxAirWatchTeamMemberSkips(const Object *unit, const Object *target) const;
-	Bool gxAirAttackAuthorized(const Object *unit, const Object *target) const;	///< T2 r8: may this unit attack this aircraft (its own row's plane only)
+	Bool gxAirAttackAuthorized(const Object *unit, const Object *target) const;	///< may this unit attack this aircraft (its own row's plane only)
 	void gxAirRecruitEndsAirAttack(Object *unit) const;	///< t2-fix cause N: a recruit into the watch team drops an aircraft attack the watch refuses
 	void gxAirLogTeam(const TeamPrototype *proto, const char *state);	///< [GXTAA] ev=team (test-instruments builds; no-op otherwise)
-	/// GeneralsX 28/10/2026: TRUE when gxFrontPoint's answer cannot change for the rest of the game (AIPlayer.cpp gxBuildAngles).
+	/// TRUE when the answer of gxFrontPoint cannot change for the rest of the game (AIPlayer.cpp gxBuildAngles).
 	virtual Bool gxFrontPointFixed() { return TRUE; }
-	/// GeneralsX 04/11/2026 base-layout: this side's list carries GXFrontDoors (FALSE for a campaign AI)
+	/// The list for this side carries GXFrontDoors (FALSE for a campaign AI)
 	virtual Bool gxFrontDoors() { return FALSE; }
-	/// GeneralsX 06/11/2026 base-layout (ADDENDUM_8 -> ADDENDUM_9): the point supply depots are ranked from and a supply centre is offset towards
-	/// (findSupplyCenter, buildBySupplies): the base centre, or a keyed skirmish list's STOCK centre (AISkirmishPlayer).
+	/// The point supply depots are ranked from and a supply centre is offset towards (findSupplyCenter, buildBySupplies):
+	/// the base centre, or the STOCK centre of a keyed skirmish list (AISkirmishPlayer).
 	virtual const Coord3D &gxSupplyRef() const { return m_baseCenter; }
-	/// GeneralsX 30/10/2026 rb-core: this AI's rule bank - AISkirmishPlayer's; nullptr for a campaign AI
+	/// Rule bank of this AI (AISkirmishPlayer only); nullptr for a campaign AI
 	virtual GXRuleBank *gxRuleBank() { return nullptr; }
 	Int hoardThreshold();	///< GeneralsX: the bank above which this AI spends faster (0 = never; AIPlayer.cpp)
 	Bool isHoarding();		///< GeneralsX: the bank is above hoardThreshold()
@@ -338,11 +339,11 @@ protected:
 	Int			m_skillsetSelector;
 
 	Coord3D m_baseCenter; // Center of the initial build list of structures.
-	Bool m_gxFaceFront;	///< GeneralsX 22/10/2026: AI_PLAYER_FACE_FRONT (ai-wh1ter0se-econ R; AIPlayer xfer v2)
-	Int m_gxAirWatchRadius;	///< GeneralsX 22/10/2026: AI_PLAYER_TUNNEL_AIR_WATCH (ai-wh1ter0se-econ T; AISkirmishPlayer xfer AIR_WATCH = 4, was 3 before the bank); < 0 = T0
-	AsciiString m_gxAirWatchTeam;	///< GeneralsX 22/10/2026: the AA team whose idle members go back into the tunnels (xfer AIR_WATCH = 4)
-	/// GeneralsX 27/10/2026 (ai-pro-rules-2 T2; AISkirmishPlayer xfer AIR_GUARDS = 5, was 4 before the bank): the AA guards the watch has sent at an aircraft, and those
-	/// on their way back in. One row per unit; a unit is in at most one row.
+	Bool m_gxFaceFront;	///< AI_PLAYER_FACE_FRONT (AIPlayer xfer v2)
+	Int m_gxAirWatchRadius;	///< AI_PLAYER_TUNNEL_AIR_WATCH (AISkirmishPlayer xfer AIR_WATCH = 4); < 0 = observe-only
+	AsciiString m_gxAirWatchTeam;	///< the AA team whose idle members go back into the tunnels (xfer AIR_WATCH = 4)
+	/// The AA guards the watch has sent at an aircraft, and those on their way back in (AISkirmishPlayer xfer AIR_GUARDS = 5).
+	/// One row per unit; a unit is in at most one row.
 	enum { GX_AIR_GUARDS_MAX = 32 };
 	enum { GX_AIR_ASSIGNED = 1, GX_AIR_ATTACKING = 2, GX_AIR_RETURNING = 3 };
 	struct GXAirGuard { ObjectID unit; ObjectID plane; Int state; };
@@ -352,8 +353,8 @@ protected:
 	Bool m_gxAirCAirfield;	///< C's airfield term at its last evaluation
 	Bool m_gxAirCKnown;			///< C has been evaluated (its first value is logged too)
 	UnsignedInt m_gxAirSeenFrame;	///< the last frame a hostile aircraft was visible to this player; 0 = never
-	/// GeneralsX 27/10/2026 (ai-pro-rules-2 T2, test-instruments LOGS only - nothing reads them, not saved): the raid planes of the
-	/// previous pass, so a plane that dies or leaves is logged ([GXTAA] ev=plane_gone); after a load the first pass has none.
+	/// Logging only (test-instruments builds; nothing reads them, not saved): the raid planes of the previous pass, so a plane
+	/// that dies or leaves is logged ([GXTAA] ev=plane_gone); after a load the first pass has none.
 	ObjectID m_gxAirPrevRaid[16];
 	Int m_gxAirPrevRaidCount;
 	Bool		m_baseCenterSet; // True if baseCenter is valid.

@@ -265,7 +265,7 @@ public:
 	//~BuildListInfo();								///< Note that deleting the head of a list deletes all linked objects in the list.
 
 	static void parseStructure(INI *ini, void *instance, void* /*store*/, const void* /*userData*/);
-	static void parseGXFallbackLocation(INI *ini, void *instance, void *store, const void *userData);	///< GeneralsX 06/11/2026 base-layout (ADDENDUM_8)
+	static void parseGXFallbackLocation(INI *ini, void *instance, void *store, const void *userData);	///< INI parse handler for a fallback location
 
 protected:
 
@@ -366,18 +366,18 @@ public:
 	void setFallbackSpot(const Coord3D &loc, Real angle) { m_fallbackLocation = loc; m_fallbackAngle = angle; m_hasFallback = true; m_gxLayoutFallback = false; }
 	/// Moves the entry to its fallback spot, once: TRUE if it moved (the caller then tries the new spot), FALSE if there is none.
 	Bool useFallbackSpot() { if (!m_hasFallback) return false; m_location = m_fallbackLocation; m_angle = m_fallbackAngle; m_hasFallback = false; m_gxLayoutFallback = false; return true; }
-	/// GeneralsX: TRUE while the entry still stands on its pro spot (its today's-spot fallback unused).
-	/// GeneralsX 06/11/2026 base-layout: a supply centre's today's spot only; a layout fallback (hasLayoutFallback) is not one, so the supply readers
-	/// (the two-truck target, the truck ceiling, gxRelocateQueued's protection) see a keyed entry exactly as before.
+	/// TRUE while the entry still stands on its pro spot (its fallback unused). A supply centre's own spot only; a
+	/// layout fallback (hasLayoutFallback) is not one, so the supply readers (the two-truck target, the truck
+	/// ceiling, gxRelocateQueued's protection) see a keyed entry unchanged.
 	Bool hasFallbackSpot() const { return m_hasFallback && !m_gxLayoutFallback; }
-	/// GeneralsX 06/11/2026 base-layout (ADDENDUM_8): TRUE while the entry holds an unused fallback that came from the layout data.
+	/// TRUE while the entry holds an unused fallback that came from the layout data.
 	Bool hasLayoutFallback() const { return m_hasFallback && m_gxLayoutFallback; }
-	/// GeneralsX 06/11/2026 base-layout (ADDENDUM_8, condition 1): useFallbackSpot for a LAYOUT fallback only; a supply centre's today's spot, or
-	/// no fallback, returns FALSE and leaves the entry as it is (AIPlayer::buildStructureWithDozer's "nothing found" then takes today's path).
+	/// useFallbackSpot for a LAYOUT fallback only; a supply centre's own spot, or no fallback, returns FALSE and
+	/// leaves the entry as it is (AIPlayer::buildStructureWithDozer's "nothing found" then takes the normal path).
 	Bool gxUseLayoutFallback() { if (!hasLayoutFallback()) return false; return useFallbackSpot(); }
-	/// GeneralsX 06/11/2026 base-layout: a layout fallback, set by the parse and placed by AISkirmishPlayer::adjustBuildList.
+	/// A layout fallback, set by the parse and placed by AISkirmishPlayer::adjustBuildList.
 	void gxSetLayoutFallback(const Coord3D &loc, Real angle) { m_fallbackLocation = loc; m_fallbackAngle = angle; m_hasFallback = true; m_gxLayoutFallback = true; }
-	/// GeneralsX 06/11/2026 base-layout: forgets a layout fallback (a list without GXTurnLayout); a supply centre's fallback stays.
+	/// Forgets a layout fallback (a list without GXTurnLayout); a supply centre's fallback stays.
 	void gxDropLayoutFallback() { if (m_gxLayoutFallback) { m_hasFallback = false; m_gxLayoutFallback = false; } }
 	/// GeneralsX: Today's spot while it is still unused (nullptr after useFallbackSpot or when there is none), so a
 	/// caller can test it BEFORE giving up the face (AISkirmishPlayer::processBaseBuilding, AIPlayer::buildStructureWithDozer).

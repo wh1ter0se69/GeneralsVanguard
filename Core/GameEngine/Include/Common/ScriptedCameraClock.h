@@ -16,21 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: The scripted camera's clock.
-//
-// A scripted camera move ends by CAMERA_MOVEMENT_FINISHED, a script condition, and GameEngine::isTimeFrozen reads the same
-// answer, so the logic frame a move ends on is simulation state. It steps once per new logic frame, always one logic frame
-// long - whatever the draws did: tick catch-up on or off, a skipped draw, fast forward, a pause, a replay (r10b
-// found three ways the earlier per-draw clocks ended a move on another frame).
-//
-// Step B (GeneralsX 08/10/2026): ScriptedCameraTimeline below is that clock without a pose - which moves run, their step
-// counts, the time multiplier and its divider, the camera freeze, a motion blur's logic lifetime - and it is SIMULATION code:
-// in the digest (Common/). The simulation's instance (GameLogic/ScriptedCamera.h, TheScriptedCamera) is fed by script actions
-// alone and stepped by GameLogic::update, so every peer - rendered, -headless, the standing host, ReplaySimulation - answers
-// CAMERA_MOVEMENT_FINISHED alike (a headless peer's ViewDummy answered a constant TRUE). W3DView runs its own instance for its
-// pose, fed by every caller (the player's camera keys too), and draws the camera between the last two logic frames' poses.
-//
-// Header-only and free of engine types so scripts/test/scripted-camera-clock-test.sh runs this exact code.
+// The scripted camera clock. CAMERA_MOVEMENT_FINISHED and GameEngine::isTimeFrozen read it, so the frame a move
+// ends on is simulation state: it steps once per new logic frame whatever the draws did (catch-up, skip, replay).
+// The GameLogic instance is fed by script actions alone and stepped by GameLogic::update, so rendered, headless and
+// replay peers agree. Header-only: scripts/test/scripted-camera-clock-test.sh.
 
 #pragma once
 
@@ -103,8 +92,8 @@ namespace ScriptedCameraClock
 	enum { BLUR_MAX_COUNT = 60, BLUR_COUNT_STEP = 5 };
 
 	// A script's time multiplier, bounded: an interpolation between INT_MAX-sized ones leaves int range, and that float -> int
-	// conversion differs by CPU (arm64 saturates, x64 gives INT_MIN: camera-sim-B), and a divider of thousands of
-	// frames is no camera move anyone scripts. Symmetric, so every value <= 1 still means "no speed-up", as before.
+	// conversion differs by CPU (arm64 saturates, x64 gives INT_MIN), and a divider of thousands of
+	// frames is no camera move anyone scripts. Symmetric, so every value <= 1 still means "no speed-up".
 	enum { MAX_TIME_MULTIPLIER = 1000 };
 	inline int clampTimeMultiplier(int m)
 	{
@@ -113,7 +102,7 @@ namespace ScriptedCameraClock
 
 	// A float's int value, the same on every CPU: the C++ conversion (toward zero) in range, saturated beyond it, 0 for NaN. The
 	// plain conversion of a NaN or out-of-range float is undefined and differs by CPU (arm64 saturates, x64 gives INT_MIN), and
-	// a scripted camera move's numbers are a map's raw floats (camera-sim-B r3/r4). Every float -> int here goes through it.
+	// a scripted camera move's numbers are a map's raw floats. Every float -> int here goes through it.
 	inline int toIntSaturate(double x)
 	{
 		if (!(x == x))
@@ -141,7 +130,7 @@ namespace ScriptedCameraClock
 
 		bool setEaseTimes(float easeInTime, float easeOutTime)
 		{
-			// a NaN (a map's raw float) clamps like a negative: every comparison with it is false (camera-sim-B)
+			// a NaN (a map's raw float) clamps like a negative: every comparison with it is false
 			bool ok = true;
 			in = easeInTime;
 			if (!(in >= 0.0f && in <= 1.0f)) {
@@ -175,7 +164,7 @@ namespace ScriptedCameraClock
 	};
 }
 
-// GeneralsX: Step B: the timing of scripted camera moves, with no pose (see the top of this file).
+// Step B: the timing of scripted camera moves, with no pose (see the top of this file).
 // Every rule is W3DView's (its setup and OneFrame functions, A's logic-frame clock), except where W3DView's answer read the
 // camera: a path ends on its duration alone (W3DView also ended it when the eased distance reached the last waypoint - the
 // first segment runs from the camera), a path's time multiplier follows its eased time (W3DView: the eased distance through
@@ -355,15 +344,15 @@ public:
 			const float before = m_path.elapsed;
 			m_path.elapsed += pathMs;
 			// ...or stops growing under a real step: past ~2^28 ms a float sum of 16.7 ms steps rounds back to itself, and a path of
-			// days never ended - the rendered freeze loop (W3DDisplay::draw) never returned (camera-sim-B). A zero step
+			// days never ended - the rendered freeze loop (W3DDisplay::draw) never returned. A zero step
 			// (the halted draw's slice) is no stall.
 			if (m_path.elapsed > m_path.total || (pathMs > 0.0f && m_path.elapsed == before))
 			{
 				m_moves &= ~PATH;
 				m_freeze = false;
 				// its final multiplier, however the steps fell: W3DView kept the last one it sampled, which depends on the step's
-				// length - a frozen path run out at frameMs here and at the draw's slice in the view kept different ones
-				// (camera-sim-B). A rotation's last sample (cur == num) is its end multiplier already.
+				// length - a frozen path run out at frameMs here and at the draw's slice in the view kept different ones.
+				// A rotation's last sample (cur == num) is its end multiplier already.
 				m_multiplier = m_path.endMultiplier;
 				did |= ENDED_PATH;
 			}
@@ -420,8 +409,8 @@ public:
 
 	/// A camera-only freeze: no logic frame passes until its moves end, and no script runs meanwhile, so they end at once - in
 	/// the state stepping them out leaves (a rotation's or a path's end multiplier, its freeze cleared), without the steps: a
-	/// path of days stepped 16.7 ms at a time never ends once its float elapsed time stops growing (2^29 ms:
-	/// camera-sim-B), and this loop would never return.
+	/// path of days stepped 16.7 ms at a time never ends once its float elapsed time stops growing (2^29 ms),
+	/// and this loop would never return.
 	void runToEnd()
 	{
 		if (m_moves & ROTATE)

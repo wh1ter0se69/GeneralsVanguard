@@ -1,3 +1,21 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "OpenALAudioDevice/OpenALAudioStream.h"
 #include "OpenALAudioDevice/OpenALAudioManager.h"
 #include <AL/alext.h>
@@ -34,7 +52,7 @@ std::set<const OpenALAudioStream *> &liveStreams()
 
 double nowSeconds()
 {
-	// GeneralsX: Was clock_gettime(CLOCK_MONOTONIC), which MSVC does not
+	// Was clock_gettime(CLOCK_MONOTONIC), which MSVC does not
 	// provide. This file had never been compiled on Windows - the OpenAL backend could not build
 	// there at all - so the gap only surfaced once it could. steady_clock IS the monotonic clock
 	// on every platform we target, so this is the same guarantee with no #ifdef and no change in
@@ -149,25 +167,8 @@ bool OpenALAudioStream::bufferData(const uint8_t *data, size_t data_size, ALenum
 
     ALuint &current_buffer = m_buffers[m_current_buffer_idx];
     // GeneralsX: Detect and reject invalid OpenAL buffer/queue operations.
-    //
-    // GeneralsX: This drain was UNBOUNDED, and alGetError() does not
-    // always clear. With no current context OpenAL Soft returns AL_INVALID_OPERATION from every
-    // call - and logs a warning per call - so `while (alGetError() != AL_NO_ERROR) {}` never
-    // terminates. It spins at 100% CPU inside the formatter for that warning.
-    //
-    // That is a real hang, not a theoretical one. A headless Linux host froze here, reached by
-    // MultiPlayerLoadScreen::init -> OpenALAudioManager::update while loading the map, and never
-    // simulated a single frame. It presented as "the match never starts", which reads exactly
-    // like a network fault and cost a session to find. It is latent on EVERY platform, not a
-    // Linux quirk: any context that is lost or never created - a headless run, or an output
-    // device disconnected mid-game - freezes the whole process the same way.
-    //
-    // The error state is depth-1 per the spec (alGetError returns AND clears), so a handful of
-    // passes is already generous. Anything that will not clear means there is no usable context,
-    // and every AL call below would be a silent no-op, so fail the buffer instead of spinning.
-    // The caller already handles that: OpenALAudioStream::update's refill loop breaks on its
-    // `refreshedQueued <= num_queued` guard, so the stream degrades to silence and the engine
-    // keeps running.
+    // OpenAL Soft returns AL_INVALID_OPERATION from every call, so an unbounded `while (alGetError() != AL_NO_ERROR)`
+    // spins forever. An error that will not clear means no usable context: fail the buffer, the stream goes silent.
     const int maxErrorDrain = 16;
     for (int drained = 0; alGetError() != AL_NO_ERROR; ++drained) {
         if (drained >= maxErrorDrain) {
@@ -243,7 +244,7 @@ void OpenALAudioStream::update()
     ALint num_queued;
     alGetSourcei(m_source, AL_BUFFERS_QUEUED, &num_queued);
 
-    // GeneralsX @bugfix 14/06/2026 EOF probe — runs BEFORE the restart-on-stopped guard below.
+    // EOF probe — runs BEFORE the restart-on-stopped guard below.
     // If the source has stopped having fully played everything queued (no unplayed buffers left),
     // probe the source stream once: at true EOF, latch m_endOfData so the guard does NOT restart
     // it. Without this, a one-shot voice line that ends while its queue is still over the refill
@@ -263,7 +264,7 @@ void OpenALAudioStream::update()
                 m_endOfData = true;   // definitive EOF from the decoder
             }
             else if (queuedAfter <= queuedBefore) {
-                // GeneralsX @bugfix 04/07/2026 The decoder claims more data is coming but
+                // The decoder claims more data is coming but
                 // produced none. Decode here is synchronous, so a persistently failing
                 // packet never heals — and without this, the restart guard below replays
                 // the already-played queue forever: the audible "chirping" loop after a
@@ -282,7 +283,7 @@ void OpenALAudioStream::update()
 
     // GeneralsX: Restart before unqueue to avoid dropping freshly queued
     // briefing buffers when OpenAL reports AL_STOPPED with processed buffers.
-    // GeneralsX @bugfix 14/06/2026 ...but NOT once the stream is at true EOF: a finished one-shot
+    // ...but NOT once the stream is at true EOF: a finished one-shot
     // speech (taunt) must be allowed to reach a stable AL_STOPPED so its disallowSpeech flag clears.
     if ((sourceState == AL_STOPPED || sourceState == AL_INITIAL || sourceState == AL_PAUSED) && num_queued > 0 && !m_endOfData) {
         // Only restart if some queued buffer has NOT been played yet.
@@ -310,7 +311,7 @@ void OpenALAudioStream::update()
     // GeneralsX: Only unqueue processed data in active playback states.
     ALint processedToUnqueue = ((sourceState == AL_PLAYING || sourceState == AL_PAUSED) ? processedBeforeUnqueue : 0);
 
-    // GeneralsX @bugfix Also reap a stopped source whose queue is entirely spent.
+    // Also reap a stopped source whose queue is entirely spent.
     //
     // The state gate above assumed a stopped source would be restarted into
     // AL_PLAYING moments later and reaped on the next pass. Now that an all-spent
@@ -326,7 +327,7 @@ void OpenALAudioStream::update()
         }
     }
 
-    // GeneralsX: Record what the unqueue actually achieved.
+    // Record what the unqueue actually achieved.
     //
     // This loop discarded the result of every alSourceUnqueueBuffers call, so a failing unqueue was
     // indistinguishable from a successful one: the counter came down either way and the stream
@@ -354,7 +355,7 @@ void OpenALAudioStream::update()
                          (int)qAfter, (int)pAfter, (unsigned)unqueueErr);
     }
 
-    // GeneralsX @bugfix 14/06/2026 At true EOF the source has stopped with its final buffers
+    // At true EOF the source has stopped with its final buffers
     // still queued-but-processed; the state-gated unqueue above skips them. Reap them here so
     // num_queued can reach 0, letting processPlayingList detect the finished one-shot as stopped
     // (which clears disallowSpeech the frame the audio ends, so back-to-back taunts play).
@@ -377,7 +378,7 @@ void OpenALAudioStream::update()
         // Only fill up to the half, because some formats can output
         // more than one buffer per decoded frame.
         while (num_queued < AL_STREAM_BUFFER_COUNT / 2) {
-            // GeneralsX @bugfix 14/06/2026 callback returns FALSE at true end-of-file (no more
+            // callback returns FALSE at true end-of-file (no more
             // data will ever come). Latch m_endOfData so we stop restarting the drained source
             // and let it finish. A transient decode error still returns TRUE, so a stutter/underrun
             // mid-line is NOT mistaken for the end and the existing recovery path runs unchanged.
@@ -389,43 +390,24 @@ void OpenALAudioStream::update()
             ALint refreshedQueued = 0;
             alGetSourcei(m_source, AL_BUFFERS_QUEUED, &refreshedQueued);
             if (refreshedQueued <= num_queued) {
-                // GeneralsX: COUNT THE STALL HERE TOO, or a drained
-                // stream wedges forever. Observed on the iPad as a permanently silent stream:
-                // "src=1 state=STOPPED queued=0 processed=0 atEof=0".
-                //
-                // The identical "callback claims more data and produces none" case is already
-                // handled at the EOF probe above, which latches m_endOfData after three
-                // consecutive no-growth probes. But that probe is gated on num_queued > 0, and so
-                // is every restart guard in this function. Once the queue reaches zero - which the
-                // all-spent reap deliberately causes - NONE of them can run:
-                //
-                //   * the EOF probe cannot fire, so m_endOfData is never latched and the stream is
-                //     never reaped as finished;
-                //   * neither restart guard can fire, so it is never played again.
-                //
-                // The source is then STOPPED with nothing queued and no end-of-data, which no path
-                // in this function can leave. Audio simply stops for the rest of the session, and
-                // because m_endOfData stays false the stream also never releases - so whatever it
-                // was gating (speech, music) does not move on either.
-                //
-                // Applying the same three-strike rule closes it: a decoder that keeps promising
-                // data it cannot produce ends the stream instead of parking it. Consecutive by
-                // construction - the counter is cleared on any healthy refill below and on growth
-                // in the probe above - so a single transient decode failure still recovers.
+                // Count the stall here too, or a drained stream wedges forever. The EOF probe and both restart guards
+                // need num_queued > 0, and the all-spent reap can bring the queue to zero, so m_endOfData would never latch.
+                // The same three-strike rule ends a stream whose decoder promises data it cannot produce; m_stalledProbes
+                // clears on any healthy refill, so one transient failure recovers.
                 if (++m_stalledProbes >= 3) {
                     m_endOfData = true;
                 }
                 break;
             }
             num_queued = refreshedQueued;
-            m_stalledProbes = 0;  // GeneralsX @bugfix 04/07/2026 healthy refill: stalls must be CONSECUTIVE to latch EOF, not accumulated over the stream's lifetime
+            m_stalledProbes = 0;  // healthy refill: stalls must be CONSECUTIVE to latch EOF, not accumulated over the stream's lifetime
         }
     }
 
     // GeneralsX @bugfix fbraz3 27/04/2026 Restart after refill when a generic speech stream
     // began the frame with an empty queue; otherwise processPlayingList() can release it as
     // stopped before the newly buffered narrator audio ever starts playing.
-    // GeneralsX @bugfix 14/06/2026 As above, do not restart a source that has reached true EOF.
+    // As above, do not restart a source that has reached true EOF.
     alGetSourcei(m_source, AL_SOURCE_STATE, &sourceState);
     if ((sourceState == AL_STOPPED || sourceState == AL_INITIAL || sourceState == AL_PAUSED) && num_queued > 0 && !m_endOfData) {
         // Same guard as the pre-unqueue restart above: a queue whose buffers have
@@ -445,27 +427,10 @@ void OpenALAudioStream::update()
         if (processedNow < queuedNowAfterRefill) {
             play();
         }
-        // GeneralsX: THIS IS WHERE MUSIC DIES, AND SKIPPING IS NOT ENOUGH.
-        //
-        // Reported as "SFX work but music is dead in the water" and reproduced on a Zero Hour-only
-        // install: src=3 state=AL_STOPPED queued=16 processed=16, then silence for the rest of the
-        // session. Effects are samples rather than streams, which is why they survive it and why it
-        // does not present as an audio fault at all.
-        //
-        // Refusing to RESTART an all-spent queue is correct - replaying it dumps sixteen buffers of
-        // already-heard audio as a burst of noise, a bug that shipped once. But refusing alone parks
-        // the source forever, because every exit is closed: the refill above only runs below half
-        // depth and a spent queue is still FULL, and both restart guards decline.
-        //
-        // Reaping is safe for exactly the reason replaying is not - every buffer has already been
-        // heard, so discarding them loses nothing and cannot produce the burst.
-        //
-        // Refill and restart happen HERE, in the same pass, and that is not tidiness: this state is
-        // only observable after the refill (the source is still playing when the code above runs, so
-        // an earlier check never fires - measured), and processPlayingList releases any stream whose
-        // source is stopped as soon as update() returns. A stream left empty at the end of this
-        // function is destroyed before it can ever get another pass. Verified both ways: reaping
-        // alone left it dead, reaping plus this refill brought it back.
+        // Music dies here, and skipping alone is not enough. Refusing to RESTART an all-spent queue is right (replaying
+        // dumps heard buffers as a burst of noise) but parks the source forever. Reaping is safe: every buffer was heard.
+        // Refill and restart happen in this same pass: processPlayingList releases a stream with a stopped source
+        // as soon as update() returns, so an empty stream would be destroyed before another pass.
         else if (processedNow > 0) {
             ALint toReap = processedNow;
             while (toReap > 0) {
@@ -516,7 +481,7 @@ void OpenALAudioStream::reset()
         num_queued--;
     }
     m_current_buffer_idx = 0;
-    m_endOfData = false;  // GeneralsX @bugfix 14/06/2026 streams are reused (handleToKill/replace); clear EOF latch
+    m_endOfData = false;  // streams are reused (handleToKill/replace); clear EOF latch
     m_stalledProbes = 0;
 }
 

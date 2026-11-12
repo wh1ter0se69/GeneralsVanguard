@@ -307,7 +307,7 @@ UpdateSleepTime TensileFormationUpdate::update()
 
 
 	Object *tree = ThePartitionManager->getClosestObject( &newPos, getObject()->getGeometryInfo().getMajorRadius(), FROM_CENTER_2D );
-	// GeneralsX @bugfix getClosestObject returns null when nothing is in range.
+	// GeneralsX: getClosestObject returns null when nothing is in range.
 	// This was masked most of the time because the unfiltered query matches the
 	// boulder itself, but once the inertia offset carries newPos further than the
 	// object's own major radius over open ground there is nothing to find.

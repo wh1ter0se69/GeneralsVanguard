@@ -121,16 +121,9 @@ static const char *const TheDrawableIconNames[] =
 };
 static_assert(ARRAY_SIZE(TheDrawableIconNames) == MAX_ICONS + 1, "Incorrect array size");
 
-// GeneralsX: Resolve Drawable caption fonts through a deterministic fallback chain when localized font names are unavailable.
-// GeneralsX @bugfix FelipeBraz 03/06/2026 Preferred known Unicode-supporting fonts (Arial Unicode MS) over configured DrawableCaptionFont
-// to ensure Cyrillic and other non-Latin characters render correctly via DXVK on macOS.
-// GeneralsX @test FelipeBraz 03/06/2026 TEST: Hardcode Arial Unicode MS to verify 3D rendering
-// GeneralsX @bugfix 25/07/2026 Removed the [GX-ISSUE144] stderr instrumentation from this helper.
-// It was never wrapped in RTS_DEBUG, so it shipped in release: every caption/construction-string
-// font resolution paid a snprintf plus a synchronous stderr write, which on iOS goes through
-// unified logging and stalls the render thread. The last snprintf in the chain had no matching
-// fprintf at all, so it formatted into log_buffer and threw the result away. Nothing consumes
-// these traces; the real logic (the null-library guard and the fallback chain) is untouched.
+// GeneralsX: caption fonts resolve through a deterministic fallback chain when localized font names are unavailable.
+// Known Unicode-capable fonts (Arial Unicode MS) are preferred over DrawableCaptionFont so Cyrillic and other non-Latin
+// text renders through DXVK on macOS.
 static Int DrawableCaptionPointSize()
 {
 	const Int basePointSize = TheInGameUI->getDrawableCaptionPointSize();
@@ -417,16 +410,10 @@ static Real gxOverlayIconShrinkRaw( void )
 	return iconScale;
 }
 
-// GeneralsX:
-// Generals Online draws these pips at a fixed 1.0 scale at every zoom
-// (references/generals-online-client Drawable.cpp drawAmmo/drawContained: scale = 1.0f), so the occupancy and ammo pips here
-// never shrink with the zoom-out either. ONE mechanism for every over-unit marker (pips, rank chevrons, status icons, emoticons,
-// battle-plan and bomb icons): gxOverlayIconShrink() is the constant-size scale they all call; only the zoom-label text keeps
-// gxOverlayIconShrinkRaw(). At the farthest zoom-out these were 1-2 px otherwise (0.10). GX_PIPS_FLOOR=0 (test only) restores the old behaviour for the "before" picture.
-// GeneralsX: The ammo pips are drawn last-but-one
-// and the rank chevron last, both hanging off the same health bar, and at the constant 1.0 scale (HD 10x20 art from 1440p) a 4-5 pip
-// row is wider than the bar, so it ran under the chevron and dwarfed a parked jet. drawAmmo leaves the rect it drew here; drawVeterancy
-// reads it (same drawable, same frame) and steps the chevron right of the row only when the two rects actually intersect.
+// GeneralsX: pips draw at a constant 1.0 scale at every zoom through gxOverlayIconShrink(), as every over-unit
+// marker does. GX_PIPS_FLOOR=0 (test only) restores the old shrinking. The ammo row is wider than the health bar at
+// that scale, so drawAmmo leaves its rect here and drawVeterancy steps the chevron right of the row only when the
+// two rects intersect.
 static DrawableID s_ammoRectOwner = INVALID_DRAWABLE_ID;
 static IRegion2D s_ammoRect;
 // GX_AMMO_LAYOUT=0 (test only, the "before" picture): no size cap, no chevron step. Read once; client-only.
@@ -480,9 +467,9 @@ static Int gxPipsAll( void )
 	return s_on;
 }
 
-// GeneralsX: GX_PIPS_HEIGHT=<px> (only with GX_PIPS_ALL): the render height the pip picker sees, so a 1080p
-// panel (the Mini) can draw the 1440p / 4K art for a picture. The art, its size and the position are the real draw; only the
-// variant choice is forced, and the run's evidence line says so. Off when unset.
+// GeneralsX: GX_PIPS_HEIGHT=<px> (only with GX_PIPS_ALL): the render height the pip picker sees, so a 1080p panel
+// can draw the 1440p / 4K art for a picture. Only the variant choice is forced; the art, size and position are the
+// real draw. Off when unset.
 static Int gxPipPickHeight( void )
 {
 	static Int s_h = -1;
@@ -494,12 +481,10 @@ static Int gxPipPickHeight( void )
 	return s_h > 0 ? s_h : TheDisplay->getHeight();
 }
 
-// GeneralsX: THE "UNDER CONSTRUCTION" TEXT SHRINKS GENTLY ABOVE THE STOCK CAMERA CEILING (owner,
-// 02/10/2026: at max zoom-out the "Building: x%" labels stayed full size and covered the map). Same size as retail up to
-// the ceiling; above it the caption font steps down with gxWorldLabelScale (GXWorldLabelScale.h). Every label shares one
-// size, so the font is looked up only when that size steps - a camera at rest asks the library nothing, and setFont()
-// returns at once for the font a string already has. Fonts live until the game exits (FontLibrary::reset runs only in
-// GameClient's destructor), so keeping the pointer is safe.
+// GeneralsX: the Building: x% caption keeps retail size up to the stock camera ceiling; above it the caption font
+// steps down with gxWorldLabelScale (GXWorldLabelScale.h). Every label shares one size, so the font is looked up
+// only when that size steps. Fonts live until the game exits (FontLibrary::reset runs only in GameClient
+// destructor), so keeping the pointer is safe.
 static GameFont *gxConstructLabelFont( void )
 {
 	static Int s_basePoints = 0;
@@ -918,9 +903,8 @@ void Drawable::setAnimationCompletionTime(UnsignedInt numFrames)
 void Drawable::setAnimationFrame( int frame )
 {
 	// GeneralsX: A caller's unsigned frames-left that wrapped past zero arrives negative: clamp it.
-	// GeneralsX: The caller (DeployStyleAIUpdate) now counts Generals Online's 30 Hz legacy frames
-	// at either logic rate - the model's own BaseFps animation frames - so they pass through unchanged, as in GO. (The 01/10
-	// halving here was for 60 Hz logic frames; with legacy frames it played the deploy to half way and snapped.)
+	// GeneralsX: The caller (DeployStyleAIUpdate) counts Generals Online's 30 Hz legacy frames
+	// at either logic rate - the model's own BaseFps animation frames - so they pass through unchanged, as in GO.
 	if( frame < 0 )
 		frame = 0;
 
@@ -1391,20 +1375,10 @@ void Drawable::updateDrawable()
 	UnsignedInt now = TheGameLogic->getFrame();
 	Object *obj = getObject();
 
-	// GeneralsX: The class-C animation gate. See m_lastLogicFrameUpdated
-	// in Drawable.h for why this is per-object and why it compares rather than subtracts.
-	//
-	// This gates ONLY the state that is authored in logic frames. It deliberately does NOT gate the
-	// ClientUpdateModule loop below (SwayClientUpdate is already scaled by
-	// getActualLogicTimeScaleOverFpsRatio and is meant to be per-render), the expiration test
-	// (an absolute compare against `now`, correct at any call rate), or the tint/selection-flash
-	// envelopes (their update() is already timeScale-corrected - gating them would double-compensate
-	// and make tints run 8x SLOW).
-	//
-	// At most one logic frame can retire per iteration today: GameEngine::update() calls
-	// TheGameLogic->UPDATE() at most once with no catch-up loop. If that ever gains one, this
-	// under-runs at one step per call - the safe direction, slow rather than bursty - and the fix is
-	// to step by min(now - m_lastLogicFrameUpdated, someCap) here.
+	// GeneralsX: class-C animation gate, per object; see m_lastLogicFrameUpdated in Drawable.h. It gates only state
+	// authored in logic frames, not the ClientUpdateModule loop, the expiration test or the tint/selection-flash
+	// envelopes (already corrected; gating would double-compensate). At most one logic frame retires per call; if a
+	// call ever retires several, step by a capped delta.
 	const Bool logicFrameAdvanced = (now != m_lastLogicFrameUpdated);
 	m_lastLogicFrameUpdated = now;
 
@@ -1605,26 +1579,10 @@ void Drawable::updateDrawable()
 
     if ( eventInfo == nullptr || ( eventInfo->isPermanentSound() ) )
     {
-      // GeneralsX: Do not re-enter startAmbientSound for an emitter nobody
-      // can hear. This retry runs once per RENDERED frame, not per logic frame.
-      //
-      // startAmbientSound assigns a whole AudioEventRTS by value - several AsciiString deep copies,
-      // each taking AsciiString::releaseBuffer's mutex - and only THEN computes
-      // distSqr < sqr(m_maxDistance) and gives up (Drawable.cpp:4510 vs :4549). So an out-of-earshot
-      // emitter paid the full copy on every client update, forever, and never started a sound.
-      //
-      // THE PLACEMENT IS THE CORRECTNESS ARGUMENT. The guard above requires m_ambientSound to
-      // already exist, so putting this check inside startAmbientSound would skip the copy AND leave
-      // m_ambientSound unpopulated - and the sound would then never start when the listener walked
-      // back into range. Here the object is already populated and eventInfo is already computed.
-      //
-      // Exactly equivalent, not a heuristic: the branch this skips plays only when
-      // distSqr < sqr(maxDistance). Global and critical sounds are excluded because
-      // startAmbientSound plays those regardless of range.
-      //
-      // MEASURED windowed at a 480 cap, 7 Hard AI, same seed both arms: startAmbientSound 55
-      // samples -> 0, AudioEventRTS::operator= 32 -> 0, updateDrawable 67 -> 27. Worth ~0.3% of a
-      // frame and no more - D3D9SwapChainEx::Present is 70% of the main thread before and after.
+      // GeneralsX: skip startAmbientSound for an emitter nobody can hear: this retry runs per rendered frame and the call
+      // copies a whole AudioEventRTS before giving up out of range. The check sits here, not inside startAmbientSound, so
+      // m_ambientSound is still populated and the sound starts when the listener returns. Exactly equivalent; global and
+      // critical sounds play at any range.
       Bool audible = TRUE;
       if ( eventInfo != nullptr && TheAudio != nullptr
            && !BitIsSet( eventInfo->m_type, ST_GLOBAL ) && eventInfo->m_priority != AP_CRITICAL )
@@ -1767,29 +1725,10 @@ static void gxInterpStats(ObjectID id, const Matrix3D& drawn, const Matrix3D& pr
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: Render interpolation of the drawable's own transform (graphics research
-// a2-07, g-05). mtx comes in as the logic transform and leaves as the one to draw: lerp(the previous logic frame,
-// the current one, Display::getLogicPhase()), position lerped and rotation slerped. Only this local copy changes.
-// Thing::m_transform stays the logic transform, because logic converts pristine bone positions through it
-// (Thing::convertBonePosToWorldPos, from Object::getSingle/MultiLogicalBonePosition, DeliverPayloadAIUpdate,
-// HelicopterSlowDeathUpdate): blending that would desync, and no fingerprint would see it.
-//
-// It draws the logic transform unchanged, byte for byte, when the phase is exactly 1 (every draw gets a tick, a
-// headless peer, GX_INTERP=0) or nothing moved, so those frames are what they always were and an unchanged static
-// HLOD keeps W3DModelDraw's Set_Transform skip. It snaps (draws the logic transform and starts over from it) for a
-// drawable with no object (client-driven, such as the placement preview), on the first refresh, after any logic
-// frame nothing refreshed it on (culled, inside a garrison or transport, shrouded: it must not slide from where it
-// was last seen), when the transform changed without a tick (a script teleport in frozen time), for a jump of more
-// than 200 units in one tick (a teleport), and for the camera-lock object (the camera moves to its logic position
-// on every draw, so an interpolated body would wobble on screen).
-//
-// The snapshot is published once per logic update in the sync phase, before the client draws (gxPublishDrawnPoses,
-// render-split step 4), so every consumer of "where is it drawn this frame" - draw(), the icon UI, bone positions (laser
-// beams, riders on a container's bone) - gets the same answer whatever order the drawables are drawn in, and the draw
-// reads no simulation state for it. A query made during a logic update never refreshes it (drawnPhase).
-//
-// The turrets' angle and pitch are kept with it, under the same rules: they are relative to the hull, so a turret
-// drawn on a blended hull takes the same phase (getDrawnTurretRotAndPitch).
+// GeneralsX: render interpolation: mtx leaves as lerp(previous, current logic transform, Display::getLogicPhase()),
+// rotation slerped, on a local copy only. Thing::m_transform stays the logic transform: logic converts bone
+// positions through it, so blending it would desync. Snaps to the logic transform on first refresh, a missed logic
+// frame, a jump over 200 units, no object, or camera lock.
 static void gxReadTurrets(const Object* obj, Real turrets[MAX_TURRETS][2])
 {
 	const AIUpdateInterface* ai = obj->getAIUpdateInterface();
@@ -1858,9 +1797,9 @@ struct GXRefreshInterpolationAccess
 };
 template struct GXRefreshInterpolationAccess<&Drawable::refreshInterpolation>;
 
-// Off by default: no walk, every draw-time read refreshes as before step 4. GX_POSEPUB=1 (or GX_POSEPUB_CHECK, whose
-// comparison means nothing without the walk) turns the publish on. It stays off until the draw runs beside the simulation:
-// on one thread the walk only adds work (09/10/2026, Mini, G0B replay at the default camera: render 316 -> 309 fps).
+// Off by default: no walk, every draw-time read refreshes as before. GX_POSEPUB=1 (or GX_POSEPUB_CHECK, whose
+// comparison means nothing without the walk) turns the publish on. It stays off until the draw runs beside the
+// simulation: on one thread the walk only adds work.
 static Bool gxPosePubOn()
 {
 	static const Bool s_on = []() {
@@ -1957,7 +1896,6 @@ void gxPublishDrawnPoses()
 	// The draw reads snapshots exactly when this holds (drawnPhase's gate): pinned to 1, nothing to publish.
 	const Bool active = TheDisplay->isInterpolationActive() || gxInterpStatsOn();
 	// Read only by the [GXPOSEPUB] line: with the publish off (the default) the client update writes nothing new.
-	//
 	if (gxPosePubStatsOn())
 	{
 		++s_gxPosePub.updates;
@@ -2152,16 +2090,10 @@ Bool Drawable::getFirstDrawnPose(Matrix3D& pose) const
 	return TRUE;
 }
 
-// GeneralsX: Render interpolation: a render object still holds the pose it was last placed from
-// (its module's last draw, or the logic transform after a move), which is not this frame's while it interpolates. Carry a
-// transform read from it - a bone - to the full pose this frame draws (the module carries, W3DModelDraw::gxCarryBone): base, instance matrix and client physics,
-// rotation included so a bone far from the pivot of a turning body stays on it (interp-r2). So a laser start,
-// a rider on a container's bone, an emitter on an animated bone or a module attached to another module's bone meets the
-// body as it is drawn this frame, whatever order they run in. The carry is per render object, from where it actually
-// sits: one module can query another's bone before that one has drawn this frame.
-// Outside the draw (a logic update) the target is the logic pose. Untouched, today's, while pinned to 1 with the render
-// object placed at 1 - not this frame's alpha alone: one that reaches 1 without a tick still finds the render object at
-// the last draw's fraction.
+// GeneralsX: render interpolation: a render object still holds the pose it was last placed from, which is not this
+// frame's while it interpolates. A bone transform read from it is carried to the full pose this frame draws
+// (W3DModelDraw::gxCarryBone), so lasers, riders and emitters meet the body in any module order. Outside the draw
+// the target is the logic pose.
 Bool Drawable::getCarryPose(Matrix3D& pose, Real placedPhase) const
 {
 	if (!TheDisplay->isInterpolationActive() && placedPhase == 1.0f)
@@ -3611,55 +3543,9 @@ static Bool computeHealthRegion( const Drawable *draw, IRegion2D& region )
 
 	// do this so health bar doesn't get too skinny or fat after scaling
 	//healthBoxHeight = max(3.0f, healthBoxHeight);
-	// GeneralsX: 3.0f is a raw PIXEL count written for a 600-line target.
-	//
-	// SCOPE FIRST, because the enabling commit invites the wrong reading: this is NOT a macOS fix.
-	// TheDisplay->getHeight() is the render target's pixel height on every platform - there is no
-	// platform guard here and no density term - so this fires for every player whose vertical
-	// resolution exceeds DEFAULT_DISPLAY_HEIGHT, on all four platforms. It is a deliberate,
-	// game-wide departure from the retail HUD, not a Retina repair. d5afaed6f only made a Retina
-	// Mac report its true pixel count like the other three platforms always did; it did not create
-	// the defect and it does not bound the blast radius.
-	//
-	// IRegion2D is integer (ICoord2D), so lo.y truncates first and hi.y = (Int)(lo.y + height).
-	// The height actually drawn on screen is therefore floor(), not the real: 600 -> 3, 768 -> 3
-	// (inert), 1080 -> 5, 1200 -> 6, 1440 -> 7, 1864 -> 9, 2160 -> 10.
-	//
-	// WHY HEIGHT AND NOT WIDTH. This 3.0f is the only raw pixel constant left in the health box.
-	// The width is world-derived (Object::getHealthBoxDimensions - major+minor radius, no display
-	// term) and divided by the camera zoom, and every icon that hangs off the region takes its
-	// position as a fraction of that width, so widening the bar is a design change to the whole
-	// icon cluster and needs its own visual pass. Scaling the height alone does make the bar
-	// squatter than retail in absolute terms; that trade was looked at on screen rather than
-	// argued, see the commit message.
-	//
-	// The vertical neighbours do NOT drift, and this is the reason the height is the safe half:
-	// the ammo and container pip rows anchor to their own worldToScreen projections, whose pixel
-	// gap from the bar scales with the viewport by the same ratio used here, so their spacing
-	// relative to the bar is restored to its 600-line value instead of degrading with resolution.
-	// The one exception was Drawable::drawVeterancy, which pinned the chevron a fixed +1 pixel
-	// under the SAME projected centre this region uses; it now anchors to region.hi.y instead.
-	//
-	// min(widthRatio, heightRatio) - the aspect guard GlobalLanguage uses - is deliberately not
-	// applied: it equals the height ratio on every aspect at least as wide as 4:3, so it would be
-	// dead arithmetic on every display a player uses.
-	// GeneralsX: DO NOT SCALE THIS. It has now been tried twice and reverted
-	// twice, so the reasoning is recorded here rather than in a commit message nobody reads.
-	//
-	// The argument for scaling is that 3.0f is a PIXEL count written for 800x600, so the bar is a
-	// hairline on a modern panel. That argument is wrong in practice: the bar's WIDTH already scales,
-	// because it arrives through worldToScreen and is divided by the camera zoom above, so scaling
-	// the height alone does not make the bar bigger - it makes it FATTER, and it stops looking like
-	// a health bar. At 1440p the scaled value is 7.2px against a retail 3.0f, and it was reported
-	// from a live game the same day it shipped as the bars looking wrong.
-	//
-	// The original complaint that started this - "the health bars are massive" on a MacBook - was
-	// never about this constant at all. It was macOS rendering at point size and the compositor
-	// upscaling everything by 2x, fixed in the Retina commit. Scaling here made that worse, not
-	// better, which is why the first attempt was reverted within the hour.
-	//
-	// If a genuine high-DPI case ever needs this, it belongs behind a user setting with a preview,
-	// not a silent multiplier applied to everyone.
+	// GeneralsX: 3.0f is a raw pixel count written for a 600-line target. Do not scale it: the bar width already scales
+	// through worldToScreen and the camera zoom, so scaling the height alone makes the bar fat (7.2px at 1440p) and no
+	// longer a health bar. A real high-DPI need belongs behind a user setting.
 	healthBoxHeight = 3.0f;
 
 	// figure out the final region for the health box
@@ -4736,14 +4622,9 @@ void Drawable::drawDisabled(const IRegion2D* healthBarRegion)
 //-------------------------------------------------------------------------------------------------
 /** Draw construction percent for drawables that have objects that are "under construction" */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix 25/07/2026 Stripped the [GX-ISSUE144] stderr instrumentation out of this
-// function. drawIconUI() calls it once per drawable per frame, and at the time the "value has
-// changed" test compared a continuously advancing Real, so it was true on essentially every frame
-// a building was under construction (since 23/09/2026 it is keyed on the displayed percent, see
-// below). The trace therefore ran a redundant TheGameText->fetch(), a
-// wide-to-narrow conversion loop, a snprintf and a synchronous stderr write every frame, for
-// every building under construction, in release builds - none of it wrapped in RTS_DEBUG and
-// nothing reading the output. Rendering and string state are unchanged.
+// GeneralsX: no stderr tracing here: drawIconUI() calls this once per drawable per frame, and a trace would add a
+// TheGameText->fetch(), a conversion loop, a snprintf and a synchronous stderr write per building under
+// construction.
 void Drawable::drawConstructPercent( const IRegion2D *healthBarRegion )
 {
 	// this data is in an attached object
@@ -4785,15 +4666,9 @@ void Drawable::drawConstructPercent( const IRegion2D *healthBarRegion )
 	}
 
 	// set the string if the value has changed
-	// GeneralsX: Fork-side fix for upstream issue #3095 (no upstream PR). This
-	// compared the raw Real, which moves every logic frame, so every building under construction in view
-	// re-fetched the CSF string (AsciiString + bsearch) and re-formatted it every logic frame. Key on the value
-	// as displayed instead.
-	// Upstream reference: xezon, issue #3095 https://github.com/TheSuperHackers/GeneralsGameCode/issues/3095
-	// GeneralsX: ...AS THE FETCHED FORMAT DISPLAYS IT. The key was
-	// lrintf(percent), which assumed retail's "%.0f%%": a localization or mod showing "%.1f%%" kept stale text
-	// between whole percents. It is now the number at the format's own precision (GXConstructPercentKey.h), which
-	// also carries that precision, so the next frames need no fetch to compare; a format it cannot read gets -1,
+	// GeneralsX: key on the percent as displayed, not the raw Real that moves every logic frame, so a building under
+	// construction does not re-fetch and re-format the CSF string every frame (upstream issue #3095). The key is the
+	// number at the fetched format's own precision (GXConstructPercentKey.h); a format it cannot read gives -1 and is
 	// rebuilt every frame as retail did.
 	const Real percent = obj->getConstructionPercent();
 	if( m_lastConstructDisplayed < 0
@@ -4926,23 +4801,9 @@ void Drawable::drawVeterancy( const IRegion2D *healthBarRegion )
 
 	screenCenter.x += healthBoxWidth * scale * 0.5f;
 
-	// GeneralsX: Anchor the chevron to the bar's bottom EDGE, not to a
-	// fixed pixel offset from the bar's centre.
-	//
-	// This function projects obj->getHealthBoxPosition() through worldToScreen, which is the exact
-	// same anchor computeHealthRegion uses, and then pinned the chevron at centre + 1. That +1 is
-	// the bar's half-height at the retail pin of 3 and at no other height, so it is the one place
-	// in the icon cluster that silently assumed the bar is 3 pixels tall. With the height now
-	// scaled by the display ratio the bar's lower edge descends past the chevron - 1px at 1080,
-	// 3px at 2160 - and since drawVeterancy is called last, the chevron would be drawn over the
-	// bottom of the bar it used to sit flush beneath.
-	//
-	// Inert at the retail height: region.lo.y is (Int)(centre - 1.5) and region.hi.y is
-	// (Int)(lo.y + 3.0), which is exactly centre + 1 for every anchor at or below screen row 2.
-	// Above that the truncation of a negative value rounds the other way and this can differ by
-	// one pixel, but the anchor is then off the top of the viewport. The nullptr fallback keeps
-	// the original expression, since every other caller-facing icon treats a null region as
-	// "no bar to hang off".
+	// GeneralsX: anchor the chevron to the bar's bottom edge (region.hi.y), not a fixed +1 pixel from the bar centre,
+	// which is the half-height only at the retail height of 3. Same value at that height; a null region keeps the
+	// original expression.
 	Int vetTop = screenCenter.y + 1;
 	if( healthBarRegion )
 		vetTop = healthBarRegion->hi.y;
@@ -5494,7 +5355,7 @@ void Drawable::updateVisualTransform()
  * Set and clear the drawable's caption text
  */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix 25/07/2026 Removed the [GX-ISSUE144] stderr instrumentation. It was not
+// GeneralsX: Removed the [GX-ISSUE144] stderr instrumentation. It was not
 // wrapped in RTS_DEBUG, so it shipped in release builds and wrote synchronously to stderr on a
 // path the player drives (beacon captions in multiplayer). Nothing reads the output, and the
 // caption text it reported is player-authored, which is not something to be echoing into the
@@ -6789,7 +6650,6 @@ void TintEnvelope::update()
 	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing. Under
 	// capture an update with no clock step leaves the envelope exactly as it is - its attack/sustain/decay transitions
 	// test the current colour, so an extra draw between two logic frames would otherwise move it on.
-	//
 	const Real timeScale = gxRenderTimeScale();
 	if (timeScale <= 0.0f && gxShotCaptureOn())
 		return;

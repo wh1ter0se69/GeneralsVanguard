@@ -1,26 +1,27 @@
 /*
-**	GeneralsX: the replay strip: time reached / whole length, click ahead to race there, pause,
-**	speeds 0.5x-8x. Included ONCE, after GXSpectatorHud.inl at the end of InGameUI.cpp, for the same reason that file is
-**	(a new .cpp would move the SimID digest) and so that it shares the spectator HUD's palette and text helpers without
-**	editing that file. Nothing here is read by the simulation.
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
 **
-**	LOOK: the C2 spectator bar's navy glass, steel-blue frame, one blue accent, square corners, no CodeGui. It draws in a
-**	spectator-HUD match and in a legacy one alike (it is not gated on SpectatorUI); in the legacy layout it stands above
-**	the retail control bar.
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
 **
-**	HOW A SEEK WORKS (Reforged's InGameUI::updateReplaySeek, redone): update() runs once per client pass, between logic
-**	frames. While the frame is short of the target it holds m_TiVOFastMode on - the retail fast mode: uncapped logic - and on
-**	reaching the target it turns it off and pauses, so the match stands on exactly that frame. Since 07/10 a race draws only
-**	a progress frame every 250 ms of wall time (GXReplayStrip::passRenders, W3DDisplay::draw), runs with fast forward off
-**	and sound effects muted, and lands at the speed it began at (holdRace / leaveRace). A click BEHIND the playhead cannot go back without a checkpoint (replay step 3, planned): it takes
-**	the quit menu's own Restart for a replay and races forward again; the strip says so while it does.
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
 **
-**	SCRIPTED DRIVER (rendered replays only - the headless simulation never runs GameClient::update): GX_REPLAY_SEEK=<frame>[,<frame>...]
-**	seeks to each in turn (a smaller frame restarts the replay) and logs "[GXSEEK] reached frame=<f> want=<w>". With
-**	GX_REPLAY_SEEK_EXIT=1 the engine quits GX_REPLAY_SEEK_HOLD seconds after the last one (the strip stays up, paused, for a picture
-**	taken from outside). Not GX_TEST_QUIT_AT: its queued clear-game command cannot run once the seek has paused the game.
-**	GX_REPLAY_STRIP_INPUT (inputDriver below) drives the MOUSE path instead: clicks and drags through the translator.
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+/*
+**	The replay strip: time reached / whole length, click ahead to race there, pause, speeds 0.5x-8x.
+**	Included ONCE, after GXSpectatorHud.inl at the end of InGameUI.cpp: a new .cpp would move the SimID digest.
+**	A seek holds m_TiVOFastMode on until the target frame, then pauses; a click BEHIND the playhead restarts.
+**	GX_REPLAY_SEEK=<frame>[,<frame>...] drives seeks in rendered replays.
+ */
 
 #include "GameClient/GXReplayStrip.h"
 #include "Common/Recorder.h"
@@ -140,7 +141,7 @@ static Int currentSpeed()
 	return speedFromState( TheFramePacer != nullptr ? TheFramePacer->getFastForward() : 1, isHalved() );
 }
 
-// GeneralsX: A SEEK RACE RUNS WITH FAST FORWARD OFF AND SOUND EFFECTS MUTED, and puts both back
+// A SEEK RACE RUNS WITH FAST FORWARD OFF AND SOUND EFFECTS MUTED, and puts both back
 // where they were when it lands. Fast forward capped the race at k x the tick rate (the fast mode is uncapped) and its
 // every-k-th-pass draws never met the race's own frames, so a 2x-10x seek drew nothing until it landed;
 // W3DDisplay::draw now draws a race by GXReplayStrip::passRenders alone. Sound
@@ -300,7 +301,7 @@ static void envDriver()
 
 static const SHit *hitOf( Int kind, Int id );
 
-// GeneralsX: GX_REPLAY_STRIP_INPUT=<ms>:<act>[,...] - the strip's MOUSE path, scripted: raw left-button
+// GX_REPLAY_STRIP_INPUT=<ms>:<act>[,...] - the strip's MOUSE path, scripted: raw left-button
 // messages into TheMessageStream exactly as Mouse::createStreamMessages makes them, so a click goes through the translator
 // (and its seek runs inside a message callback, as a real click's does - GX_REPLAY_SEEK calls seekTo between frames instead).
 // <ms> counts from the first pass a replay was up and never restarts; entries fire in order, one raw message per pass.

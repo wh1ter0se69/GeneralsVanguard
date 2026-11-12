@@ -1,30 +1,30 @@
-// GeneralsX: IN-MATCH VOTE KICK - the rules, and nothing else.
-//
-//
-//
-//
-//
-// LOCKSTEP. This is simulation code: GameLogic calls it only from the synchronised orders MSG_GX_VOTEKICK_START / _CAST (executed
-// at the same frame on every peer and in a replay) and from its per-frame tick right after that frame's orders. Every input is
-// therefore identical everywhere - the frame, the sender's Player index (the network layer's, never anything the order says),
-// the order's arguments, and `living`, the mask of living human players GameLogic reads from simulation state (player type and
-// Player::isPlayerActive). No clock, no network state, no UI state. Pure and engine-free so scripts/test/vote-kick-test.cpp can
-// hold every rule without a match.
-//
-// THE RULES (each one written down for the owner):
-//  - Starter and electors are living humans. The target is a living human other than the starter, and never votes.
-//  - Electorate = living humans minus the target, and it must hold at least `minElectors` (2) at all times: in a 1v1 a kick would
-//    be a win for the starter, so the start is refused, and a vote whose electorate falls under two fails.
-//  - The start is the starter's YES. Unanimous: the vote passes the moment every elector has said YES - a ballot, or an elector
-//    leaving, can complete it - and the first NO vetoes it. One ballot per elector per vote, naming the vote's id.
-//  - durationFrames after the start the tick times it out; ballots executing on the last frame still count.
-//  - One vote at a time. A starter may start again cooldownFrames after his previous ACCEPTED start, whatever its outcome; a
-//    refused start spends nothing.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Vote kick rules. Lockstep: run only from the synchronised MSG_GX_VOTEKICK_START / _CAST orders and the per-frame
+// tick, so every input is the same on every peer: frame, sender Player index, order arguments and `living`.
+// No clock, network or UI state. Electorate = living humans minus the target, at least minElectors (2).
+// Unanimous YES passes, the first NO vetoes; durationFrames times out; cooldownFrames after an accepted start.
 #pragma once
 
 #include <stdint.h>
 
-// GeneralsX: 32 -> 64 with MAX_PLAYER_COUNT 40 (a Player index must fit the masks).
+// 32 -> 64 with MAX_PLAYER_COUNT 40 (a Player index must fit the masks).
 enum { GXVK_MAX_PLAYERS = 64 };	///< mask width; GameLogic asserts MAX_PLAYER_COUNT fits
 typedef uint64_t GXVoteKickMask;	///< one bit per Player index
 

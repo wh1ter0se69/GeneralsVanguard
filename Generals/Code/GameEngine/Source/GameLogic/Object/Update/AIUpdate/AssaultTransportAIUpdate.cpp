@@ -30,7 +30,7 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
-#include "Common/GameState.h"	// GeneralsX @bugfix: for SC_INVALID_DATA, thrown by the member count validation in xfer()
+#include "Common/GameState.h"	// GeneralsX: for SC_INVALID_DATA, thrown by the member count validation in xfer()
 #include "Common/Player.h"
 #include "Common/ThingFactory.h"
 #include "GameClient/Drawable.h"
@@ -511,7 +511,7 @@ void AssaultTransportAIUpdate::xfer( Xfer *xfer )
 
 	xfer->xferInt( &m_currentMembers );
 
-	// GeneralsX: The same bound Zero Hour's copy checks (its GeneralsX @bugfix above the loop):
+	// GeneralsX: The same bound Zero Hour's copy checks (its GeneralsX: above the loop):
 	// m_currentMembers comes straight off the save stream and bounds the writes into m_memberIDs[], m_memberHealing[]
 	// and, since xfer version 2 (#3148), m_newMember[], each MAX_TRANSPORT_SLOTS long. The runtime never holds a count
 	// outside [0, MAX_TRANSPORT_SLOTS], so a save that does is rejected.

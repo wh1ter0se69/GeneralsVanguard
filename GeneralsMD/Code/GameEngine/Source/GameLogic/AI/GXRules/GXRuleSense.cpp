@@ -1,4 +1,22 @@
-// GeneralsX: AI RULE BANK sense layer - see GXRuleSense.h for the rules it keeps (partition only, fog per tier,
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// AI RULE BANK sense layer - see GXRuleSense.h for the rules it keeps (partition only, fog per tier,
 // stealth, identity as a human would see it). Read only: no order, no random draw, no state.
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
@@ -25,9 +43,9 @@ GXRuleSense::GXRuleSense(Player *viewer, unsigned (*tierOf)(const Player *)) : m
 
 namespace
 {
-/// test-instruments builds only: GX_TEST_SENSE_MUTANT=pre_r1 restores the sense layer before fixes - the owner's
-/// discounted price, the stock TARGETING stealth filter, the fog filter beside the eyes, the real controller of a hiding garrison - the
-/// red arm of the seen_value discount, seen_count disguise_neutral and own_sight edge subs. Always FALSE in a release build.
+/// test-instruments builds only: GX_TEST_SENSE_MUTANT=pre_r1 restores the sense layer before its fixes (the owner's
+/// discounted price, the stock TARGETING stealth filter, the fog filter beside the eyes, the real controller of a hiding
+/// garrison) for the seen_value discount, seen_count disguise_neutral and own_sight tests. Always FALSE in a release build.
 Bool gxSensePreR1ForTest()
 {
 #if defined(GX_TEST_INSTRUMENTS)
@@ -80,8 +98,8 @@ Int gxListPrice(const ThingTemplate *t, const Player *owner = nullptr)
 }
 /// what is hidden from a viewer by stealth: a stealthed, undetected object - except a disguised disguiser, which every viewer sees AS ITS
 /// DISGUISE (gxSeen) whoever it imitates. The stock PartitionFilterStealthedAndUndetected is a TARGETING rule (a disguise as a friend
-/// counts as stealthed; a neutral building holding undetected stealth units counts as stealthed) and so undercounted what a human sees
-/// (the P1 garrison case: the building stays seen, owned as gxSeen shows it)
+/// counts as stealthed; a neutral building holding undetected stealth units counts as stealthed) and so undercounts what a human sees
+/// (a garrisoned building stays seen, owned as gxSeen shows it)
 class GXSightStealthFilter : public PartitionFilter
 {
 public:
@@ -162,8 +180,8 @@ Bool gxSenseNoSelfRevealForTest()
 }
 
 /// an object that shows ITSELF to the viewer wherever the viewer's units are: its current ShroudRevealToAllRange look (a superweapon, Object::look:
-/// finished, and not stealthed unless detected) names the viewer. If the game shows the player, the player knows (lead's ruling 02/11/2026,
-/// rb-sense-3). This object only: what stands beside it, in the same small disc, still needs an own eye.
+/// finished, and not stealthed unless detected) names the viewer. If the game shows the player, the player knows.
+/// This object only: what stands beside it, in the same small disc, still needs an own eye.
 Bool gxShowsItselfTo(const Object *o, const Player *viewer)
 {
 	const SightingInfo *look = o->friend_getPartitionRevealAllLastLook();
@@ -263,10 +281,10 @@ Int GXRuleSense::enemyValueNear(const Object *ownAnchor, Real r) const
 	return value;
 }
 
-// ---- SENSE.ENEMY_FACTION (GeneralsX 01/11/2026 rb-sense-1) ----
+// ---- SENSE.ENEMY_FACTION ----
 /// what the sighting pass may record (one rule for the pass and the save check): a unit or building - STRUCTURE,
 /// INFANTRY, VEHICLE or AIRCRAFT, never a PROJECTILE - judged on the template's FINAL override (StealthUpdate::xfer restores a disguise as the
-/// template before its map.ini override; the uninterrupted game held the override)
+/// template before its map.ini override)
 const ThingTemplate *GXRuleSense::sightable(const ThingTemplate *t)
 {
 	if (t == nullptr)
@@ -405,7 +423,7 @@ Int GXRuleSense::collectSightings(PlayerMaskType track, std::vector<std::vector<
 	return f.fogTests();
 }
 
-// ---- SENSE.FOG_CONDITIONS (GeneralsX 02/11/2026 rb-sense-2) ----
+// ---- SENSE.FOG_CONDITIONS ----
 namespace
 {
 /// a unit or building of another player, as the viewer sees its owner and template (the snapshot's own cheap test; the partition filters
@@ -750,7 +768,7 @@ void gxRuleSenseFixture(GXRuleCtx &ctx, const char *which)
 			ctx.log("sense_test", "case=disguise result=SKIP why=needs_2v2_and_templates");
 			return;
 		}
-		Coord3D farPos = at;	// GeneralsX 01/11/2026 t2-fix-2: not "far" - <windows.h> defines far (and near) as empty macros, so MSVC read "Coord3D = at;"
+		Coord3D farPos = at;	// not "far": <windows.h> defines far and near as empty macros
 		farPos.x += 5000.0f;	// the disguise models, off the sensing range
 		Object *modelC = gxFxSpawn("AmericaTankCrusader", enemy2, farPos);
 		farPos.y += 100.0f;
@@ -875,8 +893,8 @@ void gxRuleSenseFixture(GXRuleCtx &ctx, const char *which)
 			ctx.log("sense_test", "case=fog result=SKIP why=no_enemy_base");
 			return;
 		}
-		// a spawn point the VIEWER provably cannot see (Mini fx run 30/10: in the observer-hosted headless games one AI saw the other's
-		// base at frame 118, so "beside the enemy base" was no fog for it): the enemy base first, then a 9 x 9 grid inside the map, the
+		// a spawn point the VIEWER provably cannot see (in the observer-hosted headless games one AI saw the other's
+		// base at frame 118, so beside the enemy base was no fog for it): the enemy base first, then a 9 x 9 grid inside the map, the
 		// first point where the spawned tank is on the map and shrouded for the viewer. fogpts= counts the grid points fogged for it
 		// (0 = it sees the whole map: the case cannot run, and that is itself worth knowing)
 		const Int vi = viewer->getPlayerIndex();
@@ -932,12 +950,11 @@ void gxRuleSenseFixture(GXRuleCtx &ctx, const char *which)
 	ctx.log("sense_test", kv);
 }
 
-// ---- the SENSE.ENEMY_FACTION fixtures (GeneralsX 01/11/2026 rb-sense-1), GX_RULE_SENSE_TEST=faction | faction_disguise |
-// faction_captured | faction_fog. Every viewer asks its first enemy E through the condition's own entry (GXRuleBank::senseEnemyFaction)
-// for every playable side and base side; got = that answer as a bit mask over those strings (gxFxFactionNames' order), want = an
-// INDEPENDENT number: the lobby slot's ORIGINAL template's side + base side when the lobby showed it (TheGameInfo, read here), else 0
-// until the sightings the case plants say otherwise. A Random enemy is the case under test; a lobby-known one proves sightings never
-// override the lobby. The pass is run at once (senseSampleNowForTest) after each plant, as its half-second cadence would.
+// ---- the SENSE.ENEMY_FACTION fixtures, GX_RULE_SENSE_TEST=faction | faction_disguise | faction_captured | faction_fog ----
+// Every viewer asks its first enemy E through the condition's own entry (GXRuleBank::senseEnemyFaction) for every playable and base
+// side; got = that answer as a bit mask (gxFxFactionNames' order), want = an independent number: the lobby slot's ORIGINAL template
+// side + base side when the lobby showed it (TheGameInfo), else 0 until the planted sightings say otherwise.
+// The pass is run at once (senseSampleNowForTest) after each plant, as its half-second cadence would.
 #include "Common/PlayerTemplate.h"
 #include "Common/NameKeyGenerator.h"
 #include "GameNetwork/GameInfo.h"
@@ -1030,7 +1047,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 	Bool random = TRUE;
 	const Int lobby = gxFxLobbyBits(enemy, names, &random);
 	const Int known = random ? bGLA : lobby;		// what three fair GLA sightings make of it: GLA for a Random enemy, the lobby's otherwise
-	// ISOLATION (Mini fx run 01/11: in these small observer-hosted games a viewer may already see the enemy's own base at frame 118, and
+	// ISOLATION (in these small observer-hosted games a viewer may already see the enemy's own base at frame 118, and
 	// those real sightings mixed with - or pre-empted - the planted ones): the enemy's REAL objects are stealthed and undetected for the
 	// fixture's one tick, and restored on every way out. Then a baseline pass must leave a Random enemy unseen, else the case is SKIPPED
 	// (missing evidence, never a pass). Fixture games are never CRC-identity runs (they spawn objects).
@@ -1224,9 +1241,8 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 	}
 	if (strcmp(which, "seen_stale") == 0)
 	{
-		// GeneralsX 02/11/2026 rb-sense-2: an answer is the world at the moment of the ask, never a snapshot an earlier
-		// ask made - two visible Scorpions of E are counted (that ask would prime any cache), one is destroyed, the next ask in the SAME
-		// tick counts one. Red arm: GX_TEST_SENSE_MUTANT=frame_cache answers 2 again.
+		// an answer is the world at the moment of the ask, never a snapshot an earlier ask made: two visible Scorpions of E
+		// are counted, one is destroyed, the next ask in the SAME tick counts one. Red arm: GX_TEST_SENSE_MUTANT=frame_cache.
 		ObjectTypes *scorp = newInstance(ObjectTypes);
 		scorp->addObjectType(AsciiString(gla[2]));
 		gxFxLine(ctx, which, "none", bank.seenCount(enemy, *scorp), 0);
@@ -1245,10 +1261,9 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 	}
 	if (strcmp(which, "seen_self_reveal") == 0)
 	{
-		// GeneralsX 02/11/2026 rb-sense-3 (lead's ruling 1): an enemy object that reveals itself to all counts as seen. E's Scud Storm far from anything
-		// of the viewer's: fogged while under construction, then the game shows it to every enemy (ShroudRevealToAllRange, Object::look) and the
-		// viewer's count and sighting pass have it. The game's own answer (getShroudedStatus, not the sensor's) is checked for each state. Not while
-		// under construction, not while stealthed and undetected (the stealth general's), again once detected; what stands beside it needs an eye.
+		// an enemy object that reveals itself to all counts as seen. E's Scud Storm far from anything of the viewer's: fogged
+		// while under construction, then shown to every enemy (ShroudRevealToAllRange, Object::look), so the viewer's count and
+		// sighting pass have it. Not while stealthed and undetected, again once detected; what stands beside it needs an eye.
 		const char *sw = "GLAScudStorm";
 		const Int vi = viewer->getPlayerIndex();
 		const Bool brutal = gxRuleTierOf(viewer) == gxrb::TIER_BRUTAL;
@@ -1297,7 +1312,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 				if (o == nullptr)
 					break;
 				spawned.push_back(o);
-				// a new object has already looked (Mini F3a 02/11: every spot read "shown"), so start it as a dozer would: under construction shows nothing
+				// a new object has already looked (every spot read shown), so start it as a dozer would: under construction shows nothing
 				o->setStatus(MAKE_OBJECT_STATUS_MASK(OBJECT_STATUS_UNDER_CONSTRUCTION), TRUE);
 				relook(o);
 				if (o->isOffMap() || shown(o))
@@ -1360,9 +1375,9 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 	}
 	if (strcmp(which, "seen_count") == 0 || strcmp(which, "seen_value") == 0)
 	{
-		// GeneralsX 02/11/2026 rb-sense-2: SENSE.FOG_CONDITIONS through the conditions' own entries (GXRuleBank::seenCount / seenValueIn),
-		// with E's real objects hidden (above). Every want is an independent number: how many planted objects - or their build costs - a
-		// human in the viewer's seat sees, by hand. Every ask computes from the world at that moment (no snapshot is kept).
+		// SENSE.FOG_CONDITIONS through the conditions' own entries (GXRuleBank::seenCount / seenValueIn), with E's real objects
+		// hidden (above). Every want is an independent number: how many planted objects, or their build costs, a human in the
+		// viewer's seat sees. Every ask computes from the world at that moment (no snapshot is kept).
 		const Bool brutal = gxRuleTierOf(viewer) == gxrb::TIER_BRUTAL;
 		const Int vi = viewer->getPlayerIndex();
 		auto blind = [&](Object *o)
@@ -1375,7 +1390,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 			TheGameLogic->destroyObject(o);
 		};
 		// one object of template t for E at the first grid point the viewer does not see where it lands ON the map and fogged for the viewer
-		// (the faction_fog grid; Mini F piece 02/11: the first fogged point can be in the border, off the map - unseen even by BRUTAL)
+		// (the faction_fog grid; the first fogged point can be in the border, off the map - unseen even by BRUTAL)
 		auto spawnFogged = [&](const char *t, Coord3D *out) -> Object *
 		{
 			Region3D ext;
@@ -1499,7 +1514,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 				const Int h0 = bank.seenCount(neutral, *hum);
 				t3->getStealth()->disguiseAsObject(model);
 				// as a disguised Bomb Truck is in a game: StealthUpdate sets DISGUISED at the transition's half-way point and it stays until the reveal.
-				// Without it the stock filter's disguise branch is never reached and the pre_r1 red arm could not bite (Mini F2 02/11)
+				// Without it the stock filter's disguise branch is never reached and the pre_r1 red arm could not bite
 				t3->setStatus(MAKE_OBJECT_STATUS_MASK2(OBJECT_STATUS_STEALTHED, OBJECT_STATUS_DISGUISED), TRUE);
 				char exn[48];
 				snprintf(exn, sizeof(exn), "before=%d", (int)h0);
@@ -1619,13 +1634,11 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 	}
 	if (strcmp(which, "own_sight") == 0)
 	{
-		// GeneralsX 02/11/2026 rb-sense-2 (stock USA's Spy Satellite fed the
-		// sensor at f28): the sight path counts only what the viewer's OWN units and buildings see. Three GLA templates of E at a spot the
-		// viewer does not see; then each reveal that is NOT an own unit's look - a granted reveal (doShroudReveal for the viewer, as a map or
-		// script reveal does), a viewer-owned Spy Satellite ping, an ALLY's unit - must add no sighting and no value for a FAIR viewer (want
-		// 0: nothing of the viewer's own looks there) and leave a Random E unknown; then a viewer-owned unit beside them: 3 sightings, their
-		// build costs, E known. BRUTAL sees the whole map, so every sub counts for it. Every reveal is taken back before the next sub (the
-		// granted one undone, the others' looks dropped and the queued undos flushed), so each starts from the fogged spot.
+		// the sight path counts only what the viewer's OWN units and buildings see. Three GLA templates of E at a spot the
+		// viewer does not see; then each reveal that is NOT an own unit's look (a granted reveal, a viewer-owned Spy Satellite
+		// ping, an ALLY's unit) must add no sighting and no value for a FAIR viewer and leave a Random E unknown; then a
+		// viewer-owned unit beside them: 3 sightings, their build costs, E known. BRUTAL sees the whole map, so every sub
+		// counts for it. Every reveal is taken back before the next sub, so each starts from the fogged spot.
 		const Int vi = viewer->getPlayerIndex();
 		const Bool brutal = gxRuleTierOf(viewer) == gxrb::TIER_BRUTAL;
 		const GXRuleSense &sense = ctx.sense();
@@ -1660,7 +1673,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 					o->setShroudClearingRange(range);
 				o->handlePartitionCellMaintenance();	// look now, as its first partition update would
 				// its spawn-time look (full range) was unlooked by that call, but an unlook is QUEUED: flush it, so the cells clear now are
-				// exactly this look's (Mini F piece 02/11: cells_exact_min read 78 of 81 cells wrong, and pre_r1's edge saw a whole-CC reveal)
+				// exactly this look's (otherwise cells_exact_min reads cells wrong and pre_r1's edge sees a whole-CC reveal)
 				ThePartitionManager->processEntirePendingUndoShroudRevealQueue();
 			}
 			return o;
@@ -1760,7 +1773,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 			ctx.log("sense_test", "case=own_sight sub=fogged result=SKIP why=nothing_fogged");
 			return;
 		}
-		// the want: the list prices of the ARMED ones only - an unarmed template is worth 0 to enemyValueNear (Mini F piece 02/11: the base
+		// the want: the list prices of the ARMED ones only - an unarmed template is worth 0 to enemyValueNear (the base
 		// GLAVehicleTechnical carries no weapon of its own, 750 not 1250)
 		Int sum = 0;
 		for (int k = 0; k < 3; ++k)
@@ -1864,7 +1877,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 			}
 			const GXCellBox edgeBox = boxBefore(ep, 40.0f);
 			Object *edgeEye = eye("AmericaInfantryRanger", viewer, ep, 1.0f);	// the smallest look: one cell and its neighbours
-			// the want is the GAME's answer, not a placement assumption (w-own-2v2 02/11 read 0 at an alignment where this look may clear no cell
+			// the want is the GAME's answer, not a placement assumption (it can read 0 at an alignment where this look may clear no cell
 			// the building touches): getShroudedStatus is what draws it for a human. Where the game does not show it the sensor must say 0 too, and
 			// the next alignment is tried; where it does, the sensor must see it.
 			const ObjectShroudStatus st = cc->getShroudedStatus(vi);

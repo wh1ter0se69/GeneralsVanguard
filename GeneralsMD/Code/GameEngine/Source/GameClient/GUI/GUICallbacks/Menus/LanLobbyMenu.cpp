@@ -434,6 +434,8 @@ static GameWindow *staticTextGameInfo = nullptr;
 //external declarations of the Gadgets the callbacks can use
 NameKeyType listboxChatWindowID = NAMEKEY_INVALID;
 GameWindow *listboxChatWindow = nullptr;
+static void lanLobbyRow( const UnicodeString &tag, const UnicodeString &line, Color color );	// with the chat seam
+static void lanLobbySay( const UnicodeString &line, Color color );
 GameWindow *listboxPlayers = nullptr;
 NameKeyType listboxGamesID = NAMEKEY_INVALID;
 GameWindow *listboxGames = nullptr;
@@ -515,6 +517,7 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	textEntryChat = TheWindowManager->winGetWindowFromId( nullptr, textEntryChatID );
 	listboxPlayers = TheWindowManager->winGetWindowFromId( nullptr, listboxPlayersID );
 	listboxChatWindow = TheWindowManager->winGetWindowFromId( nullptr, listboxChatWindowID );
+	GXChatBoxUseTimeColumn(listboxChatWindow);	// GeneralsX @feature the gray time column, before the first row
 	listboxGames = TheWindowManager->winGetWindowFromId( nullptr, listboxGamesID );
 	staticTextGameInfo = TheWindowManager->winGetWindowFromId( nullptr, staticTextGameInfoID );
 	listboxPlayers->winSetTooltipFunc(playerTooltip);
@@ -522,34 +525,10 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	// Show Menu
 	layout->hide( FALSE );
 
-	// GeneralsX: ENTERING THIS SCREEN IS SAYING "I AM LOCAL", and the menu is
-	// the only place that knows it.
-	//
-	// Transport::init already retires a pin minted for a different identity, by comparing the pin with
-	// the address the socket is handed. That closes every path that re-binds first - but not this one,
-	// because the address handed in BELOW is stale too. TheLAN survives the online screen (the only
-	// `TheLAN = nullptr` in these menus is this file's own Back button; WOLLobbyMenu has none and
-	// SetUpOnlineLobbyLAN rebuilds on the next line), and LANAPI::reset() did not touch m_localIP - so
-	// `TheLAN->init()` a few lines down hands Transport::init the address ONLINE pinned, the equality
-	// test says "same identity, keep the pin", and Transport::init ends in sendRelayRegistration().
-	// That is a GXRLY into the production room, on the wire, BEFORE the SetLocalIP below rebinds
-	// locally and retires the pin. The operative socket is local either way; the datagram has gone.
-	//
-	// Safe to drop unconditionally: every path that legitimately relays re-enters the room itself
-	// before it builds a transport - SetUpOnlineLobbyLAN, relayJoinSelectedGame, JoinDirectConnectGame,
-	// HeadlessMatch::setUpLan - so nothing here reads a pin it did not just write.
-	//
-	// GeneralsX: AND DROPPING THE PIN ALONE CHANGED NOTHING ON THE WIRE. This
-	// note used to end "This fixes the room", and it did not: the room ONLINE pins is getLocalHostRoom(),
-	// which is also this screen's unpinned fallback, under the default LocalVirtualIP (10.42.0.1) - the
-	// same (room, id) the pin held in the common case. Nor could it reach TheLAN->reset() below, whose
-	// m_transport->update() can send the surviving transport's keepalive from a registration built
-	// long before. So this is now enterLocalScreen(): the pin goes AND nothing relays or registers
-	// until the next online entry. Transport.cpp says why that latch cannot break an Online screen.
-	//
-	// With relay off, nothing widened TheLAN->init()'s bind to the wildcard any more, so on Windows it
-	// bound ONLINE's 10.42.x.x - on no interface. LANAPI::reset() below now forgets m_localIP, so that
-	// bind is the wildcard a fresh TheLAN makes, and SetLocalIP picks the NIC as before.
+	// Entering this screen means "I am local": Transport::enterLocalScreen() drops the relay pin and latches
+	// relaying/registration off until the next online entry.
+	// TheLAN survives the online screen and LANAPI::reset() keeps m_localIP, so init() would hand Transport::init the
+	// pinned address and send a GXRLY to the production room. Safe unconditionally: relaying paths re-enter the room.
 	Transport::enterLocalScreen();
 
 	// Init LAN API Singleton
@@ -580,7 +559,7 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 		DEBUG_ASSERTCRASH(IPlist, ("No IP addresses found!"));
 		if (!IPlist)
 		{
-			// GeneralsX @bugfix The guard body was empty and execution fell straight
+			// GeneralsX: The guard body was empty and execution fell straight
 			// through to IPlist->getIP(). Any machine with no usable network
 			// interface — an iPad with Wi-Fi off is the everyday case — crashed on
 			// opening this screen. DEBUG_ASSERTCRASH above compiles away in release,
@@ -603,7 +582,7 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 #if defined(RTS_DEBUG)
 	UnicodeString str;
 	str.format(L"%s: %d.%d.%d.%d", IPSource, PRINTF_IP_AS_4_INTS(IP));
-	GadgetListBoxAddEntryText(listboxChatWindow, str, chatSystemColor, -1, 0);
+	lanLobbySay(str, chatSystemColor);
 #endif
 
 	// GeneralsX: THE ADDRESS FIRST, THEN init(). init() binds the
@@ -652,42 +631,10 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	}
 	*/
 
-	// GeneralsX: SAY WHY, ON THE ONE SCREEN THAT IS "OUR NETWORKING"
-	// WITHOUT LOOKING LIKE IT.
-	//
-	// The owner's rule: "Online needs sign in anything else not needed but anything that uses our
-	// networking needs to be signed in." Online already refuses without an account (GXOnlineGate.h:79).
-	// This screen is the gap: NETWORK becomes our networking the moment RelayAddress resolves
-	// (Transport.cpp:881) - and nothing here ever said so. A relay that requires sign-in drops an
-	// unidentified member 15 s after it joins (relay.js:7781), and a player who was never told would
-	//
-	// report "the game list is empty", not "I should log in".
-	//
-	// A NOTICE, NOT A REFUSAL, and that distinction is load-bearing in three ways:
-	//   1. The relay decides. A client-side admission check is a check a patched client skips
-	//      (Transport.cpp:2385), so refusing here would buy no security and cost the honest player.
-	//   2. Whether signed-out players are admitted is the relay's setting, not the client's. A refusal
-	//      here would lock them out of a relay that admits them, and would not undo itself on rollback.
-	//
-	//   3. A GENUINELY LOCAL game on this screen needs no account and never will
-	//      (GXIdentityAssertion.h:41), and isRelayEnabled() is false for it, so this says nothing.
-	//
-	//      BUT "on the LAN screen" IS NOT "genuinely local" TODAY, and an earlier draft of this
-	//      comment claimed it was. OptionPreferences::getRelayAddress() returns GX_BOOTSTRAP_RELAY
-	//      when RelayAddress is absent OR blank (OptionPreferences.cpp:268-277) - only the literal
-	//      "none", or GENERALSX_NO_RELAY, yields the empty string that turns initRelay off. So on a
-	//      default install this screen IS relay-enabled, which is exactly why the notice belongs
-	//      here and not only in the Online lobby. Do not re-derive "the LAN screen has no relay"
-	//      from a read of initRelay alone; the default is not "off", it is "bootstrap".
-	//
-	//      A separate branch is making LAN genuinely local by default. When
-	//      it lands, this condition simply stops being true on a LAN-only lobby and the notice stops
-	//      appearing there - no change is needed here, because the predicate is already
-	//      isRelayEnabled() rather than "is this the LAN screen".
-	//
-	// AT THE TOP OF THE CHAT BOX, in the system colour, because that is where this screen already
-	// talks to the player and it needs no new control, no .wnd change and no repack of WindowZH.big.
-	// FETCH_OR_SUBSTITUTE so a translation can land later without another code change.
+	// A notice, not a refusal (the relay decides): under RELAY_REQUIRE_IDENTITY the relay drops an unidentified
+	// member 15 s after join, which looks like an empty game list.
+	// Test isRelayEnabled(), not "is this the LAN screen": getRelayAddress() defaults to GX_BOOTSTRAP_RELAY unless
+	// RelayAddress is "none" or GENERALSX_NO_RELAY is set.
 	{
 		const Transport *relayT = (TheLAN != nullptr) ? TheLAN->getTransport() : nullptr;
 		if (listboxChatWindow != NULL && relayT != nullptr && relayT->isRelayEnabled()
@@ -696,14 +643,10 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 			// Two short lines rather than one long one: this listbox is narrow and a wrapped
 			// sentence reads as two unrelated fragments. The verb matches the relay's own notice
 			// ("Type /login") so the player meets one vocabulary and not two.
-			GadgetListBoxAddEntryText(listboxChatWindow,
-				TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayNeedsAccount",
-					L"This server needs an account to play."),
-				chatSystemColor, -1, 0);
-			GadgetListBoxAddEntryText(listboxChatWindow,
-				TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayNeedsAccountHow",
-					L"Type /login to sign in with Discord. LAN games need no account."),
-				chatSystemColor, -1, 0);
+			lanLobbySay(TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayNeedsAccount",
+					L"This server needs an account to play."), chatSystemColor);
+			lanLobbySay(TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayNeedsAccountHow",
+					L"Type /login to sign in with Discord. LAN games need no account."), chatSystemColor);
 		}
 	}
 
@@ -809,7 +752,6 @@ void LanLobbyMenuShutdown( WindowLayout *layout, void *userData )
 //-------------------------------------------------------------------------------------------------
 /** Lan Lobby menu update method */
 //-------------------------------------------------------------------------------------------------
-static void lanLobbySay( const UnicodeString &line, Color color );	// defined below, with the chat seam
 
 void LanLobbyMenuUpdate( WindowLayout * layout, void *userData)
 {
@@ -836,35 +778,11 @@ void LanLobbyMenuUpdate( WindowLayout * layout, void *userData)
 	if (TheShell->isAnimFinished() && !LANbuttonPushed && TheLAN)
 		TheLAN->update();
 
-	// GeneralsX: THE RELAY'S OWN VOICE HAD NO RENDER SURFACE ON THIS SCREEN.
-	//
-	// noticeTo and announceToRoom emit an operator line as GXSAY <room> 0.0.0.0 <text> (relay.js:6629)
-	// and need no new client capability - but the sender-zero branch that DRAWS it existed in exactly
-	// two places: the Online lobby (WOLLobbyMenu.cpp:5557) and, since 09/09/2026, inside a match
-	// (GXMatchChat.h gxMatchDrainOperatorLines). This screen had neither, so every relay-side notice
-	// aimed at a player sitting in a relay-backed NETWORK lobby was received, queued and discarded:
-	// the identity requirement's "Online play needs a linked account. Type /login..." (relay.js:7784),
-	// a ban or kick notice, a mute notice. The player saw a lobby that stopped working and no reason.
-	//
-	// THE DRAIN IS THE ROOT-CAUSE FIX, not a second bespoke message. One sender-zero branch here
-	// renders every operator line this screen can ever receive, including ones added later.
-	//
-	// PLAYER LINES ARE DRAINED AND DISCARDED, exactly as the match drain does it. A player sender
-	// on this queue is somebody's Online-lobby chat: it was not addressed to this screen and putting
-	// it here would leak the shared lobby into a LAN one. Draining rather than leaving it also stops
-	// one talker filling the bounded 16-slot ring (Transport.h:719-724) and starving the operator
-	// out of it.
-	//
-	// GeneralsX: The loop moved to GXMatchChat.h gxLobbyDrainRelayNotices, shared
-	// with the game-setup room so the two cannot drift (the 23/09 classification bug above was exactly one
-	// copy drifting). Through lanLobbySay, this screen's headless-aware sink.
-	//
-	// GeneralsX: ONLY WHILE THIS SCREEN IS SHOWING. The shell updates EVERY layout on
-	// its stack (Shell.cpp, runUpdate over m_screenStack), and joining a game hides this one under the
-	// game-setup room rather than removing it - so this drain went on eating the queue there and rendering
-	// operator lines into a listbox nobody could see. Hidden, it leaves the queue to the screen on top.
+	// Render the relay's own operator lines (GXSAY <room> 0.0.0.0 <text>: identity requirement, ban, kick, mute).
+	// Player lines are drained and discarded so the shared Online lobby cannot leak in or fill the 16-slot ring.
+	// Only while this screen shows: a hidden lobby would eat the queue.
 	if (!layout->isHidden())
-		gxLobbyDrainRelayNotices(lanLobbySay, chatSystemColor);
+		gxLobbyDrainRelayNotices(lanLobbyRow, chatSystemColor);
 
 	// GeneralsX: THE LOGIN FLOW'S OWN LINE HAD NO RENDER SURFACE HERE EITHER
 	// The notice in LanLobbyMenuInit says "Type /login", GXLobbyChatCommand
@@ -957,19 +875,26 @@ WindowMsgHandledType LanLobbyMenuInput( GameWindow *window, UnsignedInt msg,
 // GXLobbyGuardUnknownCommand runs LAST, before the send. It knows from the same table that
 // /password, /private and /public are live on this screen and lets those through to RequestChat;
 // anything else starting with '/' is refused rather than announced to the whole LAN.
-static void lanLobbySay( const UnicodeString &line, Color color )
+// GeneralsX @feature One row into this screen's chat box (GXChatBoxAdd): `tag` is "[S]", "[L]" or empty.
+static void lanLobbyRow( const UnicodeString &tag, const UnicodeString &line, Color color )
 {
-	// Same reasoning as the relay lobby's sink: a headless run has no listbox, and silently dropping
-	// the line is what made the lobby untestable without a GUI. [GXLOBBY] is what a harness greps for.
 	if (listboxChatWindow == NULL)
 	{
+		UnicodeString whole = tag;
+		whole.concat(line);
 		AsciiString plain;
-		plain.translate(line);
+		plain.translate(whole);
 		fprintf(stderr, "[GXLOBBY] %s\n", plain.str());
 		fflush(stderr);
 		return;
 	}
-	GadgetListBoxAddEntryText(listboxChatWindow, line, color, -1, 0);
+	GXChatBoxAdd(listboxChatWindow, tag, line, color);
+}
+
+// A notice this client raised: "[S]", gray (a refusal keeps its red).
+static void lanLobbySay( const UnicodeString &line, Color color )
+{
+	lanLobbyRow(UnicodeString(L"[S]"), line, GXChatNoticeColor(color));
 }
 
 /// TRUE when the line was consumed and must NOT be sent.
@@ -1138,7 +1063,7 @@ WindowMsgHandledType LanLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 					}
 					else
 					{
-						GadgetListBoxAddEntryText(listboxChatWindow, TheGameText->fetch("LAN:ErrorNoGameSelected") , chatSystemColor, -1, 0);
+						lanLobbySay(TheGameText->fetch("LAN:ErrorNoGameSelected"), chatSystemColor);
 					}
 
 				}
@@ -1160,11 +1085,11 @@ WindowMsgHandledType LanLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 						unsigned int gxChatWait = 0;
 						if (!ChatRate::consumeShared(timeGetTime(), &gxChatWait)) {
 							GadgetTextEntrySetText(textEntryChat, txtInput);
-							GadgetListBoxAddEntryText(listboxChatWindow,
+							lanLobbySay(
 								TheGameText->FETCH_OR_SUBSTITUTE_FORMAT("GUI:ChatRateLimited",
 									L"Please wait %d more second(s) before sending another message.",
 									(Int)gxChatWait),
-								chatSystemColor, -1, 0);
+								chatSystemColor);
 						} else {
 							TheLAN->RequestPlayerChat(txtInput);
 						}
@@ -1274,11 +1199,11 @@ WindowMsgHandledType LanLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 						unsigned int gxChatWait = 0;
 						if (!ChatRate::consumeShared(timeGetTime(), &gxChatWait)) {
 							GadgetTextEntrySetText(textEntryChat, txtInput);
-							GadgetListBoxAddEntryText(listboxChatWindow,
+							lanLobbySay(
 								TheGameText->FETCH_OR_SUBSTITUTE_FORMAT("GUI:ChatRateLimited",
 									L"Please wait %d more second(s) before sending another message.",
 									(Int)gxChatWait),
-								chatSystemColor, -1, 0);
+								chatSystemColor);
 						} else {
 							TheLAN->RequestPlayerChat(txtInput);
 						}

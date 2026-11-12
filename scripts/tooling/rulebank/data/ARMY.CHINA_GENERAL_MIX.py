@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule ARMY.CHINA_GENERAL_MIX: Dominator's answer - Nuke: mostly
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule ARMY.CHINA_GENERAL_MIX: Dominator's answer - Nuke: mostly
 # Battlemasters and Gattling Tanks; Tank: Battlemaster + Gattling + ECM, Emperors stay rare (in this game version Subliminal does not
 # boost the Emperor). The Nuke and Tank generals' Hard wave tank teams keep their total of Battlemasters + Emperors, T, and re-split it:
 #   Gattlings G = round(T * gattling_share_pm / 1000), Emperors E = min(stock Emperors, round(T * emperor_share_pm / 1000)),
@@ -95,7 +97,7 @@ def activation(obs, me, params=None):
     return {'triggered': bool(triggered), 'fired': bool(fired), 'detail': 'warfactory_f=%s gattling3_f=%s' % (fw, g3)}
 
 
-# rb-data-6: stock already fields Gattlings, so activation() fires on OFF and cannot tell ON from OFF. smoke-read.py judges measure() of an ON
+# Stock already fields Gattlings, so activation() fires on OFF and cannot tell ON from OFF. smoke-read.py judges measure() of an ON
 # game against the OFF game of the same seed: the Gattling share of the tank census at 400 s must rise by at least min_delta.
 CONTRAST = {'what': 'Gattling / (Gattling + Battlemaster + Emperor) own tanks at 400 s', 'direction': 1, 'min_delta': 0.05}
 

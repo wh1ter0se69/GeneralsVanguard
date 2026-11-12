@@ -16,33 +16,11 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: GX_ORDERS - a scripted human, so a multiplayer test match is not an idle one.
-//
-// WHY. A headless human peer issues no orders, and skirmish AI orders are simulated locally on every peer rather than
-// sent. So a 12-peer loss match or a 34-peer scale match put almost nothing on the wire (ROADMAP_2027 M2 Smooth-1 and
-// M6; scripts/test/relay-npeer.sh "headless humans issue no orders"). This gives each human peer a seeded order stream
-// at a stated rate, so the wire carries what real players send.
-//
-// HOW IT STAYS HONEST. Every order is the GameMessage the UI appends for the same click - a MSG_CREATE_SELECTED_GROUP
-// and then one action - put into TheMessageStream, so it crosses the network like a human's and every peer executes it
-// from the command list. Nothing here calls into GameLogic to act. The only queries are the ones the UI itself makes
-// before sending the same order (canMakeUnit and requestUniqueUnitID as ControlBarCommandProcessing does,
-// isLocationLegalToBuild with the PlaceEventTranslator's flags, findCommandSet), so a one-peer call here is exactly as
-// safe as a human hovering a building. Its random numbers come from a private splitmix64, NEVER the logic or client
-// streams: a logic-RNG draw on the issuing peer alone would be a desync.
-//
-// It lives in GameClient/, outside the SimID source digest, so a driver-on peer joins a stock peer of the same build.
-//
-//   GX_ORDERS=<n>         orders per minute (of logic time) for this peer's player, 0 < n <= 600; unset or 0 = off.
-//                         An "order" is one replay command that is not housekeeping - the unit scripts/test/order-rate.py
-//                         counts - so each action costs two: its selection and itself. GO 1v1/2v2 median: 66.
-//   GX_ORDERS_SEED=<n>    default 1; the stream is this mixed with the player index, so peers differ.
-//   GX_ORDERS_MIX=b:p:a:m relative weights of build, produce, attack, move. Default 7:32:20:41 (GO corpus, 5 matches).
-//   GX_ORDERS_FROM=<f>    first logic frame that may issue an order, default 1.
-//
-// A bad value refuses the whole driver with one "[GXORDERS] refused" line. It never runs half-configured. It runs only in
-// a command-line harness match (-lanhost / -lanjoin, headless or rendered): any other start - a GUI lobby, skirmish or
-// the shell - refuses it the same way, so a shipped client carries no bot switch a player could turn on.
+// GX_ORDERS: a scripted human, so a multiplayer test match is not idle: headless peers issue no orders and
+// skirmish AI orders are simulated locally, so almost nothing else crosses the wire.
+// Each order is the GameMessage the UI appends for the same click. Random numbers come from a private splitmix64,
+// NEVER the logic or client streams (a desync). Harness matches only.
+// GX_ORDERS=<n> orders per minute (0 < n <= 600), _SEED, _MIX=b:p:a:m, _FROM; a bad value refuses the driver.
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
@@ -83,7 +61,7 @@ const Real ATTACK_RANGE = 600.0f;		///< the nearest enemy this close is attacked
 const Real MAP_MARGIN = 50.0f;
 const Int MAX_BUILDERS = 3;				///< no more builders past this many: humans keep 2-3, and the Command Center's only
 										///< button is a builder, so without a cap the starting cash all went on builders and
-										///< no barracks - hence no unit to attack with - was ever afforded (g1-on run, 01/10)
+										///< no barracks - hence no unit to attack with - was ever afforded
 
 struct Config
 {
@@ -228,7 +206,7 @@ struct Mine
 	Int builders;						///< every builder this player owns, busy or not, plus those queued for production
 	std::vector<Object *> spareWorkers;	///< builders not building or repairing, gatherers not gathering: moved only when there are no movers
 	std::vector<Object *> gatherers;	///< busy gatherers: moved only when there is nothing else at all (a GLA player whose
-										///< Workers are all hauling had nothing to command and starved - Mini m12-on, 01/10)
+										///< Workers are all hauling had nothing to command and starved)
 };
 
 Bool isFinished(const Object *o)

@@ -240,6 +240,8 @@ public:
 	virtual void setZoomToMax();
 	virtual void setZoomToDefault() override;									///< Set zoom to default value
 	virtual Real getRetailReferenceZoom( Real *iconScale = nullptr ) override;
+	virtual Real getWholeMapCameraHeightSetting() override;
+	virtual Real getZoomReferenceHeight() override;
 
 	virtual void setFieldOfView( Real angle ) override;							///< Set the horizontal field of view angle
 
@@ -338,6 +340,10 @@ private:
 	void buildCameraTransform(Matrix3D *transform, const Vector3 &sourcePos, const Vector3 &targetPos); ///< calculate (but do not set) the transform matrix of m_3DCamera, based on m_pos & m_angle
 	Bool zoomCameraToDesiredHeight();
 	Real gxBodyClearedZoom(Real desiredZoom);	///< GeneralsX: the desired zoom raised so the camera body clears the ground under it
+	Real getWholeMapHeightAboveGround();				///< GeneralsX: the height above ground that shows the whole loaded map; 0 = unknown
+	Real capToWholeMap(Real maxAboveGround, Real effectiveMaxHeight, Real playerTopAboveGround);	///< GeneralsX: see the definition
+	void recapToWholeMap();														///< GeneralsX: the same cap again, for a new viewport
+	Bool isWholeMapCapInForce() const;
 	Bool movePivotToGround();
 	void updateCameraAreaConstraints();
 	void calcCameraAreaConstraints(); ///< Recalculates the camera area constraints
@@ -380,6 +386,14 @@ private:
 	Real						m_terrainDrawScale;		///< the TerrainDrawDistanceScale m_terrainDrawSize was grown under
 	Bool						m_terrainDrawEntire;	///< the DrawEntireTerrain it was grown under
 	Real						m_terrainDrawMaxHeight;	///< the camera max it was grown under; a lower one starts it over
+	// GeneralsX @feature The whole-map cap on a Debug-range max (capToWholeMap): what it capped and what it set, so the
+	// overlays keep the uncapped reference and a viewport change can take the cap again. m_gxCappedMax 0 = no cap set.
+	Real						m_gxUncappedMax;
+	Real						m_gxCappedMax;
+	Real						m_gxCapSetting;
+	Real						m_gxCapPlayerTop;
+	Real						m_gxCapExtentX;		///< the active boundary the cap was measured on; another one takes it again
+	Real						m_gxCapExtentY;
 };
 
 // EXTERNALS //////////////////////////////////////////////////////////////////////////////////////

@@ -523,22 +523,10 @@ static void SDL3_EnsureNativeFullscreen(SDL_Window* window)
 	SDL_RaiseWindow(window);
 }
 
-// GeneralsX: ONE density, ONE direction, ONE definition of the
-// points <-> render-pixels conversion. Ported from the GeneralsMD twin (d5afaed6f) with the unit
-// contract made explicit, because the twin's version is only half a contract and that is a bug -
-// see SDL3_ScaleRenderResolutionToPixels below and W3DDisplay::setDisplayMode.
-//
-// THE UNITS, stated once so no caller has to guess:
-//   * POINTS  - what the player configures. Options.ini, TheGlobalData->m_x/yResolution, and the
-//               offered mode list (Enumerate_Resolutions -> DXVK's SDL3 WSI -> SDL_DisplayMode.w/h,
-//               which SDL fills in points; see the long note on requestAspectMatchesDisplay).
-//   * PIXELS  - what is rendered. The D3D8/DXVK backbuffer, Render2DClass' screen resolution, and
-//               Display::getWidth()/getHeight() once init() has scaled them.
-//
-// Returns the POINTS -> PIXELS factor. It is 1.0 anywhere the high-density drawable was not
-// requested, which makes every user of it a no-op there by construction rather than by inspection:
-// SDL_WINDOW_HIGH_PIXEL_DENSITY is set under "#if defined(__APPLE__)" in Code/Main/SDL3Main.cpp, so
-// this guard is the same guard, and a platform that never multiplies can never be caught dividing.
+// GeneralsX: The single points -> render-pixels conversion. POINTS are what the player configures (Options.ini,
+// TheGlobalData->m_x/yResolution, the offered mode list); PIXELS are what is rendered (backbuffer, Render2DClass,
+// Display::getWidth/getHeight after init). Returns the POINTS -> PIXELS factor, 1.0 wherever the high-density drawable
+// was not requested (SDL_WINDOW_HIGH_PIXEL_DENSITY is set under __APPLE__ in SDL3Main.cpp, same guard).
 static Real SDL3_GetRenderPixelDensity()
 {
 #if defined(__APPLE__) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
@@ -550,19 +538,9 @@ static Real SDL3_GetRenderPixelDensity()
 	return 1.0f;
 }
 
-// GeneralsX: Convert a POINT resolution to the RENDER PIXEL resolution,
-// in place. Every place that turns a player-chosen resolution into a render resolution must call
-// this and nothing else, so the scaling cannot exist on one path and be missing on another - which
-// is exactly the defect the twin still has: it scales in init() only, so an options-screen
-// resolution change silently drops back to point size until the next restart.
-//
-// Both dimensions are rounded down to even. The twin masks the width alone with no stated reason;
-// an unbounded search of Core, Generals, GeneralsMD and docs finds no even-dimension requirement
-// anywhere, so the mask is either unnecessary (in which case applying it to both costs at most one
-// pixel per axis) or it is a real alignment constraint (in which case masking one axis is a bug).
-// Masking both is the only choice that is correct under either reading. At the densities macOS
-// actually reports - 1.0 or exactly 2.0 - the mask is arithmetically dead in both cases; it only
-// does anything if a fractional density ever appears.
+// GeneralsX: Convert a POINT resolution to the RENDER PIXEL resolution in place. Every path that turns a player-chosen
+// resolution into a render resolution must call this, so the scaling cannot be missing on one path.
+// Both dimensions are rounded down to even; at densities of 1.0 or 2.0 the mask is arithmetically a no-op.
 static void SDL3_ScaleRenderResolutionToPixels(Int& xres, Int& yres)
 {
 	const Real density = SDL3_GetRenderPixelDensity();
@@ -579,87 +557,9 @@ static void SDL3_ScaleRenderResolutionToPixels(Int& xres, Int& yres)
 	yres = pxH;
 }
 
-// PORTED VERBATIM from the GeneralsMD twin (0450933cc). The two files' SDL3 helper
-// families are the same code; keeping the text identical is what makes a future diff
-// between the twins mean something.
-// GeneralsX: DOES ANY ATTACHED DISPLAY ACCEPT A FRAMEBUFFER THIS BIG?
-//
-// WHAT THIS REPLACES. SDL3_ClampRenderResolutionToDisplay, added earlier the same day and blocked
-// by a cross-model review for measuring the wrong thing. Its ceiling was
-// SDL_GetCurrentDisplayMode multiplied by pixel_density - that is what
-// DX8Wrapper::GetNativeDisplaySize resolves to; see SDL3_GetNativeDisplaySize at the top of this
-// block - so it capped at whatever mode the DESKTOP happens to be in and silently reduced valid
-// requests. A 4K monitor running at 1080p imposed a 1080p ceiling.
-//
-// Measured on the machine this was written on, a 3024x1964 MacBook panel whose desktop mode is
-// 1512x982 at density 2.0:
-//
-//     SDL_GetCurrentDisplayMode x density      ->  3024x1964   (the blocked version's ceiling)
-//     max over SDL_GetFullscreenDisplayModes   ->  3600x2338   (this one's)
-//
-// The extra headroom is real, not an artifact: macOS "More Space" modes render into a framebuffer
-// LARGER than the panel and scale down, so 1800x1169 points at density 2.0 is a mode the OS will
-// actually drive. The blocked version reduced a 1800x1169 request on this laptop; this one
-// honours it. Deliberate supersampling up to what the hardware will present therefore survives,
-// which is the behaviour the review said was being removed.
-//
-// UNITS. The argument is POINTS - what Options.ini and TheGlobalData->m_x/yResolution hold. The
-// comparison happens in PIXELS, because a mode's framebuffer and the backbuffer it would cost are
-// both measured there, using the same density every other render-scaling site in this file uses.
-//
-// EXCEPT ON iOS, where the argument is already PIXELS - and the comparison is still right, by
-// construction rather than by luck. SDL3Main injects -xres/-yres from SDL_GetWindowSizeInPixels
-// there, which is the split requestAspectMatchesDisplay below spells out in full; and
-// SDL3_GetRenderPixelDensity is guarded "__APPLE__ && !TARGET_OS_IPHONE", so it returns 1.0 on iOS
-// and the multiplication below is the identity. A pixel request is therefore compared against a
-// pixel framebuffer, which is the same comparison, not a coincidence. Worth stating because a
-// comment that said "the argument is POINTS" and stopped there would be false on one of the three
-// platforms this compiles for - and a half-true unit claim in a comment is what got the version
-// this replaces blocked.
-//
-// EVERY ATTACHED DISPLAY, deliberately, and that is what makes this immune to the review's third
-// finding. The window MOVES during a resolution change: DX8Wrapper::Resize_And_Position_Window
-// calls ::SetWindowPos(_Hwnd, nullptr, 0, 0, width, height, SWP_NOZORDER) on the non-Windows
-// windowed path, its guard is ::GetClientRect which is an empty stub in CompatLib (so the branch
-// is taken every time), and the SetWindowPos shim runs SDL_SetWindowPosition(window, 0, 0)
-// because SWP_NOMOVE is absent. A ceiling tied to "the display the window is on" is therefore
-// read from a display the window is about to leave. Asking whether ANY display can present the
-// request makes the answer independent of where the window is, so there is nothing left for a
-// move to invalidate. It also errs in the safe direction: the cost of being too permissive is a
-// slow frame, the cost of being too strict is silently overriding what the player chose.
-//
-// IT IS A THRESHOLD, NOT A TARGET. It answers only "nothing here can present this". WHERE to fall
-// back to is chosen by the caller from the offered mode list, so the result is always a size the
-// player could have picked out of the options combo box and the runtime globals never end up
-// holding a size the adapter never enumerated. The one gap is buildFilteredResolutions' permissive
-// retry, which drops the taller-than-native filter to avoid an empty list; a mode from that pass
-// can exceed this ceiling, and the caller will then have snapped to it anyway. That is the correct
-// trade - an empty resolution list is a worse bug - but it is a gap, not a guarantee.
-//
-// IT IS NOT A CORRECTNESS GUARD, and the blocked version's "a request the display cannot draw"
-// was too strong. Read end to end, an oversized request neither fails nor renders wrong at the
-// DXVK layer: DX8Wrapper::Pillarbox_Setup creates the offscreen target at the game resolution with
-// D3DDevice->CreateTexture(gameW, gameH, 1, D3DUSAGE_RENDERTARGET, ...) and Pillarbox_End
-// downsamples it onto the backbuffer. What it costs is real, though. That target is mip-less
-// (Levels = 1) and the blit is a single D3DTEXF_LINEAR tap with no MIPFILTER, so past roughly 2x
-// it aliases rather than antialiases: a 4x-oversized render buys four times the GPU cost and a
-// WORSE picture. And 4x in both axes is not a size a player chose - it is the signature of a
-// POINTS value that was written as PIXELS, which is exactly the launcher defect that produced the
-// one this exists for.
-//
-// Returns true only when NO attached display can present the request. Returns false - honour it -
-// whenever the evidence is missing: no displays, no modes, or SDL refusing to answer. A reduction
-// made on no evidence is the failure mode this function exists to prevent.
-// PARTIAL evidence is missing evidence, and that took a second cross-model round to get right. The
-// first version skipped a display whose mode list came back empty and carried on with the others,
-// so on a two-monitor machine where one enumeration fails it could still answer "nothing here can
-// present this" - having never asked the monitor that might have. Any display that cannot be
-// enumerated now makes the whole answer false.
-//
-// SILENT, deliberately. The log line belongs to the caller that ACTS on the answer, not here:
-// findBestOfferedMode calls this once per candidate mode, so logging inside would print a line per
-// rejected candidate on a path that is already an error path. The largest framebuffer found comes
-// back through outBestW/outBestH for whoever wants to say it out loud.
+// GeneralsX: Does any attached display accept a framebuffer this big? Argument in POINTS, compared in PIXELS via
+// SDL3_GetRenderPixelDensity (1.0 on iOS, already pixels). Ceiling: largest fullscreen mode of any display, since the
+// window moves on a resolution change. True only when NO display can present it; missing or partial evidence is false.
 static bool SDL3_RequestExceedsDisplayCapability(Int ptW, Int ptH,
 	Int* outBestW = nullptr, Int* outBestH = nullptr)
 {
@@ -727,7 +627,7 @@ static bool SDL3_RequestExceedsDisplayCapability(Int ptW, Int ptH,
 
 
 // GeneralsX: Apply SDL3 window sizing/fullscreen only after the final render resolution is known.
-// GeneralsX @info renderWidth/renderHeight are PIXELS. See SDL3_GetRenderPixelDensity for the units.
+// GeneralsX: renderWidth/renderHeight are PIXELS. See SDL3_GetRenderPixelDensity for the units.
 static void SDL3_ApplyWindowModeForRenderConfig(Bool windowed, Int renderWidth, Int renderHeight)
 {
 	extern SDL_Window* TheSDL3Window;
@@ -750,25 +650,9 @@ static void SDL3_ApplyWindowModeForRenderConfig(Bool windowed, Int renderWidth, 
 		}
 	}
 	else {
-		// GeneralsX: SDL_SetWindowSize takes POINTS; renderWidth/Height are
-		// PIXELS. Ported from the GeneralsMD twin (d5afaed6f). The two are the same number only at
-		// density 1.0, which is why this was invisible until a Retina Mac ran it: with
-		// SDL_WINDOW_HIGH_PIXEL_DENSITY now set on macOS, asking for a 2880-point window on a 2x
-		// display would demand 5760 physical pixels and throw most of the window off the screen.
-		// Convert back to points so the window is the size the player actually chose while the
-		// drawable underneath it stays native.
-		//
-		// The divisor is SDL3_GetRenderPixelDensity, NOT SDL_GetWindowPixelDensity as in the twin,
-		// so that this division is the exact inverse of SDL3_ScaleRenderResolutionToPixels'
-		// multiplication - same source, same platform guard. The two queries answer different
-		// questions (the window's realised density vs the display's) and can disagree: a window
-		// created without SDL_WINDOW_HIGH_PIXEL_DENSITY reports 1.0 from the first while the second
-		// still reports the panel's 2.0. So under the twin's version the divide is keyed to the
-		// window flag while the multiply is keyed to __APPLE__, and any build where those two stop
-		// agreeing divides a size that was never multiplied and halves the window.
-		//
-		// Exactly a no-op where density is 1.0 - the arithmetic returns the input unchanged - so
-		// non-Retina machines are untouched.
+		// GeneralsX: SDL_SetWindowSize takes POINTS; renderWidth/Height are PIXELS. Convert back so the window keeps the size
+		// the player chose. The divisor is SDL3_GetRenderPixelDensity, not SDL_GetWindowPixelDensity, so it inverts
+		// SDL3_ScaleRenderResolutionToPixels exactly (same source, same platform guard). A no-op at density 1.0.
 		const Real winDensity = SDL3_GetRenderPixelDensity();
 		const Int winPtW = (Int)((Real)renderWidth  / winDensity);
 		const Int winPtH = (Int)((Real)renderHeight / winDensity);
@@ -777,18 +661,8 @@ static void SDL3_ApplyWindowModeForRenderConfig(Bool windowed, Int renderWidth, 
 			fprintf(stderr, "WARNING: SDL_SetWindowSize(%d,%d) failed: %s\n", winPtW, winPtH, SDL_GetError());
 		}
 
-		// GeneralsX: RE-CENTRE AFTER THE RESIZE, or the window hangs off
-		// the right of the display. Same defect and same fix as the Zero Hour twin - see the long
-		// note in GeneralsMD/.../W3DDisplay.cpp. SDL centres the window for the placeholder
-		// 1024x768 it is created at, and growing it here keeps the left edge, so a 1600-wide window
-		// on a 1920 display starts at x=448 and ends 128 px past the screen.
-		// NOT ON iOS. A UIWindow is the whole screen and has no position to set; SDL_SetWindowPosition
-		// against one is meaningless at best. This branch is already unreachable there - m_windowed
-		// defaults to FALSE (Display.cpp:50) and is only ever set TRUE by -win, which the iPad cannot
-		// pass because it has no argv (SDL3Main injects only -xres/-yres/-autoload; unbounded search
-		// for "-win" finds only WorldBuilder and the parse table). The guard is here anyway because
-		// that reachability argument lives in a different file from this call, and the platform it
-		// would regress is a live one.
+		// GeneralsX: Re-centre after the resize, or the window hangs off the right of the display (SDL centred the placeholder
+		// 1024x768 window and growing it keeps the left edge). Not on iOS: a UIWindow is the whole screen with no position.
 #if !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 		SDL_SetWindowPosition(TheSDL3Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 #endif
@@ -808,9 +682,8 @@ struct FilteredRes { Int w, h, bits; };
 static std::vector<FilteredRes> s_filteredResolutions;
 
 // GeneralsX: Mirror of the Zero Hour change; see the long comments in
-// GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DDisplay.cpp. The list used to be
-// built once and never invalidated, which only became a bug once it started depending on the
-// display and the windowed flag, so it now carries the inputs it was built from.
+// GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DDisplay.cpp. The list
+// depends on the display and the windowed flag, so it carries the inputs it was built from.
 static bool s_filteredValid    = false;
 static Bool s_filteredWindowed = FALSE;
 static Int  s_filteredNativeW  = 0;
@@ -833,30 +706,10 @@ static bool fullscreenAspectIsLocked(Bool windowed)
 #endif
 }
 
-// GeneralsX: A request that ALREADY has the display's aspect must not be
-// migrated. The startup migration exists to avoid pillarbox BARS, and bars require an aspect
-// MISMATCH - Pillarbox_Setup fits the game rect inside the backbuffer preserving aspect, so equal
-// aspects give an exact fit with no bars at ANY scale. Migrating such a request therefore buys
-// nothing, and on iPadOS it costs half the resolution.
-//
-// The two sides are in DIFFERENT UNITS there, which is why the request looks "not offered":
-//   * the OFFERED list is in POINTS. SDL's UIKit backend fills SDL_DisplayMode.w/h from
-//     GetUIScreenModeSize, whose own comment reads "What we want for the mode size is the point
-//     size, and the pixel density is the native scale" (SDL_uikitmodes.m), and DXVK's SDL3 WSI
-//     copies mode.w/h verbatim into the D3D8 adapter mode list (convertMode,
-//     wsi_platform_sdl3.h) - which is the list BOTH Enumerate_Resolutions and Find_Color_Mode
-//     walk.
-//   * the REQUEST is in PIXELS. SDL3Main injects -xres/-yres from SDL_GetWindowSizeInPixels, and
-//     SDL3_GetNativeDisplaySize multiplies the mode by pixel_density.
-//
-// So on a 2x iPad no pixel-sized request can ever appear in the list, every launch takes the "not
-// offered" path, and the fallback (tallest offered mode when none reaches the requested height)
-// snaps e.g. 2388x1668 down to 1194x834 - exactly undoing the SDL_WINDOW_HIGH_PIXEL_DENSITY that
-// SDL3Main sets to stop the game rendering at point size. Density cancels in a ratio, so the
-// aspect test below is unaffected by the unit split and needs no unit conversion of its own.
-//
-// The size floor keeps the rescue for a corrupt or hand-edited Options.ini: a silly but
-// proportional value must still be migrated to something drawable rather than honoured.
+// GeneralsX: A request with the display aspect must not be migrated: pillarbox bars need an aspect mismatch, and
+// migrating costs half the resolution on iPadOS. The offered list is in POINTS but the request is in PIXELS
+// (SDL3Main injects -xres/-yres in pixels), so it never appears in the list; density cancels in the aspect ratio.
+// The size floor keeps the rescue for a corrupt or hand-edited Options.ini.
 static bool requestAspectMatchesDisplay(Int xres, Int yres)
 {
 	if (xres < DEFAULT_DISPLAY_WIDTH || yres < DEFAULT_DISPLAY_HEIGHT)
@@ -874,40 +727,10 @@ static bool requestAspectMatchesDisplay(Int xres, Int yres)
 	return fabsf(reqAspect - nativeAspect) <= 0.01f;	// same tolerance as the offer filter
 }
 
-// PORTED VERBATIM from the GeneralsMD twin (0450933cc). The two files' SDL3 helper
-// families are the same code; keeping the text identical is what makes a future diff
-// between the twins mean something.
-// GeneralsX @tooling /09/2026 The "closest offered mode" search, lifted out of
-// W3DDisplay::init's startup migration so that migration and the runtime resolution-change path
-// share ONE implementation instead of two copies that can drift. The selection rule is unchanged
-// from the migration it came from: prefer the SMALLEST offered height that still reaches the
-// requested one - never silently demote the player to a blurrier mode than they asked for - and
-// fall back to the TALLEST offered mode when nothing reaches it, which is the case an oversized
-// request always takes.
-//
-// It reads the same list the options combo box is built from (getDisplayModeCount /
-// getDisplayModeDescription -> buildFilteredResolutions), so anything it returns is a size the
-// player could have selected themselves. That property is what lets the caller write the result
-// into TheGlobalData->m_x/yResolution without manufacturing a phantom combo entry.
-//
-// POINTS in, POINTS out: the offered list is in points. See SDL3_GetRenderPixelDensity.
-//
-// GeneralsX: A candidate is rejected if IT is unpresentable too, which a
-// cross-model review caught this function doing on its first day.
-//
-// The selection is in POINTS and the caller then multiplies by the render density, so "an offered
-// mode" is not by itself a guarantee that the result fits. The height is safe by construction -
-// buildFilteredResolutions drops anything taller than the current mode in points, so height x
-// density can never exceed the current framebuffer - but the WIDTH is bounded only by the legacy
-// 4:3..16:9 sanity range on the windowed/Windows path, where the display-aspect filter is off. So
-// on a display whose current mode is 1440x900 at 2x, a 1600x900 mode is offered, survives every
-// filter, wins the "same height, prefer wider" tie-break, and comes out of here as a 3200x1800
-// request against a 2880x1800 ceiling: the fallback exceeding the limit it was chosen to respect.
-//
-// Two passes rather than one filter, matching buildFilteredResolutions' own idiom, because an
-// empty answer here is worse than an imperfect one: if NOTHING presentable is offered, the second
-// pass returns the old unfiltered choice instead of returning false and leaving the caller with
-// the oversized request it was trying to correct.
+// GeneralsX: The closest offered mode search, shared by the startup migration and the runtime resolution change.
+// Prefers the smallest offered height that still reaches the requested one, else the tallest. It reads the options
+// combo list, so the result is a size the player could pick. POINTS in, POINTS out. Unpresentable candidates are
+// rejected; if none is presentable, a second pass returns the unfiltered choice.
 static bool findBestOfferedMode(W3DDisplay* display, Int wantW, Int wantH, Int& outW, Int& outH)
 {
 	if (display == nullptr)
@@ -1065,38 +888,10 @@ Bool W3DDisplay::setDisplayMode( UnsignedInt xres, UnsignedInt yres, UnsignedInt
 	const UnsignedInt oldBitDepth = getBitDepth();
 	const Bool oldWindowed = getWindowed();
 
-	// GeneralsX: xres/yres arrive in POINTS and everything below this line
-	// wants PIXELS. Without this the Retina scaling that W3DDisplay::init() applies exists on the
-	// startup path only, and the first options-screen resolution change on a 2x Mac undoes it:
-	//
-	//   * SDL3_ApplyWindowModeForRenderConfig divides by the density, so a point value passed here
-	//     comes out half size and the window shrinks to half what the player picked;
-	//   * Set_Device_Resolution builds a point-sized backbuffer into a pixel-sized drawable, so the
-	//     render resolution silently reverts to point size and stays there until restart;
-	//   * Display::setDisplayMode rescales the tactical view by new/old, and getWidth() is still in
-	//     pixels from init(), so the view is scaled by 1/density on top of that.
-	//
-	// Only the render side becomes pixels, exactly as in init(). A no-op at density 1.0.
-	//
-	// GeneralsX: The EFFECTIVE POINT size is published here, not assumed
-	// by the caller. Ported from the GeneralsMD twin (0450933cc).
-	//
-	//
-	//
-	//
-	//
-	// The options combo box then
-	// preselected a resolution that was not running, the confirm dialog named it, and the next
-	// launch read the same oversized value back off disk - so the correction had to be made again
-	// every single time and was never visible anywhere the player could see it.
-	//
-	// So the engine now owns the answer: on success the globals carry the POINT size that is
-	// actually running, and OptionsMenu / MainMenu read it back instead of assuming their request
-	// survived. Unconditional and not inside any platform guard, because when nothing is reduced
-	// this writes exactly the value the caller was about to write itself - byte for byte the old
-	// behaviour on Windows, Linux and every non-Retina display. Still no Options.ini write from
-	// here: persisting it stays the options screen's job, which is the rule the startup migration
-	// in init() already follows.
+	// GeneralsX: xres/yres arrive in POINTS and everything below wants PIXELS. Without the conversion the Retina scaling of
+	// init() is lost on the first options-screen change (half-size window, point-sized backbuffer). A no-op at density 1.0.
+	// The effective POINT size is written back to the globals so OptionsMenu / MainMenu read what is running; Options.ini
+	// is not written here.
 	Int pointW = (Int)xres;
 	Int pointH = (Int)yres;
 	#ifdef SAGE_USE_SDL3
@@ -1144,7 +939,7 @@ Bool W3DDisplay::setDisplayMode( UnsignedInt xres, UnsignedInt yres, UnsignedInt
 	}
 
 	//set back to the original mode.
-	// GeneralsX @info oldWidth/oldHeight come from getWidth()/getHeight(), which are already PIXELS.
+	// GeneralsX: oldWidth/oldHeight come from getWidth()/getHeight(), which are already PIXELS.
 	// Do NOT scale them - they have been through SDL3_ScaleRenderResolutionToPixels once already.
 	WW3D::Set_Device_Resolution(oldWidth, oldHeight, oldBitDepth, oldWindowed, true);
 	Render2DClass::Set_Screen_Resolution(RectClass(0, 0, oldWidth, oldHeight));
@@ -1491,33 +1286,10 @@ void W3DDisplay::init()
 				Int xres = TheGlobalData->m_xResolution;
 				Int yres = TheGlobalData->m_yResolution;
 
-				// GeneralsX: Mirror of the Zero Hour change. A resolution
-				// stored before the fullscreen aspect filter existed can now be absent from the
-				// offered list; left alone it renders the wrong aspect into the fullscreen
-				// backbuffer (black bars) and leaves the options combo box with nothing selected.
-				// Snap to the nearest offered mode, preferring the next height UP. Runtime globals
-				// only - no Options.ini write as a side effect of device init.
-				// Only when the fullscreen path is pinned to the display aspect. Windowed runs and
-				// Windows can legitimately use a size the adapter never enumerated.
-				// GeneralsX: ...and NOT when the request already has the
-				// display's own aspect. See requestAspectMatchesDisplay: migrating one of those is
-				// how the iPad silently loses half its render resolution.
-				// GeneralsX: ...and ALSO when no attached display can
-				// present the request at all. Wrong SHAPE and wrong SIZE are different faults and
-				// only the first one was handled here. Ported from the GeneralsMD twin (0450933cc).
-				//
-				// The snap-to-nearest-mode rescue above is gated on an aspect MISMATCH, because
-				// bars require one. A resolution that was doubled by the unit bug this project
-				// spent 2026-09-14 on - POINTS written into a field that is read as POINTS but
-				// sourced from PIXELS - keeps its aspect ratio exactly, so it looks perfectly
-				// shaped and was waved straight through to a 4x-oversized backbuffer.
-				//
-				// Only the THRESHOLD is new. Where to land is still the offered mode list, and
-				// the tallest-offered fallback that findBestOfferedMode inherits from this block
-				// is exactly right for a request nothing can present. Doing it here rather than
-				// after the points->pixels scale below is deliberate: the mode list is in POINTS,
-				// the globals are in POINTS, and a correction that has to be converted back is a
-				// correction that can be converted back WRONG.
+				// GeneralsX: Snap a stored resolution to the nearest offered mode (preferring the next height UP) when it is absent
+				// from the offered list, which would render the wrong aspect. Runtime globals only, no Options.ini write. Skipped when
+				// the request already has the display aspect (requestAspectMatchesDisplay); also applied when no attached display can
+				// present it. Done in POINTS, before the scale below.
 #ifdef SAGE_USE_SDL3
 				Int capW = 0, capH = 0;
 				const bool tooBigForAnyDisplay =
@@ -1584,37 +1356,9 @@ void W3DDisplay::init()
 				}
 
 #ifdef SAGE_USE_SDL3
-				// GeneralsX: Render at NATIVE pixels on a Retina Mac.
-				// Ported from the GeneralsMD twin (d5afaed6f).
-				//
-				// Options.ini stores a resolution in POINTS - it is the size of the window the player
-				// wants - but with SDL_WINDOW_HIGH_PIXEL_DENSITY the drawable underneath that window
-				// is density times larger. Leaving the render resolution at the point value builds a
-				// half-size backbuffer and lets the compositor upscale it, which is the blur reported
-				// on the Zero Hour twin from an M5 MacBook: everything game-drawn twice the size it
-				// should be and fuzzy, while the OS-drawn cursor stayed sharp and small.
-				//
-				// Scaling HERE rather than at the top of the block on purpose: the migration above
-				// compares against the adapter's offered mode list, which SDL fills in POINTS, so it
-				// has to run in point units or every comparison is a unit error. Only the final
-				// render resolution becomes pixels.
-				//
-				// GeneralsX: The globals stay in POINTS - that has not
-				// changed and is what Options.ini holds and what the options combo box offers.
-				//
-				//
-				//
-				//
-				// The scaled PIXEL value below is what is never written
-				// back, and it is the only thing that was ever meant.
-				//
-				// The window is put back to the player's chosen POINT size by
-				// SDL3_ApplyWindowModeForRenderConfig, which divides by the same density - so the
-				// window does not change size on screen, only its sharpness.
-				//
-				// The platform guard lives inside SDL3_GetRenderPixelDensity rather than here, so
-				// there is exactly one place that decides whether this build scales at all. A no-op
-				// at density 1.0, which is every non-Retina Mac and every non-Apple platform.
+				// GeneralsX: Render at native pixels on a Retina Mac. Options.ini stores POINTS, but with SDL_WINDOW_HIGH_PIXEL_DENSITY
+				// the drawable is density times larger, so the point value would build a half-size backbuffer. Scaled here, after the
+				// migration above (which compares against the POINTS mode list). The globals stay in POINTS.
 				SDL3_ScaleRenderResolutionToPixels(xres, yres);
 #endif
 
@@ -1651,28 +1395,10 @@ void W3DDisplay::init()
 				TheWritableGlobalData->m_xResolution = xres;
 				TheWritableGlobalData->m_yResolution = yres;
 #ifdef SAGE_USE_SDL3
-				// GeneralsX: This fallback picks from the offered mode list,
-				// which is in POINTS, so it needs the same points -> pixels conversion case 0 does.
-				// Without it a Retina Mac that fell back here would build a point-sized backbuffer
-				// and then have SDL3_ApplyWindowModeForRenderConfig divide it by the density again,
-				// giving a half-size window - the exact defect this file is fixing, on the one path
-				// that is only taken when something has already gone wrong.
-				//
-				// AFTER the globals are written, not before: m_x/yResolution is the point-valued
-				// copy that Options.ini and the options combo box speak, and only getWidth()/
-				// getHeight() carry pixels.
-				//
-				// GeneralsX: NO capability correction here, deliberately,
-				// and this is the one path that does not get one. Unlike case 0 this does not take
-				// a value off disk - it walks the offered mode list and stops at the first entry
-				// big enough to be usable, so the result is a mode the adapter enumerated and the
-				// oversized-Options.ini fault case 0 guards against cannot arise. The residual is
-				// buildFilteredResolutions' permissive retry, which can restore a mode larger than
-				// anything attached will drive; correcting for that here would mean either skipping
-				// entries (leaving xres/yres holding a skipped mode when the loop runs out) or
-				// snapping to the TALLEST offered mode, which is the wrong direction for a
-				// last-resort fallback that is trying to find something SMALL that works. Reaching
-				// this case already means two device creations failed. Left alone on purpose.
+				// GeneralsX: This fallback picks from the offered mode list (POINTS), so it needs the same points -> pixels
+				// conversion as case 0, applied after the globals are written (m_x/yResolution stay point-valued). No capability
+				// correction here on purpose: the result is a mode the adapter enumerated, and this path is only reached after two
+				// device creations failed, where snapping to the tallest mode would be the wrong direction.
 				SDL3_ScaleRenderResolutionToPixels(xres, yres);
 #endif
 				setWidth( xres );
@@ -1813,7 +1539,7 @@ void W3DDisplay::reset()
 
 	if (TheWritableGlobalData)
 		TheWritableGlobalData->m_drawSkyBox =0;
-	skyBoxMapReset();	// GeneralsX @feature skybox-1: a script's "sky off" ends with the map
+	skyBoxMapReset();	// GeneralsX: skybox-1: a script's "sky off" ends with the map
 }
 
 const UnsignedInt START_CUMU_FRAME = LOGICFRAMES_PER_SECOND / 2;	// skip first half-sec
@@ -1851,41 +1577,9 @@ void W3DDisplay::updateAverageFPS()
 
 	m_currentFPS = 1.0f/elapsedSeconds;
 
-	// GeneralsX @bugfix THIS AVERAGE USED TO BE A MEAN OF RECIPROCALS, AND IT OVER-REPORTED.
-	// The history held 1/dt per frame and this took their arithmetic mean. By Jensen's inequality
-	// mean(1/dt) >= 1/mean(dt), with equality only when every frame time is identical - so the
-	// reported rate was always at or above the true rate over the window, and the gap grows with
-	// frame-time VARIANCE. One slow frame among fast ones barely moves the sum while contributing
-	// a tiny reciprocal; the fast frames' large reciprocals dominate.
-	//
-	// Measured on an iPad Air M3 over 392 one-second windows of a 25000-frame match: 1.232x the
-	// true loop rate on average and 3.14x at worst. Measured on this Mac at a 480 fps cap, where
-	// the limiter makes frame times uniform, the same estimator reads exact (479.9 vs 479.8) -
-	// so the error is driven by variance, not by platform, and it is LARGEST on the jittery weak
-	// peers that matter most.
-	//
-	// Why that is not merely a cosmetic HUD bug: this value is sampled by FrameMetrics once a
-	// second (FrameMetrics.cpp:125) and feeds ConnectionManager's minimum-fps clamp, which sets
-	// the simulation rate for the WHOLE lobby. An over-reporting weak peer therefore talks the
-	// lobby into a rate it cannot actually sustain, and the resulting stutter looks like a
-	// network fault rather than a local one.
-	//
-	// Averaging the frame TIMES and inverting gives the true mean rate over the window, which is
-	// what every consumer already assumes it is getting. Guard the divide: an all-zero history on
-	// the first frames would otherwise produce inf.
-	// GeneralsX: SKIP THE FIRST CALL - IT HAS NO INTERVAL TO MEASURE.
-	// lastUpdateTime64 starts at 0, so on the very first draw timeDiff is the performance
-	// counter's ABSOLUTE value - the machine's uptime, not a frame time. Storing reciprocals hid
-	// that: 1/uptime is ~0 and barely moved a sum of real rates. Storing the interval does not:
-	// one uptime-sized sample dominates the sum and pins m_averageFPS near ZERO until it is
-	// overwritten 30 draws later, and that near-zero is what FrameMetrics samples into the
-	// lobby-wide minimum-fps clamp. Seed the timestamp and record nothing on that pass; the
-	// constructor already leaves m_averageFPS at the configured cap, which is a far better
-	// starting estimate than any value derivable from a non-interval.
-	//
-	// Divide by the number of POPULATED slots for the same reason: while the array is filling,
-	// the unused entries are 0, so summing all 30 understates the elapsed time and overstates
-	// the rate.
+	// GeneralsX: Average frame TIMES and invert, not 1/dt: mean(1/dt) >= 1/mean(dt), so reciprocals over-report on jitter,
+	// and this feeds the minimum-fps clamp for the lobby. Skip the first call (lastUpdateTime64 is 0, so timeDiff is the
+	// absolute counter), and divide by the populated slots while the history fills.
 	if (lastUpdateTime64 != 0)
 	{
 		frameTimeHistory[historyOffset++] = elapsedSeconds;
@@ -2781,20 +2475,10 @@ AGAIN:
 		}
 	}
 
-	// GeneralsX: GX_SHOT capture clock. WW3D's animation clock (SyncTime: UV mappers, texture and
-	// mesh animation) and the terrain clouds (W3DShaderManager TerrainShader2Stage::updateCloud) advance by
-	// getLogicTimeStepMilliseconds() per draw: one logic step scaled by min(1, tick rate / measured render rate). At a
-	// render cap equal to the tick rate the pacer's late frames are clipped to one step while its early ones count short,
-	// so every run loses a different amount of time, and two captures of one logic frame showed two animation phases
-	// (Mini 2026-09-28: same binary, same sim CRCs, mean abs diff 2.8-5.0 over 53-56% of the pixels). While GX_SHOT
-	// captures, WW3D steps by the capture clock instead (GameClient.cpp gxRenderNowMs: whole ms of the match's logic frame,
-	// counted from the match's frame 0 and still in the shell and while loading), the same clock the other render-side
-	// animations read, so the phase is a function of the match's logic frame (scripts/test/gx-shotdiff). The step is the
-	// difference of two whole-ms readings of the ABSOLUTE frame, never a sum of per-draw float slices: WW3D::Sync
-	// truncates, and three single steps would sum to 49 ms where one triple step gives 50. A
-	// draw with no new logic frame reads the same value and steps nothing. Capture runs only: the shell's own animations
-	// stand still until the last shot, where capture mode ends (gxShotDrive). gx-shotdiff keys its noise floors to the
-	// text of the "capture clock on" line below: change that text whenever the capture clock's behaviour changes.
+	// GeneralsX: GX_SHOT capture clock. WW3D animation and clouds normally advance by the scaled logic step per draw,
+	// so two captures of one logic frame can differ. While GX_SHOT captures, WW3D steps by the difference of two whole-ms
+	// readings of the absolute logic frame (GameClient.cpp gxRenderNowMs). gx-shotdiff keys its noise floors to the text of
+	// the capture clock on line below: change that text whenever the behaviour changes.
 	if (gxShotCaptureOn())
 	{
 		static Bool s_said = FALSE;
@@ -2823,7 +2507,7 @@ AGAIN:
 
 	// GeneralsX: ...but never in frozen time, where no logic frame passes: the simulation ends a
 	// camera-only freeze's move before its next update (GameLogic/ScriptedCamera.h), so the draw after the freeze is the one
-	// whose freeze loop shows it (a skipped one lost it: camera-sim-B)
+	// whose freeze loop shows it (a skipped one lost it)
 	if (TheTacticalView->getTimeMultiplier()>1 && !freezeTime)
 	{
 		static Int timeMultiplierCounter = 1;

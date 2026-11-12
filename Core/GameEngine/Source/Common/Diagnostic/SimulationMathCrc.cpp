@@ -29,25 +29,10 @@
 #include <fenv.h>
 #endif
 
-// GeneralsX @diag /07/2026 De-fold the math probe so it measures libm, not the compiler.
-//
-// Every argument below was a compile-time literal, so the compiler evaluated the calls itself and
-// the resulting CRC compared two CONSTANT FOLDERS rather than two math libraries. Measured with
-// Apple clang arm64 at both -O2 and -O3 with -ffp-contract=off (cmake/compilers.cmake:68): exactly
-// 10 of the 17 libm call sites were folded into literal-pool constants - sinf, cosf, both powf,
-// both log10f, atan2f, sqrtf, expf and logf - leaving only tanf, asinf, acosf, atanf, sinhf, coshf
-// and tanhf as real calls. MSVC folds a different subset, so the value was close to meaningless as
-// a cross-platform comparison.
-//
-// Routing each argument through a volatile object makes its value unknown at translation time and
-// makes the read an observable side effect the standard forbids eliding, so every call must be
-// emitted and executed. volatile rather than an asm barrier because MSVC x64 has no inline asm,
-// and unlike a barrier volatile is immune to LTO.
-//
-// Both powf arguments and both atan2f arguments are laundered, not just the first: given a literal
-// 2.0f exponent clang rewrites powf(x, 2.0f) into a single fmul and powf is never called at all.
-// sqrtf still lowers to fsqrt/sqrtss on both targets and is IEEE-754 correctly rounded either way,
-// so it is a hardware sanity check rather than a differentiator.
+// De-fold the math probe so it measures libm, not the compiler: literal arguments let the compiler evaluate most
+// calls itself. Routing each argument through a volatile forces every call to be emitted (volatile, not asm: MSVC
+// x64 has none, and it survives LTO). Both powf and both atan2f arguments are laundered, or clang turns powf(x,
+// 2.0f) into an fmul.
 static inline float mathArg(float v)
 {
     volatile float x = v;
@@ -93,12 +78,11 @@ UnsignedInt SimulationMathCrc::calculate()
 
     appendSimulationMathCrc(xfer);
 
-    // GeneralsX @diag /07/2026 Restore the ENGINE's canonical FP mode, not FE_DFL_ENV.
+    // GeneralsX: Restore the ENGINE's canonical FP mode, not FE_DFL_ENV.
     //
-    // This previously restored the C default environment, which is not the mode the rest of the
-    // engine runs in - setFPMode() is. That was harmless while calculate() had no callers, but it
-    // is now invoked during startup, and handing the remainder of init a different rounding /
-    // precision environment than it would otherwise have had is exactly the kind of perturbation
+    // The C default environment is not the mode the rest of the
+    // engine runs in - setFPMode() is. calculate() is invoked during startup, and handing the remainder of init a
+    // different rounding / precision environment than it would otherwise have had is exactly the kind of perturbation
     // that would contaminate a determinism measurement. setFPMode() is idempotent (absolute
     // _controlfp on Windows, fesetround on Apple), so calling it here leaves the caller in the
     // state it was already entitled to assume.

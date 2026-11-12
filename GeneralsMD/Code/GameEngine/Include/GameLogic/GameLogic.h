@@ -39,6 +39,20 @@
 #include "GameLogic/GXStress.h"
 #include "Common/GXVoteKick.h"
 #include "GameLogic/Module/UpdateModule.h"	// needed for DIRECT_UPDATEMODULE_ACCESS
+#if defined(GX_TEST_INSTRUMENTS)
+#define GX_SLEEPY_ORACLE	// GeneralsX: the sleepy wheel's (key, seq) oracle, GX_HEAP_ORACLE=1 (test-instruments builds only)
+#endif
+#include "GameLogic/SleepyWheel.h"
+
+// GeneralsX: How the sleepy-update wheel reads and writes an UpdateModule's bookkeeping.
+struct SleepyWheelOps
+{
+	static UnsignedInt key(const UpdateModule* u) { return u->friend_getPriority(); }
+	static Int& index(UpdateModule* u) { return u->m_indexInLogic; }
+	static void*& chunk(UpdateModule* u) { return u->m_sleepyChunk; }
+	static UnsignedByte& where(UpdateModule* u) { return u->m_sleepyWhere; }
+	static UnsignedInt64& seq(UpdateModule* u) { return u->m_sleepySeq; }
+};
 
 /*
 	At one time, we distinguished between sleepy and nonsleepy
@@ -118,7 +132,7 @@ public:
 	void preUpdate();
 
 #if defined(RTS_DEBUG)
-	Int getNumberSleepyUpdates() const {return m_sleepyUpdates.size();} //For profiling, so not in Release.
+	Int getNumberSleepyUpdates() const {return m_sleepyWheel.size();} //For profiling, so not in Release.
 #endif
 	void processCommandList( CommandList *list );		///< process the command list
 
@@ -189,7 +203,7 @@ public:
 
 	static Bool isInInteractiveGame(GameMode mode) { return mode != GAME_NONE && mode != GAME_SHELL; }
 
-	/// GeneralsX @security May MSG_GX_CHEAT_* run in this match? Only with at most one human in it.
+	/// GeneralsX: May MSG_GX_CHEAT_* run in this match? Only with at most one human in it.
 	/// Simulation state only, so every peer and every replay agrees. Defined in GameLogicDispatch.cpp.
 	static Bool gxCheatsAllowed();
 
@@ -207,7 +221,7 @@ public:
 	/// 30 s and 5 min in logic frames, two electors at least.
 	static const GXVoteKickRules &gxVoteKickRules();
 	/// The relay-proven admin slots this match runs on, bit i = slot i. 0 outside a relay match and after a load.
-	UnsignedInt64 getGxAdminSlotMask() const { return m_gxAdminSlotMask; }	// GeneralsX 06/11/2026 64-bit: 34 slots
+	UnsignedInt64 getGxAdminSlotMask() const { return m_gxAdminSlotMask; }	// 64-bit mask: 34 slots
 	/// The seed this match's admin orders are signed over (Common/GXAdminOrder.h), for the signer.
 	UnsignedInt getGxAdminSeed() const { return m_gxAdminSeed; }
 	/// GeneralsX: THE admin-path decision for one cheat order from `sender`'s slot: a valid
@@ -219,7 +233,7 @@ public:
 	/// orderer's state has no say. Simulation state only. Defined in GameLogicDispatch.cpp.
 	static Bool gxSpawnGoesNeutral( const Player *target );
 
-	/// GeneralsX @feature Spawn `count` of `tmpl` for `target` on a hex lattice around `where` - the
+	/// GeneralsX: Spawn `count` of `tmpl` for `target` on a hex lattice around `where` - the
 	/// MSG_GX_CHEAT_SPAWN_UNIT placement, shared with the lobby-agreed stress battlefield. Appends each
 	/// new object's id to `spawnedIds` when given; returns how many were made. No cheat gate - the
 	/// callers own that decision. Defined in GameLogicDispatch.cpp.
@@ -328,15 +342,10 @@ private:
 	void pauseGameMusic(Bool paused);
 	void pauseGameInput(Bool paused);
 
-	void pushSleepyUpdate(UpdateModulePtr u);
-	UpdateModulePtr peekSleepyUpdate() const;
-	void popSleepyUpdate();
-	void eraseSleepyUpdate(Int i);
-	void rebalanceSleepyUpdate(Int i);
-	Int rebalanceParentSleepyUpdate(Int i);
-	Int rebalanceChildSleepyUpdate(Int i);
-	void remakeSleepyUpdate();
 	void validateSleepyUpdate() const;
+#if defined(GX_TEST_INSTRUMENTS)
+	void gxSleepyTestTick(UnsignedInt now);	// GeneralsX: GX_HEAP_ORACLE / GX_HEAP_STATS lines
+#endif
 
 	bool onNewGame(GameMessage *msg);
 	bool onClearGameData(GameMessage *msg, AIGroupPtr &currentlySelectedGroup);
@@ -370,7 +379,7 @@ private:
 	bool onDebugHurtObject(GameMessage *msg);
 	bool onDebugKillObject(GameMessage *msg);
 #endif
-	// GeneralsX @feature LAN-safe cheats. Unconditional - the shipping presets define neither
+	// GeneralsX: LAN-safe cheats. Unconditional - the shipping presets define neither
 	// RTS_DEBUG nor _ALLOW_DEBUG_CHEATS_IN_RELEASE, and a handler that exists on one peer and not
 	// the other is a silent CRC mismatch. Defined in Core/.../GameLogicDispatch.cpp, which is
 	// compiled into both g_gameengine and z_gameengine, so this block is mirrored into the
@@ -384,8 +393,8 @@ private:
 	bool onGxCheatDeleteObjects(GameMessage *msg);
 
 	bool onEnter(GameMessage *msg, AIGroupPtr &currentlySelectedGroup);
-	bool onGxQueueEnter(GameMessage *msg, AIGroupPtr &currentlySelectedGroup);	///< GeneralsX @feature WAYPOINT ENTER
-	bool onGxVoteKickStart(GameMessage *msg);	///< GeneralsX @feature IN-MATCH VOTE KICK (GameLogicDispatch.cpp)
+	bool onGxQueueEnter(GameMessage *msg, AIGroupPtr &currentlySelectedGroup);	///< GeneralsX: WAYPOINT ENTER
+	bool onGxVoteKickStart(GameMessage *msg);	///< GeneralsX: IN-MATCH VOTE KICK (GameLogicDispatch.cpp)
 	bool onGxVoteKickCast(GameMessage *msg);
 	bool onExit(GameMessage *msg, AIGroupPtr &currentlySelectedGroup);
 	bool onEvacuate(GameMessage *msg, AIGroupPtr &currentlySelectedGroup);
@@ -487,15 +496,10 @@ private:
 //	ObjectPtrHash m_objHash;																///< Used for ObjectID lookups
 	ObjectPtrVector m_objVector;
 
-	// this is a vector, but is maintained as a priority queue.
-	// never modify it directly; please use the proper access methods.
-	// (for an excellent discussion of priority queues, please see:
-	// http://dogma.net/markn/articles/pq_stl/priority.htm)
-	std::vector<UpdateModulePtr> m_sleepyUpdates;
-	// GeneralsX: m_sleepyKeys[i] == m_sleepyUpdates[i]->friend_getPriority(), always.
-	// The heap compares these instead of loading two scattered UpdateModules per level. Every write of a
-	// queued module's priority, and every move in m_sleepyUpdates, updates it in step.
-	std::vector<UnsignedInt> m_sleepyKeys;
+	// GeneralsX: The sleepy update modules, due in (frame<<2 | phase, seq) order: a timing wheel,
+	// O(1) per wake where a binary heap is O(log n) with a cache miss per level.
+	// Equal keys run first-scheduled-first (GameLogic/SleepyWheel.h).
+	SleepyWheel<UpdateModule, SleepyWheelOps> m_sleepyWheel;
 
 #ifdef ALLOW_NONSLEEPY_UPDATES
 	// this is a plain old list, not a pq.

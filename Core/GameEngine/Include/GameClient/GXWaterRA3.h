@@ -1,36 +1,25 @@
-// GeneralsX: RA3 WATER, a client-only look option on top of clearer and live water (GXWaterClear.h,
-// GXWaterLive.h).
-// DEFAULT ON for every player since wh1ter0se's yes, 04/11/2026: GXWaterRA3 = no turns it off; GX_WATER_RA3=0/1 overrides the key
-// and GX_WATER_RA3_TUNE=<name:value,...> tunes it per run (A/B arms, picture pieces).
-//
-// WHAT RA3 DOES, AND WHAT WE DO INSTEAD. EA's own Ocean.fx draws the water OPAQUE
-// over a refraction copy of the scene, with two scrolling normal maps, a planar reflection and a cube map; its turquoise
-// shallows are the painted sea floor seen through that copy. Our classic renderer (D3D8 through DXVK) has no mid-frame copy,
-// but retail Generals already has something better for the shallows: real depth. Every terrain tile near a shore is drawn a
-// second time into DESTINATION ALPHA through a 256-texel LUT indexed by t = depth / (D * M) (depth = water height - terrain
-// height; BaseHeightMap::updateShorelineTile), and the water blends SRC=DESTALPHA, DEST=INVDESTALPHA. Stock D=3 / M=1 make
-// that a 3-unit sliver - the hard edge in wh1ter0se's picture. This option uses the same tiles and the same depth three ways:
-//
-//   opacity   the dest-alpha LUT becomes a Beer-Lambert ramp, M (1 - e^(-shape u)) / (1 - e^(-shape)), u = depth / fade end,
-//             and the fade ends `reach` times further out than the map's own (stock: 7.2 units instead of 3). Deep water caps at
-//             `opacity` (0.9), so the sea floor reads through the shallows and is all but hidden further out.
-//   tint      the same shore tiles are drawn ONCE MORE, late in the terrain render (after 3-way blends, roads, props and
-//             bridges, before the terrain's shroud pass), fixed-function, RGB only, blended SRC=DESTCOLOR, DEST=SRCALPHA:
-//             seabed' = seabed x (src.rgb + src.a). A second 256-texel LUT holds that multiplier per depth, from 1 at the
-//             waterline to (tintR, tintG, tintB) - red absorbed, cyan up to 2x - so sand under a few units of water reads
-//             turquoise. A multiplier, never an addition: a dark sea floor stays dark, a shrouded one stays black.
-//   colour    the water pass's vertex colour becomes `deep`, lit by the map's own light (ambient + sun, clamped), over a
-//             generated smooth surface texture instead of TWWater01's speckle (flat = 1).
-//
-// Composite, per pixel: deep x light x surface x a(u) + seabed x m(u) x (1 - a(u)). No new shader, no new render target, no
-// new texture fetch on the water surface; the native renderer (opt-in) takes it as it is (fixed function and data only).
-//
-// RENDER-ONLY. Every value here feeds a LUT texel, a vertex colour or a texture; the TransparentWater override it supplies is
-// read only by render code (GXWaterClear.h says which), and there is no random number - the surface texture comes from a
-// fixed integer hash. This header is pure logic with no engine include and sits in Core/GameEngine/Include/GameClient,
-// outside the SimID digest; never include it from Common/, GameLogic/ or GameNetwork/. The engine glue is
-// W3DDevice/GameClient/Water/GXWaterRA3Glue.inl, outside every GX-SIMID region. scripts/test/look-water-ra3-test.sh checks
-// the functions below, with mutant arms.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// RA3 WATER, a client-only option on top of clearer and live water, DEFAULT ON: GXWaterRA3 = no turns it off;
+// GX_WATER_RA3=0/1 and GX_WATER_RA3_TUNE=<name:value,...> override per run.
+// Reuses the shore-tile depth LUT: opacity (a Beer-Lambert ramp), tint (a multiplier, never an addition), colour.
+// RENDER-ONLY, no random number; outside the SimID digest (never include from Common/, GameLogic/, GameNetwork/).
 
 #pragma once
 
@@ -44,8 +33,8 @@
 struct GxWaterRA3Tune
 {
 	float reach;		// the shore fade ends this many times further out than the map's own, in D*M*M terms (stock 3 -> 7.2:
-						// Generals seas are shallow - measured 24/10 from the map files: TournamentB a flat 5 units, the
-						// shell map median 2.9, Mountain Guns 8.8; a first 8x reach left the whole sea half transparent)
+						// Generals seas are shallow - TournamentB a flat 5 units, the
+						// shell map median 2.9, Mountain Guns 8.8; an 8x reach left the whole sea half transparent)
 	float opacity;		// deep-water opacity cap (Water.ini stock 1.0; clearer water 0.6); never raised above the map's own
 	float shape;		// the opacity ramp's Beer-Lambert steepness: 0 = linear (retail), 2.5 = ~85% of the cap half way out
 	float tintR;		// the sea floor's colour multiplier at the end of the band, per channel, 0..2 (red absorbed ...
@@ -53,7 +42,6 @@ struct GxWaterRA3Tune
 	float tintB;		// ... green and blue lifted: sand reads turquoise)
 	float tintShape;	// how fast the multiplier reaches its end value across the band (the same ramp)
 	float deepR;		// the water's own colour where it is opaque, before the map's light: teal, green ~ blue, little red
-						//
 	float deepG;
 	float deepB;
 	float flat;			// >= 0.5: our smooth surface texture; below: the map's own (TWWater01)
@@ -70,30 +58,28 @@ struct GxWaterRA3Tune
 	float div;			// and each one's own drift, + for tiling A, - for B (RA3's octave divergence): they counter-scroll
 	float bump;			// the normal map's RMS slope (one tiling): how rough the ripples are
 	float cells;		// the normal map's coarsest noise lattice, cells across one tiling (then 2x and 4x): its ripple size
-	// PHASE 3, RIVERS (25/10; wh1ter0se approved phase 2's motion as it is, so nothing above changes):
+	// RIVERS:
 	float river;		// >= 0.5: rivers take the deep colour, the smooth surface and the sheen too; below: retail rivers (phase 2)
 	float riverOpacity;	// the river surface's alpha (retail TWWater01's is 194/255 everywhere; phase 3 kept that 0.76, phase 3b 0.90:
 						// less of the bed - snow or sand already tinted cyan by the tint pass - shows through)
 	float riverSpeed;	// the river tilings' common drift DOWNSTREAM, world units a second (retail's texture flows ~6-12 a second);
 						// each tiling's own +-div is standing water's
-	// PHASE 3b, DEEPER RIVERS (25/10; wh1ter0se on phase 3's pictures: "the light blue is too light blue ngl"). River-only:
-	// the lakes and the sea (approved) read neither field.
+	// DEEPER RIVERS: river-only, the lakes and the sea read neither field.
 	float riverShade;	// x the river's lit deep colour (1 = the lakes' colour, phase 3); its alpha byte (retail's sparkle weight) kept
 	float riverSky;		// x `sky` for the river sheen only (the light-blue sky reflection; 1 = phase 3, 0 = the glints alone)
 };
 
 // constexpr: the glue's file-scope copy must be CONSTANT-initialised (a dynamic initialiser in W3DWater.cpp's file scope
-// once made retail's zFillAlphaShader a SimID closure gap - GXWaterLive.h, 17/10).
+// once made retail's zFillAlphaShader a SimID closure gap - see GXWaterLive.h).
 constexpr GxWaterRA3Tune gxWaterRA3DefaultTune()
 {
 	return GxWaterRA3Tune{ 2.4f, 0.9f, 2.5f, 0.5f, 1.2f, 1.5f, 3.0f, 0.07f, 0.41f, 0.48f, 1.0f,
 		0.60f, 40.0f, 50.0f, 0.20f, 0.55f, 0.72f, 0.88f, 180.0f, 2.0f, 6.0f, 0.40f, 16.0f,
 		1.0f, 0.90f, 8.0f,	// phase 3 (rivers): on with the option, retail's flow; the opacity phase 3b's (phase 3: retail's 0.76)
-		0.70f, 0.50f };	// phase 3b: V2 of wh1ter0se's three (pics4); phase 3's look = riverOpacity:0.76,riverShade:1,riverSky:1	// scale/bump/cells: the Mini
-		// tune piece q2 (25/10, TournamentB beach + main menu): 260/0.30/8 left soft milky blotches on the close beach camera; a finer,
-		// rougher map in smaller tiles reads as ripples moving across the whole sea	// phase 2: an offline preview of the shader
-		// (modernize/water-ra3/research/preview): a half vector held 18-34 deg from straight up lit nearly every ripple (+0.16 on
-		// average, the teal washed out); 40-50 deg at 0.6 leaves sparse moving highlights on the teal (+0.07 on average)
+		0.70f, 0.50f };	// the previous river look = riverOpacity:0.76,riverShade:1,riverSky:1
+		// scale/bump/cells: 260/0.30/8 left soft milky blotches on the close beach camera; a finer,
+		// rougher map in smaller tiles reads as ripples moving across the whole sea. Sun half vector: 40-50 deg from straight up
+		// at 0.6 leaves sparse moving highlights on the teal; 18-34 deg lit nearly every ripple and washed the teal out.
 }
 
 struct GxWaterRA3TuneRange
@@ -150,7 +136,7 @@ inline bool gxWaterRA3Finite(float v)
 // ---------------------------------------------------------------------------------------------------------------------------
 // The Options.ini key and the A/B variables.
 
-// DEFAULT ON: wh1ter0se's yes, 04/11/2026 ("RA3 water ON by default in 0.9.70? yes").
+// DEFAULT ON.
 static const bool kGxWaterRA3DefaultOn = true;
 
 // The key's value read exactly as UserPreferences::getBool reads it (UserPreferences.cpp:193): missing or empty ->
@@ -397,20 +383,10 @@ inline void gxWaterRA3FillSurface(unsigned *out, int size, float alpha = 1.0f)
 		}
 }
 
-// ---------------------------------------------------------------------------------------------------------------------------
-// PHASE 2: THE MOTION. RA3's ocean moves because two tilings of one normal map scroll against each other (Ocean.fx: world XY
-// x0.0025, one rotated 55 degrees and one by its transpose, scrolled at the octave speed +- its divergence) and the sky and the sun
-// are reflected through them. Ours, one ADDED pass over the standing water (blend ONE, ONE, after the water and live water's
-// glints), drawn from its own vertex buffer over the same grid:
-//   u1/v1, u2/v2  the two tilings' coordinates (gxWaterRA3Tilings): world XY rotated +-55 degrees about live water's flow, each
-//                 drifting along its own axis - so the pattern evolves instead of sliding;
-//   diffuse       the sky's colour x the map's light x linear Fresnel 1 - V.N per vertex (gxWaterRA3Fresnel / SkyDiffuse): the
-//                 water far from the camera, seen at a grazing angle, takes the sky's colour as RA3's does;
-//   the program   kGxWaterRA3SheenShader: the two normals averaged, dotted with the sun's half vector (c0), ^8, x the sun's colour x
-//                 strength (c1), + the sky, x the shroud - a moving sheen and glints where the ripples face the sun.
-// A ps.1.1 has no per-pixel view vector, so the half vector is the camera's (one per frame), and it is held between tiltMin and
-// tiltMax from straight up: a sun reflected straight at the camera would wash the sea white, one far off would never touch a ripple.
-// All additive, so phase 1's colours stay underneath; glint 0 + sky 0 skips the pass (phase 1 exactly).
+// THE MOTION: two tilings of one normal map scroll against each other (as in RA3), reflecting sky and sun.
+// One ADDED pass over standing water (blend ONE, ONE, after live water's glints), program kGxWaterRA3SheenShader.
+// Diffuse = sky x map light x linear Fresnel per vertex. ps.1.1 has no per-pixel view vector: the half vector is the
+// camera's, held between tiltMin and tiltMax from straight up.
 
 struct GxWaterRA3Vec
 {
@@ -568,24 +544,10 @@ inline void gxWaterRA3FillNormalMap(unsigned *out, int size, float bump, int cel
 	delete [] h;
 }
 
-// THE SHEEN PROGRAM, ps.1.1 bytecode written by hand in the token format of GXWaterLive.h's two (see the field table there;
-// here also: opcode 0x08 dp3, source modifier 4 << 24 = _bx2 (x 2 - 1), destination shift 0xf << 24 = _d2, 1 << 20 = _sat).
-// Stages: t0 / t1 the normal map by tiling A (u1/v1) / B (u2/v2), t3 the shroud (or white) as setupFlatWaterShader left it;
-// c0 the sun's half vector (unit, so inside the [-1, 1] a ps.1.1 constant is clamped to), c1 the sun's colour x strength, v0 the
-// sky x Fresnel. scripts/test/look-water-ra3-test.cpp decodes the tokens back to this text. The native renderer ports it by its
-// BYTES (GXRender/Pipeline/GxCustomCatalog: water:ra3, gx_cs_ps.frag case 21): a change here needs the catalogue regenerated
-// (scripts/render/ws-E/gen_catalog.py) or a native device refuses the pass.
-//   ps.1.1
-//   tex t0                      ; the normal map, tiling A
-//   tex t1                      ; the normal map, tiling B
-//   tex t3                      ; the shroud
-//   add_d2 r1, t0_bx2, t1_bx2   ; the two tilings' average normal
-//   dp3_sat r0, r1, c0          ; n.h (the water's normal is +z: tangent space = world space)
-//   mul r0, r0, r0              ; ^2
-//   mul r0, r0, r0              ; ^4
-//   mul r0, r0, r0              ; ^8
-//   mad r0.rgb, r0, c1, v0      ; x the sun's colour x strength, + the sky x Fresnel
-//   mul r0.rgb, r0, t3          ; under the shroud
+// THE SHEEN PROGRAM: hand-written ps.1.1 in the token format of GXWaterLive.h's two (see the field table there).
+// t0/t1 normal map tilings A/B, t3 shroud; c0 sun half vector (unit), c1 sun colour x strength, v0 sky x Fresnel.
+// The native renderer ports it by its BYTES (GxCustomCatalog water:ra3, gx_cs_ps.frag case 21): a change here needs
+// scripts/render/ws-E/gen_catalog.py rerun or a native device refuses the pass.
 static const unsigned kGxWaterRA3SheenShader[] = {
 	0xffff0101,
 	0x00000042, 0xb00f0000, 0x00000042, 0xb00f0001, 0x00000042, 0xb00f0003,
@@ -599,19 +561,10 @@ static const unsigned kGxWaterRA3SheenShader[] = {
 	0x0000ffff
 };
 
-// ---------------------------------------------------------------------------------------------------------------------------
-// PHASE 3: RIVERS. A river polygon (drawRiverWater) is a strip of rows, each row a pair of bank points: a = the riverStart+1+i point
-// (retail's u2 = 1), b = the riverStart-i point (u2 = 0). Retail draws it with TWWater01 (alpha 194) x the vertex colour and fades both
-// banks out through TWAlphaEdge's alpha on stage 3 by u2: 0 at a bank, a near-linear ramp to 1 at 0.16 in, 1 to 0.84, back to 0
-// (measured from the shipped DXT5, 25/10). With the option on, the river pass takes the deep colour and a river copy of the smooth
-// surface (alpha riverOpacity), and the river gets the sheen too: one ADDED pass from its own buffers over EXACTLY retail's triangles
-// - per row pair (a_i, b_i, b_i+1) and (a_i, b_i+1, a_i+1), the quad's diagonal a_i - b_i+1 - each cut along the lines where u2 = 0.16
-// and 0.84, so the bank fade (linear in u2 inside each piece) rides the vertex alpha exactly and every sheen triangle lies on a retail
-// triangle: the sheen covers what the river covers, no more, on a bent or non-planar quad too (an independent retriangulation did
-// not: /r1L P2). The fade is multiplied by the shroud at the vertex (retail takes a river's shroud per vertex too,
-// getRiverVertexDiffuse). The tilings are taken in the river's own frame - s = the distance along the centreline, t = the offset
-// across, both in world units - with the flow along +s: downstream is the way retail's texture scrolls (toward a higher row index),
-// and the ripples bend with the river.
+// RIVERS: a river polygon is a strip of rows of bank points a (u2 = 1) and b (u2 = 0).
+// Retail fades the banks via TWAlphaEdge (u2: 0 at a bank, 1 from 0.16 to 0.84). With the option, the river takes
+// the deep colour and a smooth surface (alpha riverOpacity), plus an ADDED sheen pass over retail's triangles,
+// cut along u2 = 0.16 and 0.84, so the sheen covers what the river covers. Tilings use the river's own frame.
 
 static const float kGxWaterRA3RiverCols[4] = { 0.0f, 0.16f, 0.84f, 1.0f };	// u2 at each row's 4 vertices, b (0) to a (1)
 static const float kGxWaterRA3RiverFade[4] = { 0.0f, 1.0f, 1.0f, 0.0f };	// TWAlphaEdge's profile there (linear between them)
@@ -753,19 +706,9 @@ inline GxWaterRA3Tune gxWaterRA3RiverSheenTune(const GxWaterRA3Tune &t)
 	return r;
 }
 
-// THE RIVER SHEEN PROGRAM: the sheen program without the shroud texture - the last instruction multiplies by v0.a, the bank fade x
-// the shroud per vertex (the replicated-alpha swizzle 0xff, as retail's riverShader reads v0.a). Native: water:ra3river,
-// gx_cs_ps.frag case 22 (a change here needs the catalogue regenerated, as the sheen program's does).
-//   ps.1.1
-//   tex t0                      ; the normal map, tiling A (u1/v1)
-//   tex t1                      ; the normal map, tiling B (u2/v2)
-//   add_d2 r1, t0_bx2, t1_bx2   ; the two tilings' average normal
-//   dp3_sat r0, r1, c0          ; n.h
-//   mul r0, r0, r0              ; ^2
-//   mul r0, r0, r0              ; ^4
-//   mul r0, r0, r0              ; ^8
-//   mad r0.rgb, r0, c1, v0      ; x the sun's colour x strength, + the sky x Fresnel
-//   mul r0.rgb, r0, v0.a        ; x the bank fade x the shroud
+// THE RIVER SHEEN PROGRAM: the sheen program without the shroud texture; the last instruction multiplies by v0.a, the
+// bank fade x the shroud per vertex (swizzle 0xff, as retail's riverShader reads v0.a). Native: water:ra3river,
+// gx_cs_ps.frag case 22; a change here needs the catalogue regenerated, as the sheen program's does.
 static const unsigned kGxWaterRA3RiverSheenShader[] = {
 	0xffff0101, 0x00000042, 0xb00f0000, 0x00000042, 0xb00f0001,
 	0x00000002, 0x8f0f0001, 0xb4e40000, 0xb4e40001,	// add_d2

@@ -3362,8 +3362,8 @@ void Weapon::xfer( Xfer *xfer )
 
 	// slot
 	// GeneralsX: A slot from a save file indexes m_weapons / barrel arrays later; refuse one out of
-	// range (net-hardening weapon-slot-r1, with sweep c099-01). An honest one always is in range. Checked before it is
-	// kept: a load that throws still runs the post-processing pass, which can read it.
+	// range. An honest one always is in range. Checked before it is kept: a load that throws still
+	// runs the post-processing pass, which can read it.
 	WeaponSlotType xferSlot = m_wslot;
 	xfer->xferUser( &xferSlot, sizeof( WeaponSlotType ) );
 	if ((Int)xferSlot < 0 || (Int)xferSlot >= WEAPONSLOT_COUNT)
@@ -3372,7 +3372,7 @@ void Weapon::xfer( Xfer *xfer )
 
 	// status
 	// GeneralsX: A status from a save file indexes s_wsfLookup (Object::adjustModelConditionForWeaponStatus) and
-	// more; refuse one out of range, before it is kept (net-hardening weapon-slot-r2). An honest one always is in range.
+	// more; refuse one out of range, before it is kept. An honest one always is in range.
 	WeaponStatus xferStatus = m_status;
 	xfer->xferUser( &xferStatus, sizeof( WeaponStatus ) );
 	if ((Int)xferStatus < 0 || (Int)xferStatus >= WEAPON_STATUS_COUNT)

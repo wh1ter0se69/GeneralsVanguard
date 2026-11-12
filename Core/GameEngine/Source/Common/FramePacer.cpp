@@ -187,21 +187,10 @@ Int FramePacer::getActualFramesPerSecondLimit() const
 	if (limit >= (Int)RenderFpsPreset::UncappedFpsValue)
 		return RenderFpsPreset::UncappedFpsValue;
 
-	// GeneralsX: THE CAP IS THE CAP (Common/FpsLimitPolicy.h). The one floor
-	// left is the tick rate, and it is a floor on the main loop rather than a rewrite of the setting: the
-	// engine advances at most one logic frame per main-loop iteration (canUpdateRegularGameLogic steps
-	// once per iteration when the scale is at or above the render cap, and canUpdateNetworkGameLogic
-	// once per isFrameDataReady), so a loop slower than LOGICFRAMES_PER_SECOND would slow the simulation
-	// itself. The launcher offers nothing below it; only a hand-typed -fps, or a display under 60 Hz,
-	// reaches it.
-	//
-	// This used to carry two more floors, both gone. A network game lifted any cap under 2x the tick
-	// rate to 8x it (480 at 60 Hz) - "in game it shows 480 for everyone" - to keep the socket polled
-	// often, since there is no network thread; and the same 2x was the starvation headroom from before
-	// the limiter paced to a deadline grid (FrameRateLimit.cpp, 14/08/2026). The polling is now done
-	// WITHOUT drawing: update(betweenDraws) runs network + logic passes at NetworkPollFps while it holds
-	// for the cap. Measured without that (W7, two paced headless peers, cap 60): logic 59.0 a second
-	// against 60.0 at 480 and unlimited, with identical CRC streams.
+	// The cap is the cap (Common/FpsLimitPolicy.h); the one floor is the tick rate. The engine advances at most one logic
+	// frame per main-loop iteration, so a loop slower than LOGICFRAMES_PER_SECOND would slow the simulation itself.
+	// Network polling at a low cap is done without drawing: update(betweenDraws) runs network + logic passes at
+	// NetworkPollFps while it holds for the cap.
 	if (limit < (Int)LOGICFRAMES_PER_SECOND)
 		return (Int)LOGICFRAMES_PER_SECOND;
 
@@ -325,21 +314,10 @@ Real FramePacer::getLogicTimeStepMilliseconds(LogicTimeQueryFlags flags) const
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: FAST FORWARD - the whole match at k times its normal tick rate, for a match whose
-// only human is this player.
-//
-// IT IS PACING, NOT SIMULATION. The engine's invariant stays exactly as it is: at most one logic tick per main-loop
-// iteration, i.e. per GameClient::update - which refreshes shroud state the logic reads back (GameEngine::
-// updateBetweenDraws), so a second tick per client update would change the simulation. Fast forward only
-// makes the loop iterate k times as often and stops most of those iterations from drawing. The tick sequence is the
-// 1x one by construction, which is why a replay of a 10x match plays back at 1x with the same CRCs and why nothing here
-// needs to be recorded, broadcast or CRC'd.
-//
-// How the rate is reached: getActualFramesPerSecondLimit returns the fast-forward tick rate, and the logic steps
-// with the loop (a solo game: the scale reported below is >= that cap, so canUpdateRegularGameLogic ticks every
-// iteration; a network game: Network::timeForNewFrame yields to the loop). Draws are cut to FastForwardDrawFps
-// (W3DDisplay::draw); a draw costs several tick periods and the limiter's catch-up debt (update above) repays them.
-// Above what the CPU can simulate the speed is simply lower - getFastForwardAchieved says by how much.
+// FAST FORWARD: the match at k times its tick rate for a match whose only human is this player. It is pacing, not
+// simulation: still at most one logic tick per main-loop iteration (GameClient::update refreshes shroud state the
+// logic reads back). The loop iterates k times as often and most iterations skip drawing (FastForwardDrawFps), so
+// the tick sequence and CRCs match 1x.
 // ------------------------------------------------------------------------------------------------
 static Int64 gxSteadyNs()
 {
@@ -394,7 +372,7 @@ Bool FramePacer::isFastForwardDrawDue()
 	++m_ffItersSinceDraw;
 	// Every iteration earns FastForwardDrawFps of credit and a draw costs the tick rate, so draws come FastForwardDrawFps
 	// a second at ANY tick rate - a rate that is no multiple of 60 (a 30 Hz build at 3x, a 45 Hz game speed at 2x) draws on
-	// alternate 1- and 2-iteration gaps instead of every iteration (the real tick rate as in r11).
+	// alternate 1- and 2-iteration gaps instead of every iteration.
 	const Int tickFps = max(1, getFastForwardTickFps());
 	m_ffDrawCredit += (Int)FastForwardDrawFps;
 	const Bool due = m_ffDrawCredit >= tickFps
@@ -491,7 +469,7 @@ Bool FramePacer::isCatchUpDrawSkip()
 // simulation is unaffected, the camera steps as in fast forward).
 // ...and only if the gate ran on the previous iteration: an iteration that ran this pacer without it (iOS inactive outside
 // a network match returns before GameEngine::update; a load's fade loop) leaves an elapsed the gate never credited, which
-// must not become debt (review r3 minor 2). Ineligible for that one pass, the gate drops its debt; the next starts fresh.
+// must not become debt. Ineligible for that one pass, the gate drops its debt; the next starts fresh.
 Bool FramePacer::isRegularCatchUpEligible() const
 {
 	return m_catchUpEnabled && m_updatesSinceRegularGate <= 1 && TheNetwork == nullptr && TheGameLogic != nullptr

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: S1-3 relay-list-v2. See the header for the design; this file keeps
+// S1-3 relay-list-v2. See the header for the design; this file keeps
 // to its order of checks. GX_RELAYLIST_STANDALONE (scripts/test/relay-list-test.sh) compiles the pure layer,
 // the store and the fetch without any engine header; the engine build adds the process-wide class at the end.
 

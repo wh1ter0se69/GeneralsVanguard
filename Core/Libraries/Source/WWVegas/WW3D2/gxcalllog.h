@@ -16,8 +16,8 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G Task 5: the `=2` call log's record format (CONTRACT_L2 §4.1, r9b).
-// Header-only and ENGINE-FREE on purpose: the wrapper's check-mode hooks write it (T1), the device-less model in GXRender/Scene reads
+// The `=2` call log's record format.
+// Header-only and ENGINE-FREE on purpose: the wrapper's check-mode hooks write it, the device-less model in GXRender/Scene reads
 // it (GxL2Model.h), and scripts/test/l2-model-test.cpp builds logs by hand. Nothing here runs unless the check is on.
 
 #pragma once
@@ -29,7 +29,7 @@ namespace gxlog {
 
 enum Op : uint16_t {
 	// No enumerator may share a spelling with a name digested code uses (simid-closure matches constants by spelling: DRAW and READ
-	// read as reaches from SubsystemInterface.h DRAW() and file.h READ - render-integration 11/10, closure on 41446a29e)
+	// read as reaches from SubsystemInterface.h DRAW() and file.h READ)
 	// high-level wrapper entries (the model runs its PORT of each)
 	SET_TEXTURE = 1,		// a = stage, payload = u64 texture id
 	SET_MATERIAL,			// payload = u64 material id
@@ -49,7 +49,7 @@ enum Op : uint16_t {
 	OP_DRAW,				// payload = DrawRec; the Apply it makes follows as APPLY_BEGIN .. APPLY_END
 	APPLY_BEGIN,
 	APPLY_END,
-	// low-level invocations, logged BEFORE the cache compare (CONTRACT r9b MODEL_CALL); flags & SENT = it reached the device
+	// low-level invocations, logged BEFORE the cache compare; flags & SENT = it reached the device
 	RS = 32,				// a = state, b = value
 	TSS,					// a = stage << 16 | state, b = value
 	DX8_TEXTURE,			// a = stage, payload = u64 D3D texture

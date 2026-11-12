@@ -191,13 +191,9 @@ Relationship ControlBar::getCurrentlyViewedPlayerRelationship(const Team* team)
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: General's Points keys - wh1ter0se's option A (27/09).
-//
-// Retail gives the purchase buttons no key: of the 74 buttons the shipped panels show, only
-// Command_PurchaseScienceDaisyCutter has a TextLabel, and no science name carries a '&', so getCommandButtonHotKey
-// had nothing to return and the panel drew no letters. The rule wh1ter0se picked: a purchase button shows the key of the
-// power or unit it BUYS, taken from that thing's own command-bar button - so the panel teaches the key the player will
-// press later, a Leikeze CSF gives Leikeze letters, and a CommandButtonHotKeys.ini rebind of the power carries over.
+// General Points keys. Retail gives the purchase buttons no key (only Command_PurchaseScienceDaisyCutter has a
+// TextLabel), so getCommandButtonHotKey had nothing to return. A purchase button shows the key of the power or unit it
+// BUYS, from that power or unit command-bar button, so locale CSFs and CommandButtonHotKeys.ini rebinds carry over.
 // Every tier of a power shows the same letter; which tier the key fires is GXPurchaseHotKeys::chooseBindings.
 //-------------------------------------------------------------------------------------------------
 namespace
@@ -317,8 +313,8 @@ namespace
 	}
 }
 
-/// GeneralsX: a superweapon you own from ANOTHER faction ("ye use the one used as a normal
-/// superweapon from the live keybinds") takes the key of that power's normal command. Returns the button whose key `shortcut`
+/// GeneralsX: a superweapon you own from ANOTHER faction takes the key of that power's normal command.
+/// Returns the button whose key `shortcut`
 /// should show, or `shortcut` itself when it keeps its own: it is not a cross-faction shortcut power (the local faction's own
 /// shortcut set carries it, so retail's keys are untouched), the user bound IT explicitly, or no normal command exists.
 /// The normal command is, in order: one the user has rebound (INI order), else the one named like the shortcut minus "FromShortcut"
@@ -343,7 +339,7 @@ const CommandButton *gxShortcutKeySource( const CommandButton *shortcut )
 	AsciiString wanted = shortcut->getName();
 	if( wanted.endsWith( "FromShortcut" ) )
 		wanted.truncateBy( 12 );
-	// Three tiers, the first that carries the power decides (a replaced button must never lose to the original it replaced, /r4):
+	// Three tiers, the first that carries the power decides (a replaced button must never lose to the original it replaced):
 	// the sets the player's own objects show NOW (a CommandSetUpgrade swaps one: Object::getCommandSetString), then every template's sets
 	// (CommandSet::getCommandButton applies a map's control-bar overrides), then the button list's final overrides.
 	const CommandButton *rebound = nullptr, *named = nullptr, *first = nullptr;
@@ -940,7 +936,7 @@ void ControlBar::populatePurchaseScience( Player* player )
 
 			setControlCommand( m_sciencePurchaseWindowsRank8[ i ], commandButton );
 			ScienceType	st = SCIENCE_INVALID;
-			// GeneralsX @bugfix The rank-1 and rank-3 loops directly above check the
+			// GeneralsX: The rank-1 and rank-3 loops directly above check the
 			// vector before indexing it; this one did not. "Science = None" is a
 			// parser-supported spelling that yields an empty vector, so a hand-edited
 			// or modded INI indexed element 0 of nothing. The SCIENCE_INVALID
@@ -2188,10 +2184,9 @@ void ControlBar::update()
 
 
 	// check flashing
-	// GeneralsX: Cb-06a: a flash step ran on every UPDATE whose logic frame was a multiple of 10, so at
-	// k draws per tick it stepped k times in one tick (a whole flash could end inside a tick at 240+ fps) and on every
-	// update while time was frozen. It steps once per 10 reference (60 fps) frames of loop time now - its cadence at 60 fps
-	// before this change; the first step comes on the first update of a flash, inside the old 0-10 frame
+	// GeneralsX: a flash step runs once per 10 reference (60 fps) frames of loop time, not on every UPDATE whose logic frame
+	// is a multiple of 10 (at k draws per tick that would step k times in one tick, and on every
+	// update while time is frozen). The first step comes on the first update of a flash, inside a 0-10 frame
 	// phase (GameClient/GXClientAnimPolicy.h).
 	if( !m_flash )
 		s_gxFlashBaseFrames = GX_FLASH_BASE_FRAMES;
@@ -3302,8 +3297,7 @@ void ControlBar::setControlCommand( GameWindow *button, const CommandButton *com
 		// addHotKey still refuses a key another visible button
 		// owns, so a selected unit's command keeps S over the general's-power shortcut, as in retail.
 		// The refused button keeps its letter; drawHotKeyLabel asks isHotKeyBoundTo every frame and
-		// greys it while the key would not fire it. It used to be cleared, so selecting a unit made
-		// the shortcut and promotion letters vanish.
+		// greys it while the key would not fire it.
 		if(hotKey.isNotEmpty())
 		{
 			if( !purchase )
@@ -4040,9 +4034,8 @@ void ControlBar::updateRadarAttackGlow ()
 {
 	if(!m_radarAttackGlowOn || !m_radarAttackGlowWindow)
 		return;
-	// GeneralsX: Cb-06a: the glow counted 150 UPDATES and blinked every 15: 2.5 s at 60 fps, a quarter of a
-	// second at 600. It counts reference (60 fps) frames of loop time now, each one exactly the old update: 2.5 s with a blink
-	// every 0.25 s at any fps, its look at 60 fps before this change.
+	// GeneralsX: the glow counts 150 reference (60 fps) frames of loop time and blinks every 15: 2.5 s with a blink
+	// every 0.25 s at any fps.
 	for (Int steps = GXClientAnimPolicy::takeBaseFrames(s_gxRadarGlowCarry,
 			GXClientAnimPolicy::refFrames(gxRenderBaseOverUpdateFpsRatio(), (Real)BaseFps)); steps > 0; --steps)
 	{

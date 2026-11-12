@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: Headless LAN host/join driver.
+// Headless LAN host/join driver.
 //
 // Drives the lobby lifecycle through TheLAN with no UI, so a match can be hosted and joined
 // from the command line. This is what makes cross-platform determinism soak-testable without

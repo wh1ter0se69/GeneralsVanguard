@@ -1,4 +1,6 @@
-# GeneralsX: fast_float: the one INI number parser on every platform
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# fast_float: the one INI number parser on every platform
 # (Common/INIScanNumber.h). vcpkg provides it on the vcpkg presets; the presets without vcpkg
 # (mingw-w64-i686, win32) and the Flatpak fetch the same release instead, like cmake/stb.cmake.
 #

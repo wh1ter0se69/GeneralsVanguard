@@ -1,22 +1,25 @@
-// GeneralsX: a clear the optimiser is not allowed to remove.
-//
-// WHY NOT memset. A memset whose result is never read again is a dead store, and the standard lets a
-// compiler delete it - which it does, at -O2, as soon as it can see the buffer is not read before it
-// dies. Measured, not assumed: scripts/test/secure-clear-elision.sh compiles the same function both
-// ways at -O2 and shows the memset version emits no clear at all. For a buffer that held a bearer
-// token (the sign-in assertion), "cleared in the source, still in memory in the binary" is the
-// failure this exists to prevent.
-//
-// HOW. Every byte is written through a pointer to VOLATILE. An access through a volatile lvalue is
-// observable behaviour ([intro.execution]), so no conforming compiler may elide, merge or reorder
-// these stores away - this is the same technique behind SecureZeroMemory and libsodium's fallback.
-// The empty asm with a memory clobber, on GCC and Clang, additionally stops the compiler assuming
-// anything about the buffer's contents across the call. Both are portable to every compiler this
-// project builds with (MSVC honours volatile stores; the asm is only emitted where it is understood).
-//
-// PURE and dependency-free, so scripts/test/relay-identity-clear-test.cpp can include it on its own.
-// It lives under GameNetwork because Transport.cpp is its caller; that path is inside the SimID
-// source digest, which the change that introduced it moves on purpose (see that commit).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// A clear the optimiser is not allowed to remove. A memset of a buffer that is never read again is a dead store the
+// compiler may delete, leaving a bearer token in memory. Every byte is written through a volatile pointer, and the
+// empty asm with a memory clobber (GCC and Clang) stops assumptions about the buffer afterwards.
+// Dependency-free so a test can include it on its own.
 #pragma once
 
 #include <stddef.h>

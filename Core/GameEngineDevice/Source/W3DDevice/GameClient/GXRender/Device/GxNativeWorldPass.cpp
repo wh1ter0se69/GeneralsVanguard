@@ -1,14 +1,24 @@
-// GeneralsX: IGxWorldPass on the native device (GxWorldPass.h).
-//
-// The game's W3DWorldSeam calls these around the world pass. Each stream adds its work as ONE call per method here and keeps the
-// code in its own files (render-motion-1: GxMotion; the upscaler backends: their own classes), so nobody edits the same lines.
-// Front-end contract (rw3-X, A23-B): a body that touches the translator, the writer or GPU resources is an async command with
-// owned arguments, stream-ordered with the draws around it; Supports is answered from front-side state.
-// (tier 1): each recording body below is an A23-B S body - SScope drains
-// the worker, the body runs inline exactly as with GX_NATIVE_CS=0, and the mirror is re-seeded on exit. The S comes BEFORE any read of a
-// surface's image() or attachmentView(): a texture level's attachment view is created lazily (GxTexture::attachmentView), also by the
-// worker, and a back buffer's image follows the worker's rotation. Only front state is read before it. NextTargetsAreWorld, Supports,
-// SharpensItself, GetJitter touch front state only and take no S.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// IGxWorldPass on the native device (GxWorldPass.h). W3DWorldSeam calls these around the world pass; each
+// recording body is an S body: SScope drains the worker and the body runs inline. The S comes BEFORE any read
+// of image() or attachmentView() (a level's view is created lazily; a back buffer follows the rotation).
 
 #include "GxNativeDevice.h"
 
@@ -37,16 +47,16 @@ uint32_t GxNativeDevice::SeamSlots::take(V::VkCtx& ctx, uint64_t now)
 
 HRESULT GxNativeDevice::WorldPass::NextTargetsAreWorld(uint32_t flags)
 {
-	// the next MSAA CreateRenderTarget is SAMPLED (ResolveLinear) only when the seam says it will make one; 0 disarms (render-motion-1
+	// the next MSAA CreateRenderTarget is SAMPLED (ResolveLinear) only when the seam says it will make one; 0 disarms (the motion code
 	// owns the depth half under GXWP_TEMPORAL)
 	dev->m_worldNextColour = (flags & GXWP_MSAA_COLOUR) != 0;
-	dev->worldNextTargets(flags);   // render-motion-1: the next depth-stencil is sampleable under GXWP_TEMPORAL; 0 disarms
+	dev->worldNextTargets(flags);   // the next depth-stencil is sampleable under GXWP_TEMPORAL; 0 disarms
 	return S_OK;
 }
 
 HRESULT GxNativeDevice::WorldPass::Begin(const GxWorldPassBegin& b)
 {
-	GxMotionBegin mb;   // render-motion-1 (GxMotion.h): a no-op while the world depth was never made sampleable (key off)
+	GxMotionBegin mb;   // GxMotion.h: a no-op while the world depth was never made sampleable (key off)
 	mb.renderW = b.renderW;
 	mb.renderH = b.renderH;
 	mb.outputW = b.outputW;
@@ -70,7 +80,7 @@ HRESULT GxNativeDevice::WorldPass::Begin(const GxWorldPassBegin& b)
 
 HRESULT GxNativeDevice::WorldPass::End()
 {
-	dev->worldEnd();   // render-motion-1: the velocity resolve (one outside-scope command) + the clean projection back
+	dev->worldEnd();   // the velocity resolve (one outside-scope command) + the clean projection back
 	return S_OK;
 }
 
@@ -135,7 +145,7 @@ BOOL GxNativeDevice::WorldPass::Supports(uint32_t kind)
 
 BOOL GxNativeDevice::WorldPass::SharpensItself(uint32_t kind)
 {
-	// FSR 1 ends in RCAS and FSR 3.1 in its own RCAS (fsr-metalfx-1's backend); DLSS (deprecated sharpening), MetalFX and XeSS do not
+	// FSR 1 ends in RCAS and FSR 3.1 in its own RCAS; DLSS (deprecated sharpening), MetalFX and XeSS do not
 	return kind == GX_UPSCALE_FSR1 || kind == GX_UPSCALE_FSR3;
 }
 
@@ -160,7 +170,7 @@ bool GxNativeDevice::WorldPass::fsr1Ready()
 	return true;
 }
 
-// The seam's ONE sharpener after a backend that does not sharpen itself (dlss-integrator's ruling 13/10): FSR 1's RCAS alone, c.src
+// The seam's ONE sharpener after a backend that does not sharpen itself: FSR 1's RCAS alone, c.src
 // -> c.dst 1:1, both the seam's output-size textures; FSR 1's SeamSlots (the RCAS half of a slot). Anything else = E_NOTIMPL.
 HRESULT GxNativeDevice::WorldPass::sharpen(const GxUpscaleCall& c)
 {
@@ -244,7 +254,7 @@ HRESULT GxNativeDevice::WorldPass::Upscale(const GxUpscaleCall& c)
 
 HRESULT GxNativeDevice::WorldPass::HudBegin()
 {
-	// (PREREG A39c): no-op unless TEST-ONLY GX_FG_HUDLESS=1 with frame generation on. Its state lives in m_dlss, which exists
+	// No-op unless TEST-ONLY GX_FG_HUDLESS=1 with frame generation on. Its state lives in m_dlss, which exists
 	// only with a loaded Streamline - and a loaded Streamline keeps the worker off (the guard), so this S never drains today; it keeps
 	// fgOn (written by slFrameEnd in the Present body) read inside an S if that ever changes. No Streamline (every Apple build): no S.
 	if (!dev->m_dlss)
@@ -256,12 +266,12 @@ HRESULT GxNativeDevice::WorldPass::HudBegin()
 
 HRESULT GxNativeDevice::WorldPass::SetObjectVelocity(IDirect3DSurface8* o)
 {
-	return dev->worldObjectVelocity(o);   // render-motion-1: End's resolve takes o.xy where o.a > 0.5; null cancels
+	return dev->worldObjectVelocity(o);   // End's resolve takes o.xy where o.a > 0.5; null cancels
 }
 
 HRESULT GxNativeDevice::WorldPass::GetJitter(float ndc[2])
 {
-	dev->worldJitter(ndc);   // render-motion-1: this world pass's projection jitter in NDC, front state ((0,0) when none)
+	dev->worldJitter(ndc);   // this world pass's projection jitter in NDC, front state ((0,0) when none)
 	return S_OK;
 }
 

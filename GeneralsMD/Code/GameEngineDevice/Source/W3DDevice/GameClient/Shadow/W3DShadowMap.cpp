@@ -1,28 +1,25 @@
-// GeneralsX: S7 GPU sun shadow map: the Zero Hour game glue.
-//
-// (A4, A7, A8, A14, A18, A23, A28), PLAN Task 5. Render-only: nothing here is
-// read by the simulation, and this file is outside the SimID digest (GeneralsMD/Code/GameEngineDevice: not on the watcher's list).
-//
-// Installed by W3DShadowManager::init. Per tactical frame (W3DView.cpp, GXShadowMapHooks.h):
-//   1. the native device's IGxShadowMap (QueryInterface each frame: absent on DXVK, on classic and with GXShadowMap off -> nothing
-//      happens and today's volumes draw);
-//   2. the step (GX_SHADOWMAP_STEP pin, else 0 until the look governor lands on this base: A17); step 3 = off;
-//   3. the light = 2003's own POINT light L = getLightPosWorld(0) (normalize(-lightPos) x 10000 from the origin: every unclamped volume
-//      extrudes from it, PREREG A39); the map is a perspective projection from L onto an image plane fixed per (map, L) - axis L -> the
-//      terrain rectangle's centre - with the cone guard and a LATCHED fallback to today's volumes for that (map, L) (A41 P2-7, A42 #10);
-//   4. the walk (W3DVolumetricShadowManager::gxShadowMapWalk): the casters' roots, each clamped instance's own light (A41: a vertical
-//      scale about its ground plane), their nearest axis distance from L (A28), the runtime clamps 2003 would compute now;
-//   5. the fit (GXShadowMapFit.h fitPoint) per cascade, then BeginShadowFrame - all before the scene draws anything;
-//   6. the mesh-task hook (dx8renderer.h GxShadowCast): a non-skin, non-sorted pass-0 mesh task whose root is in the walk's set and
-//      which passes the volume code's own mesh filter (opaque, or alpha/translucent only with CAST_SHADOW) is tagged CAST; every mesh
-//      task and every procedural / delayed material pass of a clamped root carries its own light (A41 P2-3); tags and the own light go
-//      to the device only on change.
-//   7. (P2) RECEIVE from the frame's start to the stencil-shadow boundary (W3DShadowMapStencilBoundary): the receivers sample the map.
-//   8. (A44/A46) the OFF-SCREEN casters: at the end of tacticalBegin, before the scene submits anything, every walk
-//      root whose CURRENT-pose bound reaches the whole cascade's light volume and is not wholly inside the camera is Render()ed into an
-//      isolated cast-only flush (GXShadowMapOffscreen.h gives the order; the device captures only CAST + z casters and drops the rest).
-// Not yet (later PLAN tasks): tree casters (A33; the tree blobs stay until then), PROJECTION casters.
-// the include order of W3DShadow.cpp (the engine's base types before the shadow headers)
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GPU sun shadow map: the Zero Hour game glue. Render-only, outside the SimID digest; installed by
+// W3DShadowManager::init. Per tactical frame it asks the native device for IGxShadowMap (absent on DXVK and
+// classic: the old volumes draw), fits the cascades to 2003's point light and walks the casters.
+// Not yet: tree casters and PROJECTION casters. Include order follows W3DShadow.cpp.
 #include "WWLib/always.h"
 #include "GameClient/View.h"
 #include "WW3D2/camera.h"
@@ -43,7 +40,7 @@
 #include "W3DDevice/GameClient/GXShadowMapTagState.h"
 #include "W3DDevice/GameClient/GxShadowMap.h"
 #include "GameClient/GXGraphicsSettings.h"
-#include "WW3D2/Renderer.h"   // integrator L4: restoreState goes through the Renderer seam
+#include "WW3D2/Renderer.h"   // restoreState goes through the Renderer seam
 #include "WW3D2/dx8renderer.h"
 #include "WW3D2/rinfo.h"
 #include "WW3D2/sortingrenderer.h"
@@ -74,13 +71,13 @@ namespace
 	struct PointKey { const WorldHeightMap *map = nullptr; float L[3] = { 0.f, 0.f, 0.f }; bool latched = false; char why[96] = ""; } s_key;
 	GXShadowFit::PointBasis s_pb;
 	uint32_t s_ownCalls = 0, s_ownCallsPeriod = 0, s_latchedFrames = 0, s_paddingPeriod = 0;
-	// TEST-ONLY GX_SHADOWMAP_LIGHT=sun (PREREG A41 M3's fail arm P): the P2 light - ONE orthographic map along the map's sun, no own lights -
-	// on this binary, so P runs with the same pictures and the same GX_SHADOW_DEBUG_COLOR as K / Z / N. Unset = A39 (always in play).
-	// TEST-ONLY GX_SHADOWMAP_CAST=none (PLAN Global Constraints; PREREG A41 M3's arm Z): no draw is ever tagged CAST - the map stays clear
-	// and, with the key on, nothing is shadowed at all (the volumes are off too): the no-shadow reference of the M3 masks
-	// A69 TEST-ONLY (the D69 diagnostic of A68's checkered airborne shadow): GX_SHADOWMAP_OWN=0 forces every walk
+	// TEST-ONLY GX_SHADOWMAP_LIGHT=sun: the sun light - ONE orthographic map along the map's sun, no own lights -
+	// on this binary, so the run uses the same pictures and the same GX_SHADOW_DEBUG_COLOR as the other arms. Unset = the default light (always in play).
+	// TEST-ONLY GX_SHADOWMAP_CAST=none: no draw is ever tagged CAST - the map stays clear
+	// and, with the key on, nothing is shadowed at all (the volumes are off too): the no-shadow reference of the masks
+	// TEST-ONLY GX_SHADOWMAP_OWN=0 forces every walk
 	// root's own light to none (casters captured unscaled, receivers look up unscaled); GX_SHADOWMAP_BIAS_SCALE=<x> scales the step's
-	// constant and slope depth biases (A73: never the clamp). Both read once, printed; unset = no change.
+	// constant and slope depth biases (never the clamp). Both read once, printed; unset = no change.
 	bool ownOff()
 	{
 		static int s = -1;
@@ -148,8 +145,8 @@ namespace
 		}
 		return s == 1;
 	}
-	// A79: the own-light pull's delta in world units. TEST-ONLY GX_SHADOWMAP_OWN_PULL=<wu> (0..256) sets it; the
-	// default stays 0 (no pull) until D79's registered policy is committed (PREREG A79a), as A73 did with the clamp. Printed once.
+	// The own-light pull's delta in world units. TEST-ONLY GX_SHADOWMAP_OWN_PULL=<wu> (0..256) sets it; the
+	// default stays 0 (no pull) until a registered policy is committed, as with the clamp. Printed once.
 	float ownPullDelta()
 	{
 		static float k = -1.f;
@@ -191,7 +188,7 @@ namespace
 		if (s_sm)
 			s_sm->SetOwnLight(uint64_t(reinterpret_cast<uintptr_t>(ctx)));
 	}
-	// A41: on change only (integrator A40 T4); 0 = none
+	// on change only; 0 = none
 	void setOwn(uint64_t own)
 	{
 		if (own != s_own && s_sm)
@@ -265,11 +262,11 @@ namespace
 	void smSetTags(uint32_t t) { setTags(t); }   // A44: the offscreen ops' name for it (a member named setTags would hide it)
 	GxShadowCastHooks s_castHooks = { meshBegin, containerEnd, passBegin };
 
-	// steps (PREREG 2.4): map size per cascade, cascades, guard texels (the step's filter reach + 1), depth bias { constant, clamp, slope }
-	// (A14: fixed in P1). The clamp stays 0 (unclamped). A73's clamp of 8 D16 units made airborne casters' shadows solid (D69/D72) but
-	// dithered unit and building surfaces (D73, PREREG A75 / A75a), and the sweep 64 / 256 / 1024 (D76, A77) found no single pass-wide value
+	// steps: map size per cascade, cascades, guard texels (the step's filter reach + 1), depth bias { constant, clamp, slope }.
+	// The clamp stays 0 (unclamped). A clamp of 8 D16 units made airborne casters' shadows solid but
+	// dithered unit and building surfaces, and the sweep 64 / 256 / 1024 found no single pass-wide value
 	// that does both: an own-light (squashed) airborne caster sits closer to the ground in depth than unit surfaces' slope bias allows.
-	// The next step is per-caster bias or a receiver-side offset (A77); GxShadowCasters keeps the depthBiasClamp guard for any clamp sent
+	// The next step is per-caster bias or a receiver-side offset; GxShadowCasters keeps the depthBiasClamp guard for any clamp sent
 	struct Step { uint32_t res, cascades, guard; float bias[3]; };
 	const Step kSteps[3] = {
 		{ 2048, 2, 5, { 4.0f, 0.0f, 2.0f } },
@@ -277,7 +274,7 @@ namespace
 		{ 1024, 1, 2, { 4.0f, 0.0f, 2.0f } },
 	};
 
-	// / code-fit4-r1: the render object's min/max height are scanned once at load (BaseHeightMap initHeightData);
+	// the render object's min/max height are scanned once at load (BaseHeightMap initHeightData);
 	// scripted craters lower samples later (setRawMapHeight + terrainHeightChanged, which never updates them). So the slab is re-measured
 	// from the raw samples (a byte min/max over the map: tens of microseconds) on a new map and whenever W3DView::update rebuilt terrain
 	// since the last frame (GxShadowMapTerrainChanged: the same frame the crater first draws), plus every 256 tactical frames as a
@@ -473,7 +470,7 @@ namespace
 		return GxShadowMapFrameScene != nullptr && root->Peek_Scene() == GxShadowMapFrameScene && root->Is_Visible() != 0;
 	}
 
-	// A50 (integrator A49 ruling (3)): the start now runs after cam->Apply, fill mode, Set_Ambient, the mesh renderer's Set_Camera and Set_Fog,
+	// The start runs after cam->Apply, fill mode, Set_Ambient, the mesh renderer's Set_Camera and Set_Fog,
 	// so whatever the off-screen stage moves must be put back (WORLD excluded). Snapshot -> stage -> restore what moved; lights and
 	// DX8Wrapper's fog statics are compare-only (nothing on this path writes them). Check mode counts both sides.
 	const D3DRENDERSTATETYPE kSnapRs[7] = { D3DRS_FILLMODE, D3DRS_AMBIENT, D3DRS_LIGHTING, D3DRS_FOGENABLE, D3DRS_FOGCOLOR, D3DRS_FOGSTART,
@@ -573,7 +570,7 @@ namespace
 		if (moved & (1u << 1))
 			DX8Wrapper::Set_Transform(D3DTS_PROJECTION, was.proj);
 		if ((moved & (1u << 2)) && was.vpOk)
-		{	// integrator L4 (20:1xZ 18/10): the PRODUCT off-screen stage restores through the Renderer seam (render-seam-lint DIRECT); the
+		{	// the PRODUCT off-screen stage restores through the Renderer seam (render-seam-lint DIRECT); the
 			// snapshot's D3DVIEWPORT8 round-trips exactly (unsigned X / Y / Width / Height, float MinZ / MaxZ), as W3DWater's sky pass does
 			const RenderViewport rv = { (unsigned int)was.vp.X, (unsigned int)was.vp.Y, (unsigned int)was.vp.Width, (unsigned int)was.vp.Height,
 				was.vp.MinZ, was.vp.MaxZ };
@@ -611,7 +608,7 @@ namespace
 		RenderInfoClass *rinfo;
 		CameraClass *mainCam;
 		bool queuesEmpty()
-		{	// A31 + integrator T6 (a): no pending drawable work, no sorted polygons, and no flush-site tag the scene set for ITS flush
+		{	// no pending drawable work, no sorted polygons, and no flush-site tag the scene set for ITS flush
 			TheDX8MeshRenderer.Gx_List_Pending(s_pending);
 			return s_pending.empty() && SortingRendererClass::Gx_Is_Empty() && GxFlushSiteNext == GXFS_UNSET;
 		}
@@ -880,7 +877,7 @@ namespace
 		AABoxClass visBox;
 		TheTerrainRenderObject->getMaximumVisibleBox(cam->Get_Frustum(), &visBox, TRUE);
 		const bool sun = sunMode();
-		const GXShadowFit::Vec3 sunDir = GXShadowFit::normalize(GXShadowFit::v3(-L.x, -L.y, -L.z));   // P2's: from the sun INTO the scene
+		const GXShadowFit::Vec3 sunDir = GXShadowFit::normalize(GXShadowFit::v3(-L.x, -L.y, -L.z));   // from the sun INTO the scene
 		const GXShadowFit::Vec3 walkAxis = sun ? sunDir : s_pb.b.f;
 		{	// A79a: eps from the camera's centre ray on the terrain's mid height, BEFORE the walk (nothing it computes feeds it); never in sun mode
 			const Matrix3D &ct0 = cam->Get_Transform();
@@ -897,19 +894,19 @@ namespace
 		if (ownOff() && !sun)   // A69 TEST-ONLY: no own lights (the D69 arm No); anyOwn / minZ0 are KEPT so the fit is the control's
 			std::fill(s_walk.own.begin(), s_walk.own.end(), uint64_t(0));
 		if (sun)
-		{	// P2 had no own lights. The walk's distance is dot(c - L, sun) - r; P2's near depth was from the origin, dot(c, sun) - r
+		{	// Sun mode has no own lights. The walk's distance is dot(c - L, sun) - r; the near depth here is from the origin, dot(c, sun) - r
 			std::fill(s_walk.own.begin(), s_walk.own.end(), uint64_t(0));
 			s_walk.anyOwn = FALSE;
 			s_walk.nearDist += GXShadowFit::dot(L, sunDir);
 		}
 		// the receiver slab: the terrain's height range (re-scanned: craters), its top raised to the highest caster - a roof, a bridge-top
 		// unit or an aircraft between the eye and the bottom ray's ground hit is a visible receiver too - and its
-		// bottom lowered to the lowest own-light plane, so every scaled lookup stays inside the prism (A41 P2-4)
+		// bottom lowered to the lowest own-light plane, so every scaled lookup stays inside the prism
 		if (s_walk.any && s_walk.topZ > zHi)
 			zHi = s_walk.topZ;
 		if (s_walk.anyOwn && s_walk.minZ0 < zLo)
 			zLo = s_walk.minZ0;
-		// A41 P2-7: L must stand above everything it lights
+		// L must stand above everything it lights
 		if (!(L.z > zHi + 1.0f))
 		{
 			latch("light not above the highest caster: L.z - top =", L.z - zHi);
@@ -934,7 +931,7 @@ namespace
 		GXShadowFit::Params pr;
 		pr.res = st.res;
 		pr.guard = st.guard;
-		// the camera's own far clip DEPTH (the rays are not normalized: camera-space z = -1); OBSERVED 17/10 on the Mini: a fixed 20000
+		// the camera's own far clip DEPTH (the rays are not normalized: camera-space z = -1); a fixed 20000
 		// along unit rays made cascade 0 10,752 wu wide
 		float zNearCam = 0.0f, farClip = 0.0f;
 		cam->Get_Clip_Planes(zNearCam, farClip);
@@ -945,7 +942,7 @@ namespace
 			const bool whole = n == 1 || c == 1;
 			const GXShadowFit::Footprint fp = GXShadowFit::footprint(e, dir, zLo, zHi, farClip, whole ? 1.0f : 0.4f, clampXY);
 			if (sun)
-			{	// TEST-ONLY: P2's orthographic fit along the sun (the receivers' orthographic path: nearFar 0)
+			{	// TEST-ONLY: orthographic fit along the sun (the receivers' orthographic path: nearFar 0)
 				const GXShadowFit::Result o = GXShadowFit::fit(GXShadowFit::basis(sunDir), fp, s_walk.nearDist, s_walk.any != FALSE, pr, &s_fit[c]);
 				std::memcpy(f.lightViewProj[c], o.m, sizeof(o.m));
 				f.depthRangeWU[c] = o.zFar - o.zNear;
@@ -981,7 +978,7 @@ namespace
 		f.depthBias[1] = biasClamp(st.bias[1]);   // A73: the step's clamp, never scaled (TEST-ONLY override: GX_SHADOWMAP_BIAS_CLAMP)
 		f.depthBias[2] = st.bias[2] * biasScale();
 		if (s_pullEps > 0.f)
-		{	// A79: L, eps, muMax for the caster replay and the receivers; ownPullAux[1] (TEST-ONLY noRecv) stays 0 here ALWAYS (integrator)
+		{	// L, eps, muMax for the caster replay and the receivers; ownPullAux[1] (TEST-ONLY noRecv) stays 0 here ALWAYS
 			f.ownPull[0] = L.x;
 			f.ownPull[1] = L.y;
 			f.ownPull[2] = L.z;
@@ -997,8 +994,8 @@ namespace
 		s_frameCam = cam;
 		if (!castNone())
 			offscreenCasters(cam, f, L, walkAxis);
-		// P2 (PREREG 2.2.2, A36 item 7): 2003's receiver set = everything the main scene draws up to the stencil-shadow boundary
-		// (W3DShadowMapStencilBoundary, DoShadows(rinfo, TRUE)); pre-transformed draws (the HUD, A29's team-colour quads) never
+		// 2003's receiver set = everything the main scene draws up to the stencil-shadow boundary
+		// (W3DShadowMapStencilBoundary, DoShadows(rinfo, TRUE)); pre-transformed draws (the HUD, the team-colour quads) never
 		// receive whatever the tag says (the translator's rule)
 		setTags(GX_SHADOW_TAG_RECEIVE);
 		s_ownCallsPeriod += s_ownCalls;

@@ -1,4 +1,22 @@
-// GeneralsX: AMD FidelityFX FSR 1 (EASU + RCAS) for IGxWorldPass::Upscale(GX_UPSCALE_FSR1)
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// AMD FidelityFX FSR 1 (EASU + RCAS) for IGxWorldPass::Upscale(GX_UPSCALE_FSR1)
 // (shaders/SOURCE.txt for the vendored MIT headers). Two full-screen fragment passes,
 // recorded outside a rendering scope like GxNativePresent: EASU from the world colour into a scratch target of the output size,
 // then RCAS from the scratch into the output target. Both targets are the seam's own textures; the seam composites the output.

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-X2: DrawRun - DXVK draws a claimed run of classic draws itself, at the run's own
+// WS-X2: DrawRun - DXVK draws a claimed run of classic draws itself, at the run's own
 // position, through its own d3d9 entry points (the ABI in prose).
 //
 // GX_L2_DRAWRUN unset (default): nothing runs - no QueryInterface, no Device_Call, no arena. Render-only: nothing here is read by
@@ -56,12 +56,12 @@ namespace GxDrawRun
 	// fork lacks the extension (an unpatched DXVK, the d3d8 batcher on) or GX_L2_DRAWRUN is unset.
 	bool Available();
 
-	// Main thread, at a claimed run's position (after WS-G's PREPARE): copies the run into this frame's arena and records ONE
+	// Main thread, at a claimed run's position (after L2's PREPARE): copies the run into this frame's arena and records ONE
 	// Device_Call. On the device thread the fork's DrawRun draws it; if the fork refuses, the same per-task calls go through the
 	// d3d8 device instead - a run is never lost and the D3D stream is the same either way.
 	void Draw_Run(D3DPRIMITIVETYPE type, const Task *tasks, unsigned taskCount, const LightSet *sets, unsigned setCount);
 
-	// Main thread, WS-G's per-claim question: replace claimed runs with Draw_Run in THIS frame? Available(), and with the gate's toggle
+	// Main thread, L2's per-claim question: replace claimed runs with Draw_Run in THIS frame? Available(), and with the gate's toggle
 	// (GX_DRAWRUN_TOGGLE=k) only in its ON periods - the classic arm of the same run draws the OFF periods. Also the
 	// toggle's frame clock: call it at least once per render frame while claiming.
 	bool S1_On();
@@ -74,17 +74,10 @@ namespace GxDrawRun
 	// the printed tag = frame << 40 | path << 32 | run index.
 	void Digest_Mark(bool begin, unsigned long long tag);
 
-	// The carry-out on EXECUTED device state. What DX8Wrapper's caches say the device holds; with
-	// GX_DRAWRUN_TRUTH=1 the S1 seat passes it right after its CARRY-OUT's Apply - and in OFF frames at the same point after the
-	// classic run's last task (the A/A arm, must be clean) - and the device thread compares it with the d3d8 device's own answers
-	// (GetIndices, GetTransform(WORLD), GetRenderState(AMBIENT / NORMALIZENORMALS), GetLightEnable / GetLight for slots 0-3).
-	// [GXDRUN] truth_checked_off= truth_mismatch_off= truth_checked_on= truth_mismatch_on= (by the tag's path: 0 = OFF, else ON);
-	// the first mismatches print [GXDTRUTH] with the field. A skipped carry-out leaves the
-	// wrapper on PREPARE's (first task's) values while the device holds the last task's, so it fires on any run whose tasks differ.
-	// Coherence alone cannot see a carry-out that COHERENTLY applies the wrong task, so an ON check also carries the ORACLE: the
-	// classic final state taken from the claim itself (the run's last task and its light set, the run's IB), independent of the
-	// wrapper's caches - device AND wrapper must equal it. OFF checks (at the seat's next defined point, other draws in between)
-	// carry no oracle (hasOracle = 0): coherence only.
+	// The carry-out on EXECUTED device state: what DX8Wrapper's caches say the device holds. With GX_DRAWRUN_TRUTH=1 the
+	// device thread compares it with the d3d8 device's own answers (GetIndices, WORLD transform, AMBIENT, lights 0-3);
+	// the first mismatches print [GXDTRUTH]. ON checks also carry an ORACLE from the claim (last task, light set, IB);
+	// OFF checks are coherence only (hasOracle = 0).
 	struct Truth
 	{
 		IDirect3DIndexBuffer8 *ib;	// the wrapper's current index buffer (null = it believes none is bound; compared as such)

@@ -438,28 +438,17 @@ void TunnelTracker::xfer( Xfer *xfer )
 {
 
 	// version
-	//
-	// GeneralsX: v2 is only VALID when retail CRC compatibility is off.
-	//
-	// Version 2 drops m_tunnelCount on the argument that it always equals m_tunnelIDs.size().
-	// That premise is exactly what the RETAIL_COMPATIBLE_CRC arm does NOT hold: it deliberately
-	// lets the two diverge, because retail did. So with CRC compatibility ON but XFER_SAVE off,
-	// a v2 save omitted the count and the load path normalised it to the list size - and
-	// friend_getTunnelCount(), which decides whether the last tunnel caves in and kills everyone
-	// inside, silently changed across a save/load round trip.
-	//
-	// Neither switch can produce that mix through RTS_BUILD_OPTION_RETAIL_COMPATIBLE_GAME, which
-	// moves every RETAIL_COMPATIBLE_* together, so this is defensive against a hand -D override
-	// rather than a live defect. Making the condition state the real invariant is cheaper than
-	// leaving a trap for whoever first sets one of these independently.
+	// v2 drops m_tunnelCount, assuming it equals m_tunnelIDs.size(); the RETAIL_COMPATIBLE_CRC arm deliberately lets
+	// them diverge, as retail did, so v2 is only valid with retail CRC compatibility off (else
+	// friend_getTunnelCount() would change across a save/load).
 #if RETAIL_COMPATIBLE_XFER_SAVE || RETAIL_COMPATIBLE_CRC
 	XferVersion currentVersion = 1;
 #else
 	XferVersion currentVersion = 2;
 #endif
 	XferVersion version = currentVersion;
-	// GeneralsX 27/10/2026 (ai-pro-rules-2 T2): written as integration's version; a version-3 save of the
-	// earlier test arm T (never shipped) still LOADS - its two extra nemesis fields are read and discarded below
+	// Written as version 3; a version-3 save with two extra nemesis fields still loads - they are read and discarded
+	// below
 #if !(RETAIL_COMPATIBLE_XFER_SAVE || RETAIL_COMPATIBLE_CRC)
 	if( xfer->getXferMode() == XFER_LOAD )
 		currentVersion = 3;

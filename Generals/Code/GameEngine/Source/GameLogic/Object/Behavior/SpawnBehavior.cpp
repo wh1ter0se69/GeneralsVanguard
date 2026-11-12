@@ -206,7 +206,7 @@ UpdateSleepTime SpawnBehavior::update()
 		Bool runtimeProduced = getObject()->getProducerID()!=INVALID_ID; //this was produced by a production module, rather than a script or worldbuilder
 		Int now = TheGameLogic->getFrame();
 		Int burstInitCount = m_initialBurstCountdown;
-		UnsignedInt lastBurstFrame = now;	// GeneralsX @bugfix: when the last staggered barracks member is due (see below)
+		UnsignedInt lastBurstFrame = now;	// GeneralsX: when the last staggered barracks member is due (see below)
 		for( int listIndex = 0; listIndex < md->m_spawnNumberData; listIndex++ )
 		{
 			if ( md->m_initialBurst > 0 )
@@ -1082,9 +1082,9 @@ void SpawnBehavior::xfer( Xfer *xfer )
 	xfer->xferUnsignedInt( &m_selfTaskingSpawnCount );
 
 	// GeneralsX: The spawn-template cursor. createSpawn takes the next template from it and the
-	// constructor resets it to the first, so a load used to restart the composition (Pistol, Rock, ...). That never mattered
-	// while a spawner made all its members in one frame; with the staggered initial burst (B1) a save can fall between two
-	// births, and the reload would make the wrong member next (batch-0958 r4-round2). Saved as an index; an index past
+	// constructor resets it to the first, so a load without it restarts the composition (Pistol, Rock, ...). That did not matter
+	// while a spawner made all its members in one frame; with the staggered initial burst a save can fall between two
+	// births, and the reload would make the wrong member next. Saved as an index; an index past
 	// the template list (data changed since the save) starts over at the first, as EA's constructor does.
 	if( version >= 4 )
 	{

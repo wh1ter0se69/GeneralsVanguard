@@ -50,18 +50,18 @@
 #include "Common/Upgrade.h"
 #include "Common/StatsCollector.h"
 #include "Common/Radar.h"
-#include "Common/Xfer.h"	// GeneralsX @bugfix the reveal cheat's save block
+#include "Common/Xfer.h"	// GeneralsX: the reveal cheat's save block
 
 #include "GameLogic/AIPathfind.h"
-#include "GameLogic/ExperienceTracker.h"	// GeneralsX @feature LAN-safe cheats spawn at a veterancy level
+#include "GameLogic/ExperienceTracker.h"	// GeneralsX: LAN-safe cheats spawn at a veterancy level
 #include "GameLogic/GameLogic.h"
-#include "Common/GXAdminOrderMsg.h"	// GeneralsX @security an admin order's signature (gxCheatTarget)
-#include "GameLogic/GXStress.h"	// GeneralsX @feature the spawn lattice's step, shared with the stress keep-out
+#include "Common/GXAdminOrderMsg.h"	// GeneralsX: an admin order's signature (gxCheatTarget)
+#include "GameLogic/GXStress.h"	// GeneralsX: the spawn lattice's step, shared with the stress keep-out
 #include "GameLogic/Locomotor.h"
 #include "GameLogic/Object.h"
 #include "GameLogic/ObjectCreationList.h"
 #include "GameLogic/ObjectIter.h"
-#include "GameLogic/PartitionManager.h"	// GeneralsX @feature LAN-safe cheats need the shroud grid
+#include "GameLogic/PartitionManager.h"	// GeneralsX: LAN-safe cheats need the shroud grid
 #include "GameLogic/Module/AIUpdate.h"
 #include "GameLogic/Module/BodyModule.h"
 #include "GameLogic/Module/OpenContain.h"
@@ -81,7 +81,7 @@
 #include "GameClient/GameWindowTransitions.h"
 #include "GameClient/GameWindowManager.h"
 #include "GameClient/GUICallbacks.h"
-#include "GameClient/GXKick.h"	// GeneralsX @feature the in-match kick's red line - display only, see onSelfDestruct
+#include "GameClient/GXKick.h"	// GeneralsX: the in-match kick's red line - display only, see onSelfDestruct
 #include "GameClient/InGameUI.h"
 #include "GameClient/KeyDefs.h"
 #include "GameClient/Mouse.h"
@@ -93,12 +93,12 @@
 #include "GameNetwork/NetworkInterface.h"
 #include "GameNetwork/GameInfo.h"	// gxCheatNotice: an observer admin's own name
 
-#include <algorithm>	// GeneralsX @feature std::sort, for the delete-objects cheat's stable victim order
+#include <algorithm>	// GeneralsX: std::sort, for the delete-objects cheat's stable victim order
 
 
 
 
-static void gxCheatNotice( const GameMessage *msg, bool applied );	// GeneralsX @security see its definition
+static void gxCheatNotice( const GameMessage *msg, bool applied );	// GeneralsX: see its definition
 
 #define MAX_PATH_SUBJECTS 64
 static Bool theBuildPlan = false;
@@ -226,30 +226,10 @@ static Player *getMessagePlayer(GameMessage *msg)
 	return ThePlayerList->getNthPlayer( msg->getPlayerIndex() );
 }
 
-// ------------------------------------------------------------------------------------------------
-// GeneralsX @feature LAN-safe cheats - per-player bookkeeping for the reveal-map toggle.
-//
-// PartitionCell::addLooker is a COUNTER, not a flag (PartitionManager.cpp:1274 does
-// min(m_currentShroud - 1, -1)), while undoRevealMapForPlayerPermanently issues exactly ONE
-// removeLooker per cell. So reveal-reveal-undo leaves -2 -> -1, i.e. the map stays permanently lit,
-// and an undo with no preceding reveal trips the "permanent shroud blob" DEBUG_ASSERTCRASH in
-// removeLooker (PartitionManager.cpp:1313). s_gxRevealed makes the toggle idempotent.
-//
-// s_gxRadarForced remembers whether WE were the ones who forced the minimap on, so that un-revealing
-// cannot stomp a force set by VictoryConditions (local defeat) or by a map script's
-// doRadarForceEnable. Both arrays are written ONLY from the synchronised handlers below, so they are
-// identical on every peer; neither is in any crc().
-//
-// GeneralsX: BOTH ARE SAVED, because what they describe is. A save keeps
-// what a reveal did to the world - PartitionCell::xfer the permanent looker on every cell, Radar::xfer the forced
-// minimap - so a save that dropped these loaded a revealed map whose toggle said "shrouded": Re-shroud was skipped,
-// and Reveal + Re-shroud stacked a second permanent looker that nothing ever removes. They travel in a block of
-// their own, CHUNK_GXCheatReveal (GameState::init, both games), after every stock block: retail and older
-// GeneralsX builds skip a block they do not know by its size, so the save stays loadable there; a save without it
-// loads with both arrays cleared by GameLogic::reset() on the way in.
-// Trade-off: a save made by a build before this one with a reveal active still loads as "not revealed" - nothing in
-// it says who added the permanent lookers (a map script's doRevealMapEntirePermanently adds the same one).
-// ------------------------------------------------------------------------------------------------
+// Reveal-map toggle state. addLooker is a counter and the undo removes one looker, so s_gxRevealed makes the toggle
+// idempotent; s_gxRadarForced records that we forced the minimap on, so an undo cannot stomp VictoryConditions.
+// Written only from synchronised handlers (same on every peer, in no crc()); saved in CHUNK_GXCheatReveal after the
+// stock blocks (older builds skip it by size); GameLogic::reset() clears both when a save lacks it.
 static Bool s_gxRevealed[ MAX_PLAYER_COUNT ] = { FALSE };
 static Bool s_gxRadarForced[ MAX_PLAYER_COUNT ] = { FALSE };
 
@@ -265,7 +245,7 @@ protected:
 	virtual void crc( Xfer * ) override {}
 	/** Version Info:
 		* 1: Initial version - MAX_PLAYER_COUNT Bools of s_gxRevealed, then as many of s_gxRadarForced
-		* 2: GeneralsX 06/11/2026 - MAX_PLAYER_COUNT 16 -> 40 (a v1 save is refused before this block, GameState v3) */
+		* 2: MAX_PLAYER_COUNT 16 -> 40 (a v1 save is refused before this block, GameState v3) */
 	virtual void xfer( Xfer *xfer ) override
 	{
 		XferVersion currentVersion = 2;
@@ -330,50 +310,15 @@ void GameLogic::clearGameData( Bool showScoreScreen )
 	setClearingGameData( TRUE );
 
 	/*
-	 * GeneralsX: THE END-OF-MATCH RESULT, while the match still exists.
-	 *
-	 * HERE, and not two lines higher, and not after the score screen. Three constraints pin it:
-	 *
-	 *  - BELOW THE isInGame() GUARD above. A hook at the literal top of this function also fires on
-	 *    the no-op path, where there is no game to report.
-	 *  - BEFORE TheGameEngine->reset() below, which empties ThePlayerList and every ScoreKeeper.
-	 *    Everything this reads is gone after it.
-	 *  - NOT hung off the score screen, which is gated on !TheGlobalData->m_headless further down -
-	 *    so a headless peer, which is exactly the standing lobby host, would never report.
-	 *
-	 * THIS FUNCTION IS NOT AN END-OF-MATCH HOOK and must not be mistaken for one. It is "unload
-	 * whatever game is loaded", and the animated main-menu backdrop is a real GAME_SHELL game torn
-	 * down through it at match START - MainMenu.cpp's and MapSelectMenu.cpp's doGameStart() both
-	 * call it immediately before posting MSG_NEW_GAME. There are 35 references to it tree-wide.
-	 * gxStatMatchEnd() carries its own guards for all of that: it sends only when a relay match
-	 * actually produced samples, only when the victory conditions recorded an end frame, and only
-	 * once per match.
+	 * End-of-match result, reported while the match still exists: below the isInGame() guard, before TheGameEngine->reset()
+	 * empties ThePlayerList and the ScoreKeepers, and not from the score screen, which is skipped when headless.
+	 * This function unloads whatever game is loaded, including the main-menu backdrop torn down at match start;
+	 * gxStatMatchEnd() guards for that (relay match with samples, recorded end frame, once per match).
 	 */
 	gxStatMatchEnd();
 
-	// GeneralsX: Give the frame limit back when a game ends.
-	//
-	// Starting a network game used to turn it OFF - LANAPICallbacks.cpp, StagingRoomGameInfo.cpp
-	// and GameSpyGameInfo.cpp all set m_useFpsLimit = false as they posted MSG_NEW_GAME - on the
-	// theory that during a network match the peers agree the logic rate between themselves and a
-	// local cap must not fight it. Nothing ever turned it back on. So the moment a match ended the
-	// pacer stopped limiting anything, for the rest of the process: the victory banner ran at
-	// roughly 10x speed and the shell menus stayed that way afterwards, on every peer.
-	//
-	// GeneralsX: Those three assignments are GONE - they were also making
-	// the render loop spin unbounded for the whole match (~540 iterations/second against a 30 Hz
-	// logic rate). This restore is therefore no longer load-bearing for the network case, and is
-	// kept because one path still legitimately turns the limit off: the g_UT_startTiming
-	// unit-timing harness in GameLogic.cpp.
-	//
-	// GeneralsX: Back ON, not back to Options.ini "FPSLimit": that key is
-	// no longer a setting - the max-FPS cap is, and 0 in it already means unlimited, which is also
-	// all -noFPSLimit sets now (Common/FpsLimitPolicy.h).
-	//
-	// This is pacing only and touches no simulation state, so it cannot affect a CRC. Verified
-	// separately: the uncapped post-game frames stayed byte-identical across macOS and Windows for
-	// 3,600 frames past the host's exit, so the bug was never a determinism problem - only a
-	// deeply strange thing to look at.
+// Restore the frame limit when a game ends: the g_UT_startTiming unit-timing harness in GameLogic.cpp still
+// turns m_useFpsLimit off. Pacing only, touches no simulation state, so it cannot affect a CRC.
 	{
 		TheWritableGlobalData->m_useFpsLimit = TRUE;
 		TheFramePacer->enableLogicTimeScale( FALSE );
@@ -561,7 +506,7 @@ void GameLogic::logicMessageDispatcher( GameMessage *msg, void *userData )
 	{
 		case GameMessage::MSG_NEW_GAME:
 		{
-			gxCheatResetRevealState();	// GeneralsX @feature Radar::reset() also clears m_radarForceOn
+			gxCheatResetRevealState();	// GeneralsX: Radar::reset() also clears m_radarForceOn
 			onNewGame(msg);
 			break;
 		}
@@ -718,7 +663,7 @@ void GameLogic::logicMessageDispatcher( GameMessage *msg, void *userData )
 		}
 #endif
 
-		// GeneralsX @feature LAN-safe cheats. DELIBERATELY OUTSIDE the RTS_DEBUG /
+		// GeneralsX: LAN-safe cheats. DELIBERATELY OUTSIDE the RTS_DEBUG /
 		// _ALLOW_DEBUG_CHEATS_IN_RELEASE guards above. The enum values are unconditional; if the
 		// handlers were conditional, a peer built without cheats would receive the message, match no
 		// case (this switch has no default:), silently no-op, and then mismatch at the next
@@ -1072,9 +1017,9 @@ bool GameLogic::onNewGame(MAYBE_UNUSED GameMessage *msg)
 	if ( msg->getArgumentCount() >= 4 )
 	{
 		// GeneralsX: The fourth argument is the GAME SPEED - the skirmish
-		// slider, a replay's recorded speed, a restart's - and no longer the render cap. It used to be
-		// both: retail's logic followed the render rate, so the slider capped rendering, and here that
-		// meant a launcher cap of 144 became 1000 at the slider's "--" end, or 45 halfway down. The cap
+		// slider, a replay's recorded speed, a restart's - and not the render cap. Retail's logic followed the
+		// render rate, so the slider capped rendering; here that would make a launcher cap of 144 become 1000 at the
+		// slider's "--" end, or 45 halfway down. The cap
 		// is the player's one max-FPS setting and nothing here writes it (Common/FpsLimitPolicy.h).
 		const Int gameSpeedFps = msg->getArgument( 3 )->integer;
 		DEBUG_LOG(("Game speed %d FPS", gameSpeedFps));
@@ -1692,29 +1637,10 @@ bool GameLogic::onDebugKillObject(MAYBE_UNUSED GameMessage *msg)
 
 #endif
 
-// ------------------------------------------------------------------------------------------------
-// GeneralsX @feature LAN-safe cheats.
-//
-// These run inside GameLogic::update on EVERY peer, on the same logic frame, in the same order
-// (Network::RelayCommandsToCommandList -> ConnectionManager::getFrameCommandList, slot order 0..N).
-// They must therefore be a pure function of (message arguments, logic state).
-//
-// FORBIDDEN in here: ThePlayerList->getLocalPlayer(), TheInGameUI, TheTacticalView, TheGameClient's
-// drawable list, timeGetTime(). Those differ per machine and are the only way to reintroduce a
-// desync. "Who cheated" is getMessagePlayer(msg); "who gets hit" is an explicit Int argument.
-//
-// The target is carried as a PLAYER INDEX, which is safe because player indices are lockstep-
-// identical on every peer. Proof, not assumption: PlayerList::crc walks m_players[0 .. m_playerCount)
-// in index order and xfers each one, PartitionCell::crc xfers
-// m_shroudLevel[MAX_PLAYER_COUNT] indexed by player index, and GameLogic::getCRC feeds both into the
-// frame CRC. If two peers disagreed about which Player sits at index N, every existing LAN game would
-// mismatch at the first NET_CRC_INTERVAL. Indices come from PlayerList::newGame walking TheSidesList
-// in file order, which is the same map on both machines.
-//
-// This file is compiled into BOTH g_gameengine and z_gameengine, so it may only use API that exists
-// in both trees. Note in particular obj->kill() with NO arguments: Generals/.../Object.h:215 takes no
-// parameters, GeneralsMD/.../Object.h:228 has two defaulted ones.
-// ------------------------------------------------------------------------------------------------
+// LAN-safe cheats run in GameLogic::update on every peer, same frame, same order, so they must be a pure function of
+// message arguments and logic state: no getLocalPlayer(), TheInGameUI, TheTacticalView, drawables or timeGetTime().
+// The target is a player index, lockstep-identical on every peer (PlayerList::crc feeds the frame CRC).
+// Compiled into both game engines: use only API present in both trees (obj->kill() takes no arguments).
 
 // ------------------------------------------------------------------------------------------------
 /** GameMessage::getArgument() out of range returns a shared zeroed static and only DEBUG_CRASHes,
@@ -1729,23 +1655,10 @@ static Bool gxCheatArgsOk( const GameMessage *msg, Int needed )
 }
 
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX: May MSG_GX_CHEAT_* run in THIS match at all?
-	*
-	* Only in a sandbox: a match with at most one human in it - single player, skirmish, and the
-	* one-human headless harness runs (-lanhost with -lanai). GX_STRESS no longer comes through here -
-	* it is a lobby option the simulation applies itself (GameLogic::gxStressSpawn). With a
-	* second human present a cheat is a weapon: KILL_PLAYER removes them outright, and every peer
-	* could send it, in release, from the Debug menu. Measured before this gate: slot 1 cheated slot
-	* 0 dead on both peers of a two-human match (scripts/test/net-kill-gates.sh forge-kill).
-	*
-	* Decided from SIMULATION state only, so every peer - and a replay of the match - answers the
-	* same: player types are fixed when ThePlayerList is built and are CRC'd with it. Observers are
-	* humans and count, because an observer holding the Debug menu could otherwise kill the one
-	* player. The engine's own "ReplayObserver", which every game adds, is not a person and does not.
-	*
-	* NOT from TheNetwork, the game mode or TheGameInfo: a replay has no network and is GAME_REPLAY
-	* whatever the recorded match was, and the slot list is lobby state. Any of those would let a
-	* replay run a cheat its match refused, or the reverse. */
+/** May MSG_GX_CHEAT_* run in this match at all? Only in a sandbox: at most one human. With a second human a
+	* cheat is a weapon (KILL_PLAYER removes them outright). Decided from simulation state only (player types are
+	* CRC'd with ThePlayerList), so every peer and a replay agree; not from TheNetwork or TheGameInfo.
+	* Observers count as humans; the engine ReplayObserver does not. */
 // ------------------------------------------------------------------------------------------------
 Bool GameLogic::gxCheatsAllowed()
 {
@@ -1852,22 +1765,10 @@ Bool GameLogic::gxAdminOrderAccepted( const GameMessage *msg, const Player *send
 }
 
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX: WHO OWNS A CHEAT SPAWN: a spawn ordered BY a defeated player or an
-	* observer, or aimed AT one, makes "civilian" units - the Neutral player's, which nobody commands - so a player who is
-	* out of the game can still stock the map for the living, but never field units of their own or hand them to a live
-	* player. Neutral, not the map's PlyrCivilian: every slot player is set NEUTRAL to it (PlayerList::newGame), where
-	* PlyrCivilian's relations are the map's own and it may not exist; garrisoning and capturing judge only that relation
-	* (ActionManager::canGarrison, canCaptureBuilding), and the engine's unmanned vehicles, which any infantry may crew,
-	* are always the Neutral player's (onGxCheatSpawnUnit makes its vehicles so). Every other order keeps gxCheatTarget's
-	* refusal of a defeated or observing target. isPlayerActive() is simulation state (killPlayer, and the observer flag
-	* fixed at the start), so every peer and a replay choose the same owner. The Debug menu asks the same question to say
-	* so before the click.
-	*
-	* GeneralsX: ...AIMED AT one only: the ORDERER's state no longer decides the owner.
-	* "as an admin I need to be able to select a player from the cheats tab and then go to spawn and spawning a unit would
-	* assign in that player" - an admin watching as an observer, or one already defeated, got Neutral units instead.
-	* Whether an orderer may cheat at all is gxCheatTarget's gate (the sandbox, or a signed relay-proven admin), and no
-	* other cheat asks after the orderer's state: an observing admin already gives cash to, or defeats, any live player. */
+/** Who owns a cheat spawn. A spawn ordered by or aimed at a defeated or observing player goes to Neutral, which nobody
+	* commands, so that player can stock the map but never field units. Neutral, not the map PlyrCivilian: its relations
+	* come from the map and it may not exist. Decided from simulation state (isPlayerActive), so every peer and a replay
+	* agree. The orderer state does not matter: gxCheatTarget gates who may cheat at all. */
 // ------------------------------------------------------------------------------------------------
 Bool GameLogic::gxSpawnGoesNeutral( const Player *target )
 {
@@ -1915,8 +1816,8 @@ static Player *gxCheatTarget( const GameMessage *msg )
 	Player *target = ThePlayerList->getNthPlayer( idx );
 
 	// GeneralsX: ...EXCEPT A SPAWN, which is not refused but made NEUTRAL: aimed at a defeated
-	// or observing player, its units go to the Neutral player (gxSpawnGoesNeutral, not by the orderer's state
-	// since 05/10). Checked before the refusal below, which every other order still meets unchanged.
+	// or observing player, its units go to the Neutral player (gxSpawnGoesNeutral, not by the orderer's state).
+	// Checked before the refusal below, which every other order still meets unchanged.
 	if( msg->getType() == GameMessage::MSG_GX_CHEAT_SPAWN_UNIT && GameLogic::gxSpawnGoesNeutral( target ) )
 	{
 		DEBUG_LOG(("GX cheat frame %d: SPAWN_UNIT aimed at player %d from player %d goes to the Neutral player",
@@ -2077,31 +1978,10 @@ bool GameLogic::onGxCheatSetMoney(MAYBE_UNUSED GameMessage *msg)
 }
 
 // ------------------------------------------------------------------------------------------------
-/** Reveal or re-shroud the whole map for one player, and make that player's MINIMAP actually show
-	* it. Those are two independent gates and only one of them is the shroud:
-	*
-	*  1) The shroud grid. It is simulation state and it IS in the frame CRC (PartitionCell::crc xfers
-	*     m_shroudLevel for all MAX_PLAYER_COUNT players and PartitionManager::crc walks every cell),
-	*     so a one-sided reveal is a guaranteed mismatch. This MUST happen here and not on the client.
-	*     revealMapForPlayerPermanently, not revealMapForPlayer: the permanent variant does addLooker
-	*     with no matching removeLooker so cells land on CELLSHROUD_CLEAR, whereas the plain variant
-	*     lands them on CELLSHROUD_FOGGED, where W3DRadar::canRenderObject rejects every blip
-	*     (W3DRadar.cpp:665, "shroudedStatus > OBJECTSHROUD_PARTIAL_CLEAR"). Fogged gives a dim map
-	*     with no units on it, which reads as "the cheat did nothing".
-	*
-	*  2) Whether the minimap widget is drawn AT ALL. rts::localPlayerHasRadar()
-	*     (Core/.../GameUtility.cpp:52) is isRadarForced || (!isRadarHidden && player->hasRadar()), and
-	*     W3DLeftHUDDraw draws nothing whatsoever when it is false. With no Command Center,
-	*     Player::hasRadar() is false and the minimap stays black no matter how deshrouded the world
-	*     is. So the reveal cheat also forces the radar on for its target.
-	*
-	*     That force is display-only and cannot desync: Radar::crc has an empty body
-	*     (Radar.cpp:1254), TheRadar is absent from GameLogic::getCRC (which covers Objects, the random
-	*     seed, ThePartitionManager, ThePlayerList and TheAI), and the sole reader of isRadarForced is
-	*     localPlayerHasRadar, whose every consumer is client draw/input code. The engine already calls
-	*     forceOn from logic - GameLogic.cpp:1755 for observers and VictoryConditions.cpp:248 on local
-	*     defeat. Because forceOn is keyed on player index, forcing the TARGET's radar changes the
-	*     display only on the target's own machine and correctly changes nothing on anyone else's. */
+/** Reveal or re-shroud the map for one player and make their minimap show it. The shroud grid is in the frame CRC,
+	* so it changes here, not on the client, via the permanent variant (the plain one leaves cells FOGGED, where
+	* W3DRadar rejects every blip). The radar is forced on too, since the minimap is not drawn without a Command Center;
+	* that is display-only (Radar::crc is empty, TheRadar is not in GameLogic::getCRC). */
 // ------------------------------------------------------------------------------------------------
 bool GameLogic::onGxCheatRevealMap(MAYBE_UNUSED GameMessage *msg)
 {
@@ -2154,16 +2034,8 @@ bool GameLogic::onGxCheatRevealMap(MAYBE_UNUSED GameMessage *msg)
 	}
 	else
 	{
-		// GeneralsX: Re-shroud = lift the reveal, nothing more.
-		// This used to copy MSG_META_DEMO_ENSHROUD (LookAtXlat.cpp:653) and
-		// follow the undo with shroudMapForPlayer, which pulses addShrouder/removeShrouder on every cell and so turns
-		// every cell nobody is looking at from FOGGED (m_currentShroud 0) to SHROUDED (1): black, "never seen".
-		// The undo alone is the exact inverse of the reveal: removeLooker on a cell at -1 goes to min(activeShroudLevel,1),
-		// i.e. 0 = FOGGED where no shroud generator covers it (1 = SHROUDED where one does, as in a normal game), and a
-		// cell a unit is looking at stays below -1 so it stays CLEAR. Retail's debug key keeps its own black-out.
-		// A cell never seen before the reveal also ends FOGGED (addLooker took 1 straight to -1, so that memory is gone): the reveal
-		// marks the map explored. Fogged enemy structures show as ghosts only where m_everSeenByPlayer was set - the same
-		// not-CRC'd, rendered-peer-only state ordinary fog already has; it is not a new class of dependency.
+		// Re-shroud only lifts the reveal: the undo is the exact inverse (FOGGED where no shroud generator covers, SHROUDED
+		// where one does, CLEAR where a unit looks). shroudMapForPlayer on top would blacken every unwatched cell.
 		// GX-RESHROUD-BEGIN (scripts/test/reshroud-fog-test.py compiles this line against the real PartitionManager code)
 		ThePartitionManager->undoRevealMapForPlayerPermanently( idx );
 		// GX-RESHROUD-END
@@ -2188,20 +2060,10 @@ bool GameLogic::onGxCheatRevealMap(MAYBE_UNUSED GameMessage *msg)
 }
 
 // ------------------------------------------------------------------------------------------------
-/** Force a player to be defeated, through exactly the path the game itself uses, so that the score
-	* screen, observer mode and the remaining-player checks all happen normally.
-	*
-	* Mirrors GameLogic::onSelfDestruct, except the victim is an ARGUMENT rather than the sender.
-	* MSG_SELF_DESTRUCT cannot simply be retargeted: NetGameCommandMsg::constructGameMessage
-	* (Core/.../NetCommandMsg.cpp:157) overwrites the message's player index with the Player named
-	* "player<senderNetSlot>", so it can only ever kill its own sender.
-	*
-	* There is no Player::setDefeated - defeat is DERIVED. VictoryConditions::update polls
-	* hasSinglePlayerBeenDefeated() every frame on every peer and does all the bookkeeping itself:
-	* the permanent map reveal for the dead player, the GUI:PlayerHasBeenDefeated banner, the AI slot's
-	* lastFrameInGame, a belt-and-braces killPlayer(), the diplomacy popup refresh, and
-	* m_localPlayerDefeated + TheRadar->forceOn for a locally defeated player. All of that comes free
-	* provided the kill itself is synchronised, which is the whole point of routing it through here. */
+/** Force a player to be defeated through the normal path. Mirrors GameLogic::onSelfDestruct but the victim is an
+	* argument: MSG_SELF_DESTRUCT cannot be retargeted because constructGameMessage overwrites the player index with the
+	* sender. Defeat is derived: VictoryConditions polls hasSinglePlayerBeenDefeated() on every peer and does the
+	* bookkeeping, provided the kill itself is synchronised. */
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
 /** Hand @p target's assets to its first living mutual ally, exactly as onSelfDestruct does for a quitter (MSG_SELF_DESTRUCT(TRUE),
@@ -2334,50 +2196,10 @@ static void gxCheatClampToMap( Coord3D *pos )
 }
 
 // ------------------------------------------------------------------------------------------------
-/** Spawn 'count' objects for a player, clustered around a location, at a veterancy level.
-	*
-	* PLACEMENT. Every unit dropped on the bare message position would be one stack of N models on one
-	* point. The engine's own "spawn a group" code is ObjectCreationList's m_spreadFormation path
-	* (ObjectCreationList.cpp:1386) and UnitCrateCollide::executeCrateBehavior: create the object, then
-	* ThePartitionManager->findPositionAround a centre, then setPosition. This does the same, with one
-	* correction.
-	*
-	* The correction is that findPositionAround CANNOT SEE THE SIBLINGS we placed earlier in this very
-	* loop. Object::setPosition only marks the PartitionData dirty; the cells it occupies are not
-	* recomputed until ThePartitionManager->UPDATE() at the end of GameLogic::update (GameLogic.cpp,
-	* well after processCommandList), so iteratePotentialCollisions inside tryPosition finds nothing
-	* where we just put unit 3. Calling ThePartitionManager->update() between spawns - which
-	* GameLogic::startNewGame does when it lays out starting units - would fix that, but it also runs
-	* processContactList and would therefore fire collide modules in the middle of command dispatch,
-	* which no other message handler does.
-	*
-	* So the separation comes from geometry, not from collision queries: units are assigned to a
-	* hexagonal lattice (ring r holds 6r slots, rings are one ringStep apart) sized from the template's
-	* own bounding circle. Radial gap is 2.5 body radii and the arc gap between neighbouring slots is
-	* (pi/3) * ringStep ~= 2.6 body radii, so no two slots can overlap however big the unit is.
-	*
-	* findPositionAround is then run per slot to VALIDATE that slot - water, cliffs, z-delta, buildings,
-	* pathability - starting its search at the slot's own outward angle. In the ordinary case it costs
-	* one sample and changes nothing: minRadius is 0, so its first iteration is dist == minRadius, where
-	* it sets angleSpacing = TWO_PI and therefore tests exactly one point, the lattice point itself. It
-	* only wanders when that point is genuinely illegal, and a unit nudged a couple of metres into a
-	* neighbour beats a unit standing in a cliff. Any residual overlap is transient anyway:
-	* ThePartitionManager->UPDATE() ends the same frame by running processContactList, which is the
-	* engine's own mechanism for pushing coincident mobile objects apart. When the search fails outright
-	* we fall back to the raw lattice point rather than skipping the unit - deterministic, and the same
-	* choice the patched OCL spread path makes (ObjectCreationList.cpp:1396).
-	*
-	* Nothing here consumes the logic RNG: the start angle is passed explicitly, so findPositionAround
-	* skips its GameLogicRandomValueReal call. That is not required for sync - the handler runs
-	* identically on every peer either way - but it keeps the cheat out of the shared random stream and
-	* makes the same order produce the same cluster twice.
-	*
-	* VETERANCY is applied unconditionally rather than only when it is above LEVEL_REGULAR: a brand new
-	* Object already picks up its owner's production veterancy (Object.cpp:472 calls
-	* getProductionVeterancyLevel), so "spawn me a REGULAR one" has to be able to pull a unit back DOWN
-	* from whatever the player's barracks upgrades grant. provideFeedback=FALSE suppresses the promotion
-	* FX and sound, matching ObjectCreationList.cpp:1016 - these units were never promoted, they were
-	* born this way, and the FX path consults isLogicallyVisible(), which is per-viewer. */
+/** Spawn count objects for a player, clustered around a location, at a veterancy level. Units go on a hexagonal
+	* lattice (ring r holds 6r slots) because findPositionAround cannot see siblings placed earlier in this loop;
+	* it then validates each slot, falling back to the raw lattice point. The start angle is explicit, so the logic RNG
+	* is not consumed. Veterancy is applied unconditionally: a new Object inherits its owner production veterancy. */
 // ------------------------------------------------------------------------------------------------
 Int GameLogic::gxSpawnUnitsAround( Player *target, const ThingTemplate *tmpl, const Coord3D &where, Int count,
 																	 VeterancyLevel vet, std::vector<ObjectID> *spawnedIds )
@@ -2497,14 +2319,10 @@ bool GameLogic::onGxCheatSpawnUnit(MAYBE_UNUSED GameMessage *msg)
 	std::vector<ObjectID> spawnedIds;
 	const Int spawned = gxSpawnUnitsAround( target, tmpl, msg->getArgument( 2 )->location, count, vet, &spawnedIds );
 
-	// GeneralsX: NEUTRAL VEHICLES COME UNMANNED, so a living player can take them
-	// spawned "as civilians, ready to enter / capture". A transport takes only its owner's units and hijacking needs an
-	// enemy (TransportContain::isValidContainerFor, ActionManager::canHijackVehicle), so a manned Neutral vehicle would be
-	// of no use to anyone. Unmanned is the engine's own "any infantry may crew it" state (ActionManager::canEnterObject;
-	// the takeover is PhysicsUpdate's collide), and the engine always pairs it with the Neutral player: a sniped vehicle,
-	// a Neutron blast, a script's "set unmanned". Their exclusions too: no drone, and no rider-change bike (a bike without
-	// its rider scuttles). neverManned: these never had a pilot, so none of a sniped pilot's death - no splatter sound, no
-	// car bomb's dead-man's trigger killing a convertible vehicle, no reset of the veterancy set above.
+	// Neutral vehicles are spawned unmanned so a living player can take them: a transport takes only its owner units and
+	// hijacking needs an enemy (TransportContain::isValidContainerFor, ActionManager::canHijackVehicle). Unmanned is the engine
+	// any-infantry-may-crew state (ActionManager::canEnterObject), always paired with the Neutral player. No drone and no
+	// rider-change bike. neverManned: none of a sniped pilot death effects (splatter sound, car bomb trigger, veterancy reset).
 	if( target == ThePlayerList->getNeutralPlayer() )
 	{
 		for( size_t i = 0; i < spawnedIds.size(); ++i )
@@ -2565,32 +2383,10 @@ static void gxCheatCollectDoomed( Object *obj, void *userData )
 }
 
 // ------------------------------------------------------------------------------------------------
-/** Remove objects a player owns: every type or one type, all of them or the oldest few.
-	*
-	* Argument contract, mirrored in the enum comment in Common/MessageStream.h so the sender and this
-	* handler cannot drift: templateID <= 0 means every type, count <= 0 means all of them.
-	*
-	* DESTROY, NOT KILL. Object::kill() runs the death sequence: death FX, the corpse/wreckage OCL, the
-	* slow-death update, the "unit lost" EVA and the score bookkeeping. That is the right call for
-	* MSG_GX_CHEAT_KILL_OBJECTS, which is meant to simulate an army being wiped out. This cheat exists
-	* to CLEAR CLUTTER, so it wants the objects gone, not gone-and-then-some-burning-hulks;
-	* TheGameLogic->destroyObject is the engine's "make it not exist" path. It is also the safer of the
-	* two here: it is DEFERRED (GameLogic.cpp - the object is pushed onto m_objectsToDestroy and
-	* actually deleted by processDestroyList at the end of the frame) and it early-outs on
-	* obj->isDestroyed(), so naming the same object twice is harmless.
-	*
-	* TWO PASSES, ALWAYS. Removing objects inside Player::iterateObjects is the classic crash in this
-	* codebase: the walk is over intrusive DLINK team-member lists, and taking an object out re-teams
-	* its passengers and unlinks nodes the iterator is standing on. Team::killTeam does the same
-	* collect-then-act dance for the same reason. Collect ObjectIDs rather than Object*, so that
-	* anything freed between the passes resolves to nullptr instead of to a dangling pointer.
-	*
-	* WHICH ONES, when count is a limit: the collected ids are SORTED, so "delete 2 Humvees" removes the
-	* two OLDEST Humvees. ObjectIDs are handed out by an incrementing counter in creation order, and
-	* creation order is lockstep-identical on every peer, so this is both well-defined to the user and
-	* provably the same choice everywhere. The raw iterateObjects order would also have been identical
-	* on every peer, but it is essentially reverse-insertion order across an arbitrary set of team
-	* prototypes - same units deleted, no way to say so in a sentence. */
+/** Remove objects a player owns: templateID <= 0 means every type, count <= 0 means all (Common/MessageStream.h).
+	* Destroys rather than kills: destroyObject is deferred and skips an already destroyed object.
+	* Two passes: removing inside Player::iterateObjects crashes (intrusive DLINK lists), so collect ObjectIDs first.
+	* Ids are sorted so a count removes the oldest: creation order is identical on every peer. */
 // ------------------------------------------------------------------------------------------------
 bool GameLogic::onGxCheatDeleteObjects(MAYBE_UNUSED GameMessage *msg)
 {
@@ -2691,25 +2487,10 @@ bool GameLogic::onGxQueueEnter(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &curren
 
 #if RTS_ZEROHOUR
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX: IN-MATCH VOTE KICK - the simulation's half. Every rule is Common/GXVoteKick.h; this
-	* only feeds it the synchronised orders, the frame and the living humans, and carries out a PASSED vote.
-	*
-	* WHO: the sender is getMessagePlayer(msg) - the Player NetGameCommandMsg::constructGameMessage built the order for from the
-	* sender's network slot - never an argument. An observer's order resolves to the ReplayObserver every observer slot shares,
-	* which is never active, so observers neither start nor vote. A defeated or kicked player is not active either.
-	*
-	* THE KICK is a quitter's fate (gxTransferToLivingAlly, then killPlayer): what Network::quitGame and the Exit button's
-	* MSG_SELF_DESTRUCT(TRUE) do, decided here on the same frame on every peer. VictoryConditions then derives the defeat as for
-	* any dead player. The kicked CLIENT leaves by itself a few seconds later (GameClient/GXVoteKick.h, the moderator kick's
-	* exit): that is only the network catching up - a client that never leaves stays a dead player who owns nothing and whose
-	* every vote order is refused here.
-	*
-	* SPOOFING, stated: an order's sender is a packet field (NetCommandMsg playerID) the network does not bind to the peer the
-	* datagram came from (Common/GXAdminOrder.h), so a modified client can cast a ballot in another slot's name. It can already
-	* send that slot's MSG_SELF_DESTRUCT - its surrender - which is strictly stronger; the vote adds no power a forger lacks.
-	*
-	* FORBIDDEN in here, as in the cheat handlers: TheInGameUI, TheNetwork, TheGameInfo, clocks. The client reads
-	* getGxVoteKick() for the banner and the lines. The [GXVOTE] trace is stderr only. */
+/** In-match vote kick, the simulation half; the rules are in Common/GXVoteKick.h. The sender is getMessagePlayer(msg),
+	* never an argument; observers resolve to the never-active ReplayObserver, so they cannot start or vote. A passed vote
+	* is a quitter exit (gxTransferToLivingAlly, then killPlayer), decided on the same frame on every peer.
+	* Forbidden here: TheInGameUI, TheNetwork, TheGameInfo, clocks. */
 // ------------------------------------------------------------------------------------------------
 static_assert( MAX_PLAYER_COUNT <= GXVK_MAX_PLAYERS, "a Player index must fit the vote kick's masks" );
 
@@ -3924,7 +3705,7 @@ bool GameLogic::onSetReplayCamera(MAYBE_UNUSED GameMessage *msg)
 			{
 				// GeneralsX: The cursor is the order's integer, and setCursor (and every
 				// device's override) indexes its cursor tables with it; any peer's order is recorded in everyone's
-				// replay (net-hardening weapon-slot-r1). An honest recording holds a real cursor.
+				// replay. An honest recording holds a real cursor.
 				if ((Int)mouseCursor >= 0 && (Int)mouseCursor < Mouse::NUM_MOUSE_CURSORS)
 					TheMouse->setCursor( mouseCursor );
 				TheMouse->setPosition( mousePos.x, mousePos.y );
@@ -3965,25 +3746,9 @@ bool GameLogic::onLogicCrc(MAYBE_UNUSED GameMessage *msg)
 	Player *msgPlayer = getMessagePlayer(msg);
 	if (TheNetwork)
 	{
-		// GeneralsX: Resolve the slot by INDEX, not by matching display names.
-		// Upstream reference: TheSuperHackers, PR #3033
-		// https://github.com/TheSuperHackers/GeneralsGameCode/pull/3033
-		//
-		// The old loop scanned TheNetwork->getPlayerName(i) for a string equal to this player's
-		// display name and took the first hit. Display names are not unique - they arrive off the
-		// wire and nothing dedupes them - so in a lobby where two players share a name the loop
-		// binds the WRONG slot, and the isPlayerConnected() test below then asks about somebody
-		// else's connection. If that other peer happens to be disconnected, this returns early and
-		// the reporting player's CRC is silently DROPPED.
-		//
-		// The CRC itself was always stored at getPlayerIndex(), so the value never landed on the
-		// wrong player - the damage is a missing report, which the desync dialog then renders as
-		// "no report" against a peer that did in fact report. That dialog exists to answer "who
-		// desynced", so a name collision makes it answer confidently and wrongly.
-		//
-		// ThePlayerList->getSlotIndex() is a direct player-index -> slot-index lookup built once
-		// from the lobby (PlayerList.cpp:530, filled by assignSlotIndices), which is the mapping
-		// the name scan was approximating.
+		// Resolve the slot by index, not by display name: names arrive off the wire and are not unique, so a name scan could
+		// bind the wrong slot and the isPlayerConnected() test below would drop the reporting player CRC.
+		// ThePlayerList->getSlotIndex() is the direct player-index to slot-index lookup. Upstream: TheSuperHackers PR 3033.
 		if (msgPlayer->getPlayerType() != PLAYER_HUMAN)
 		{
 			return false;

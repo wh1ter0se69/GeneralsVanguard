@@ -69,58 +69,18 @@
 #include "W3DDevice/GameClient/W3DShaderManager.h"
 
 //=============================================================================
-// GeneralsX: THE REMASTERED GROUND, slice 1 (productised from
-// test/look-ground-2 4fe7f0db9, itself grown from per-pixel relief)
-// The switch, its A/B override, the vetoes and the governor steps are GameClient/GXGroundSteps.h: Options.ini
-// GXGround = yes (absent = kGxGroundKeyDefault: ON since), GX_GROUND = off | "shade,blend,detail,macro,noise". OFF = today's ground byte for byte: nothing
-// is built, nothing is drawn, no device call differs. Client-only: this file is outside the SimID digest
-// (resources/gitinfo/simdigest_exclusions.txt), and nothing here is read by the simulation.
-// The 2003 ground read as flat wallpaper for four reasons: one light value per
-// 10 m vertex, soft 10 m linear fades between terrain types, two blurry grey multiply layers (cloud x macro noise, the "dirty
-// smudge"), and the same tiles repeating every 40-200 m. When on, this draws the same 2003 tiles differently, in two ps.1.1
-// passes over the same vertex buffers:
-//  BASE (replaces the retail terrain*.pso for the HeightMap base pass): t0/t1 = the colour atlas at UV0/UV1 as before, t2/t3 = a
-//    SHADE atlas at UV0/UV1 laid out exactly like the colour atlas. The two tiles are blended by a' = sat(s*(k*(h1-h0) + a - 0.5)
-//    + 0.5) instead of the vertex alpha a: the taller texel wins near the cell edge, so grass tufts stand over dirt and the 10 m
-//    smear becomes a crisp, irregular edge (s = 3: a third-of-a-cell band; the blend heights carry 5 m lumps, so the edge wanders
-//    off the 10 m cell polygons - SW1 at s = 4 with 1 m lumps still traced them). |k*(h1-h0)| <= 0.65*0.498 = 0.324 < 0.5 - 0.5/s
-//    = 0.333 keeps a' = a exactly at a = 0 and a = 1, so a cell that blends nothing never shows its (arbitrary) second tile. The colour is then multiplied
-//    by light = sat(vertex light x shade factor), the shade lerped by the same a'. The saturate is the engine's own rule: doTheLight
-//    clamps every vertex's light at 1.0 per channel, so a relief-lit facet gets at most full light, as a sun-facing slope does
-//    today, and colour x light never exceeds 1.0 in the 8-bit framebuffer before MULT darkens it.
-//  MULT (one extra pass, framebuffer *= 2*src): the stock cloud map and macro noise with the stock texture matrices (the noise's
-//    depth softened, the preset's 5th value; 100 = stock), times a world-projected high-frequency DETAIL grain whose mips fade to
-//    neutral (it shows only close up, no shimmer at the normal camera), times a world-projected low-frequency MACRO variation
-//    (+-10% brightness, +-4% warm/cool) that breaks the 40-200 m tile repeats. Governor step 1 draws MULT_LITE instead: the cloud
-//    and the softened noise only (framebuffer *= src), the same product with the two layers at neutral.
-//  SHADE atlas: baked on the CPU from the colour atlas's own level-0 texels per texture class (wrapping inside the class like
-//    the tile art does). Height = luminance blurred at 1, 3 and 8 texels; normals from it; the map's own terrain lights (ambient 0
-//    + every global light, as BaseHeightMap::doTheLight lights the vertices) per texel, with a short soft self-shadow march toward
-//    each light and a cavity term, as a factor RELATIVE to flat ground, normalised to mean 1 per class (same average brightness).
-//    Alpha = the class's height at 3 and 8 texels of blur, normalised to [0.25, 0.75], for the blend above.
-// WHEN IT BAKES (~350 ms of CPU on a 2048x1024 atlas, measured on wh1ter0se's PC by look-ground-2): at MAP LOAD, through GXGround_Prepare
-// from HeightMapRenderObjClass::staticLightingChanged - W3DTerrainLogic::loadMap's setTimeOfDay reaches it once the map's lights
-// are final (TerrainVisual::load built the atlas just before) - and again only when a time-of-day change relights the terrain.
-// The first base pass bakes only if neither ran (after a device reset dropped the atlas), and says so in its log line. A failed
-// bake latches the stock path for that atlas and device: no retry per frame.
-// Test hooks (read once): GX_GROUND2 / GX_GROUND3 = more presets; GX_GROUND_AT="<frame>:<mode>,..." switches mode in-run from that
-// logic frame on (0 = stock, 1-3 = preset; default 1) for one-run tuning sweeps; GX_GROUND_BAKE="depth,shadow,cavity" (texels x10,
-// percent, x100; default 120,80,160); GX_GROUND_FLIP=1 bakes the lights from the opposite side (fail arm).
-// UV axes (WorldHeightMap::getUVForTileIndex + HeightMap updateVB): +u = world +X, +v (atlas rows down) = world -Y.
-// Known limits (later slices): cells with a 3rd texture (renderExtraBlendTiles, drawn after) show it
-// stock where its alpha reaches 1, and roads stay stock; cliff cells whose UVs AdjustCliffTextures remaps along the slope are
-// shaded with the flat-tile axes; the detail and macro layers are projected straight down, so they stretch on steep cliffs; the
-// native renderer has no port (GXGroundSteps.h vetoes it).
-// Ownership as in the relief prototype: the shade atlas belongs to ONE colour atlas (the TerrainTextureClass
-// whose texels it was baked from) on ONE device; every device object is dropped in W3DShaderManager::shutdown (device alive) and
-// rebuilt from the kept luminance copy.
+// GeneralsX remastered ground (switch and steps: GameClient/GXGroundSteps.h). Options.ini GXGround = yes;
+// GX_GROUND = off | "shade,blend,detail,macro,noise". OFF = stock ground byte for byte.
+// Client-only, outside the SimID digest. Two ps.1.1 passes: BASE blends the tiles by height and
+// applies a baked SHADE atlas; MULT adds cloud, detail and macro layers.
+// The shade atlas bakes at map load (GXGround_Prepare); a failed bake latches the stock path. No native-renderer port.
 //=============================================================================
 struct GXGroundPreset { Bool valid; Real shade, blend, detail, macro, noise; int pct[5]; };
 struct GXGroundClassRect { Int x, y, size; };
 struct GXGroundLight { float u, v, z, d; };	// toward the light in atlas axes (+u = +X, +v = -Y), diffuse luminance
 enum { GXG_MAX_LIGHTS = 3 };
 static const float GXG_SHADE_ENC = 0.5f;	// shade atlas RGB = factor * this (factor <= 1.9); neutral (factor 1) = this
-// What Options.ini GXGround = yes (or absent) draws: look-ground-2's NEW, the frames wh1ter0se approved as the direction (14/10, pairs 1 and 3).
+// The preset that Options.ini GXGround = yes (or absent) draws:
 static const int kGxgKeyPreset[5] = { 100, 100, 100, 100, 50 };
 
 static std::vector<UnsignedByte> s_gxgLum;		// level-0 luminance of the owner atlas, width*height
@@ -726,8 +686,8 @@ static Bool gxgEnsureDevice(IDirect3DDevice8 *device)
 }
 
 // GeneralsX: Map load (HeightMapRenderObjClass::staticLightingChanged): everything the ground draws with
-// is built here, while the loading screen is up - the device objects and the shade atlas for the map's final lights (the ~350 ms
-// look-ground-2 used to spend in the first frame). Called again on a time-of-day change, it re-bakes only if the lights moved.
+// is built here, while the loading screen is up - the device objects and the shade atlas for the map's final lights (otherwise
+// ~350 ms in the first frame). Called again on a time-of-day change, it re-bakes only if the lights moved.
 // The same gates as the base pass, so nothing is built that the base pass would not use. FALSE = the stock path for now.
 Bool GXGround_Prepare(TextureClass *atlas)
 {

@@ -85,29 +85,9 @@
 #endif
 
 #include "WWLib/always.h"
-// GeneralsX: Deterministic trig for the rotation helpers.
-//
-// The earlier fix gave the engine its own bit-identical Sin/Cos (gamemath.h) and routed
-// WWMath::Sin/Cos and the *Trig wrappers through it, which covered Thing::setOrientation - the path
-// that places objects at map load. That is why frame 0 went from 6 of 323 objects differing to 0.
-//
-// It did NOT cover THIS header, which is the OTHER way the engine writes an object transform.
-// Rotate_X/Y/Z, Pre_Rotate_*, In_Place_Pre_Rotate_* and the Set(axis,angle) constructor all called
-// libm cosf/sinf directly, and matrix3d.h never included gamemath.h - verified: gamemath.h had
-// exactly one include site in the whole tree (wwmath.h:40) and there is no #define redirecting
-// cosf/sinf anywhere. So every one of these calls still went to Apple libm on macOS and to the MSVC
-// UCRT on Windows, which are the two implementations already measured to disagree by 1 ULP near 45
-// degrees.
-//
-// This is live simulation code, not rendering: PhysicsBehavior::doPhysics does
-//   mtx.Rotate_X(rollRateToUse); mtx.Rotate_Y(pitchRateToUse); mtx.Rotate_Z(yawRateToUse);
-// (PhysicsUpdate.cpp:750-752) and then obj->setTransformMatrix(&mtx) (:817), for every object with a
-// nonzero pitch/roll/yaw rate - tumbling debris, dying units, banking aircraft, projectiles. The
-// result lands in the 48 transform bytes that Object::crc hashes with no epsilon (Object.cpp:4007).
-// Locomotor.cpp:164 and :2180 reach it too.
-//
-// Frames 0-376 of the last measured match agreed while this bug was present because nothing had a
-// nonzero rate yet: the world CRC was static until frame 324.
+// GeneralsX: Deterministic trig for the rotation helpers (Rotate_*, Pre_Rotate_*, Set(axis,angle)):
+// they use gamemath.h, not libm cosf/sinf, which differ by 1 ULP between Apple libm and MSVC UCRT.
+// Simulation code: PhysicsBehavior::doPhysics builds object transforms with it, and Object::crc hashes them exactly.
 #include "gamemath.h"
 #include <assert.h>
 #include "vector2.h"

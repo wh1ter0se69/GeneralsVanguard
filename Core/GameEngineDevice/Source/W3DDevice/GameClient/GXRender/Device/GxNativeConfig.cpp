@@ -1,4 +1,22 @@
-// GeneralsX: GxNativeConfig.h. The line parser is DXVK's parseUserConfigLine
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GxNativeConfig.h. The line parser is DXVK's parseUserConfigLine
 // (util/config/config.cpp:1270-1338 at 954c5c692) ported rule for rule, so a value means here what it means to DXVK.
 #include "GxNativeConfig.h"
 #include <algorithm>
@@ -149,14 +167,13 @@ GxNativeConfig GxNativeParseConfig(const std::string& file, bool haveFile, const
 	return c;
 }
 
-// GeneralsX: The environment and the file as DXVK reads them (src/util/util_env.cpp:24-39 getEnvVar,
+// The environment and the file as DXVK reads them (src/util/util_env.cpp:24-39 getEnvVar,
 // src/util/config/config.cpp:1544-1555 getUserConfig, at 954c5c692): on Windows the PROCESS environment through
 // GetEnvironmentVariableW into MAX_PATH UTF-16 units, a value of MAX_PATH or more reading as unset, converted to UTF-8, and the file
 // opened by its wide path - NOT the CRT's copy of the environment. W3DDisplay::init writes the player's texture filter into
 // DXVK_CONFIG with SetEnvironmentVariableA (W3DDisplay.cpp, "DXVK reads GetEnvironmentVariableW, not the CRT copy"), which std::getenv
-// never sees: once the shipped Windows dxvk.conf qualified (render/ws-win-present), a native Windows session ran the FILE's anisotropy
-// instead of the one the player chose, while classic DXVK applied it (the wide API and path:
-// combo-r2 #1). Elsewhere getenv and a narrow path, exactly what DXVK uses there.
+// never sees: a native Windows session would run the FILE's anisotropy instead of the one the player chose, while classic DXVK
+// applies it. Elsewhere getenv and a narrow path, exactly what DXVK uses there.
 #if defined(_WIN32)
 static std::wstring gxDxvkEnvW(const wchar_t* name)
 {

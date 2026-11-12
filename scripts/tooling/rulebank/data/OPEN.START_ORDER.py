@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule OPEN.START_ORDER: GLA opens with 5 workers. Stock Hard: the singleton
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule OPEN.START_ORDER: GLA opens with 5 workers. Stock Hard: the singleton
 # team "GLA Worker" (and the Demolition / Stealth / Toxin copies "GLA Worker. 1/2/3") is 4 Workers min 4 max 4, built by "GLA Dozer - Build
 # Condition" at the start. gla_workers_first sets that team's min and max (4 = stock). The expansion worker teams (1 Worker) are untouched.
 # dozer_first is UNUSED: every first build order of every general needs a Dozer to exist, so a Dozer-first opening is already stock.

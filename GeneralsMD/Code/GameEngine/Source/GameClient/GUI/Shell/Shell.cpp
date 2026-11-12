@@ -740,7 +740,7 @@ void Shell::doPush( AsciiString layoutFile )
 	
 	DEBUG_ASSERTCRASH( newScreen != nullptr, ("Shell unable to load pending push layout") );
 
-	// GeneralsX @bugfix A missing layout used to be caught only by the debug
+	// GeneralsX: A missing layout used to be caught only by the debug
 	// assert above, which compiles away in release builds — linkScreen() then
 	// dereferenced the null and took the process down with no diagnostic. Any
 	// menu referencing a .wnd absent from the shipped data (Zero Hour has no
@@ -798,7 +798,7 @@ void Shell::doPop( Bool impendingPush )
 
 	// run the init for the new top of the stack if present
 	WindowLayout *newTop = top();
-	if( newTop && !impendingPush && !m_isDeconstructing ) // GeneralsX @bugfix (issue #2777) not during teardown
+	if( newTop && !impendingPush && !m_isDeconstructing ) // GeneralsX: (issue #2777) not during teardown
 	{
 		newTop->runInit( nullptr );
 		//newTop->bringForward();

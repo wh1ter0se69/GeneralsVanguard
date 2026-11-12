@@ -617,7 +617,7 @@ void ThingTemplate::parseModuleName(INI* ini, void *instance, void* store, const
 
 	ModuleData* data = TheModuleFactory->newModuleDataFromINI(ini, tokenStr, type, moduleTagStr);
 
-	// GeneralsX @bugfix newModuleDataFromINI returns null on a lookup miss and its
+	// GeneralsX: newModuleDataFromINI returns null on a lookup miss and its
 	// only complaint is a DEBUG_CRASH, which compiles away. isAiModuleData() is
 	// virtual, so this was a vptr load from address 0 — a misspelled module name in
 	// a downloaded map's map.ini crashed during INI load instead of reporting a
@@ -1247,7 +1247,7 @@ void ThingTemplate::validate()
 // copy the guts of that into this, but preserve this' name, id, and list-links.
 // GeneralsX: And its override link: `*this = *that` copied that's place in ITS override chain too.
 // A map.ini "ObjectReskin A A" left A's new override pointing at itself, so getFinalOverride never returned and every peer
-// hung at the first script naming A (measured on 0.9.61 in AttackPriorityInfo::setPriority); a reskin of a template with
+// hung at the first script naming A (in AttackPriorityInfo::setPriority); a reskin of a template with
 // overrides shared their chain (deleted twice by ThingFactory::reset); a reskin made by a map.ini lost its override mark
 // and outlived the match.
 void ThingTemplate::copyFrom(const ThingTemplate* that)

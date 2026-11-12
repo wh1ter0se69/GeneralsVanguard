@@ -1,17 +1,26 @@
-// GeneralsX: What the temporal upscalers read from a world pass: depth, motion vectors,
-// jitter, camera. ONE internal convention; each backend (DLSS/Streamline, FSR 3.1,
-// MetalFX, XeSS) maps it with scale/flag parameters only:
-//   motion vectors  RG16_SFLOAT, render size, CURRENT -> PREVIOUS (prev = cur + mv) in render PIXELS, +x right / +y down,
-//                   camera motion included, jitter EXCLUDED, not dilated   (DLSS InMVScale 1,1 / Streamline mvecScale 1/renderW,1/renderH;
-//                   FSR motionVectorScale 1,1; MetalFX motionVectorScale 1,1; XeSS velocity scale 1,1)
-//   depth           the world pass's own depth-stencil, single sample, 0 = near / 1 = far (NOT reversed, not infinite);
-//                   read through depthView (DEPTH aspect only)
-//   jitter          pixels in [-0.5,0.5], +x right / +y down; the device offsets clip.xy by (+2jx/viewW, -2jy/viewH) * clip.w, view = the camera viewport inside
-//                   the world target (the whole target when the camera covers it)
-//   matrices        D3D row-vector convention (clip = pos * M), stored row-major like D3DMATRIX, UNJITTERED
-// Valid from IGxWorldPass::End until the next Begin; filled on the device's front side, carried by value into the backend's
-// recorded command (A23-B: owned arguments). The device tracks each image's layout: a backend that transitions depth or mv must
-// leave them in the layout given here (or go through the device's GxImage). Render-only: nothing here is read by the simulation.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// What the temporal upscalers read from a world pass: ONE convention, mapped by each backend with scale/flags.
+//   motion vectors  RG16_SFLOAT, CURRENT -> PREVIOUS (prev = cur + mv) in render PIXELS, +x right, +y down
+//   depth           the world pass's depth, single sample, 0 = near / 1 = far
+//   jitter          pixels in [-0.5,0.5]; matrices are UNJITTERED, D3D row-vector convention (clip = pos * M)
+// Valid from End until the next Begin; a backend that transitions depth or mv must restore the layout.
 #pragma once
 #include "VkCtx.h"
 #include <stdint.h>
@@ -30,7 +39,7 @@ struct GxMotionImage
 enum GxMotionFrameFlags : uint32_t
 {
 	GXMF_RESET          = 1u << 0,   // history invalid: seam GXWP_RESET_HISTORY, first frame, or a camera cut the device detected
-	GXMF_HAS_OBJECT_MV  = 1u << 1,   // render-motion-units-1's per-object vectors are merged into mv (else camera-only)
+	GXMF_HAS_OBJECT_MV  = 1u << 1,   // per-object vectors are merged into mv (else camera-only)
 	GXMF_HAS_REACTIVE   = 1u << 2,   // reactive is valid
 };
 

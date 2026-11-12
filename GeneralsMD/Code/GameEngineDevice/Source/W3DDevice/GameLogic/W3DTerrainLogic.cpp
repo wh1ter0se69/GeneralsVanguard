@@ -117,21 +117,9 @@ Bool W3DTerrainLogic::loadMap( AsciiString filename , Bool query )
 
 	WorldHeightMap *terrainHeightMap;				///< holds raw heightmap data samples
 
-	// GeneralsX: THIS is the open that decides whether a map loads at all.
-	//
-	// It runs before the base TerrainLogic::loadMap and returns FALSE on failure, so everything
-	// downstream - sides, teams, objects, scripts, the visual - is skipped silently. On iOS that is
-	// exactly what happened to every USER map: MapUtil lowercases the whole discovered path
-	// (MapUtil.cpp:640) and stores it as the map identity, but a user map's absolute path contains
-	// '/private/var/mobile/Containers/Data/Application/<UPPERCASE-UUID>/Library/Application Support/'
-	// and that volume is CASE-SENSITIVE, so the lowercased form names nothing. Official maps are
-	// unaffected because they come out of the .big archives by a relative path.
-	//
-	// Symptom: a match that runs its full frame count with zero objects and no AI - it looks like a
-	// bad map rather than a failed open, and it was misdiagnosed four times before this.
-	//
-	// getPathOnDisk returns its argument unchanged when the cache has no on-disk path, so no other
-	// platform or code path changes behaviour.
+	// This open decides whether a map loads at all: it runs before the base TerrainLogic::loadMap and a FALSE return skips
+	// everything downstream silently. MapUtil lowercases the discovered path, which names nothing on a case-sensitive
+	// volume (iOS user maps live under an uppercase-UUID path); getPathOnDisk returns its argument unchanged elsewhere.
 	if (TheMapCache != nullptr)
 		filename = TheMapCache->getPathOnDisk(filename);
 

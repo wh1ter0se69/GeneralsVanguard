@@ -699,26 +699,10 @@ private:
 	mutable Real		m_interpTurretPrev[MAX_TURRETS][2];	///< turret angle and pitch, relative to the hull, at the logic frames of m_interpPrev and m_interpCur
 	mutable Real		m_interpTurretCur[MAX_TURRETS][2];
 
-	// GeneralsX: The class-C animation gate.
-	//
-	// updateDrawable() is driven once per MAIN LOOP ITERATION, not once per logic frame:
-	// GameEngine::update() calls TheGameClient->UPDATE() unconditionally while TheGameLogic->UPDATE()
-	// sits behind canUpdateGameLogic(). Everything in it that counts in LOGIC FRAMES therefore ran at
-	// the render rate. FramePacer floors a network peer at 8 * LOGICFRAMES_PER_SECOND, so a 30-frame
-	// fade could finish in ~60 ms instead of ~500 ms - and the multiplier varies with framerate and
-	// platform (vsync binds first on macOS/iPadOS, so ~2x there against ~8x on Windows), which is why
-	// it read as erratic rather than as a clean doubling.
-	//
-	// Per-DRAWABLE rather than one flag on GameClient, and that is not a style choice:
-	// StealthUpdate.cpp calls draw->updateDrawable() directly from inside GameLogic::update(), where
-	// any GameClient-level "did the frame advance" flag still holds the value computed by the last
-	// client pass and is simply wrong. A per-object stamp is correct by construction wherever it is
-	// called from.
-	//
-	// Compared with != rather than subtracted: the frame counter returns to 0 between matches, so a
-	// delta would be ~4e9 on the first frame of a new game. Sentinel-initialised to
-	// InvalidShroudClearFrame (~0u) so a freshly created drawable steps on its first call, exactly as
-	// it does today.
+	// GeneralsX: class-C animation gate. updateDrawable() runs once per main loop iteration, not per logic frame,
+	// so logic-frame timers would run at render rate; this stamp steps them only when the frame advanced.
+	// Per drawable because StealthUpdate.cpp calls it inside GameLogic::update(), where a client-level flag is stale.
+	// Compared with != (the counter resets between matches); starts at InvalidShroudClearFrame.
 	UnsignedInt		m_lastLogicFrameUpdated;	///< frame at the previous updateDrawable(); see above
 	UnsignedInt		m_timeToFade;						///< how slowly am I fading
 
@@ -819,7 +803,7 @@ private:
 	// GeneralsX: TRUE whenever some drawable MAY have m_isModelDirty set.
 	// Every write of m_isModelDirty = true sets it too; only friend_lockDirtyStuffForIteration clears it,
 	// right before the walk that cleans every dirty drawable. FALSE therefore proves the walk is a no-op.
-	// Mirrors the Zero Hour change (review of cc426e50c).
+	// Mirrors the Zero Hour change.
 	static Bool							s_anyModelDirty;
 #endif
 

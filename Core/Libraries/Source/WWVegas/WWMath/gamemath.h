@@ -16,48 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GameMath - bit-identical trigonometry for lockstep simulation.
-//
-// GeneralsX:
-//
-// WHY THIS EXISTS - measured, not theorised.
-//
-// Mac (Apple libm, arm64) and Windows (MSVC UCRT, x64) return results ONE ULP apart for cosf/sinf
-// at angles near 45 degrees. Captured from two peers in a live LAN match at the same clean commit,
-// dumping the raw transform bits of every object at frame 0:
-//
-//   mac BF34D116  win BF34D117    -0.706315398 vs -0.706315458   45.06 deg
-//   mac BF34919D  win BF34919E    -0.705346882 vs -0.705346942   45.14 deg
-//   mac BF349F7C  win BF349F7D    -0.705558538 vs -0.705558598   45.13 deg
-//   mac 3F34D111  win 3F34D112     0.706315100 vs  0.706315160   45.06 deg
-//
-// Six objects out of 323 on one map, delta 5.96e-08 = 2^-24 every time. Thing::setOrientation
-// (Thing.cpp:232-241) writes those raw results into the object transform, and Object::crc
-// (Object.cpp:4007) hashes the 48 bytes with NO epsilon - so one bit kills the match before frame
-// 1. Rocks survived only because they sit at angles where the two libraries happen to agree.
-//
-// WHY THIS IS BIT-IDENTICAL EVERYWHERE.
-//
-// IEEE-754 specifies +, -, * and the float<->double conversions as CORRECTLY ROUNDED: every
-// conforming platform must produce the same bits. It says nothing about sin/cos/exp/log, which is
-// precisely why libm implementations are free to differ. An approximation built only from basic
-// arithmetic is therefore deterministic by construction, where a libm call never can be.
-//
-// Two build settings are load-bearing for that guarantee, and both are already in place:
-//   * -ffp-contract=off (cmake/compilers.cmake:68) and /fp:precise (:61) stop the compiler fusing
-//     a multiply and an add into an FMA, which rounds once instead of twice and would change the
-//     result.
-//   * x64 and arm64 have no x87 excess-precision problem; the _M_IX86 inline-asm branch in
-//     wwmath.h is unreachable on both targets.
-//
-// ACCURACY. Cody-Waite range reduction with a three-part pi/2, then a Taylor series evaluated in
-// double over |r| <= pi/4. Truncation error is under 1e-11, far below float epsilon (~6e-8 at
-// these magnitudes), so the returned float is the correctly rounded result in practice - and,
-// unlike libm, the SAME correctly rounded result on every platform.
-//
-// LIMITATION. Reduction precision degrades for very large |x|, as it does in any Cody-Waite
-// scheme. Game angles are radians in roughly -2pi..2pi, so this is not reachable here, but do not
-// lift this into a general-purpose math library without a full Payne-Hanek reduction.
+// GameMath - bit-identical trigonometry for lockstep simulation. GeneralsX: Apple libm and MSVC UCRT return cosf/sinf
+// ONE ULP apart near 45 degrees and Object::crc hashes transforms with no epsilon, so one bit desyncs. This uses only
+// IEEE-754 basic arithmetic (-ffp-contract=off, /fp:precise): Cody-Waite reduction, Taylor series, error < 1e-11.
+// Valid for roughly -2pi..2pi only; a general library would need Payne-Hanek reduction.
 
 #pragma once
 

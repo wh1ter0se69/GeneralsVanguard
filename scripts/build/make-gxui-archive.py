@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Add a Confirm Password field to PopupHostGame.wnd.
 
 Reads the stock layout straight out of WindowZH.big, adds two children (a label and an entry
@@ -8,7 +10,7 @@ we do not care about - fonts, draw data, colours, header templates - stays exact
 """
 import os, re, sys
 
-# GeneralsX: GX_WINDOW_BIG overrides the source archive.
+# GX_WINDOW_BIG overrides the source archive.
 #
 # The default is the Mac's install and was the only path this script could ever read, which is
 # precisely why the archive it produces existed on one machine. The Windows and Linux packagers

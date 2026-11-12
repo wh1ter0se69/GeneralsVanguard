@@ -16,86 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: S1-3 relay-list-v2: THE ENGINE READS THE SIGNED RELAY LIST.
-//
-// WHY. "Adding a relay must not require updating clients" ("The goal"). Until this file the
-// signed list in the release manifest reached only the Windows launcher; Mac, Linux and the launcher-less
-// iPad dialled the compiled-in bootstrap name, so a relay could move only by DNS and a standby could never
-// exist (#4-#6, §2). This is the engine half of S1-3: it finds the newest
-// verified list, and OptionPreferences::getRelayAddress() uses its HOME when the player has pinned nothing.
-//
-// THE DOCUMENT is the release manifest's wire form, "<payload>|<sig>" (scripts/tooling/gx-manifest.py):
-//
-//     2|<ordinal>|<minimum>|<sha>|<home>|<base>|<builds>|<master>|<alt>|<serial>[|<future>...]
-//
-// field 4 = the HOME relay (first entry; the signer keeps it to one), field 8 = STANDBY relays, field 9 =
-// the signing time. Items are "host,port,region"; an empty port is 8086, the relay LOBBY port, and the
-// relay's GAME port is always the lobby port + 2. A document without field 9 - every manifest published
-// before S1-3 - is NOT a relay list here: it cannot be ordered against another, so it is refused and the
-// bootstrap is used, which is exactly what the engine did before.
-//
-// THE CHECKS, IN THIS ORDER, AND THE ORDER IS THE SECURITY PROPERTY (the same shape as
-// GXIdentityAssertion.cpp and gxlaunch.c's parse_manifest):
-//
-//   shape  ->  SIGNATURE (ranked keys)  ->  meaning (every item, all or nothing)  ->  freshness
-//
-//   * RANKED KEYS (§3.4). Three pinned keys, K1 < K2 < K3. The rank of a document is the rank of the key
-//     that verifies it. The highest rank this install has ever FULLY accepted is persisted, and anything
-//     lower is refused from then on: one K2 document kills K1 on this machine, one-way, with no revoke list
-//     to forge. An unprovisioned slot (all zero) is skipped explicitly, never "verified" against.
-//   * FRESHNESS IS (rank, serial) AND NOTHING ELSE (§8.7). The release ordinal belongs to the
-//     update manifest; it is parsed and never consulted here, so a relay-only re-sign at the same ordinal
-//     still beats the list it replaces, and a recovery document from an older release still wins.
-//   * THE HORIZON, NOT A CLAMP (§3.3, §8.8-8.10, and relaylist-v2 r1+r2). A stolen key can sign
-//     serial = 2^40. A list ARRIVING with a serial more than 7 days past this machine's clock is REFUSED
-//     ("too far ahead"); every list accepted therefore carries a serial at most 7 days past its own arrival,
-//     and freshness compares those raw serials. Consequences, each the point: (1) a replay of anything
-//     already seen can never win again - its serial is fixed, and once an honest list signed after it is held
-//     it is below the floor; (2) a stolen key can keep honest re-signs out for at most 7 days PER DELIVERY,
-//     and only by delivering again (rotation to K2 ends it); (3) no per-document memory exists to overflow or
-//     cycle - the stored-clamp design this replaced was beaten twice by review (a re-offered document re-clamped
-//     from a later clock; a 4-entry history evicted by five pre-signed documents). The clock is
-//     max(wall clock, a persisted high-water mark of the wall clock), so winding it back cannot shrink the
-//     horizon below what was already seen. The engine's OWN cache is not re-checked against the horizon at load,
-//     so a clock that later goes slow never discards an honest cache. Stated ceiling: a device whose clock is
-//     more than 7 days SLOW refuses NEWER lists until its clock is right, and keeps the one it holds.
-//     DELIBERATE DEPARTURE FROM §8.10's TEXT: the high-water mark takes WALL-CLOCK readings only, never a
-//     document's signing time, which is attacker-chosen under a stolen key.
-//   * PER-RANK FLOOR. The floor a document must reach is its OWN rank's, so a poisoned K1 floor can never
-//     block the K2 recovery document. Plus a compiled-in term: the serial must not be older than this
-//     build's own commit time (§8.5: serial, never ordinal). A dev build newer than the published list
-//     therefore refuses it and uses the bootstrap - the behaviour before this file existed.
-//
-// WHERE DOCUMENTS COME FROM (§3.5), best (rank, serial) wins, ties keep what is held:
-//   1. the launcher's own cache (Windows: gxmanifest.txt beside the game; macOS/Linux: the Rust launcher's
-//      state folder) - RE-VERIFIED here, the launcher's verdict is never trusted;
-//   2. this engine's own cache, GXRelayList.txt + GXRelayList.state in the user-data folder;
-//   3. GXUPD to the compiled-in bootstrap ALWAYS, plus the held home and every standby, on a background
-//      thread started at the Online lobby. A reply is taken only from one of those addresses. Without the
-//      bootstrap leg a hostile list naming only hostile relays would trap a launcher-less iPad for ever
-//      (§3.5).
-//   Nothing verifiable anywhere: the compiled-in bootstrap, no standby - today's behaviour.
-//
-// THE HOME IS LATCHED FOR THE PROCESS. The first home() call fixes it; a better list found later is cached
-// and takes effect at the next launch. Otherwise the lobby presence socket (which resolves its relay once)
-// and a Transport created after a background fetch could sit on two different relays in one session.
-//
-// NOTHING IS PARTIALLY USED. One malformed item anywhere refuses the whole document, and a refused document
-// is never cached. Every refusal prints one release-visible "[GXRELAYLIST] refused <source>: <reason>".
-//
-// TEST BUILDS (GX_RELAYLIST_TEST_KEYS) pin the three fixture keys of scripts/test/relay-list-fixtures.py
-// instead of the production set, add a "-test" suffix to every file they keep, skip the launcher caches unless
-// GX_RELAYLIST_LAUNCHER_CACHE names one, and take GX_RELAYLIST_BOOTSTRAP=host[:port] as the bootstrap EVERYWHERE -
-// the fallback relay address as well as the refresh - so a test build can never wedge, or be wedged by, a
-// player's install, and never registers with the production relay unless it is told to. A shipped binary
-// carries none of that.
-//
-// NOT IN THE SIMULATION DIGEST (resources/gitinfo/simdigest_exclusions.txt, "@Lobby, identity and local
-// files"): it chooses which relay a lobby talks to and computes nothing the simulation reads. The digested
-// OptionPreferences.cpp calls it, which is why the exclusion is named rather than implied.
-//
-// The pure layer below (verify / judge / horizon / state text) takes everything as arguments and is what
-// scripts/test/relay-list-test.cpp drives over the shared fixtures; it includes no engine header.
+// Engine half of the signed relay list: the newest verified list's HOME is the default relay when none is pinned.
+// Check order is the security property: shape, SIGNATURE (ranked keys K1<K2<K3), meaning, freshness.
+// Freshness is (rank, serial): a lower rank than the best ever accepted is refused, as is a serial >7 days ahead.
+// One malformed item refuses the whole list; the home is latched per process; else the bootstrap.
 
 #pragma once
 
@@ -214,17 +138,10 @@ enum GXRelaySource
 	GX_RELAY_SRC_BOOTSTRAP,		// absent/blank RelayAddress and no list: the compiled-in name (as before)
 };
 
-// envOptOut: GENERALSX_NO_RELAY is set to a value that is not empty and does not start with '0'.
-// key: the RelayAddress value, NULL when the key is absent. listHome: NULL when no list is held.
-// bootstrap: "host" or "host:port" (a port only from a test build's override, GXRelayList::bootstrap).
-// A pin that is not a plain host[:port] is returned VERBATIM on the default port - exactly what the engine
-// did with it before ports were data, so a pin this cannot parse fails (or works) the way it always did.
-// launcherKey: the RelayAddressLauncher value (NULL when absent) - the Windows launcher writes the SAME value there as
-// in RelayAddress (gxlaunch.c publish_relay). While the two agree, RelayAddress is the LAUNCHER's choice, not the
-// player's: with a verified list held the list's home wins (the engine's own rank/serial floor governs on Windows too,
-// ); with none, the launcher's value is used as before. A RelayAddress the player edited no longer
-// matches, and is a pin. A RelayAddress naming exactly the bootstrap on its port, with no marker, is a LEGACY
-// launcher-written value (every launcher before the marker wrote the bootstrap name there) and is treated the same.
+// envOptOut: GENERALSX_NO_RELAY non-empty and not starting with '0'. key: RelayAddress, NULL when absent.
+// listHome: NULL when no list is held. bootstrap: "host" or "host:port". An unparseable pin is returned VERBATIM.
+// launcherKey: RelayAddressLauncher. While equal to RelayAddress, that is the launcher's choice and a list's home wins;
+// an edited RelayAddress is a pin; a bare bootstrap value with no marker counts as launcher-written.
 GXRelaySource gxRelayResolve(int envOptOut, const char *key, const char *launcherKey, const GXRelayEndpoint *listHome,
 	const char *bootstrap, char *host, size_t hostCap, unsigned short *port);
 

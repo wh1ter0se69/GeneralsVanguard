@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule OIL.CAPTURE_TEAMS: take the oil early and in numbers. Stock Hard
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule OIL.CAPTURE_TEAMS: take the oil early and in numbers. Stock Hard
 # captures tech buildings only when one lies within 500 of its inner perimeter (the cached "<S> Tech Building Detect" test), with ONE
 # team of 2 capturers (GLA: 1). This, per general:
 #   capture_radius   -> the Detect test's distance (a tech building near MY area, cached at its first evaluation: map layout);
@@ -24,7 +26,7 @@ TEAM = {'USA': 'USA Tech Capture Team', 'China': 'China Tech Capture Team', 'GLA
 DETECT, BUILD, ORDERS, STOCK_DEFINE = '%s Tech Building Detect', '%s Tech Capture Build', '%s Tech Building Capture Orders', '%s Capture Tech Building'
 DEFINE, REFINERY, END, GROUP = '%s GX Oil Priority Define', '%s GX Oil Priority Refinery', '%s GX Oil Priority Refinery End', \
     'GX OIL.CAPTURE_TEAMS'
-REFINERY_WINDOW_S = 90          # the 30/10 smoke: our refinery was taken 53 s after the raise
+REFINERY_WINDOW_S = 90          # the smoke: our refinery was taken 53 s after the raise
 STOCK_SET, NEW_SET = '%s Tech Building Priority', 'GX Oil Priority %s'
 DERRICK, REFINERY_T, REFINERY_PRIO = 'TechOilDerrick', 'TechOilRefinery', 5500   # 5500 - d/100 beats any derrick's 5000 within 50,000 wu
 def _teams(scb):

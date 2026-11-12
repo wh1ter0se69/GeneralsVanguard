@@ -16,26 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: THE IN-MATCH KICK TICKET: what a moderator's kick carries into a
-// running match, and the one decision every peer makes about it.
-//
-// A ticket is the panel's statement "the moderator <label> kicked the player at <vip> in <room> at <iat>",
-// signed with GX_KICK_NOTICE_SEED, the operator console's kick-notice key. Wire form:
-//
-//     M     = "gxkick1|<room>|<vip>|<n|a>|<@handle, or empty when a>|<iat unix seconds>"   (ASCII)
-//     bytes = M || Ed25519(M)   (the last 64 bytes are the signature)
-//
-// base64 on the relay wire (GXKICK / GXKNOT, Transport.cpp), raw bytes packed into MSG_SELF_DESTRUCT's
-// INTEGER arguments inside the match (GXKickPump.h builds them, GXKick.cpp reads them).
-//
-// NOTHING HERE CHANGES SIMULATION STATE, AND NOTHING IN THE SIMULATION READS ITS ANSWER. It decides only
-// whether the victim's client surrenders itself (as peer-local as a human clicking Surrender) and whether
-// each peer draws a line of text. It lives in Common - inside simsourcedigest_watcher.cmake - so that two
-// builds with different keys or different checks have different sourceIDs and refuse each other at join
-// rather than disagreeing about the line (kick-in-match design, section 10 F2).
-//
-// HEADER ONLY: pure functions over their arguments and no global state but the pinned key, so the unit
-// check in scripts/test/kick-ticket-test.cpp compiles it with nothing but GXEd25519.cpp and GXSha512.cpp.
+// In-match kick ticket: a moderator kick signed with GX_KICK_NOTICE_SEED.
+// Wire: M = gxkick1|room|vip|n or a|@handle or empty|iat (ASCII); bytes = M || Ed25519(M), last 64 bytes the signature.
+// Changes no simulation state: it only decides whether the victim surrenders and each peer draws a line.
+// In Common so builds with different keys or checks refuse each other at join. Test: scripts/test/kick-ticket-test.cpp.
 
 #pragma once
 
@@ -44,18 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* The Ed25519 public key of GX_KICK_NOTICE_SEED.
- *
- * PINNED 2026-09-20 from ~/.config/generalsx/kicknotice (base64url zjAgtmrGlQy-f-mTYGnC81sX9dRhjzNJseBCN6_wm3I).
- * ALL ZEROES IS THE "UNPINNED" SENTINEL and gxKickPubkeyPinned() checks for it explicitly: with no key,
- * no ticket verifies, no victim surrenders on a ticket and no line is drawn - the relay's backstop still
- * removes the player (GXKICK_UNPINNED in the [GXKICK] log says why).
- *
- * A key of its own, different from the identity and manifest keys, minted with
- * scripts/tooling/mint-identity-key.py; the private half is not in this repository. The C array
- * below is the tool's output, generated, never typed.
- *
- */
+/* Ed25519 public key of GX_KICK_NOTICE_SEED. All zeroes is the unpinned sentinel (gxKickPubkeyPinned checks it):
+ * with no key no ticket verifies, so nobody surrenders and no line is drawn; the relay still removes the player.
+ * Mint with scripts/tooling/mint-identity-key.py using its own GX_MANIFEST_KEY_DIR (a separate key). */
 static const unsigned char GX_KICK_PUBKEY[32] = {
 	0xce, 0x30, 0x20, 0xb6, 0x6a, 0xc6, 0x95, 0x0c,
 	0xbe, 0x7f, 0xe9, 0x93, 0x60, 0x69, 0xc2, 0xf3,

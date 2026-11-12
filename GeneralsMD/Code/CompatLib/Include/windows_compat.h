@@ -1,3 +1,21 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #pragma once
 
 #include <string.h>  // For memset, used by GlobalMemoryStatus stub
@@ -185,16 +203,8 @@ inline BOOL GetVersionEx(OSVERSIONINFO* lpVersionInfo) {
 // TheSuperHackers @build 10/02/2026 Bender
 // Timing functions: timeBeginPeriod(), timeEndPeriod() for Linux
 //
-// GeneralsX: Monotonic, like Win32 timeGetTime(), not the wall clock.
-// gettimeofday() made this epoch-ms truncated to 32 bits: it jumped with every NTP/manual clock
-// step, and it wrapped on the SAME instant on every non-Windows peer (next: 2026-10-03 04:22:42
-// UTC). GameNetwork stores it in 64-bit time_t and subtracts, so after a wrap
-// Connection::doSend's `(curtime - m_lastTimeSent) < m_frameGrouping` is true forever and that
-// connection never sends again. Uptime-based wraps per machine every 49.7 days, as on Windows.
-// The clock must keep counting through system sleep, as Win32 timeGetTime() does, or connection /
-// disconnect timeouts and relay route TTLs resume after a wake as if no time had passed: Linux
-// CLOCK_MONOTONIC stops during suspend, so Linux uses CLOCK_BOOTTIME (as time_compat.cpp already
-// does); Apple's CLOCK_MONOTONIC is documented to continue while asleep.
+// Monotonic like Win32 timeGetTime(), not wall clock: a 32-bit epoch-ms value wraps on all peers at once and
+// stops Connection::doSend. It must count through sleep: Linux uses CLOCK_BOOTTIME, Apple CLOCK_MONOTONIC does.
 static inline DWORD timeGetTime(void)
 {
     struct timespec ts;

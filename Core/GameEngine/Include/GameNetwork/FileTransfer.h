@@ -45,11 +45,7 @@ AsciiString GetAssetUsageFromMap( AsciiString path );
 AsciiString GetReadmeFromMap( AsciiString path );
 
 // The meat of file (map) transfers
-// GeneralsX: keepShellUp: run the transfer as an OVERLAY over the live
-// room screen instead of shutting the shell down around it. Shell::hideShell runs the top
-// screen's SHUTDOWN and the matching showShell re-runs its INIT - and the room screen's init is
-// written for entering a fresh room: on the host it rebuilds the game from preferences, which
-// emptied the slot list, duplicated the CodeGui password row and swapped the background after a
-// transfer-only start (measured live, 2026-08-10, three peers). A delivery run must return to
-// the SAME room, so its caller passes TRUE and the shell is never touched on success.
+// keepShellUp: run the transfer as an OVERLAY over the live room screen instead of shutting the shell down around it.
+// Hiding the shell re-runs the room screen init, which is written for a fresh room (on the host it rebuilds the game from
+// preferences and empties the slot list). A delivery run must return to the SAME room, so its caller passes TRUE.
 Bool DoAnyMapTransfers(GameInfo *game, Bool keepShellUp = FALSE);

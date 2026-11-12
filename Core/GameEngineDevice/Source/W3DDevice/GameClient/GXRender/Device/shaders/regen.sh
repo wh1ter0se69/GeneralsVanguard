@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # regen.sh [--check] - the native device's present shaders (DXVK's presenter, adapted: SOURCE.txt) to SPIR-V headers.
 # Build-time SPIR-V (no runtime GLSL compiler ships); dev-only, the generated headers are committed. Every module is
 # checked with spirv-val (Vulkan 1.3). --check regenerates into a temporary directory and fails if a committed header differs.

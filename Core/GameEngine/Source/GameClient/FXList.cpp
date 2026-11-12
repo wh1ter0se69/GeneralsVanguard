@@ -862,13 +862,13 @@ FXListStore::~FXListStore()
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: Undo exactly what a map.ini did. parseFXListDefinition clears and refills an existing list
-// IN PLACE, and this reset() was empty, so a map's FX outlived it in every later game of the process (reskin-loop adv-r1,
-// batch-0962 r35). The pristine nuggets go back INTO the live list, so every pointer to it (weapons, OCLs, DamageFX, module
-// data, resolved at parse time) stays valid; the lists a map invented leave. That erase is safe the way ArmorStore::reset's is:
-// a startup definition cannot name a list that did not exist at startup, live objects are gone (resetSubsystems resets
-// TheGameLogic first), and everything a map.ini made that can name one - templates, weapons, OCLs, DamageFX - is already
-// deleted or restored: they all register after this store (GameEngine.cpp), and resetAll() runs in reverse order.
+// GeneralsX: Undo exactly what a map.ini did. parseFXListDefinition clears and refills an existing list IN PLACE, so
+// a map's FX would outlive it in every later game of the process. The pristine nuggets go back INTO the live list, so
+// every pointer to it (weapons, OCLs, DamageFX, module data, resolved at parse time) stays valid; lists a map invented
+// leave. That erase is safe as in ArmorStore::reset: a startup definition cannot name a list that did not exist at
+// startup, live objects are gone (resetSubsystems resets TheGameLogic first), and everything a map.ini made that can
+// name one (templates, weapons, OCLs, DamageFX) is deleted or restored: they register after this store (GameEngine.cpp)
+// and resetAll() runs in reverse order.
 void FXListStore::reset()
 {
 	for (size_t i = 0; i < m_overrideBackups.size(); ++i)

@@ -1,4 +1,22 @@
-// GeneralsX: THE CLASSIC/REMASTERED SWITCH (graphics P3-3). See GXGraphicsSettings.h.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// THE CLASSIC/REMASTERED SWITCH. See GXGraphicsSettings.h.
 
 #include "PreRTS.h"
 
@@ -103,7 +121,7 @@ namespace
 		fprintf(stderr, "[GXREFLEX] reflex=%d (%s)\n", (int)s_reflex, srcR);
 	}
 
-	// S7 (PREREG A18): GXShadowMap off|on + the TEST-ONLY step pin
+	// GXShadowMap off|on + the TEST-ONLY step pin
 	void loadShadowMap(const UserPreferences &prefs)
 	{
 		const char *src = "default";
@@ -116,7 +134,7 @@ namespace
 			(int)s_shadowMapStepPin);
 	}
 
-	// (PREREG A108): GXAlphaToCoverage yes|no - the spellings GXShadowMap takes
+	// GXAlphaToCoverage yes|no - the spellings GXShadowMap takes
 	void loadAlphaToCoverage(const UserPreferences &prefs)
 	{
 		const char *src = "default";
@@ -227,7 +245,7 @@ Bool GXGraphics::upscalerIsTemporal(Int u)
 	return u == UPSCALER_FSR3 || u == UPSCALER_DLSS || u == UPSCALER_METALFX_TEMPORAL || u == UPSCALER_XESS;
 }
 
-// GeneralsX: THE RENDERER SWITCH (GXRendererKey.h). Once per process, so SDL3Main (the loader
+// THE RENDERER SWITCH (GXRendererKey.h). Once per process, so SDL3Main (the loader
 // choice, before SDL loads Vulkan), GxNative::Install (the device hook) and the REMASTERED ground's veto (TerrainTex.cpp) can never
 // disagree. Options.ini needs the user-data path, which CommandLine::parseCommandLineForStartup sets up with TheGlobalData: a call
 // before that answers from GX_RENDERER alone and decides nothing (no reader asks that early today).

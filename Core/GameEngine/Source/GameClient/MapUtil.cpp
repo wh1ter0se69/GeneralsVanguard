@@ -30,7 +30,7 @@
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 #include <cstdint>
-#include <wctype.h>	// GeneralsX @feature towlower, for the case-insensitive map name filter
+#include <wctype.h>	// GeneralsX: towlower, for the case-insensitive map name filter
 
 #include "Common/crc.h"
 #include "Common/FileSystem.h"
@@ -511,38 +511,14 @@ void MapCache::updateCache()
 		m_doCreateStandardMapCacheINI = FALSE;
 	}
 
-	// GeneralsX: SAY SO WHEN MAPS ARE IN THE FOLDER THAT IS IGNORED.
-	//
-	// There are two map roots and only one of them picks up new files. getUserMapDir() is scanned
-	// from disk on every launch (just below); getMapDir() - the "Maps" folder inside the game
-	// directory - is the OFFICIAL root and is loaded from a MapCache.ini built at release time, so
-	// a map folder dropped there is never seen. Nothing said so, and the failure is completely
-	// silent: the maps are on disk, in a folder called Maps, and simply do not appear in the game.
-	//
-	// Reported by a player on 2026-08-16 who had followed the install instructions exactly - the
-	// website named the install folder for macOS and Linux, and the user-data folder for Windows.
-	// The instructions are fixed, but the silence is the real defect: anyone who finds the wrong
-	// folder a second time, from a forum post or a guess, gets no hint at all.
-	//
-	// Deliberately a plain warning and not an error: shipping an official Maps directory is normal,
-	// and a mod developer building a standard cache is a real workflow. This only fires when the
-	// official cache is NOT being built, which is exactly the case where the contents cannot matter.
+	// getMapDir() (official root) loads from a prebuilt MapCache.ini, so maps dropped there are silently never seen;
+	// only getUserMapDir() is scanned from disk. Warn instead of failing silently. Plain warning, not an error:
+	// it fires only when the standard cache is not being built, when the contents cannot matter.
 	if (!m_doCreateStandardMapCacheINI && TheLocalFileSystem != nullptr)
 	{
-		// TheLocalFileSystem, NOT TheFileSystem: the latter searches mounted archives too, and the
-		// official maps live in MapsZH.big - so it would match every shipped map and warn on every
-		// launch. Only loose files on disk can be the mistake this is looking for.
-		//
-		// THE BASE PATH GOES IN originalDirectory, NOT currentDirectory, and the difference is not
-		// cosmetic. The search string is originalDirectory + currentDirectory, but the recursion
-		// passes only the subfolder's NAME as currentDirectory and leaves originalDirectory alone
-		// (StdLocalFileSystem.cpp:381-384). Put the base in currentDirectory and the first recursion
-		// searches "gxdozen" instead of "Maps/gxdozen" - it finds nothing, silently, which is
-		// exactly what this warning exists to stop happening to somebody else. The same bare-name
-		// walk means only ONE level below mapDir is searched: Maps/A/B is looked up as Maps/B, and a
-		// directory already searched is skipped (:334), so Maps/X/X no longer recurses forever.
-		//
-		// Trailing separator is still load-bearing: nothing is inserted between the two parts.
+		// TheLocalFileSystem, not TheFileSystem: the latter searches archives too, so shipped maps in MapsZH.big would match.
+		// Base path goes in originalDirectory: the recursion passes only the subfolder name as currentDirectory.
+		// Only one level below mapDir is searched. The trailing separator is required: nothing is inserted between the parts.
 		FilenameList strayMaps;
 		AsciiString mapDirSearch;
 		mapDirSearch.format("%s\\", mapDir.str());
@@ -615,17 +591,10 @@ void MapCache::prepareUnseenMaps( const AsciiString &mapDir )
 	}
 }
 
-// GeneralsX: ENTRIES FROM A CONTAINER THAT NO LONGER EXISTS.
-//
-// clearUnseenMaps cannot do this and it was wrong to claim it could: both it and prepareUnseenMaps
-// only inspect keys that start with the CURRENT map directory, so an entry written under a previous
-// iOS data-container UUID is never examined by either. INIMapCache's parser sets m_doesExist = TRUE
-// on everything it reads, so those entries stay in the cache for the whole session, claiming to
-// exist, holding a path nothing can open - and they can win the display-name dedupe or satisfy
-// findMap ahead of the live copy of the same map.
-//
-// A user-map entry that does not live under the current user map root is exactly that case: the
-// official root is a separate scan with m_isOfficial set, so this cannot touch it.
+// Drops user-map entries not under the current user map root, e.g. one written under a previous iOS data-container UUID.
+// clearUnseenMaps and prepareUnseenMaps only inspect keys under the CURRENT map directory, and INIMapCache's parser sets
+// m_doesExist = TRUE on everything it reads, so such an entry would stay, name a path nothing can open, and could win the
+// display-name dedupe or findMap ahead of the live copy. The official root is a separate scan (m_isOfficial) and is untouched.
 Bool MapCache::clearMapsOutsideRoot( const AsciiString &userMapDir )
 {
 	Bool erasedSomething = FALSE;
@@ -832,16 +801,9 @@ Bool MapCache::addMap(
 		// Found the map in our cache. Check to see if it has changed.
 		const MapMetaData& md = it->second;
 
-		// GeneralsX: Size alone is not "unchanged". A re-transferred or
-		// re-edited map of identical size kept its OLD cached CRC here, and the CRC is what join
-		// admission and the has-map handshake compare - so a stale entry makes a peer look
-		// permanently map-less no matter how many times the transfer succeeds. The timestamps are
-		// already collected, persisted in MapCache.ini (timestampLo/Hi) and parsed back; the
-		// DEBUG_LOGs below always printed them as if they were part of this check. Now they are -
-		// but only for USER maps, which are the only ones that get edited or re-transferred.
-		// Official maps live inside the .big (immutable, dataID-guarded) and their enumerated
-		// timestamps need not match the shipped MapCache.ini's, so holding them to timestamp
-		// equality would re-CRC the whole official list every launch for nothing.
+		// Size alone is not unchanged: a re-edited map of identical size kept a stale cached CRC, which join admission and
+		// the has-map handshake compare. User maps therefore also compare timestamps (persisted in MapCache.ini); official
+		// maps live in the immutable .big and their timestamps may differ from the shipped cache, so they are exempt.
 		if (md.m_filesize == fileInfo.sizeLow && md.m_CRC != 0
 			&& (isOfficial
 				|| (md.m_timestamp.m_highTimeStamp == fileInfo.timestampHigh
@@ -877,17 +839,8 @@ Bool MapCache::addMap(
 
 			it->second.m_doesExist = TRUE;
 
-			// GeneralsX: HYDRATE THE REAL PATH ON A CACHE HIT TOO.
-			//
-			// m_filePathOnDisk was written only on the cache-MISS path below, so an entry restored
-			// from MapCache.ini kept it empty and getPathOnDisk fell back to the lowercased identity
-			// - which on iOS names nothing. The path fix therefore worked only on a COLD cache, and
-			// nobody noticed because the parse-time existence prune was emptying the iOS cache on
-			// every launch and keeping it cold by accident. Removing that prune is what exposed
-			// this; the prune was load-bearing for a reason it never claimed.
-			//
-			// fname is the path the scan just walked, so this is recording what was actually found
-			// rather than reconstructing it. Every platform benefits and none changes behaviour.
+			// Record the real path on a cache hit too: m_filePathOnDisk was set only on a miss, so an entry restored from
+			// MapCache.ini left it empty and getPathOnDisk fell back to the lowercased identity, which names nothing on iOS.
 			// GX-SIMID-BEGIN the simulation reads this - resources/gitinfo/simsourcedigest_watcher.cmake
 			it->second.m_filePathOnDisk = fname;
 			// GX-SIMID-END
@@ -1095,7 +1048,7 @@ struct MapListBoxData
 };
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Case-insensitive substring test for the map display-name filter.
+// GeneralsX: Case-insensitive substring test for the map display-name filter.
 // UnicodeString offers compareNoCase / startsWithNoCase / endsWithNoCase but no case-insensitive
 // substring search (find() takes a single WideChar), and a search box needs substring matching,
 // so it is spelled out here. str() never returns nullptr, it returns a pointer to a null WideChar.

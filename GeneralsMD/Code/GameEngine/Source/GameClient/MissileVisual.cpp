@@ -15,7 +15,7 @@
 **	You should have received a copy of the GNU General Public License
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-// GeneralsX: The superweapon missiles' visual flight: the engine half. See MissileVisual.h
+// The superweapon missiles' visual flight: the engine half. See MissileVisual.h
 // for the contract and MissileVisualMath.h for the flight itself.
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
@@ -122,7 +122,7 @@ static Int missileVisualMode()
 	static Int s_mode = -1;
 	if( s_mode < 0 )
 	{
-		// GeneralsX: Only an instrumented build reads it: the "1" trace logged an enemy superweapon's
+		// Only an instrumented build reads it: the "1" trace logged an enemy superweapon's
 		// launch and target before it landed. A shipped build always draws the flight, silently.
 #if defined(GX_TEST_INSTRUMENTS)
 		const char *env = getenv( "GX_MISSILEVIS" );
@@ -218,17 +218,10 @@ static const WeaponTemplate *firingWeapon( const Object *obj, const Object *laun
 	return nullptr;
 }
 
-/// Blend onto the logic as something that can detonate the missile closes in on the LOGIC missile's bounding sphere:
-/// mvProxBlend of the gap at the rate it is closing, 1 two frames of that approach before contact (
-/// a contact that lands between two frames still finds the drawn missile on the logic one, where its explosion is).
-/// A collision detonates it where the logic is (NeutronMissileUpdate and MissileAIUpdate::projectileHandleCollision,
-/// ), and a collision cannot be predicted, only approached. Neither missile dies of damage in practice
-/// (NeutronMissile MaxHealth 99999999, ScudStormMissile 10000 behind ProjectileArmor). Only what the logic would let through: nothing while the warhead is unarmed or either
-/// side is OBJECT_STATUS_NO_COLLISIONS (PartitionContactList::processContactList), never its launcher, and for a SCUD only
-/// what its weapon collides with (WeaponTemplate::shouldProjectileCollideWith) - so the other missiles of its salvo do
-/// not pull it off its arc. The SCUD Storm fires at a location, so there is no intended victim (INVALID_ID). A SCUD whose
-/// weapon was never found (launcher gone before first sight) falls back to every object. Read-only partition query and
-/// template reads.
+/// Blend onto the logic as something that can detonate the missile closes in on the LOGIC missile's bounding
+/// sphere: mvProxBlend of the gap at the closing rate, 1 two frames before contact. A collision cannot be predicted.
+/// Only what the logic would let through counts: not while unarmed or NO_COLLISIONS, never its launcher,
+/// and for a SCUD only what its weapon collides with. Read-only partition query and template reads.
 static float proximityBlend( const Object *obj, MissileVisual *mv, float ignoreTopsBelow = -1.0e9f )
 {
 	const ProjectileUpdateInterface *pui = obj->getProjectileUpdateInterface();
@@ -370,7 +363,7 @@ static void trace( const Drawable *draw, const MissileVisual *mv, const char *wh
 	fflush( stderr );
 }
 
-/// Whether HeightDieUpdate could kill the missile by height now: never without one (mod data, visuals-3 r8); always,
+/// Whether HeightDieUpdate could kill the missile by height now: never without one (mod data); always,
 /// unless its data says OnlyWhenMovingDown - then
 /// from the first logic frame it moved down (latched: the kill needs only one down frame, and a per-frame flag would
 /// flicker the blend on a level flight). Both missiles launch climbing, so neither is pulled onto the logic on the pad.
@@ -421,7 +414,7 @@ static Bool stepNuke( MissileVisual *mv, Drawable *draw, Object *obj, UnsignedIn
 	// OnlyWhenMovingDown), and the nuke moves down only in its drop over the target, at the die height it was aimed at - so
 	// the height blends the SCUD needs are not needed here. Only a contact with something that can detonate it counts.
 	// HeightDieUpdate can still kill it early over terrain higher than the target's (a launch from high ground toward a lower
-	// target, visuals-3 r19): only then does it get pulled onto the logic near the local die height. Over the target
+	// target): only then does it get pulled onto the logic near the local die height. Over the target
 	// itself the local die height IS the target's, so the landing keeps its angle.
 	float low = 0.0f;
 	if( canDieLow( mv, hd ) )
@@ -454,7 +447,7 @@ static Bool stepNuke( MissileVisual *mv, Drawable *draw, Object *obj, UnsignedIn
 		return TRUE;
 	}
 	// Dropping, the die height is the logic's own there (structures included when its data says so - a bridge or a tall
-	// building at the target, visuals-3 r17): the arc ends at it. Terrain only until then.
+	// building at the target): the arc ends at it. Terrain only until then.
 	if( s.reachedIntermed )
 		mv->E.z = fl.dieZ;
 	mv->V = mvAdvance( *mv->table, &mv->u, mv->L, mv->E, ns.pos, tau, blend, MV_HMIN, MV_HMAX );
@@ -548,7 +541,7 @@ static Bool stepScud( MissileVisual *mv, Drawable *draw, Object *obj, UnsignedIn
 }
 
 // ------------------------------------------------------------------------------------------------------------------
-// GeneralsX: GX_TEST_FIRESW=1: the LOCAL player fires each of its nuke / SCUD Storm special powers
+// GX_TEST_FIRESW=1: the LOCAL player fires each of its nuke / SCUD Storm special powers
 // once, as soon as it is ready, at the nearest enemy command center - through MSG_DO_SPECIAL_POWER_AT_LOCATION with the
 // silo as the source, which is exactly what a click on the superweapon button sends. It is player INPUT: it goes through
 // the command stream, is executed on the same logic frame by every peer and is recorded in the replay, so the replay can
@@ -563,7 +556,7 @@ void missileVisualTestFire()
 	{
 		const char *env = getenv( "GX_TEST_FIRESW" );
 #if !defined(GX_TEST_INSTRUMENTS)
-		// GeneralsX: A superweapon aimbot in a live match (it aims at an enemy command centre read
+		// A superweapon aimbot in a live match (it aims at an enemy command centre read
 		// from logic state): only an instrumented build honours it. [GXFIRESWLOCK] lets a harness fail loudly.
 		if( env != nullptr && env[0] != '\0' && env[0] != '0' )
 		{
@@ -709,7 +702,7 @@ void missileVisualTestFire()
 }
 
 // ------------------------------------------------------------------------------------------------------------------
-// GeneralsX: a VISUAL expanding dust ring from the
+// a VISUAL expanding dust ring from the
 // nuke's detonation, client-only and digest-neutral - nothing here reads back into the simulation. It is timed to the
 // blasts the simulation itself does: the nuke's NeutronMissileSlowDeathBehavior data lists each blast's delay after the
 // missile dies and its radius (60, 90, 120, 150, 180, then the damage blast at 210 with the 3500 damage), so the ring's
@@ -794,7 +787,7 @@ static void shockStart( Object *obj, Drawable *draw )
 	s.end = s.start + (UnsignedInt)( s.t[s.n - 1] + MV_SHOCK_OVERSHOOT_FRAMES ) + MV_SHOCK_TAIL;
 	s.pos = *obj->getPosition();
 	s.pos.z = TheTerrainLogic->getGroundHeight( s.pos.x, s.pos.y );
-	// wh1ter0se's look #2/#3: the front is a ground decal (shockDecalUpdate, re-sized every rendered frame); the particle systems here
+	// The front is a ground decal (shockDecalUpdate, re-sized every rendered frame); the particle systems here
 	// are the short-lived dust emitted at the front that hangs behind it.
 	const ParticleSystemTemplate *ringTmpl = TheParticleSystemManager->findTemplate( AsciiString( "ArtilleryBarrageShockwave" ) );
 	for( int i = 0; i < MV_SHOCK_SYSTEMS; ++i )
@@ -908,7 +901,7 @@ static void shockDecalUpdate( Shock &s, float r, float opacity )
 	}
 	// Cost: a decal is tessellated over the terrain it covers each frame (about 4,900 vertices at the ~345 peak radius). That is the
 	// price of the shipped radius-cursor decals (RadiusDecal, 2r squares re-projected every frame while a superweapon is aimed) and
-	// this one lives ~3 s per detonation (visual only), so it is accepted, not bounded (v4 r2).
+	// this one lives ~3 s per detonation (visual only), so it is accepted, not bounded.
 	s.decal->setSize( 2.0f * r, 2.0f * r );
 	s.decal->setOpacity( (Int)( 255.0f * ( opacity > 1.0f ? 1.0f : opacity ) ) );
 }
@@ -938,9 +931,9 @@ void missileVisualShockTick()
 		}
 		// Recheck the fog every frame: losing sight of the place, or switching to a player who cannot see
 		// it, removes the ring at once - unattached particle systems are not shroud-checked by the particle code. The check
-		// goes on while the dust fades out after the last blast (MV_SHOCK_LINGER), until the particles are gone (r27).
+		// goes on while the dust fades out after the last blast (MV_SHOCK_LINGER), until the particles are gone.
 		Drawable *nuke = TheGameClient->findDrawableByID( s.drawable );
-		// The nuke's drawable gone (its slow death is over): so is the ring, with nothing left to check its visibility by (r29).
+		// The nuke's drawable gone (its slow death is over): so is the ring, with nothing left to check its visibility by.
 		const Bool hidden = nuke == nullptr || (gxShroudDrawn() && nuke->getFullyObscuredByShroud());
 		const Bool ending = now >= s.end;
 		if( missileVisualTraceOn() && TheAudio != nullptr && s.whoosh >= AHSV_FirstHandle && now == s.start + 3 )
@@ -999,7 +992,7 @@ void missileVisualShockTick()
 		}
 		if( !anyLeft || now >= s.end + MV_SHOCK_LINGER )
 			shockDecalRelease( s );
-		if( !anyLeft || now >= s.end + MV_SHOCK_LINGER )	// the dust lives ~600 frames (NukeShockwave): tracked until it is gone (r31)
+		if( !anyLeft || now >= s.end + MV_SHOCK_LINGER )	// the dust lives ~600 frames (NukeShockwave): tracked until it is gone
 			s_shocks.erase( s_shocks.begin() + i );
 		else
 			++i;
@@ -1082,8 +1075,8 @@ const Matrix3D *missileVisualUpdate( Drawable *draw, MissileVisual **state, Bool
 	if( !ok && mv->started && mv->abandonLeft == 0 )
 	{
 		// It was being drawn away from the logic: pull it back rather than jump.
-		// Back on the logic path before it can die: no longer than the flight has left (a SCUD jammed late in flight,
-		// visuals-3 r29), so the explosion is where the drawn missile is.
+		// Back on the logic path before it can die: no longer than the flight has left (a SCUD jammed late in flight),
+		// so the explosion is where the drawn missile is.
 		mv->abandonLeft = std::max( 1, std::min( (int)MV_ABANDON_FRAMES, (int)ceilf( mv->lastTau ) ) );
 		trace( draw, mv, "abandon", now, 0.0f, 0.0f, 0.0f, P );
 	}

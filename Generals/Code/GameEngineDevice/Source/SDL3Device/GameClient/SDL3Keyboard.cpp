@@ -127,7 +127,7 @@ Bool SDL3Keyboard::getCapsState(void)
 	return 0;
 }
 
-// GeneralsX: The character the active layout puts on a key, unshifted (see
+// The character the active layout puts on a key, unshifted (see
 // Keyboard::getLayoutKey): on French AZERTY the key at US ';' types "m", and this says so where the
 // engine's US key table cannot. 0 for a key that types no printable character.
 static WideChar layoutCharOf(SDL_Scancode scancode)

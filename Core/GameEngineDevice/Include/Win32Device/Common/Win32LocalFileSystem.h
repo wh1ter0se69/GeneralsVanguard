@@ -49,8 +49,7 @@ public:
 	virtual Bool createDirectory(AsciiString directory) override;
 
 	// GeneralsX: Receive the asset root from Win32BIGFileSystem after it
-	// resolves CNC_GENERALS_ZH_PATH, so loose data files resolve when cwd != install dir. The
-	// StdDevice side has had this since 23/03/2026; Windows inherited the base no-op.
+	// resolves CNC_GENERALS_ZH_PATH, so loose data files resolve when cwd != install dir.
 	virtual void setAssetRootPath(const AsciiString& path) override;
 	virtual AsciiString normalizePath(const AsciiString& filePath) const override;
 

@@ -164,9 +164,9 @@ HANDLE process = GetCurrentProcess();
 memset(&gsContext, 0, sizeof(CONTEXT));
 gsContext.ContextFlags = CONTEXT_FULL;
 // GeneralsX: Seed the context from the registers we were handed.
-// It used to be zeroed and then never filled, which was harmless while StackWalk got a null
-// ContextRecord and followed the x86 frame-pointer chain. At x64 there is no frame-pointer chain
-// and StackWalk64 works from the context, so an all-zero record would produce no frames at all.
+// On x86 StackWalk got a null ContextRecord and followed the frame-pointer chain.
+// At x64 there is no frame-pointer chain and StackWalk64 works from the context,
+// so an all-zero record would produce no frames at all.
 GX_CTX_PC(&gsContext) = (DWORD_PTR)myeip;
 GX_CTX_SP(&gsContext) = (DWORD_PTR)myesp;
 GX_CTX_FP(&gsContext) = (DWORD_PTR)myebp;

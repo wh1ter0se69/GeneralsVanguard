@@ -1,4 +1,22 @@
-// GeneralsX: A23-B arm 26 (v8.1 §7): the front-only
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// A23-B arm 26 (v8.1 §7): the front-only
 // results. Every F entry point of the native device and its resources is called with valid, null and out-of-range arguments,
 // between setters that make the state non-default; each call's HRESULT and outputs are hashed - COM pointers as the object's
 // identity (first-seen order; aliases therefore compare), lock pointers as (allocation identity, offset), every other byte

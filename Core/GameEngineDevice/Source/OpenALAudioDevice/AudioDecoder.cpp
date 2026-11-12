@@ -16,26 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//////// AudioDecoder.cpp ///////////////////////
-// GeneralsX:
-/////////////////////////////////////////////////
-//
-// Two implementations of the AudioDecoder facade, selected by the definition that
-// Core/GameEngineDevice/CMakeLists.txt sets from RTS_BUILD_OPTION_FFMPEG. Exactly one is
-// compiled into any given binary, the same one-implementation-per-binary discipline the audio
-// backends themselves follow.
-//
-// SAGE_AUDIO_DECODER_DR - what every shipping build uses, on all four platforms. dr_wav and
-//     dr_mp3 read straight through the game VFS.
-//
-// SAGE_AUDIO_DECODER_FFMPEG - NOT SET BY ANY BUILD. Retained deliberately, and reachable only by
-//     defining the macro by hand, so a suspected decoder regression can be A/B'd against libav
-//     without reconstructing this file. It MUST NOT be used for a build that will join a lobby:
-//     the decoder choice is a simulation input (getFileLengthMS feeds
-//     ScriptEngine::isSpeechComplete/isAudioComplete) and it is NOT covered by the sourceID
-//     digest, so a peer built this way presents an identical sourceID and still diverges - on the
-//     7 MP3s under Data\Audio\Tracks, by 3 MPEG granules each. See Core/GameEngineDevice/
-//     CMakeLists.txt for the measurement.
+// Two implementations of the AudioDecoder facade, chosen by a definition CMake sets from RTS_BUILD_OPTION_FFMPEG;
+// exactly one is compiled in. SAGE_AUDIO_DECODER_DR (all shipping builds): dr_wav / dr_mp3 over the VFS.
+// SAGE_AUDIO_DECODER_FFMPEG is set by no build. NEVER use it for a build that joins a lobby: the decoder choice is a
+// simulation input (getFileLengthMS) not covered by the sourceID digest; the 7 MP3s differ by 3 MPEG granules.
 
 #include "OpenALAudioDevice/AudioDecoder.h"
 

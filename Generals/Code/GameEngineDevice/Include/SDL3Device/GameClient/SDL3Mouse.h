@@ -117,7 +117,7 @@ private:
 	// GeneralsX: Add cursor animation tracking
 	Int m_directionFrame;         ///< current frame of directional cursor (from 0 points up)
 
-	Real m_wheelRemainder;        ///< GeneralsX 26/09/2026 wheel delta below one MOUSE_WHEEL_DELTA unit, carried (translateWheelEvent)
+	Real m_wheelRemainder;        ///< wheel delta below one MOUSE_WHEEL_DELTA unit, carried (translateWheelEvent)
 };
 
 #endif // !_WIN32

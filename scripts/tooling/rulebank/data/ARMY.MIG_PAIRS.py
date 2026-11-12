@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule ARMY.MIG_PAIRS: vanilla China keeps its MiGs in pairs. Stock Hard
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule ARMY.MIG_PAIRS: vanilla China keeps its MiGs in pairs. Stock Hard
 # vanilla China's air waves ("3RD Wave Air" up to 4, "4TH Wave Air B" up to 2) and the 3rd/4th/5th-wave Guard Combat Zone teams (up to 2)
 # all have a MiG minimum of 0, so a lone MiG is a whole team and flies alone. Here every such team's MiG minimum becomes
 # min(mig_team_size, its own maximum): the team is not formed until a pair (or a team of that size) exists. Maximums, the 2nd-wave guard
@@ -52,7 +54,7 @@ def activation(obs, me, params=None):
     return {'triggered': bool(triggered), 'fired': bool(fired), 'detail': 'airfield_f=%s migs=%d groups=%s' % (fa, len(ts), [len(g) for g in groups])}
 
 
-# rb-data-6: the rule only removes LONE arrivals (stock pairs most MiGs by itself), so measure() counts them; fewer is better. A stock game
+# The rule only removes LONE arrivals (stock pairs most MiGs by itself), so measure() counts them; fewer is better. A stock game
 # with 0 has nothing to remove: smoke-read.py reports that arm as UNOBSERVABLE-IN-STOCK instead of calling the rule broken.
 CONTRAST = {'what': 'own MiG arrivals by 420 s that formed no group of 2+ (arrivals within 20 s group)', 'direction': -1, 'min_delta': 1}
 

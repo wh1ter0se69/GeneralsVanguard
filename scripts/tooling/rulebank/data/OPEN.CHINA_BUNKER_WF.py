@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule OPEN.CHINA_BUNKER_WF: the lean China opening - ONE Barracks, ONE
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule OPEN.CHINA_BUNKER_WF: the lean China opening - ONE Barracks, ONE
 # War Factory (Dominator stand-in, medium). Map of stock Hard (owners.txt, 14d03e02): the first Barracks ("China Barracks - H", CONDITION_TRUE)
 # and the first War Factory (after the first Supply Center) are the lean opening already. The extras are two plain build scripts:
 #   "China War Factory 2 - H"  (SkirmishChina, SkirmishChinaNukeGeneral): the instant a first War Factory stands
@@ -10,7 +12,7 @@
 # loaded Listening Outpost first (no stock script builds one: a new team + load behaviour), two dozers (stock is already two; no scb
 # action removes one), helix_delay_esc (OIL.COUNT_GATES' gate).
 RULE_ID = 'OPEN.CHINA_BUNKER_WF'
-# rb-data-7 (lead ruling): NUKE ONLY. Smoke 5 (n=2 per arm, thin): Nuke 2 vs 3 buildings at 300 s in both seeds; vanilla China 4 vs 3 (WF2 later but an
+# NUKE ONLY. Smoke 5 (n=2 per arm, thin): Nuke 2 vs 3 buildings at 300 s in both seeds; vanilla China 4 vs 3 (WF2 later but an
 # extra Barracks appears - the engine adds a producer when teams starve, INFERRED) and Infantry MIXED, so those two are OUT, not tuned.
 SCOPE = ('SkirmishChinaNukeGeneral',)
 PARAMS = ('barracks_n', 'warfactory_n')

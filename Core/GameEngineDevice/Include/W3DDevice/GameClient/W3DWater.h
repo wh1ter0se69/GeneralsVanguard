@@ -187,17 +187,10 @@ protected:
 	UnsignedInt m_meshDataSize;	///< size of m_meshData
 	Bool m_meshInMotion;				///< TRUE once we've messed with velocities and are in motion
 
-	// GeneralsX: Class-C gate for the vertex-animated water integrator.
-	// update() is reached from GameClient::update() -> W3DTerrainVisual::update(), i.e. once per
-	// MAIN LOOP ITERATION, while WATER_DAMPENING (0.93) and the gravity step are per-LOGIC-FRAME.
-	// 0.93 applied 480 times a second instead of 60 damps the grid to ~0 almost instantly, so
-	// ripples raised by addWaterVelocity vanished before they were visible.
-	//
-	// THE ONE DETERMINISM-RELEVANT SITE IN THIS SET: TerrainLogic::isUnderwater() and
-	// getWaterHandle() read getWaterGridHeight() out of this integrator from inside DIGESTED
-	// GameLogic, and WaterRenderObjClass::crc() is empty. The digest will not move, so no peer will
-	// refuse a join - a mismatch would surface as drifted units on WaveGuide maps only. Ship this
-	// to every peer together even though nothing enforces it.
+	// GeneralsX: Gate for the water-grid integrator. update() runs per main-loop iteration but WATER_DAMPENING (0.93)
+	// and the gravity step are per logic frame; ungated, ripples damp to ~0 before they are visible.
+	// GameLogic reads getWaterGridHeight() from here (TerrainLogic::isUnderwater, getWaterHandle) but crc() is empty,
+	// so the digest cannot catch a mismatch: every peer must run the same gate.
 	UnsignedInt m_lastLogicFrameUpdated;
 	Bool m_doWaterGrid;	///< allows/prevents water grid rendering.
 

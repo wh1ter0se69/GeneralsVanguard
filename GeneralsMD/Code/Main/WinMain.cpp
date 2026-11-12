@@ -66,12 +66,13 @@
 #include "Win32Device/Common/Win32GameEngine.h"
 #include "Common/version.h"
 #include "GXStderrLog.h"  // GeneralsX: desync evidence on disk
-#include "GameLogic/GXHookTimer.h"  // GeneralsX: ai-wh1ter0se-econ: GX_HOOK_FLUSH_ALL before WinMain returns (test-instruments builds)
+#include "GameLogic/GXHookTimer.h"  // GeneralsX: GX_HOOK_FLUSH_ALL before WinMain returns (test-instruments builds)
 #include "GXCpuSets.h"  // GeneralsX: prefer the V-cache CCD on X3D CPUs
 #include "GXCrashLog.h"   // GeneralsX: readable crash log beside the minidump
 #include "GameClient/SaveLoadFeedback.h"  // TheGXCrashLogWriter
 #include "gitinfo.h"
 #include "GXUserDataMigrate.h"  // GeneralsX: own user-data folder
+#include "GameClient/GXEnvAllowList.h"  // GeneralsX: shipped builds ignore every GX_* not on the list
 #include "GameClient/GXPlayerIdentity.h"  // holdNewIdentity, when the migration could not bring it
 #include "GameClient/GXUserDataDir.h"  // GeneralsX: GX_USERDATA_DIR skips the migration
 #include "BuildVersion.h"
@@ -584,7 +585,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 			}
 
 			//-------------------------------------------------------------------------
-			// GeneralsX @feature tilt-thumb-buttons 06/10/2026 Mouse buttons 4 (XBUTTON1) / 5 (XBUTTON2): held state only.
+			// Mouse buttons 4 (XBUTTON1) / 5 (XBUTTON2): held state only.
 			case 0x020B: // WM_XBUTTONDOWN
 			case 0x020C: // WM_XBUTTONUP
 			{
@@ -848,17 +849,9 @@ static Bool initializeAppWindows( HINSTANCE hInstance, Int nCmdShow, Bool runWin
 
 }
 
-// GeneralsX: The first start after the folder move copied Maps, Replays and
-// Save on the main thread with the window already shown and nothing pumping it, so Windows marked it
-// Not Responding after 5 s and ghosted it (owner report, 0.9.43). The copy now runs on a worker while
-// this thread keeps dispatching; the caller still waits for it, so GameMain() starts exactly as late.
-//
-// WndProc with no engine yet: every engine pointer it touches is null-checked. WM_CLOSE and Alt+F4
-// are swallowed (TheGameEngine null returns 0, never DefWindowProc), so the window is not destroyed
-// under the copy, but remembered (gQuitBeforeEngine) so the game does not start after it; so is a
-// session that really ends (WM_ENDSESSION), which is never vetoed. The loading image stays painted and
-// the pointer shows the busy cursor. Mouse and keys are dropped. Escape's PostQuitMessage is drained here as the
-// engine's own pump drains it (Win32GameEngine::serviceWindowsOS ignores WM_QUIT).
+// The first start after the user-data move copies Maps, Replays and Save on a worker while this thread keeps
+// pumping window messages, so Windows does not mark the window Not Responding. WndProc has no engine here.
+// Close requests are swallowed but remembered (gQuitBeforeEngine) so the game does not start after the copy.
 struct GXMigrateJob
 {
 	const char *oldDir;
@@ -969,24 +962,9 @@ static LONG WINAPI UnHandledExceptionFilter( struct _EXCEPTION_POINTERS* e_info 
 #ifdef RTS_ENABLE_CRASHDUMP
 	if (TheMiniDumper && TheMiniDumper->IsInitialized())
 	{
-		// GeneralsX @bugfix wh1ter0se 12/08/2026 THE FULL DUMP IS 2000x THE SIZE AND ADDED NOTHING.
-		//
-		// Every crash wrote BOTH kinds, back to back. Measured on the owner's machine tonight:
-		// the minimal dump is 0.63 MB, the full dump is 1.4-1.5 GB. Retention keeps two full
-		// dumps, so roughly 2.9 GB sits on disk permanently, and each write blocks the faulting
-		// thread for 8-11 seconds with no message pump - which is what a user experiences as the
-		// game hanging on exit rather than closing.
-		//
-		// That is not hypothetical cost. This machine hit 100% full tonight and blocked several
-		// sessions, and a crash-on-exit was quietly manufacturing 1.4 GB per quit to do it.
-		//
-		// AND THE FULL DUMP WAS NOT NEEDED. The entire root cause of that exit crash was read out
-		// of the 0.63 MB minimal dump: exception code, faulting instruction, register state, the
-		// complete backtrace, and the loaded-module list that proved the D3D module was already
-		// unloaded. The full dump contributed nothing to the diagnosis.
-		//
-		// Kept behind an opt-in rather than deleted, because full memory genuinely matters for a
-		// heap-corruption bug where the stack alone lies. Set GX_FULL_CRASHDUMP=1 to get it.
+		// GeneralsX @bugfix wh1ter0se 12/08/2026 Write only the minimal dump by default: the full dump is ~1.4 GB and blocks the faulting thread for 8-11 s with
+		// no message pump, which looks like a hang on exit. The minimal dump still has the exception, registers and backtrace.
+		// GX_FULL_CRASHDUMP=1 opts in to the full dump, which matters for heap corruption.
 		TheMiniDumper->TriggerMiniDumpForException(e_info, DumpType_Minimal);
 
 		const char* wantFull = getenv("GX_FULL_CRASHDUMP");
@@ -1016,6 +994,8 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
                       LPSTR lpCmdLine, Int nCmdShow )
 {
 	Int exitcode = 1;
+	// GeneralsX: a shipped build reads only the GX_* variables on its allow-list: first, before anything reads one
+	gxScrubEnvironment();
 
 #ifdef RTS_PROFILE_LEGACY
   Profile::StartRange("init");
@@ -1043,26 +1023,9 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 		CommandLine::parseCommandLineForStartup();
 
-		// GeneralsX: Give the desync report somewhere to land.
-		//
-		// THIS IS THE PLATFORM THE DESYNC HAPPENED ON. GameLogic.cpp:3000 already prints,
-		// in release builds, "[CRC] MISMATCH frame=... " plus one "player=... crc=..." line
-		// per peer — which names the diverging peer and the frame. It has never been read,
-		// because this is a WIN32-subsystem process: there is no console, _fileno(stderr) is
-		// -2, and every byte written to stderr is discarded by the CRT. A real 3-player
-		// desync on 2026-08-16 left ONE boolean byte in the .rep header as its only trace,
-		// and eight candidate causes could be excluded but none confirmed.
-		//
-		// Placed here rather than at the top of WinMain because parseCommandLineForStartup()
-		// is the call that constructs TheGlobalData (CommandLine.cpp:1743), so
-		// getPath_UserData() below is the same directory ReleaseCrash writes
-		// ReleaseCrashInfo.txt into (Debug.cpp:779) — no second copy of the user-data path
-		// resolution (GlobalData.cpp) to drift out of step. What is given up is stderr
-		// from before this line: the memory-manager bring-up. TheSuperHackers #3149 moved
-		// parseCommandLineForStartup() up here, ahead of the cwd-relative Install_Final.bmp
-		// load, so this block moved with it and now also covers the splash bitmap load.
-		//
-		// Before the minidump init on purpose: if that throws, the reason is in the log.
+		// Mirror stderr into the user-data folder: a WIN32-subsystem process has no console, so the "[CRC] MISMATCH" desync
+		// report would be discarded. After parseCommandLineForStartup(), which constructs TheGlobalData, so getPath_UserData()
+		// matches where ReleaseCrash writes. Before the minidump init, so a throw there is logged.
 		if (TheGlobalData != nullptr && GXStderrLog_Install(TheGlobalData->getPath_UserData().str()))
 		{
 			fprintf(stderr, "[gx] stderr mirror installed: %sgenerals-stderr.log\n",
@@ -1178,38 +1141,10 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 			AsciiString(VERSION_BUILDUSER), AsciiString(VERSION_BUILDLOC),
 			AsciiString(__TIME__), AsciiString(__DATE__));
 
-		// GeneralsX: Bring the player's data across into GeneralsX's own
-		// folder, ONCE. See GXUserDataMigrate.h for the list and the rules.
-		//
-		// The user-data folder is now Documents\GeneralsX\GeneralsZH (GlobalData.cpp). It used to be
-		// Documents\<UserDataLeafName>, the folder retail Zero Hour and Generals Online also use.
-		// The old folder is derived from the new one, so both come from the same
-		// SHGetKnownFolderPath(FOLDERID_Documents), and the leaf is looked up the way the old engine
-		// did: HKCU, then HKLM, then the default.
-		//
-		// It runs HERE, after the single-instance mutex (review of b101653df): a first copy of a
-		// large Maps folder takes a while, and a second double-click meanwhile must bail at the mutex
-		// rather than run the same migration beside this one. The game window has been created by
-		// now, so the copy runs on a worker while this thread pumps the window's messages
-		// (gxMigrateUserDataPumping); an interrupted copy is safe (.gxpart, then rename) and resumes
-		// on the next start. stderr already lands in generals-stderr.log. It is still before GameMain(), whose engine
-		// init first reads Options.ini (GlobalData::parseGameDataDefinition), SagePatch.ini and the
-		// map cache. GameMain() waits for it on purpose: a background copy would race the map scan.
-		//
-		// IDENTITY_PENDING means the old GXPlayer.ini could not be copied this time. The engine must
-		// not mint a new identity over the gap, or the old one could never arrive.
-		//
-		// GeneralsX: NEVER under GX_USERDATA_DIR (GameClient/GXUserDataDir.h):
-		// a test profile must never copy the owner's files. Skipped only when the override APPLIES
-		// (review of 1150b9834, P2-1): a `getenv() != nullptr` skip once let a refused value, then on the
-		// owner's folder, mint GXPlayer.ini there unheld, so no later migration brought the old identity
-		// across. Since 28/09/2026 a refused value never gets here - GlobalData's gxUserDataDirOverride()
-		// stopped the process (GXUserDataDir.h) - so this is unset (migrate) or applies (skip). The
-		// verdict is printed again here: GlobalData printed it before the mirror above existed, and a
-		// Win32 GUI process's stderr went nowhere until then.
-		// Trade-off: an override naming the owner's own folder skips it too (GXUserDataDir.h says never
-		// do that). Detecting it needs GlobalData's known-folder path without the override; add that
-		// if a harness ever points one there.
+		// Copy the player's data into GeneralsX's own folder once (see GXUserDataMigrate.h), after the single-instance
+		// mutex so a second launch cannot start a parallel migration. A worker copies while this thread pumps messages.
+		// Before GameMain(), which waits for it: engine init reads Options.ini, SagePatch.ini and the map cache.
+		// IDENTITY_PENDING: no new identity may be minted. Skipped when GX_USERDATA_DIR applies (a test profile).
 		std::string testDir, verdict;
 		const bool testProfile = gxUserDataDirFromEnv(testDir, verdict);
 		if (!verdict.empty())
@@ -1279,7 +1214,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	TheMemoryPoolCriticalSection = nullptr;
 
 #if defined(GX_TEST_INSTRUMENTS)
-	// GeneralsX: ai-wh1ter0se-econ (ke-timer-*-r1): the [GXHOOK] timers' open frames and the "[GXHOOK] exit"
+	// GeneralsX: the [GXHOOK] timers' open frames and the "[GXHOOK] exit"
 	// line, then let the stderr pump drain them - WinMain returns into ExitProcess: no static destructors, and the pump threads die
 	GX_HOOK_FLUSH_ALL();
 	GXStderrLog_Settle();

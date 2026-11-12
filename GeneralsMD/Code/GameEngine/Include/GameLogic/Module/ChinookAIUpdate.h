@@ -138,21 +138,8 @@ private:
 	Coord3D									m_originalPos;
 	Bool										m_hasPendingCommand;
 
-	// GeneralsX: TheSuperHackers/GeneralsGameCode#54
-	// Which KIND of guard to put back after this transport landed to let something board
-	// while it was GUARDING. GUARDTARGET_NONE means "no resume pending".
-	//
-	// This stores the TYPE and not merely a flag, and that is the whole point. The type has
-	// to be captured BEFORE setMyState(LANDING), because setMyState calls
-	// StateMachine::clear(), which fires AIGuardState::onExit, which calls
-	// clearGuardTargetType() - and that does m_guardTargetType[1] = m_guardTargetType[0],
-	// i.e. it wipes the discriminator to GUARDTARGET_NONE. Reading getGuardTargetType() at
-	// resume time therefore always returns NONE and the resume silently does nothing.
-	// The guard PARAMETERS (m_locationToGuard, m_objectToGuard, m_areaToGuard, m_guardMode)
-	// are separate members and do survive, so capturing the type alone is sufficient.
-	//
-	// It also cannot be inferred on the way out: those parameters are never cleared, so
-	// "we still have a guard location" is true forever and would snap the transport back to
-	// an old post after any later order. Deliberately a remembered fact, not a derived one.
+	// Upstream #54: guard kind to resume after landing to let something board (GUARDTARGET_NONE: none pending).
+	// Captured BEFORE setMyState(LANDING): its StateMachine::clear() fires AIGuardState::onExit -> clearGuardTargetType(),
+	// which resets the type to NONE. It cannot be inferred later: the guard parameters are never cleared.
 	GuardTargetType					m_resumeGuardType;
 };

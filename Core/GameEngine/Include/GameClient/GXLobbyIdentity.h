@@ -1,30 +1,25 @@
-// GeneralsX: the lobby presence socket's copy of the sign-in, as a PURE
-// class. GXLobbyPresence owns exactly one, and is the only thing that puts its contents on the wire.
-//
-// PURE ON PURPOSE, the same way GXSignOutFiles.h is: no engine, no AsciiString, no socket, so
-// scripts/test/lobby-identity-clear-test.cpp can hold a sign-in, sign out, and read every byte back.
-// The property it exists for - no copy of the token outlives a sign-out - is not visible from inside
-// the running game at all.
-//
-// WHY A FIXED BUFFER AND NOT AN AsciiString. An AsciiString cannot be cleared: clear() hands its heap
-// block back to the allocator with the bytes still in it, and the block can be SHARED with whatever
-// string it was assigned from, so there is no single owner that could zero it. A fixed array owned by
-// this object is cleared whole, with gxSecureClear - the clear the optimiser may not drop - exactly
-// like Transport::m_relayIdentity, the network layer's copy of the same assertion.
-//
-// THE WIRE CLEAR IS OWED, not optional. The presence socket lives for the whole process and its
-// membership does not lapse while the game runs, so a relay that is not TOLD keeps the account's sub,
-// role and sanctions on that member indefinitely. Once an assertion has gone out, every line composed
-// while nothing is held is "GXIDN <room> -" - on EVERY tick, not once. It is one unacknowledged UDP
-// datagram, and a single lost one would otherwise leave the relay holding the account for as long as
-// the membership lasts, which for this socket is the rest of the process (cross-model review,
-// 18/09/2026: the first version sent it once and called the debt paid). It costs about twenty bytes
-// per registration keepalive (5 s), and only for a player who signed in and then out; a player who
-// never signed in sends nothing at all, ever.
-//
-// Not in the simulation digest: Core/GameEngine/Include/GameClient is not a digested root. It includes
-// GameNetwork/GXSecureClear.h, which is under a digested root - but INCLUDING a digested header from
-// an undigested file does not move the digest; only editing that header would.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The lobby presence socket's copy of the sign-in, as a PURE class (scripts/test/lobby-identity-clear-test.cpp):
+// no copy of the token may outlive a sign-out. A fixed buffer, not an AsciiString (its clear() leaves the bytes
+// in the freed block). THE WIRE CLEAR IS OWED: once an assertion has gone out, every line while nothing is held
+// is "GXIDN <room> -", every tick, since one lost UDP datagram would leave the relay holding the account.
 #pragma once
 
 #include <stddef.h>
@@ -81,7 +76,7 @@ public:
 
 	bool isEmpty( void ) const { return m_text[0] == '\0'; }
 
-	/// GeneralsX: The held assertion names the same ACCOUNT - its `sub`, the second
+	/// The held assertion names the same ACCOUNT - its `sub`, the second
 	/// '~' field - as this one. How GXLobbyPresence tells an account SWITCH from the lobby re-declaring, or
 	/// /login renewing, the account it already holds: a renewal differs in times and signature, not in sub.
 	bool sameAccount( const char *assertion ) const

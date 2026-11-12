@@ -16,24 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WHERE THE FRIENDS KEY BELONGS TO FRIENDS.
-//
-// Owner decision, 25/09/2026, verbatim: "F5 = Friends ONLINE only; offline (skirmish/campaign) keeps camera
-// view 5." So the Friends key (MetaEvent.cpp, F5 unless the launcher chose another) is caught only while a
-// relay session is live; everywhere else it falls through to the meta map untouched, and a bare F5 in a
-// skirmish, a campaign mission or a replay recalls View 5 exactly as it did before the Friends key existed.
-//
-// "ONLINE" IS A LIVE RELAY SESSION, measured from the transport rather than from which menu was used:
-//   - shell:  the relay lobby screen, or a game room on a relaying transport (TheLAN is in a game). A
-//             relaying TheLAN is NOT deleted when the player backs out to the main menu, so "the
-//             transport is relaying" alone would hand F5 to Friends in the skirmish setup screen too.
-//   - match:  a multiplayer game mode, with TheNetwork up, over a relaying transport - the same test
-//             GXPerfReport's relayMatchTransport() uses. Skirmish, campaign and replay are other game
-//             modes, so a relay transport left over from an earlier session cannot claim the key there;
-//             a plain LAN match (no relay) keeps View 5 too.
-//
-// Pure and dependency-free so scripts/test/friends-key-online-test.cpp can drive every context; the
-// caller (GXFriendsKeyHere, WOLLobbyMenu.cpp) only gathers the facts.
+// The Friends key is caught only in a live relay session; elsewhere it falls through to the meta map (F5 = view 5).
+// Shell: the relay lobby, or a game room on a relaying transport (a relaying TheLAN survives backing out to the menu).
+// Match: multiplayer mode, TheNetwork up, relaying transport; skirmish, campaign, replay and plain LAN do not count.
+// Pure and dependency-free so scripts/test/friends-key-online-test.cpp can drive every context.
 #pragma once
 
 inline bool GXFriendsKeyOnline(bool shellActive, bool relayLobby, bool relaying, bool inRelayGameRoom,
@@ -44,7 +30,7 @@ inline bool GXFriendsKeyOnline(bool shellActive, bool relayLobby, bool relaying,
 	return multiplayerMode && networkUp && relaying;
 }
 
-// GeneralsX: PRESENCE HAS A SHELF LIFE (-B P2 on 7a6121659).
+// PRESENCE HAS A SHELF LIFE.
 //
 // Once F5 opens the Friends overlay in a game room or a match, a presence answer the lobby cached can be
 // shown long after the lobby stopped renewing it - a friend who signed off 20 minutes ago read "Online".

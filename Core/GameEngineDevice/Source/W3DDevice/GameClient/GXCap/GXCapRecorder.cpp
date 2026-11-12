@@ -1,4 +1,22 @@
-// GeneralsX: GXCAP recorder core (WS-I).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GXCAP recorder core.
 // A recording IDirect3DDevice8 proxy installed on DX8Wrapper::D3DDevice right after CreateDevice (DX8Wrapper::
 // Device_Wrap_Hook, set by GXCap.cpp), plus wrappers for the textures, surfaces and buffers it hands out. Everything that
 // reaches DXVK goes through that one pointer - the raw _Get_D3D_Device8() holders, DX8CALL users, the DX8Wrapper statics,
@@ -66,7 +84,7 @@ struct State
 	// GXCAP_TEST_* knobs (gxcap-selftest's negative arms only): each disables one mechanism the replay depends on
 	bool testNoRefresh = false, testNoZombies = false, testGetterState = false, testNoGpuMark = false, testAllowNested = false;
 	// the application's bound shaders, and whether it deleted them while bound: DXVK's d3d8 then clears only its handle and the
-	// d3d9 binding stays, which a snapshot (handle 0) cannot restore - a draw before the next set is UNSUPPORTED (branch-r6 #2)
+	// d3d9 binding stays, which a snapshot (handle 0) cannot restore - a draw before the next set is UNSUPPORTED
 	uint32_t setVS = 0, setPS = 0;
 	bool delVS = false, delPS = false, staleVS = false, stalePS = false;
 	// setter shadows: values the application SET (the getters are lossy, e.g. d3d8 ZBIAS)
@@ -78,7 +96,7 @@ struct State
 	uint32_t lightSlots[8];		// DXVK's enabledLightIndices, emulated (d3d9_device.cpp LightEnable): the packing order
 	// the open window
 	bool open = false, inShot = false, shotRequested = false, shotSeen = false;
-	std::thread::id shotThread;	// the thread that opened the shot bracket: only its calls are the screenshot's (r11 #1)
+	std::thread::id shotThread;	// the thread that opened the shot bracket: only its calls are the screenshot's
 	uint32_t winFrame = 0, drawFrame = 0, span = 1, flags = 0;
 	Buf rec;
 	uint64_t records = 0, newBlobBytes = 0, newBlobs = 0;
@@ -1322,7 +1340,7 @@ struct CapDevice final : IDirect3DDevice8
 		Guard k(g.mx);
 		const HRESULT hr = r->SetVertexShader(h);
 		// DXVK's d3d8 treats a set of its current handle as a no-op, and a deletion leaves that at 0: SetVertexShader(0) then
-		// keeps the deleted shader bound (d3d8_device.cpp SetVertexShader / DeleteVertexShader; gxcap-design-r11 #4)
+		// keeps the deleted shader bound (d3d8_device.cpp SetVertexShader / DeleteVertexShader)
 		if (SUCCEEDED(hr) && !(h == 0 && g.delVS)) { g.setVS = h; g.delVS = g.staleVS = false; }
 		if (g.open) { Rec q(OP_SET_VS); q.p.u32(h); q.emit(hr); }
 		return hr;

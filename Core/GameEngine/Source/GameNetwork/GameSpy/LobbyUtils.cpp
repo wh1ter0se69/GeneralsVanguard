@@ -202,26 +202,9 @@ static void gameTooltip(GameWindow *window,
 													WinInstanceData *instData,
 													UnsignedInt mouse)
 {
-	// GeneralsX: A tooltip must not assume the GameSpy backend is alive.
-	//
-	// This function calls TheGameSpyInfo->findStagingRoomByID() below, and TheGameSpyInfo is
-	// legitimately null for a whole run of frames on the ordinary join path:
-	//
-	//   Shell::push("Menus/LanGameOptionsMenu.wnd")
-	//     -> WOLLobbyMenuShutdown (Shell::push shuts the current screen down first)
-	//        -> TearDownGameSpy(), which does `delete TheGameSpyInfo; TheGameSpyInfo = nullptr`
-	//   ... and then, because popImmediate is FALSE, the screen ANIMATES OUT over several more
-	//   frames with ListboxGamesLarge still alive and still carrying this tooltip func.
-	//
-	// Any pointer motion over the list in that window went straight through a null vtable load.
-	// Measured on the iPad, which hits it every single time: a tap on Join emits a move event at
-	// the same coordinates, so the crash lands immediately after "recv Join Accept". SIGSEGV at
-	// gameTooltip+188, `ldr x8, [x0]` with x0 = 0.
-	//
-	// Guarding here rather than unregistering the func in the shutdown: the screen is on its way
-	// out, so having no tooltip is the correct behaviour, and a tooltip that silently does nothing
-	// when there is no backend is right for every other caller too - including the relay-driven
-	// lobby, which runs with no GameSpy session at all by design.
+	// TheGameSpyInfo is null for several frames on the join path: Shell::push shuts the lobby down
+	// (TearDownGameSpy deletes it) while ListboxGamesLarge still animates out with this tooltip func.
+	// Pointer motion in that window would dereference null, so show no tooltip. The relay lobby has no GameSpy at all.
 	if (TheGameSpyInfo == nullptr)
 	{
 		if (TheMouse != nullptr)
@@ -251,18 +234,9 @@ static void gameTooltip(GameWindow *window,
 
 	if (col == COLUMN_PING)
 	{
-		// GeneralsX: Say what the dot actually measured.
-		//
-		// The stock tooltip is the fixed string "Connection speed quality to host", which tells a
-		// player nothing they cannot see from the colour. We now have a real number and, more
-		// usefully, we know which half of the path it came from - so show the breakdown. A player
-		// whose own leg is the slow one can act on that; "quality to host" hides it.
-		//
-		// Both printed halves come from the SAME instant the total was formed - the host's leg is
-		// the number the relay actually gave us, kept on the room, and our leg is the remainder of
-		// that total. Reading TheLAN->getRelayRttMs() live here instead would subtract a fresh
-		// sample from a frozen total and label the residue "Host to relay", which is arithmetic
-		// dressed up as a measurement. Falls back to the stock string when nothing was measured.
+		// Show the breakdown of the ping instead of the stock string. The host leg is the value the relay
+		// reported, kept on the room; our leg is the remainder of the total. Reading the live relay RTT here
+		// would subtract a fresh sample from a frozen total. Falls back to the stock string if nothing was measured.
 		const Int totalMs = room->getPingAsInt();
 		const Int hostLegMs = room->getHostPingMs();
 
@@ -393,24 +367,10 @@ static void gameTooltip(GameWindow *window,
 	TheMouse->setCursorTooltip( tooltip, 10, nullptr, 2.0f ); // the text and width are the only params used.  the others are the default values.
 }
 
-// GeneralsX: Re-proportion the game browser's columns.
-//
-// WOLCustomLobby.wnd ships COLUMNS: 8 with widths 48/30/0/6/6/0/4/6, and two of those are
-// literally ZERO: COLUMN_LADDER and COLUMN_OBSERVER. A zero-width column still contributes a
-// header label, so the header ran together as "Slots Key Re Ping" - and COLUMN_USE_STATS at 4%
-// (~19px at the 800x600 creation size) clipped its own header to "Re". The ping cell then had to
-// fit a quality dot AND up to four digits in 6%.
-//
-// Done here rather than by shipping a corrected .wnd. A loose Data/Window/Menus override does
-// work (GeneralsZH/Data/Window/Menus/ExtrasMenu.wnd is the precedent, and .wnd files are not
-// scanned by dataID so it would not refuse a join), but it would have to be copied by four
-// separate deploy paths and could then drift per peer. Percentages live in ListboxData and are
-// turned into pixels by a single formula, so setting them in code is one change that cannot get
-// out of step.
-//
-// The recompute mirrors GadgetListBox.cpp's own GWM_CREATE arithmetic exactly, including
-// subtracting the slider, because that is the value it will be re-derived from on any later
-// resize.
+// Re-proportion the game browser columns. WOLCustomLobby.wnd ships two zero-width columns (COLUMN_LADDER,
+// COLUMN_OBSERVER) that still draw header labels, and COLUMN_USE_STATS at 4% clips its header.
+// Done in code so every deploy path agrees. Mirrors GadgetListBox.cpp GWM_CREATE arithmetic, including the
+// slider subtraction, because a later resize re-derives the widths from it.
 void RelayFixGameListColumns( GameWindow *listbox )
 {
 	if( listbox == nullptr )
@@ -786,7 +746,7 @@ static Int insertGame( GameWindow *win, GameSpyStagingRoom *game, Bool showMap )
   }
 #endif
 
-	// GeneralsX @feature Matchmaking. A game with no ping measurement gets an EMPTY ping cell.
+	// GeneralsX: Matchmaking. A game with no ping measurement gets an EMPTY ping cell.
 	//
 	// getPingValue() answers the full ping timeout when it has nothing to compare, so an unmeasured
 	// game scores worse than the "bad" cutoff and is drawn with the red one-bar icon. That is not a
@@ -810,30 +770,14 @@ static Int insertGame( GameWindow *win, GameSpyStagingRoom *game, Bool showMap )
 		height = pingImages[0]->getImageHeight();
 	}
 
-	// GeneralsX: The cutoffs below used to come from TheGameSpyConfig,
-	// dereferenced unconditionally. Two problems, and the second one is why the config is gone
-	// entirely rather than merely null-guarded.
-	//
-	// First, the deref was safe only because it was UNREACHABLE: every relay-listed game had an
-	// empty ping string and returned at the guard above. Publishing a real measurement puts this
-	// on a screen whose backend is torn down while the layout animates out - the same window that
-	// already produced two null-vtable crashes in this file (see the notes on gameTooltip).
-	//
-	// Second, and worse, a null guard alone would have been DEAD CODE. SetUpGameSpyForRelayLobby()
-	// does `if (TheGameSpyConfig == nullptr) TheGameSpyConfig = GameSpyConfigInterface::create("")`,
-	// so on the relay path the config always exists - and, built from an empty string, it carries
-	// GameSpy's own defaults of 300 ms and 600 ms. Those describe a 2003 dial-up matchmaker, not
-	// this relay: a 250 ms game would have been drawn with the green three-bar icon.
-	//
-	// The bands are now the ones the in-game HUD already uses (InGameUI's kLatencyMsGood /
-	// kLatencyMsFair), so the lobby dot and the millisecond readout beside the FPS counter agree
-	// about what "good" means instead of each having its own opinion. Both values are milliseconds
-	// on every path that can still reach here - GameSpy's own m_pingInt was milliseconds too.
+	// Ping bands match the in-game HUD (InGameUI kLatencyMsGood / kLatencyMsFair), in milliseconds. Not
+	// TheGameSpyConfig: it can be null while the screen animates out, and on the relay path it holds
+	// GameSpy defaults (300 and 600 ms) that describe dial-up, not this relay.
 	const Int cutoffGood = 80;
 	const Int cutoffBad = 180;
 
 	// CLH picking an arbitrary number for our ping display
-	// GeneralsX @info pingImages[0] is the GOOD (three-bar) icon and [2] is the BAD one - the
+	// GeneralsX: pingImages[0] is the GOOD (three-bar) icon and [2] is the BAD one - the
 	// numbering runs opposite to quality. Do not "tidy" this by reversing the indices.
 	if (ping < cutoffGood)
 	{
@@ -871,19 +815,9 @@ void RefreshGameListBox( GameWindow *win, Bool showMap )
 	// empty listbox
 	GadgetListBoxReset(win);
 
-	// GeneralsX: A header row naming the columns.
-	//
-	// The list has always BEEN a table - COLUMN_NAME/MAP/NUMPLAYERS/PASSWORD/PING are real columns -
-	// with nothing anywhere saying so, so the reader had to infer from context what the number pair,
-	// the padlock and the coloured dot meant. The sort buttons above the list name three sort orders,
-	// not the columns, and they do not line up with them.
-	//
-	// Inserted as the first ROW rather than as .wnd chrome because the layouts live inside a .big
-	// archive; a row costs nothing and travels with the code. It carries no item data, and every
-	// join path guards on `selectedID > 0` (WOLLobbyMenu.cpp), so it cannot be selected into a join.
-	//
-	// Deliberately placed before the populate loop and unconditionally, so an empty list still shows
-	// the shape of what is missing rather than a blank box.
+	// Header row naming the columns, inserted as the first row because the layouts live in a .big archive.
+	// It carries no item data and every join path guards on selectedID > 0 (WOLLobbyMenu.cpp), so it cannot
+	// be joined. Added unconditionally before the populate loop so an empty list still shows its shape.
 	{
 		// EVERY column gets a label, including the two narrow icon columns. The first version of
 		// this labelled only five of them, so "Pwd" sat over whichever icon column happened to
@@ -939,24 +873,9 @@ void RefreshGameListBox( GameWindow *win, Bool showMap )
 
 	clearBuddyGames();
 
-	// GeneralsX: Say so when the list is empty.
-	//
-	// An empty listbox is indistinguishable from a broken one: the operator could not tell "nobody
-	// is hosting" from "the browser is not working" from "my relay is unreachable", and the honest
-	// answer matters because all three have happened here. Red rather than the normal entry colour
-	// so it reads as a STATE and not as a joinable row, and inserted only when the list is truly
-	// empty so it can never be selected alongside a real game.
-	//
-	// GeneralsX: "the browser ran and found nothing" was not true yet.
-	//
-	// The claim above - that reaching here with an empty sgl means the browser ran and found
-	// nothing - holds between sweeps but NOT on entry. Nothing has been asked yet the first time
-	// this screen draws, so the notice fired over a lobby that simply had not answered, which is
-	// why it flashed for split seconds against a Linux host that never dropped its lobby.
-	//
-	// Transport::hasPublishedGameList() is the honest test: it is TRUE only once a sweep has
-	// actually completed - a game arrived, or the relay explicitly answered "no games". Until then
-	// the truthful state is "asking", not "none", and saying nothing beats saying something false.
+	// Say so when the list is empty, in red so it reads as a state and not a joinable row. Shown only once
+	// Transport::hasPublishedGameList() is TRUE (a sweep completed or the relay answered no games); before
+	// that nothing has been asked yet and the notice would be false.
 	Bool sweepCompleted = TRUE;
 	if (TheLAN != nullptr)
 	{

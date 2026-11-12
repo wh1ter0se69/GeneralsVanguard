@@ -102,19 +102,10 @@ static GameWindow *listboxIgnore = nullptr;
 static Bool isOverlayActive = false;
 void insertChat( BuddyMessage msg );
 
-// GeneralsX: gx mode: this screen re-pointed at the local friends store.
-//
-// On the relay path there is no GameSpy behind these controls - TheGameSpyBuddyMessageQueue is
-// never created and getLocalProfileID() is 0 - so every GameSpy-coupled body below either
-// early-outs or branches on this flag. The flag is private to this file behind an explicit
-// setter: the layout is owned and pumped by WOLLobbyMenu.cpp (GXBuddyOverlayOpen/Close/Toggle),
-// which sets the mode BEFORE runInit and clears it AFTER destruction, so init and shutdown both
-// run under the mode they were opened in and a later GameSpy-path overlay cannot inherit it.
-// The last list state rendered, so the 1 Hz tick rebuilds ONLY when something changed.
-// GadgetListBoxReset clears the selection and scroll position, and a user who takes more than a
-// second to type a message would reach Enter with nothing selected (cross-model review's catch).
-// Cleared when gx mode turns on, because reopening the overlay recreates an empty listbox that
-// must be drawn whatever the store says.
+// gx mode: this screen is re-pointed at the local friends store. On the relay path there is no GameSpy
+// behind these controls, so GameSpy-coupled bodies early-out on this flag.
+// Last list state rendered: the 1 Hz tick rebuilds only on change (GadgetListBoxReset clears selection and scroll);
+// cleared when gx mode turns on, since reopening recreates an empty listbox.
 static AsciiString s_gxListFingerprint;
 static AsciiString s_gxIgnoreFingerprint;
 
@@ -374,7 +365,7 @@ WindowMsgHandledType BuddyControlSystem( GameWindow *window, UnsignedInt msg,
 				// text narrows exactly as a typed /msg does - same constraint, same place.
 				if (s_gxMode)
 				{
-					// GeneralsX: LOBBY ONLY (-B P2 on 7a6121659). F5 opens this
+					// GeneralsX: LOBBY ONLY. F5 opens this
 					// overlay in a game room and a match too, but private messages are the lobby screen's:
 					// replies are drained, and every refusal printed, only while it runs (WOLLobbyMenuUpdate).
 					// Sending from anywhere else would go out with no visible outcome and no reply ever shown,
@@ -401,7 +392,7 @@ WindowMsgHandledType BuddyControlSystem( GameWindow *window, UnsignedInt msg,
 					Int idx = 0;
 					if (selected >= 0)
 					{
-						// GeneralsX @build 64-bit safe pointer cast, as elsewhere in this file
+						// GeneralsX: 64-bit safe pointer cast, as elsewhere in this file
 						idx = static_cast<Int>(reinterpret_cast<intptr_t>(
 							GadgetListBoxGetItemData(buddyControls.listboxBuddies, selected, 0)));
 					}
@@ -607,7 +598,7 @@ void updateBuddyInfo()
 			GadgetListBoxGetSelected(buddyControls.listboxBuddies, &selRow);
 			if (selRow >= 0)
 			{
-				// GeneralsX @build 64-bit safe pointer cast, as elsewhere in this file
+				// GeneralsX: 64-bit safe pointer cast, as elsewhere in this file
 				const Int selIdx = static_cast<Int>(reinterpret_cast<intptr_t>(
 					GadgetListBoxGetItemData(buddyControls.listboxBuddies, selRow, 0)));
 				if (selIdx > 0 && selIdx <= GX_BUDDY_ROWS)
@@ -621,9 +612,9 @@ void updateBuddyInfo()
 		if (self == NULL || self[0] == '\0')
 		{
 			// The CSPRNG-failure state is real and documented: an empty id means the store could
-			// not mint an identity, and every friends feature is honestly unavailable. Since
-			// 23/09/2026 it is also the state while the Windows migration has not yet brought the
-			// old GXPlayer.ini across (GXPlayerIdentity::holdNewIdentity).
+			// not mint an identity, and every friends feature is honestly unavailable. It is also
+			// the state while the Windows migration has not yet brought the old GXPlayer.ini across
+			// (GXPlayerIdentity::holdNewIdentity).
 			GadgetListBoxAddEntryText(buddyControls.listboxBuddies,
 				TheGameText->FETCH_OR_SUBSTITUTE("GUI:GXBuddyUnavailable",
 					L"Friends are unavailable this session - your player identity could not be loaded. See the [GXID] line on stderr."),
@@ -675,7 +666,7 @@ void updateBuddyInfo()
 			const Color nameColor = GameMakeColor(105, 190, 255, 255);
 			const Int row = GadgetListBoxAddEntryText(buddyControls.listboxBuddies, name, nameColor, -1, 0);
 			GadgetListBoxAddEntryText(buddyControls.listboxBuddies, status, statusColor, row, 1);
-			// GeneralsX @build 64-bit safe pointer cast, as elsewhere in this file
+			// GeneralsX: 64-bit safe pointer cast, as elsewhere in this file
 			GadgetListBoxSetItemData(buddyControls.listboxBuddies,
 				reinterpret_cast<void *>(static_cast<intptr_t>(shown + 1)), row, 0);
 			if (keepSelId[0] != '\0' && strcmp(keepSelId, s_gxBuddyRowId[shown]) == 0)
@@ -708,7 +699,7 @@ void updateBuddyInfo()
 			GadgetListBoxAddEntryText(buddyControls.listboxBuddies,
 				TheGameText->FETCH_OR_SUBSTITUTE("GUI:GXBuddyWantsFriends", L"wants to be friends"),
 				reqColor, row, 1);
-			// GeneralsX @build 64-bit safe pointer cast, as elsewhere in this file
+			// GeneralsX: 64-bit safe pointer cast, as elsewhere in this file
 			GadgetListBoxSetItemData(buddyControls.listboxBuddies,
 				reinterpret_cast<void *>(static_cast<intptr_t>(-slot)), row, 0);
 			++pendingShown;
@@ -1711,7 +1702,7 @@ static void gxOpenRCMenu( const char *layoutName, Int gxKind, const char *id, In
 // GeneralsX: Close whatever RC menu is open. The menus are independent
 // lone-window layouts - a roster menu can exist while the overlay itself is closed - so screen
 // transitions must close them EXPLICITLY or a menu survives above the next screen, holding a
-// payload whose slot no longer means anything (cross-model review's catch). rcMenu is nulled by
+// payload whose slot no longer means anything. rcMenu is nulled by
 // the GWM_DESTROY the destruction raises.
 void GXBuddyCloseRCMenu( void )
 {
@@ -2094,7 +2085,7 @@ void refreshIgnoreList()
 
 			const Int row = GadgetListBoxAddEntryText(listboxIgnore, name,
 				GameMakeColor(110, 110, 110, 255), -1);
-			// GeneralsX @build 64-bit safe pointer cast, as elsewhere in this file
+			// GeneralsX: 64-bit safe pointer cast, as elsewhere in this file
 			GadgetListBoxSetItemData(listboxIgnore,
 				reinterpret_cast<void *>(static_cast<intptr_t>(shown + 1)), row);
 			++shown;

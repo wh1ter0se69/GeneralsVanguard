@@ -43,9 +43,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 // GeneralsX: A map.ini's WaterSet writes the time-of-day entry IN PLACE ("does not support override
-// situations", below) and nothing put it back, so a map's sky and water outlived it in every later game of the process. The whole
+// situations", below) and nothing puts it back, so a map's sky and water would outlive it in every later game of the process. The whole
 // array is copied before the map's first WaterSet block and copied back by GameLogic::reset, beside the WaterTransparency and
-// Weather overrides it already drops. 22 of the 386 community map.ini files scanned 10/10 use WaterSet.
+// Weather overrides it already drops.
 static WaterSetting s_waterSettingsBeforeMap[ TIME_OF_DAY_COUNT ];
 static Bool s_waterSettingsKept = FALSE;
 

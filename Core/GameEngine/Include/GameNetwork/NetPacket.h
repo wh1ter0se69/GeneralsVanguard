@@ -55,7 +55,7 @@ public:
 
 	NetCommandList *getCommandList();
 
-	// GeneralsX @bugfix Widened from UnsignedShort. The only caller passes
+	// GeneralsX: Widened from UnsignedShort. The only caller passes
 	// NetCommandWrapperListNode::getRawDataLength(), which is an UnsignedInt, so a
 	// reassembled payload larger than 65535 bytes was silently truncated — and a
 	// 5 MiB transfer truncates to exactly 0, skipping the parse loop entirely.

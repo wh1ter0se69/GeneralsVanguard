@@ -1,3 +1,5 @@
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # GeneralsX:
 # ccache compiler cache support
 #
@@ -29,7 +31,7 @@ if(SAGE_USE_CCACHE)
         message(STATUS "ccache not found, building without compiler cache")
     endif()
 else()
-    # GeneralsX: Actually disable it.
+    # Actually disable it.
     #
     # The ON branch above sets these with CACHE STRING, so they PERSIST in CMakeCache.txt.
     # Printing "ccache disabled" while leaving CMAKE_CXX_COMPILER_LAUNCHER pointing at

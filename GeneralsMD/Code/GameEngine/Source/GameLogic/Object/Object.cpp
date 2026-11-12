@@ -39,7 +39,7 @@
 #include "Common/GameUtility.h"
 #include "Common/ModuleFactory.h"
 #include "Common/Player.h"
-#include "GameLogic/AIPlayer.h"	// GeneralsX 28/10/2026 T2 r9: gxAirAttackAuthorized
+#include "GameLogic/AIPlayer.h"	// gxAirAttackAuthorized
 #include "Common/PlayerList.h"
 #include "Common/Radar.h"
 #include "Common/SpecialPower.h"
@@ -1580,10 +1580,10 @@ CanAttackResult Object::getAbleToAttackSpecificObject( AbleToAttackType t, const
 	//if (!isAbleToAttack())
 	//	return FALSE;
 
-	// GeneralsX 28/10/2026 ai-pro-rules-2 T2 r9: with its owner's tunnel air watch acting, a watched unit (a watch
-	// row, a tunnel guard, an AA team member) cannot attack an aircraft it was not assigned - so no scan picks one (and starves on the
-	// refusal). ATTACK_TUNNEL_NETWORK_GUARD is the watch's own capability question (and the guard machine's, already assignment-gated);
-	// a player's own order is never touched. Every other player, unit and target: the weapons decide, as stock.
+	// With its owner tunnel air watch acting, a watched unit (watch row, tunnel guard, AA team member) cannot attack an aircraft it
+	// was not assigned, so no scan picks one and starves on the refusal. ATTACK_TUNNEL_NETWORK_GUARD is the watch own capability
+	// question (and the guard machine, already assignment-gated). A player order is never touched; everything else is decided by
+	// the weapons, as stock.
 	if( target != nullptr && t != ATTACK_TUNNEL_NETWORK_GUARD && commandSource != CMD_FROM_PLAYER && target->isKindOf( KINDOF_AIRCRAFT ) )
 	{
 		const Player *gxPl = getControllingPlayer();
@@ -1947,6 +1947,8 @@ void Object::reactToTurretChange( WhichTurretType turret, Real oldRotation, Real
 void Object::reactToTransformChange(const Matrix3D* oldMtx, const Coord3D* oldPos, Real oldAngle)
 {
 	//USE_PERF_TIMER(Object_reactToTransformChange)
+	// GeneralsX: every write of Thing::m_cachedPos ends here (the four Thing setters)
+	gxSyncWakeRecord();
 	if(_isnan(getPosition()->x) || _isnan(getPosition()->y) || _isnan(getPosition()->z)) {
 		DEBUG_CRASH(("Object pos is nan."));
 		TheGameLogic->destroyObject(this);
@@ -3761,6 +3763,7 @@ void Object::updateObjValuesFromMapProperties(Dict* properties)
 		if (valInt < 0)
 			valInt = 0;
 		m_visionRange = INT_TO_REAL(valInt);
+		gxSyncWakeRecord();
 	}
 
 	// adjust the shroud clearing distance of this object, overriding its default distance
@@ -4336,6 +4339,7 @@ void Object::xfer( Xfer *xfer )
 
 	// vision range
 	xfer->xferReal( &m_visionRange );
+	gxSyncWakeRecord();
 
 	// shroud clearing range
 	xfer->xferReal( &m_shroudClearingRange );
@@ -5364,6 +5368,15 @@ Real Object::getVisionRange() const
 void Object::setVisionRange( Real newVisionRange )
 {
 	m_visionRange = newVisionRange;
+	gxSyncWakeRecord();
+}
+
+//-------------------------------------------------------------------------------------------------
+// GeneralsX: keep Player::GXWakeRecord bit-identical to getPosition() / m_visionRange.
+void Object::gxSyncWakeRecord()
+{
+	if (m_gxWakeOwner)
+		m_gxWakeOwner->gxWriteWakeRecord( this, m_gxWakeIndex, getPosition(), m_visionRange );
 }
 
 //-------------------------------------------------------------------------------------------------

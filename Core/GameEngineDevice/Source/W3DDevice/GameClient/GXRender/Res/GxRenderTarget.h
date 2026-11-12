@@ -1,11 +1,29 @@
-// GeneralsX: WS-C GXRES v0: render-target and depth-stencil SURFACES (D3D8 CreateRenderTarget /
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GXRES: render-target and depth-stencil SURFACES (D3D8 CreateRenderTarget /
 // CreateDepthStencilSurface / the implicit back buffer and auto depth). Render-target TEXTURES are GxTexture with
-// d3d::USAGE_RENDERTARGET (water reflection 256x256, pillarbox offscreen, shader-manager filter target - CENSUS §4).
+// d3d::USAGE_RENDERTARGET (water reflection 256x256, pillarbox offscreen, shader-manager filter target).
 //
 // Sample counts follow DXVK (d3d9_util.cpp DecodeMultiSampleType): the D3D8 count is reduced to the highest the device
 // supports for BOTH colour and depth (framebuffer*SampleCounts), never refused - so a native MSAA x8 frame has the sample
 // count the CLASSIC path really used on that device. resolveTo() is D3D8's CopyRects(MSAA surface -> texture) at Pillarbox_End
-// (dx8wrapper.cpp:480), the "MSAA resolved BEFORE post" slot of PLAN §1b #1.
+// (dx8wrapper.cpp:480), the "MSAA resolved BEFORE post" slot.
 #pragma once
 #include "GxResources.h"
 
@@ -17,8 +35,8 @@ struct RenderTargetDesc
 	uint32_t format = 0;     // d3d:: colour or depth format
 	uint32_t samples = 0;    // D3D8 multisample type: 0/1 = none, 2..16 = samples
 	bool sampled = false;    // MSAA colour ALSO sampled (the native device's present reads the back buffer's samples - DXVK's
-	                         // linear-light resolve, 11/10); init fails when the device cannot sample that count
-	bool depthSampled = false;   // 13/10: a single-sample DEPTH target also gets SAMPLED + a DEPTH-aspect view
+	                         // linear-light resolve); init fails when the device cannot sample that count
+	bool depthSampled = false;   // a single-sample DEPTH target also gets SAMPLED + a DEPTH-aspect view
 	                             // (the motion key); false = usage bit-identical to before
 };
 
@@ -39,7 +57,7 @@ public:
 	bool depth() const { return m_image.format && m_image.format->depth; }
 	VkSampleCountFlagBits samples() const { return m_image.samples; }
 	uint32_t requestedSamples() const { return m_desc.samples; }
-	bool sampled() const { return m_desc.sampled; }   // an MSAA colour target that shaders may read (render-hud-seam-1 ResolveLinear)
+	bool sampled() const { return m_desc.sampled; }   // an MSAA colour target that shaders may read (ResolveLinear)
 
 	// -> COLOR_ATTACHMENT_OPTIMAL or DEPTH_STENCIL_ATTACHMENT_OPTIMAL, for the pass recorder (WS-F1) and the tests.
 	void beginWrite(VkCommandBuffer cmd);

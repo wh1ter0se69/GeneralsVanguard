@@ -90,7 +90,7 @@ typedef struct QFUNCTIONS
 extern struct QFUNCTIONS qfunctions[];
 
 /****************************************************************/
-/*  Codex Module Example Prototypes                             */
+/*  Review Module Example Prototypes                             */
 /****************************************************************/
 
 #include "gimex.h" /* for memory IO */

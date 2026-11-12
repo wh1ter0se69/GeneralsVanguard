@@ -1,4 +1,22 @@
-// GeneralsX: see GxNativeHostSDL.h. Built only with GX_RENDER_NATIVE=ON.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// see GxNativeHostSDL.h. Built only with GX_RENDER_NATIVE=ON.
 #include "GxNativeHostSDL.h"
 
 #include <cstdlib>
@@ -34,7 +52,7 @@ bool FillSdlHost(GXRender::Dev::GxNativeHost &host, const char **why)
 	host.framesInFlight = f == nullptr || strcmp(f, "2") == 0 ? 2u : strcmp(f, "3") == 0 ? 3u : 0u;   // 0: refused, 2 kept
 	const char *w = getenv("GX_NATIVE_WAITS");
 	host.waitStats = w != nullptr && strcmp(w, "1") == 0;
-	host.requestedFrameGen = GXGraphics::frameGen();   // FG P0 §2 submit-thread guard: the REQUEST, not whether Streamline loaded
+	host.requestedFrameGen = GXGraphics::frameGen();   // submit-thread guard: the REQUEST, not whether Streamline loaded
 	host.requestedReflex = GXGraphics::reflex();
 	host.requestedUpscaler = GXGraphics::upscaler();   // the render/dlss guard on the A23-B worker (GxNativeDevice.cpp)
 	host.lookFeatures = GXGraphics::lookFeatureMask();   // S7 (A18/A20 e): every host reads the key

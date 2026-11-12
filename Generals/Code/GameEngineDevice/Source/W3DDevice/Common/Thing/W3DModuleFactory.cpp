@@ -64,31 +64,9 @@ void W3DModuleFactory::init()
 	addModule( W3DModelDraw );
 	addModule( W3DLaserDraw );
 	addModule( W3DOverlordTankDraw );
-	// GeneralsX: Register the four Zero Hour draw modules in the base
-	// Generals module factory, matching TheSuperHackers PR #3073 (upstream d77e26b80) and the
-	// GeneralsMD twin, whose init() already registers all four.
-	//
-	// THIS IS A CONTENT-PARITY BEHAVIOUR CHANGE, NOT A BUGFIX. Nothing in base Generals was
-	// broken by their absence. What changes is what the INI parser will accept: a Draw =
-	// W3DTreeDraw / W3DPropDraw / W3DOverlordTruckDraw / W3DOverlordAircraftDraw block in
-	// Generals data previously missed in ModuleFactory::findModuleTemplate(), which returns
-	// nullptr (after a debug-only DEBUG_CRASH), so newModuleDataFromINI()/newModule() built
-	// nothing; after this it builds the ZH module. Generals content that never names them is
-	// unaffected.
-	//
-	// Verified in this tree before registering, since a module template must resolve to a class
-	// that is actually linked into the Generals binary:
-	//  - all four classes live in Core/GameEngineDevice/Include/W3DDevice/GameClient/Module/ and
-	//    each declares MAKE_STANDARD_MODULE_MACRO_WITH_MODULE_DATA, which is what addModule() needs;
-	//  - their four .cpp files are listed in GAMEENGINEDEVICE_SRC in Core/GameEngineDevice/
-	//    CMakeLists.txt, which target_sources() onto the corei_gameenginedevice_private INTERFACE
-	//    target that g_gameenginedevice links - so they were already compiled into the Generals
-	//    target, merely unreferenced, and the Core Include dir is already on its include path via
-	//    corei_gameenginedevice_public;
-	//  - their memory pools ("W3DOverlordTruckDraw", "W3DOverlordAircraftDraw", "W3DTreeDraw",
-	//    "W3DPropDraw") are already present in
-	//    Core/GameEngine/Source/Common/System/GameMemoryInitPools_Generals.inl, so allocating one
-	//    at runtime needs no digested change.
+	// GeneralsX: Register the four Zero Hour draw modules, as the GeneralsMD twin does (upstream PR #3073).
+	// A content-parity change: Generals INI naming them otherwise fails findModuleTemplate and builds nothing.
+	// The classes are already linked and their memory pools exist.
 	addModule( W3DOverlordTruckDraw );
 	addModule( W3DOverlordAircraftDraw );
 	addModule( W3DProjectileStreamDraw );

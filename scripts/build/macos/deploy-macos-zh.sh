@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # GeneralsX: Deploy macOS build to runtime directory
 # Copies GeneralsXZH binary and required dylibs to ~/GeneralsX/GeneralsZH (legacy fallback: ~/GeneralsX/GeneralsMD)
 
@@ -53,7 +55,7 @@ BINARY_SRC="${BUILD_DIR}/GeneralsMD/GeneralsXZH"
 
 DXVK_D3D8_LIB="${DXVK_D3D8_LIB_INSTALL}"
 DXVK_D3D9_LIB="${DXVK_D3D9_LIB_INSTALL}"
-# GeneralsX: The newer of the two, as bundle-macos-zh.sh: the install copy is refreshed only
+# The newer of the two, as bundle-macos-zh.sh: the install copy is refreshed only
 # when its own cmake target is built, so it can trail a rebuilt DXVK.
 if [[ -f "${DXVK_D3D8_LIB_MESON}" && ( ! -f "${DXVK_D3D8_LIB}" || "${DXVK_D3D8_LIB_MESON}" -nt "${DXVK_D3D8_LIB}" ) ]]; then
     DXVK_D3D8_LIB="${DXVK_D3D8_LIB_MESON}"
@@ -77,7 +79,7 @@ fi
 mkdir -p "${RUNTIME_DIR}"
 
 echo "  Copying GeneralsXZH..."
-# GeneralsX: Unlink before copying, so the new binary lands on a fresh
+# Unlink before copying, so the new binary lands on a fresh
 # inode.
 #
 # The engine is ad-hoc "linker-signed". Overwriting such a binary in place keeps the inode, and
@@ -142,7 +144,7 @@ else
 fi
 
 # Write wrapper run script that sets DYLD_LIBRARY_PATH at launch time
-# GeneralsX: A2: the pipeline seed, beside dxvk.conf (SDL3Main gxSeedDxvkCache reads
+# A2: the pipeline seed, beside dxvk.conf (SDL3Main gxSeedDxvkCache reads
 # ./dxvk-seed when GX_DXVK_SEED_DIR is unset, the way DXVK reads ./dxvk.conf).
 mkdir -p "${RUNTIME_DIR}/dxvk-seed" && cp -v "${PROJECT_ROOT}/resources/dxvk/seed/GeneralsXZH.dxvk-cache" \
     "${PROJECT_ROOT}/resources/dxvk/seed/GeneralsXZH.dxvk-ffkeys" "${RUNTIME_DIR}/dxvk-seed/" ||
@@ -180,18 +182,9 @@ if [[ -f "${EXTRAS_WND_SRC}" ]]; then
     cp -v "${EXTRAS_WND_SRC}" "${RUNTIME_DIR}/Window/Menus/ExtrasMenu.wnd"
 fi
 
-# GeneralsX: Deploy the loose Multiplayer.ini (sixteen player
-# colours) and the small string table that names the four new ones.
-#
-# Refuse the deploy rather than ship half of it. Multiplayer.ini is CRC'd into iniCRC ->
-# dataID; the CSF is not (TheGameText is initialised with a null Xfer, GameEngine.cpp:589),
-# so a runtime that got the INI but not the CSF still joins every peer and merely renders
-# MISSING: 'Color:Crimson' in the lobby, which reads as a font or localisation fault rather
-# than as a deploy that stopped halfway.
-#
-# The paths are not parallel and that is not a typo: .wnd files live at Window\... inside
-# WindowZH.big, while INI and CSF live under Data\... - so these two go to
-# ${RUNTIME_DIR}/Data/..., one level deeper than ExtrasMenu.wnd above.
+# Deploy the loose Multiplayer.ini (sixteen player colours) and the string table that names the four new ones. The INI
+# is CRC'd into dataID; the CSF is not, so without it a peer still joins but shows MISSING: colour names. Refuse the
+# deploy rather than ship half. INI and CSF go under ${RUNTIME_DIR}/Data/, one level deeper than ExtrasMenu.wnd.
 MP_INI_SRC="${PROJECT_ROOT}/GeneralsZH/Data/INI/Multiplayer.ini"
 COLOR_CSF_SRC="${PROJECT_ROOT}/GeneralsZH/Data/English/Generals.csf"
 if [[ -f "${MP_INI_SRC}" ]]; then
@@ -206,17 +199,9 @@ if [[ -f "${MP_INI_SRC}" ]]; then
     cp -v "${COLOR_CSF_SRC}" "${RUNTIME_DIR}/Data/English/Generals.csf"
 fi
 
-# GeneralsX: Data/INI/Weapon.ini (the Toxin Tractor balance change), cut
-# from this peer's own CoreINI archive by scripts/tooling/make-weapon-ini.py - never committed, it is
-# the Community Patch's file. It is in iniCRC, so it moves dataID exactly like Multiplayer.ini. A peer
-# with no CoreINI archive anywhere joins nobody anyway (reported at the end), so that alone warns; an
-# archive the recipe refuses (another Community Patch release) is fatal.
-# 25/09/2026: make-weapon-ini.py --root searches where this peer's engine mounts the
-# archive, $GENERALSX_PATCH_PATH and $CNC_GENERALS_ZH_PATH included, so a custom overlay or asset root
-# is not skipped (run.sh cds here, so the loose file in this folder is the one the engine reads).
-# It follows the ENGINE's order, and run.sh below changes that order: it exports the sibling
-# GeneralsXPatch as GENERALSX_PATCH_PATH when that folder exists. So export it the same way here, in a
-# subshell, or a runtime folder with both overlays gets its Weapon.ini from the one the peer never mounts.
+# Data/INI/Weapon.ini (Toxin Tractor change) is cut from this peer's CoreINI archive by make-weapon-ini.py.
+# It is in iniCRC and so moves dataID. No CoreINI archive only warns; an archive the recipe refuses is fatal.
+# run.sh exports the sibling GeneralsXPatch as GENERALSX_PATCH_PATH when it exists; export it the same way here.
 echo "  Generating Data/INI/Weapon.ini..."
 (
     GX_SIBLING_PATCH="$(cd "${RUNTIME_DIR}/.." 2>/dev/null && pwd)/GeneralsXPatch"
@@ -226,7 +211,7 @@ echo "  Generating Data/INI/Weapon.ini..."
     python3 "${PROJECT_ROOT}/scripts/tooling/make-weapon-ini.py" --root "${RUNTIME_DIR}" --if-archive
 ) || exit 1
 
-# GeneralsX: Deploy Fontconfig config into runtime dir so FreeType/Fontconfig can resolve fonts on macOS.
+# Deploy Fontconfig config into runtime dir so FreeType/Fontconfig can resolve fonts on macOS.
 # GeneralsX: Guard Fontconfig conf.d copy so missing directory does not abort deploy under set -e.
 echo "  Deploying Fontconfig config..."
 if [[ -f "${FONTCONFIG_ETC_DIR}/fonts.conf" ]]; then
@@ -330,7 +315,7 @@ exec "./GeneralsXZH" "\$@"
 WRAPPER
 chmod +x "${RUNTIME_DIR}/run.sh"
 
-# GeneralsX: Report where this peer's shared archives are, and warn
+# Report where this peer's shared archives are, and warn
 # only when it truly has none.
 #
 # The Windows packager and the iOS bundler treat a missing overlay as FATAL, and rightly - they

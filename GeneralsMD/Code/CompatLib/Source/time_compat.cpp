@@ -48,7 +48,7 @@ void Sleep(DWORD ms)
   nanosleep(&ts, NULL);
 }
 
-// GeneralsX: Fill wMilliseconds like Win32 does. It was always 0, so the
+// Fill wMilliseconds like Win32 does. It was always 0, so the
 // screenshot name sshot_<date>_<hhmmss>_<ms>.png (W3DScreenshot.cpp) repeated within a second and every
 // capture after the first in that second overwrote the file: a GX_SHOT burst of 16 consecutive frames on
 // macOS left ONE png while logging 16 [GXSHOT] captures. Also makes localtime reentrant (localtime_r).

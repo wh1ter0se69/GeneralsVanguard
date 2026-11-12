@@ -70,20 +70,9 @@ SegmentedLineClass::SegmentedLineClass(const SegmentedLineClass & src) :
 }
 
 /*
- * GeneralsX @bugfix wh1ter0se 11/08/2026 Deep-copy both point arrays, element by element.
- *
- * `SimpleVecClass` owns a raw `T *Vector` and its destructor does `delete[] Vector`, but it
- * declares NO copy constructor and NO assignment operator - so the compiler-generated copy is
- * shallow and hands both objects the same buffer. The first destructor frees it and the second
- * frees it again, and any Resize or Delete_All in between leaves the other holding a dangling
- * pointer.
- *
- * This was already true of `PointLocations(src.PointLocations)`, which is EA's line and has been
- * there since the start; nothing in the engine clones a SegmentedLineClass today, so it has never
- * fired. Clone() is virtual on RenderObjClass though, so "nothing calls it" is a property of the
- * current callers rather than of this class. Adding a second array copied the same way would have
- * doubled a latent double-free, so both are done properly here instead. Found by cross-model
- * review of my own first fix, which had introduced exactly that.
+ * GeneralsX @bugfix wh1ter0se 11/08/2026 deep-copy both point arrays element by element: SimpleVecClass owns a raw `T *Vector` and deletes it,
+ * but has no copy constructor or assignment operator, so the generated copy shares the buffer and double-frees.
+ * Clone() is virtual on RenderObjClass, so a clone is possible even though nothing in the engine clones one today.
  */
 void SegmentedLineClass::Copy_Point_Arrays(const SegmentedLineClass & src)
 {

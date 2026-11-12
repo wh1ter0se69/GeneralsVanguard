@@ -1,5 +1,7 @@
 #!/bin/bash
-# GeneralsX: Shared helpers for the community-patch overlay.
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Shared helpers for the community-patch overlay.
 #
 # Sourced by the macOS/Linux deploy scripts and the iOS packager so that all three read the
 # SAME list (scripts/build/overlay-archives.txt) and resolve the overlay directory the same
@@ -71,7 +73,7 @@ gx_overlay_archives() {
 # or empty list made gx_overlay_archives return 1 inside a process-substitution child, the loop
 # body simply never ran, and the caller saw an empty "missing" set - i.e. SUCCESS. The iOS
 # packager would then have created an empty GeneralsXPatch and shipped a bundle that cannot join,
-# with its fatal-completeness guarantee reporting no problem. Caught by cross-model review.
+# with its fatal-completeness guarantee reporting no problem.
 # Every caller reads the list through this first.
 gx_overlay_count() {
     local out
@@ -116,22 +118,9 @@ gx_overlay_optional_default() { printf '%s\n' "${1%%|*}"; }
 gx_overlay_optional_name()    { local r="${1#*|}"; printf '%s\n' "${r%%|*}"; }
 gx_overlay_optional_label()   { printf '%s\n' "${1#*|*|}"; }
 
-# gx_overlay_stage_optional <source-dir> <dest-dir> - copy each optional archive into dest under
-# the name its default dictates: <name>.big when on, <name>.big.off when off. Prints one line per
-# archive. Missing sources are fatal: an optional archive that is absent cannot be switched ON
-# later by the launcher, so "optional" would quietly become "unavailable".
-#
-# GeneralsX: THE PRE-FLIGHT BELOW IS THE SAME BUG gx_overlay_count EXISTS
-# FOR, and this function had no equivalent. `while read < <(gx_overlay_optional)` runs the parser
-# in a CHILD, so a missing or malformed list makes it return 1 where nothing can see it: the loop
-# body never runs, `missing` stays empty, and this returns 0 having staged NOTHING. The mandatory
-# side was given gx_overlay_count precisely because that reads as success.
-#
-# It was harmless while the optional list only carried content that also arrived by other means.
-# It is not harmless now that the list is the ONLY delivery path for !GXUI.big - a silently empty
-# stage is exactly the failure this whole workstream exists to remove, wearing a green tick.
-# Calling the parser here, in the current shell, is what makes its exit status reachable. An empty
-# but well-formed list still succeeds; that remains a legitimate build.
+# gx_overlay_stage_optional <source-dir> <dest-dir> - copy each optional archive as <name>.big (on) or <name>.big.off.
+# Missing sources are fatal: an absent archive could never be switched on later by the launcher.
+# The parser runs in the current shell, not via `while read < <(...)`, whose failure would be invisible.
 gx_overlay_stage_optional() {
     local src="$1" dst="$2"
     local line name dflt out missing=()
@@ -173,21 +162,9 @@ gx_overlay_optional_names() {
     done < <(gx_overlay_optional)
 }
 
-# gx_overlay_generate <dest-dir> [game-dir] - build the overlay archives this project AUTHORS into
-# dest, so that the staging functions above have something to copy.
-#
-# WHY A GENERATE STEP EXISTS AT ALL, when the other six archives are just files somebody has. The
-# community archives are downloaded once and copied around; !GXUI.big carries THIS project's .wnd
-# layout overrides and is derived from retail bytes every install already has. Requiring it to be
-# present would only relocate the gap it was written to close - it existed on one Mac for months
-# precisely because "get the file onto the packaging box" was a manual step nobody had automated.
-# Generating it from the local install removes the transfer entirely and, because the recipe is
-# deterministic, every box produces the identical bytes (measured: sha256 b61c9bcce... on a rebuild
-# against the installed copy), so peers agree on assetID as well.
-#
-# FATAL, NOT BEST-EFFORT. A skipped generate ships a payload that is short one listed archive, and
-# the staging functions would then fail anyway - later, with a worse message. Callers that can
-# legitimately proceed without an overlay (a --dev iOS bundle) must decide that BEFORE calling.
+# gx_overlay_generate <dest-dir> [game-dir] - build the overlay archives this project authors (!GXUI.big) into dest.
+# Derived from retail bytes by a deterministic recipe, so every box produces identical bytes and peers agree on assetID.
+# Fatal, not best-effort: a skipped generate ships a payload short one archive.
 gx_overlay_generate() {
     local dst="$1" game="${2:-}"
     local script="${_GX_OVERLAY_LIB_DIR}/../tooling/build-overlay-generated.py"
@@ -256,24 +233,9 @@ gx_overlay_verify() {
     return 0
 }
 
-# gx_overlay_where <runtime-dir> - print one "<state> <archive>" line per listed archive,
-# where state is OVERLAY, INFOLDER, BOTH or ABSENT. Exit status is non-zero if any is ABSENT.
-#
-# THE DEPLOY SCRIPTS MUST ASK THIS QUESTION AND NOT THE STRICT ONE, because the strict one is
-# false on a peer that is working perfectly. Mounting these archives from the game folder and
-# mounting them from an overlay outside it produce the IDENTICAL dataID - measured both ways -
-# so a peer that has not migrated is not broken and telling it that every deploy is how a
-# warning gets muted and stops being read. The condition that actually matters is "this peer
-# will not load these archives at all", and only ABSENT means that.
-#
-# BOTH is called out because it is the one arrangement that is subtly wasteful rather than
-# wrong: on macOS and Linux the game folder is also the executable directory, so an archive
-# present in both places is mounted twice - same bytes, right dataID, two copies of that
-# archive's directory table in memory for nothing.
-# overlay-archives.txt's dated exception: mandatory to SHIP (gx_overlay_verify and the packagers still
-# require it) but textures only - an install without it joins everyone (dataID unchanged), so readiness never fails on it.
-# !!GXModelsHD.big (the rounded/relief W3D model pack) joins it - art only, the same dated
-# exception, measured not to move dataID; the name of the list predates it ("texture only" = "art only, no dataID").
+# gx_overlay_where <runtime-dir> - print "<state> <archive>": OVERLAY, INFOLDER, BOTH, HD-ABSENT or ABSENT.
+# Exit non-zero if any is ABSENT; only ABSENT matters, as either location gives the same dataID. BOTH mounts twice.
+# HD-ABSENT: texture-only archives (!!GXPropsHD.big, !!GXModelsHD.big) are art only; dataID is unchanged.
 GX_OVERLAY_TEXTURE_ONLY=('!!GXPropsHD.big' '!!GXModelsHD.big')
 gx_overlay_texture_only() {
     local n
@@ -333,7 +295,7 @@ gx_overlay_where() {
     return ${rc}
 }
 
-# GeneralsX: gx_overlay_stage_shipped_maps <patch-dir>: the maps in overlay-maps.txt,
+# gx_overlay_stage_shipped_maps <patch-dir>: the maps in overlay-maps.txt,
 # as GeneralsXPatch/ShippedMaps/<Name>/ (see that file). Loose files, inert to the engine's "*.big" overlay
 # scan; the launcher installs them into <userdata>/Maps. Fails (rc 1, nothing half-staged is trusted) when a
 # source is missing or its .map does not hash to the listed value. GX_MAPS_SRC overrides the source root (tests).

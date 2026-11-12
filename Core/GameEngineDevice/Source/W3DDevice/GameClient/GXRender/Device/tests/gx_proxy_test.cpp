@@ -1,6 +1,24 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 // A23-B: GX_EXEC_DIGEST=<file> writes each arm's EXEC digest and creation ledger there, one line per
 // arm, for the suite-level equality gate (run the suite with GX_NATIVE_CS=0, again 0, then 1 and compare the files).
-// GeneralsX: gx_proxy_test: the IDirect3D8 proxy and the session rows S2-S10,
+// gx_proxy_test: the IDirect3D8 proxy and the session rows S2-S10,
 // offscreen, on a stub "DXVK" parent that counts the calls forwarded to it. One case per row; every case has an X- arm that turns
 // on the matching GxNativeSessionDebug plant in the PRODUCT proxy and must make exactly that case fail.
 //
@@ -193,7 +211,7 @@ Run run(const D3DPRESENT_PARAMETERS& pp, const GxNativeSessionDebug& dbg, bool m
 		stub.identifier.Data1 ^= 0xdeadbeef;
 	std::snprintf(stub.description, sizeof(stub.description), "%s", g_dev.deviceName.c_str());
 	GxNativeHost host;
-	host.prebuildGenericSet = false;   // the generic-set prebuild is S10's real work: covered by the positive case and the Mini
+	host.prebuildGenericSet = false;   // the generic-set prebuild is covered by the positive case
 	host.getInstanceProcAddr = gipa;
 	host.log = collect;
 	GxNativeSessionHost sh;
@@ -375,7 +393,7 @@ bool caseS4(GxNativeSessionDebug& p, std::string* d)
 			ok = false;
 		}
 	}
-	// An UNKNOWN back buffer and no back-buffer count (the iOS game, iPad smoke-X1 13/10: the SDL3 path presents Windowed=TRUE and the
+	// An UNKNOWN back buffer and no back-buffer count (the iOS game: the SDL3 path presents Windowed=TRUE and the
 	// exclusive mode search finds no mode): DXVK converts both in the caller's struct before anything reads them (d3d8_d3d9_util.h:89-94),
 	// so the session must come up native with the struct converted - and stay untouched when d3d8 refuses first
 	{
@@ -398,7 +416,7 @@ bool caseS4(GxNativeSessionDebug& p, std::string* d)
 		const Run r4 = run(cp, p);
 		CHECK(r4.after.BackBufferFormat == D3DFMT_UNKNOWN && r4.after.BackBufferCount == 2, "a COPY refusal converted the caller's struct");
 		GxD3D8NormalizePresentParams(nullptr);   // a null struct is ignored (CreateDevice forwards a null pp before it gets here)
-		// every other platform's parameters pass through untouched (render-integration-5 ruling 13/10): a stated format and count stay
+		// every other platform's parameters pass through untouched: a stated format and count stay
 		for (D3DFORMAT f : { D3DFMT_A8R8G8B8, D3DFMT_X8R8G8B8, D3DFMT_R5G6B5 }) {
 			clean();
 			D3DPRESENT_PARAMETERS q = goodPP();
@@ -449,7 +467,7 @@ void plantS6(GxNativeSessionDebug& p) { p.skipShaderRow = true; }
 bool caseS7(GxNativeSessionDebug& p, std::string* d)
 {
 	// GX_SHADOW_GPU: unset, and a value the game does not read ("7", "11"), mean the game's platform default: 1 on _WIN32, 0
-	// elsewhere (rw3-R11). With the shadow vs ported (gx:shadowvol) every mode is native; in a build whose catalogue lacks it
+	// elsewhere. With the shadow vs ported (gx:shadowvol) every mode is native; in a build whose catalogue lacks it
 	// (shadowPortMissing) a mode the game turns on must refuse at S7 - and mode 0 never does.
 #if defined(_WIN32)
 	const bool defaultOn = true;
@@ -554,7 +572,7 @@ bool caseS8(GxNativeSessionDebug& p, std::string* d)
 }
 void plantS8(GxNativeSessionDebug& p) { p.skipLoaderRow = true; }
 
-// (PREREG A36.2): the ONE declared interposer (NVIDIA Streamline's sl.interposer.dll) may own the host's
+// The ONE declared interposer (NVIDIA Streamline's sl.interposer.dll) may own the host's
 // vkGetInstanceProcAddr in front of the process's one loader build; any other non-loader module is still refused.
 bool caseS8Interposer(GxNativeSessionDebug& p, std::string* d)
 {
@@ -751,7 +769,7 @@ int main(int argc, char** argv)
 		ExecDigest dg;
 		if (digests) {
 			GXRender::Dev::g_csExecSink.store(&dg);
-			GXRender::Rec::g_trInputSink.store(&dg);   // rw3-X-3: the translator-input digest too
+			GXRender::Rec::g_trInputSink.store(&dg);   // the translator-input digest too
 		}
 		const bool held = c->fn(plant, &detail);
 		GXRender::Dev::g_csExecSink.store(nullptr);

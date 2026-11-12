@@ -1,18 +1,25 @@
-// GeneralsX: wipe a buffer that held the sign-in when the scope that
-// declared it ends, on EVERY path out of it.
-//
-// WHY A GUARD AND NOT A CLEAR BEFORE EACH return. The buffers this is for sit in functions with many
-// early returns - GXIdentityAssertion::verifyWithKey has more than a dozen after it decodes the
-// signature - and a hand-written clear before each one is exactly the kind of thing the next edit
-// forgets. A destructor runs on every one of them, including the ones added later.
-//
-// The wipe itself is gxSecureClear: stores through a pointer to volatile, which the optimiser may not
-// remove even though nothing reads the buffer again (GameNetwork/GXSecureClear.h says why a memset
-// is not enough, and scripts/test/secure-clear-elision.sh measures it).
-//
-// PURE and dependency-free apart from that header, so scripts/test/signin-copies-test.cpp can include
-// it on its own, and the Windows launcher, which compiles GXIdentityAssertion.cpp at /W4 /WX, needs
-// nothing new. Under GameClient, which the simulation digest does not watch.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Wipe a buffer that held the sign-in when the scope ends, on EVERY path out: a destructor covers all early returns
+// (GXIdentityAssertion::verifyWithKey has over a dozen) that a hand-written clear would miss.
+// The wipe is gxSecureClear: stores through a pointer to volatile, which the optimiser may not remove.
+// Dependency-free apart from that header, so scripts/test/signin-copies-test.cpp includes it alone.
 #pragma once
 
 #include <stddef.h>

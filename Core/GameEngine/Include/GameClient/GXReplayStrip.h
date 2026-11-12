@@ -1,4 +1,22 @@
-// GeneralsX: the replay strip's pure model (GXReplayStrip.inl draws and acts on it).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// the replay strip's pure model (GXReplayStrip.inl draws and acts on it).
 //
 // Client-only: nothing here is read by the simulation, and GameClient/ is outside the SimID digest. The decisions that
 // can go wrong silently live here so they can be unit-tested with no engine (scripts/test/replay-strip-model-test.cpp).
@@ -109,7 +127,7 @@ enum { RACE_DRAW_MS = 250 };	///< a seek race draws one progress frame per this 
 /// so the strip and playhead visibly move at any speed the machine reaches. The fast mode alone - the
 /// retail replay hotkey - keeps retail's one frame in 30. Fast forward's cadence is never asked under the fast mode: with
 /// one tick per pass, its every-k-th pass and frame 30n+1 can be disjoint for good, and a 2x-10x seek drew nothing until
-/// it landed (07/10, "it froze").
+/// it landed.
 inline bool passRenders( bool fastMode, bool seekRace, unsigned frame, unsigned nowMs, unsigned lastRaceDrawMs, bool ffDrawDue )
 {
 	if (!fastMode)
@@ -159,7 +177,7 @@ inline int ffStep( int now, bool increase )
 /// A restart in flight (a seek behind the playhead): the frame to race to once the new playback is up (0 = none, a plain
 /// restart), and whether the new playback is still awaited. finish( started ) is what gxRestartReplay answered: a restart
 /// that FAILED (the replay file is gone) leaves the engine at no game for good, so nothing will ever call it up and the
-/// race's sound mute and speed must be given back NOW (returns true = drop the race), 07/10.
+/// race's sound mute and speed must be given back NOW (returns true = drop the race).
 struct SeekFlight
 {
 	bool restarting = false;

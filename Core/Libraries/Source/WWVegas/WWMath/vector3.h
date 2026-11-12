@@ -499,7 +499,7 @@ WWINLINE float Vector3::Quick_Length() const
 
 	if (max < mid) { tmp = max; max = mid; mid = tmp; }
 	if (max < min) { tmp = max; max = min; min = tmp; }
-	// GeneralsX @bugfix The third step of this descending sort read "min = mid", which threw
+	// GeneralsX: The third step of this descending sort read "min = mid", which threw
 	// away the value stashed in tmp and left min == mid. Roughly two thirds of inputs take
 	// that swap, and double-counting the middle magnitude pushed the estimate as much as
 	// +16% high instead of staying inside the +/-8% this approximation promises above.

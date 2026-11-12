@@ -1,10 +1,28 @@
-// GxCustomCatalog.h - the custom-shader catalogue (WS-E, rw2-E, 11/10/2026; PLAN §3 WS-E, "custom").
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GxCustomCatalog.h - the custom-shader catalogue.
 //
 // The game loads its .pso/.vso bytecode through the file system (W3DShaderManager.cpp LoadAndCreateD3DShader), so a mod can
 // replace terrain.pso under the same name. The native renderer therefore never trusts a NAME: a port is selected by the
 // BYTECODE (every token, compared in full after a hash lookup) and, for a vertex shader, the vertex DECLARATION too. Bytes this
 // catalogue does not know select CLASSIC for the whole session (GxCsSessionVerdict), decided before gameplay and held for it.
-// A known blob with no port yet (program 0) is reported as such; the lead decides whether a session may go native with one.
+// A known blob with no port yet (program 0) is reported as such.
 #pragma once
 
 #include "GxPipelineKey.h"
@@ -47,7 +65,7 @@ enum GxCsVerdict : uint8_t { GxCsUnknown, GxCsKnownUnported, GxCsPorted };
 
 // The vertex-shader constants a ported vs can read: c0-c95, the translator's store (GxD3D8Translate m_vsConst) aliased onto the first
 // 1536 B of the VS block (the ports declare vec4 c[96]). The native device reports min(DXVK's, this) and refuses a write past it; a
-// replay tool refuses a capture that writes past it (rw3-R11: a classic GX_SHADOW_GPU capture packs 61 volumes a draw, c9-c252).
+// replay tool refuses a capture that writes past it (a classic GX_SHADOW_GPU capture packs 61 volumes a draw, c9-c252).
 constexpr uint32_t kGxCsVsConstCount = 96;
 struct GxCsResolved {
 	GxCsVerdict    verdict = GxCsUnknown;

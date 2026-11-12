@@ -616,22 +616,9 @@ public:
 		MSG_DEBUG_KILL_OBJECT,
 #endif
 
-		// GeneralsX @feature LAN-safe debug-screen cheats.
-		//
-		// EXPLICITLY NUMBERED AND OUTSIDE THE #if ABOVE, on purpose. The 1900 block is guarded
-		// on RTS_DEBUG || _ALLOW_DEBUG_CHEATS_IN_RELEASE here and on RTS_DEBUG ALONE in the
-		// Generals tree (Generals/Code/GameEngine/Include/Common/MessageStream.h). Implicit
-		// numbering after it would give these different wire values in different build
-		// configurations, and two peers of this fork would decode each other's cheats as a
-		// different message. An explicit anchor cannot drift. 1950..1956 satisfies both range
-		// tests: GameClientDispatch.cpp (>=1000 && <=1999) and Network.cpp (>1000 && <1999).
-		//
-		// Only the FIRST value is written out. The rest run on from it implicitly, and deliberately
-		// so: a second explicit "= 1956" further down would let an insertion above it produce two
-		// enumerators with the SAME value, which C++ accepts in silence and which the switch in
-		// GameLogicDispatch.cpp would then refuse to compile for a reason that names neither
-		// culprit. The static_assert block under this class pins every wire value instead, so an
-		// accidental insertion is a build error that says exactly what moved.
+		// Debug-screen cheats, numbered explicitly outside the #if above: the 1900 block is guarded differently in the
+		// Generals tree, so implicit numbering would give peers different wire values. 1950..1956 fits both range tests
+		// (GameClientDispatch.cpp, Network.cpp). Only the first is explicit; the static_asserts below pin every value.
 		MSG_GX_CHEAT_GIVE_MONEY = 1950,							///< (Int targetPlayerIndex, Int amount) amount may be negative
 		MSG_GX_CHEAT_SET_MONEY,											///< (Int targetPlayerIndex, Int amount)
 		MSG_GX_CHEAT_REVEAL_MAP,										///< (Int targetPlayerIndex, Bool reveal)
@@ -639,32 +626,15 @@ public:
 		MSG_GX_CHEAT_KILL_OBJECTS,									///< (Int targetPlayerIndex, Bool includeStructures)
 
 		// (Int targetPlayerIndex, Int templateID, Location groupCentre, [Int count], [Int veterancyLevel])
-		//
-		// count and veterancyLevel are OPTIONAL TRAILING arguments, and the handler reads a
-		// three-argument message as "one LEVEL_REGULAR unit". A sender that has not been taught
-		// about them therefore keeps producing exactly the old behaviour rather than a message the
-		// handler misreads.
-		//   count           clamped to 1 .. GX_CHEAT_MAX_SPAWN_COUNT (GameLogicDispatch.cpp).
-		//   veterancyLevel  a VeterancyLevel (Common/GameCommon.h - LEVEL_REGULAR, LEVEL_VETERAN,
-		//                   LEVEL_ELITE, LEVEL_HEROIC), clamped to LEVEL_FIRST .. LEVEL_LAST.
-		// groupCentre is the CENTRE of the group, not the position of unit 0: the handler scatters
-		// the units around it with ThePartitionManager->findPositionAround.
-		// The units' OWNER is the target - or the Neutral player, with its vehicles unmanned, when the
-		// target is defeated or observing (GameLogic::gxSpawnGoesNeutral; GeneralsX: -
-		// whatever the sender's state since 05/10/2026).
+		// count and veterancyLevel are optional; a three-argument message spawns one LEVEL_REGULAR unit.
+		// count clamps to 1..GX_CHEAT_MAX_SPAWN_COUNT, veterancyLevel to LEVEL_FIRST..LEVEL_LAST; groupCentre is the centre.
+		// Owner is the target, or Neutral when it is defeated or observing (GameLogic::gxSpawnGoesNeutral).
 		MSG_GX_CHEAT_SPAWN_UNIT,										///< see the argument contract above
 
 		// (Int targetPlayerIndex, Int templateID, Int count)
-		//
-		// THE SENTINELS ARE PART OF THE WIRE CONTRACT. The sender and the handler must agree on
-		// them or the cheat quietly does the wrong thing on every peer at once:
-		//   templateID <= 0   EVERY type the target player owns. Template ids start at 1
-		//                     (ThingFactory.cpp:107, "m_nextTemplateID = 1;	// not zero!"), so 0
-		//                     can never collide with a real one.
-		//   count      <= 0   ALL matching objects; otherwise the first 'count' matches in
-		//                     Player::iterateObjects order.
-		// Removal is TheGameLogic->destroyObject, NOT Object::kill: this exists to clear clutter, so
-		// there is no death FX, no wreckage, no death-triggered OCL and no "unit lost" EVA.
+		// Sentinels are part of the wire contract: templateID <= 0 means every type the target owns (real ids start at 1);
+		// count <= 0 means all matches, else the first count in Player::iterateObjects order.
+		// Removal is destroyObject, not Object::kill: no death FX, wreckage, death OCL or unit-lost EVA.
 		MSG_GX_CHEAT_DELETE_OBJECTS,								///< see the argument contract above
 
 		// GeneralsX: WAYPOINT ENTER - (ObjectID container). Waypoint mode (Alt by default) + a
@@ -762,7 +732,7 @@ private:
 
 };
 
-// GeneralsX @feature LAN-safe cheats: pin the wire values.
+// GeneralsX: LAN-safe cheats: pin the wire values.
 //
 // These numbers are a PROTOCOL, not an implementation detail - two peers of this fork decode each
 // other's cheat orders by raw enum value, and the same seven values are hard-coded again in the

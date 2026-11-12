@@ -2072,11 +2072,11 @@ Real Locomotor::getSurfaceHtAtPt(Real x, Real y)
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: A jet held
+// GeneralsX: A jet holds
 // its cruise height above the ground straight under it and nothing else, and its lift barely beats gravity (a Raptor:
 // Lift 120 vs Gravity 64), so it started down only once the ground had fallen away and could not climb back in time:
-// crossing Twilight Flame's 99-deep gorge it sank 82 units into it and cleared the far rim by 18 (his 17/10 replay,
-// retail does the same, at 30 Hz too). A jet now cruises above the HIGHEST
+// crossing Twilight Flame's 99-deep gorge it sank 82 units into it and cleared the far rim by 18 (retail does the
+// same, at 30 Hz too). A jet now cruises above the HIGHEST
 // ground along its track, from 'reach' behind to 'reach' ahead: it holds its height over a gorge narrower than twice
 // the reach and starts climbing before a ridge. reach = 1.5 s at its full speed (a Raptor: 262 units), the same
 // distance at 30 and 60 Hz because the speed is per frame and LOGICFRAMES_PER_SECOND scales with it. Stateless - read

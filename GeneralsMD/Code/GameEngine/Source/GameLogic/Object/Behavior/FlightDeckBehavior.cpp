@@ -1704,15 +1704,9 @@ void FlightDeckBehavior::xfer( Xfer *xfer )
 			xfer->xferUnsignedInt( &m_catapultSystemFrame[ i ] );
 			xfer->xferUnsignedInt( &m_lowerRampFrame[ i ] );
 			// TheSuperHackers @bugfix bobtista 22/07/2026 Index the ramp state by runway instead of reading and writing one element past the array.
-			// GeneralsX @bugfix was [ MAX_RUNWAYS ] — a constant index one past the end of the
-			// array, hit on every iteration instead of the element actually being serialized.
-			// It lands in the object's tail padding, so nothing else was corrupted, but the
-			// per-runway ramp state was never saved and never restored: a carrier saved
-			// mid-launch reloaded with m_rampUp[i] == FALSE while m_rampUpFrame[i] and
-			// m_lowerRampFrame[i] came back intact, so update() re-entered the "raise the ramp"
-			// branch above, replayed DOOR_x_OPENING and pushed the launch out by another full
-			// LaunchRampDelay. Same byte count as before, so the save format is unchanged and
-			// no version bump is needed.
+			// GeneralsX: m_rampUp was indexed [ MAX_RUNWAYS ], one past the end, so ramp state was never saved or restored.
+			// A carrier saved mid-launch re-ran the raise-the-ramp branch and delayed the launch by another LaunchRampDelay.
+			// Same byte count, so the save format is unchanged.
 			xfer->xferBool( &m_rampUp[ i ] );
 		}
 		else

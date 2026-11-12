@@ -16,50 +16,11 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: The GXM1 in-match record envelope - the format half.
-//
-// WHAT THIS IS FOR. In-game chat is AUDIENCE-SCOPED: InGameChat.cpp builds a playerMask per chat
-// type and ConnectionManager.cpp:1028 enforces it on receive. The relay's GXCHT carries no mask and
-// relay.js broadcasts an accepted chat line to every member of the room, so mirroring in-match chat
-// through the plain chat path would put ally and private conversation in plaintext on the wire to
-// every player in the match. This envelope carries the mask so the relay can RECORD the line to its
-// event sink and emit no GXSAY at all - nothing reaches a player who was not already going to
-// receive it.
-//
-//   GXREC <room> GXM3 <mask:16 hex lowercase> <slot:2 hex> <chan:[eapd]> <flags:1 hex> <utf8 text>
-//   (GeneralsX: scale32: THIS CLIENT NOW WRITES GXM3. 34 slots need a 34-bit mask; the contract with
-//   the relay (D scale32-relay) is a fixed 16-digit field = a 64-bit RelayMaskType, slot at most 0x21, header 29 bytes, text
-//   budget 171. GXM2 - "GXREC <room> GXM2 <mask:4 hex> <slot:2 hex> <chan> <flags> <text>", header 17, text 183, mask at most
-//   0x3FFF, slot at most 0x0D - is what 14-slot clients wrote; this header no longer parses or writes it, the relay still reads it.)
-//   (GXM1 was "GXCHT <room> GXM1 <mask:3 hex> ...", and briefly "GXREC <room> GXM1 ..." - see below)
-//
-// GeneralsX: GXREC, NOT GXCHT. The envelope used to ride GXCHT, which every relay
-// older than parseMatchRecord fans out to the room as chat - so a client that wrongly believed its relay
-// records (a relay rolled back mid-match) published the line it was protecting. An unknown GXREC is dropped
-// by every relay since 07/08/2026 instead (relay.js forward()). The relay still reads GXCHT GXM1 from a
-// client that predates this, and GXREC GXM1 from one that predates GXM2.
-//
-// GXM1 IS THE MAGIC AND THE VERSION AT ONCE. A version bump is the new literal GXM2, never a new
-// field: an anchored, exact-width grammar is the only thing standing between a record and a chat
-// line a player typed by hand, and a variable-width header cannot be anchored.
-//
-// GeneralsX: AND THIS IS THAT BUMP. GXM1 carried a three-digit mask and a slot
-// of at most 0x0b, because MAX_SLOTS was 12. Fourteen slots (12 players + 2 observers) need a fourteen-bit
-// mask - four digits - so this client writes GXM2, which differs from GXM1 in the mask width and the
-// bounds alone - and in its CARRIER: GXM2 rides "GXREC", never "GXCHT", because a relay that knows only
-// GXM1 would hand a GXM2 line under GXCHT to parseChat and deliver it to the room, where under GXREC it
-// drops it (see GX_MATCH_RECORD_RELAY_GATE_PENDING). The relay parses GXM1 under GXCHT or GXREC and GXM2
-// under GXREC only (relay.js RECORD_TAG), so a client that predates GXM2 keeps recording too.
-//
-// HEADER ONLY AND ENGINE-FREE, deliberately, following GameClient/ChatRateLimit.h next door. It
-// includes nothing at all, so it is testable with no engine, no display and no network
-// (scripts/test/gxm1-envelope-test.cpp), and adding it costs no CMake edit.
-//
-// THE BUDGET IS THE WHOLE REASON THIS FILE HAS ARITHMETIC IN IT. Transport::sendRelayMatchRecord (sendRelayChat's rules) caps the
-// text it will send at GX_CHAT_TEXT_MAX = 200 BYTES (Transport.h:720, in-digest and immovable) and
-// counts bytes, not code points, so a naive cap splits a UTF-8 sequence in half. The header costs
-// exactly 17 of those bytes (GXM2), which leaves 183 - and the truncation below happens on a CODEPOINT
-// boundary so a clipped line is still valid UTF-8 rather than a replacement character in evidence.
+// The GXM3 in-match record envelope. Chat is audience-scoped, but a relay broadcasts plain GXCHT to the room, so
+// this envelope carries the mask for the relay to RECORD the line and emit no GXSAY.
+//   GXREC <room> GXM3 <mask:16 lowercase hex> <slot:2 hex> <chan:[eapd]> <flags:1 hex> <text>
+// 29-byte header, 171 text; slot at most 0x21. GXREC, NOT GXCHT: an older relay fans GXCHT out as chat,
+// an unknown GXREC is dropped.
 
 #pragma once
 
@@ -83,28 +44,10 @@ static const unsigned long long GX_MATCH_MASK_MAX = 0x3FFFFFFFFULL;
 /// The highest slot index, 0x21 = 33 - the same MAX_PLAYER.
 static const int GX_MATCH_SLOT_MAX = 0x21;
 
-/// Does this GX_MATCH_RECORD value turn recording ON? `value` is getenv's answer, so a NULL means
-/// the variable is not set at all.
-///
-/// GeneralsX: DARK BY DEFAULT, AND THE POLARITY IS THE WHOLE FIX.
-///
-/// This used to be the other way round: recording was on unless the variable said "0". That default
-/// is the leak this envelope exists to prevent, wearing the envelope's own clothes. The envelope is
-/// safe ONLY against a relay that implements parseMatchRecord; against one that does not - a
-/// rollback, a relay named in somebody's Options.ini, an operator who has not upgraded - the
-/// datagram is 28 bytes of well-formed GXCHT, under the relay's MAX_CHAT_TEXT (100) and MAX_CHAT_LEN
-/// (320), so parseChat accepts it and the room is sent ally and private chat in plaintext. Shipping
-/// that ON meant the failure mode was the default and the safe state needed an action.
-///
-/// SO THE POLARITY IS NOT A PREFERENCE, IT IS THE HOUSE PATTERN. Transport.h:709 states it for the
-/// relay-auth word and Transport.h:393 states it for direct peer-to-peer: dark until the relay says
-/// otherwise, because a client that cannot tell an old relay from a new one must assume old. The
-/// difference here, and it is a real shortfall rather than a design choice, is WHO does the saying.
-/// Since 25/09/2026 the relay says it, as a hint - see GX_MATCH_RECORD_RELAY_GATE_PENDING below.
-///
-/// EXACTLY "1", not "anything but 0". "true", "yes", "on", "01" and an empty string all read as OFF.
-/// A gate whose enable is fuzzy is a gate that turns itself on for a typo, and this one publishes
-/// chat when it is wrong.
+/// Does this GX_MATCH_RECORD value turn recording ON? `value` is getenv's answer (NULL = unset).
+/// DARK BY DEFAULT: against a relay without parseMatchRecord the envelope is plain GXCHT, so ally and private
+/// chat would reach the room in plaintext. EXACTLY "1" enables: "true", "yes", "on", "01" and "" are OFF (a fuzzy
+/// enable fires on a typo).
 inline int gxMatchRecordOptInFromEnv( const char *value )
 {
 	if( value == 0 )
@@ -112,17 +55,9 @@ inline int gxMatchRecordOptInFromEnv( const char *value )
 	return ( value[0] == '1' && value[1] == '\0' ) ? 1 : 0;
 }
 
-/// WHAT WAS MISSING, written on the code rather than in a dropoff: a relay->client statement that the relay
-/// records the envelope, so that a client need not rely on the GX_MATCH_RECORD environment variable nobody sets.
-///
-/// GeneralsX: LANDED, AND IT IS A HINT, NOT THE GATE. The word is 'gxm1' on GXAUTH
-/// (relay.js GXM1_CAP) - "this relay records the in-match envelope", GXM1 or GXM2 - read by the lobby presence
-/// socket and by the match transport (GXMatchChat.h gxMatchRecordEnabled). But no capability can take
-/// recording dark "within one keepalive" of a rollback: the presence socket is suspended for the match and never
-/// hears the old relay, and even a word on the match transport arrives one round trip after the old relay starts
-/// accepting that transport's datagrams. So the fail-closed property is the TAG: the envelope goes out as GXREC,
-/// which a relay that does not record - or cannot parse this version - DROPS (see the header note at the top of
-/// this file), so a stale word costs a line missing from the transcript, never a line in the room.
+/// The relay's statement that it records the envelope: the word 'gxm1' on GXAUTH (relay.js GXM1_CAP). A HINT, not
+/// the gate: a rollback cannot take it dark within one keepalive. The fail-closed property is the TAG: a relay
+/// that does not record DROPS GXREC, so a stale word costs a missing transcript line, never a line in the room.
 static const int GX_MATCH_RECORD_RELAY_GATE_PENDING = 0;
 
 /// Encode one Unicode code point as UTF-8. Returns the bytes written, or 0 when the code point is
@@ -244,20 +179,10 @@ inline unsigned int gxMatchDecodeWide( const wchar_t *in, int inCount, int *i )
 	return u;
 }
 
-/// Encode a wide string as UTF-8 into `out`, stopping on a CODEPOINT BOUNDARY when the next
-/// character would not fit in `outSize - 1` bytes. Always NUL terminates. Returns the bytes
-/// written, not counting the NUL. `*outTruncated` is set to 1 when anything was dropped for space
-/// and 0 otherwise - it is written on every call, including the early returns.
-///
-/// TRUNCATION IS ON A CODEPOINT BOUNDARY, NOT A BYTE ONE. Transport::sendRelayMatchRecord counts BYTES
-/// (Transport.h:720), so a byte-boundary cut would hand the relay an invalid sequence and put a
-/// replacement character in the operator's evidence. Because gxMatchUtf8Encode returns 0 rather
-/// than a partial write when the remaining space is short, the boundary falls out of the encoder
-/// rather than being computed here twice.
-///
-/// Control bytes are dropped rather than encoded. sendRelayMatchRecord strips every byte < 0x20 and 0x7F
-/// on the way out (Transport.cpp:1855-1862), so a control byte left in here would shorten the line
-/// the relay actually receives while this function reported the longer length.
+/// Encode a wide string as UTF-8 into `out`, stopping on a CODEPOINT BOUNDARY when the next character would not
+/// fit in `outSize - 1` bytes. Always NUL terminates; returns the bytes written. `*outTruncated` is set on every
+/// call. Control bytes are dropped (sendRelayMatchRecord strips < 0x20 and 0x7F), so the length reported matches
+/// what is sent.
 inline int gxMatchUtf8FromWide( const wchar_t *in, int inCount, char *out, int outSize,
                                 int *outTruncated )
 {
@@ -302,24 +227,10 @@ inline int gxMatchUtf8FromWide( const wchar_t *in, int inCount, char *out, int o
 	return written;
 }
 
-/// Read one code point out of a UTF-8 sequence, advancing *i past what it consumed.
-///
-/// THIS IS THE INVERSE OF gxMatchUtf8Encode, AND THE OPERATOR DIRECTION NEEDS IT. The relay puts
-/// real UTF-8 BYTES on the wire: plan E's gxAdminText converts the operator's JSON text to UTF-8,
-/// cuts it on a codepoint boundary, and hands announceToRoom a latin1 VIEW of those bytes -
-/// Buffer.from(view, 'latin1') then copies them out unchanged. Measured, node v24.20.0: the
-/// operator typing "café €5" puts 63 61 66 c3 a9 20 e2 82 ac 35 on the wire. A drain
-/// that widened byte -> code point would render those ten bytes as ten CODE POINTS - U+0063 U+0061
-/// U+0066 U+00C3 U+00A9 U+0020 U+00E2 U+0082 U+00AC U+0035 - which is mojibake in front of every
-/// player and, once recorded, permanently in the transcript.
-///
-/// Decoding here is the fix. Changing the relay's 'latin1' to 'utf8' is NOT: measured, that turns
-/// those same bytes into 63 61 66 c3 83 c2 a9 20 c3 a2 c2 82 c2 ac 35 - double-encoded.
-///
-/// Returns 0 for anything malformed - a stray continuation byte, a TRUNCATED sequence, an OVERLONG
-/// encoding, a surrogate, or a value above U+10FFFF - and in that case advances *i by exactly one,
-/// so a caller looping on this cannot spin and resynchronises on the next byte rather than
-/// swallowing it. U+0000 also reads back as 0: a NUL is not chat text.
+/// Read one code point out of a UTF-8 sequence, advancing *i past what it consumed; the inverse of
+/// gxMatchUtf8Encode. The relay puts real UTF-8 BYTES on the wire, so widening byte by byte would show mojibake.
+/// Returns 0 for anything malformed (stray continuation, TRUNCATED or OVERLONG, surrogate, above U+10FFFF,
+/// U+0000) and advances *i by exactly one, so a looping caller cannot spin.
 inline unsigned int gxMatchUtf8Decode( const char *in, int inCount, int *i )
 {
 	if( in == 0 || i == 0 || *i < 0 || *i >= inCount )
@@ -427,35 +338,10 @@ inline int gxMatchWideFromCodepoint( unsigned int cp, wchar_t *out, int outCount
 	return 1;
 }
 
-/// Build the datagram body that Transport::sendRelayMatchRecord will put after "GXREC <room> ".
-/// Returns the length written, or 0 when any field is out of range.
-///
-/// OUT OF RANGE IS A REFUSAL, NEVER A CLAMP, and that is the one rule a later editor must not
-/// "improve". The relay's parser is anchored and exact-width precisely because sendRelayMatchRecord strips
-/// control bytes and therefore no byte is impossible for a player to type: a player who types
-/// "GXM3 0000000000003fff 00 e 0 hello" into the LOBBY chat box has that line parsed as a record. Structural
-/// strictness is the only mitigation that exists inside the digest constraint - so a mask of 0x4000
-/// must produce no datagram at all rather than a well-formed datagram claiming an audience the
-/// sender never chose.
-///
-/// GeneralsX: WHAT A HAND-TYPED ENVELOPE ACTUALLY COSTS, corrected. This
-/// note used to be filed under "self-inflicted, visible to nobody else, and costs one line", and
-/// that is true of only the fields the relay overrides. relay.js takes nick, sub, member_ip, room
-/// and session_id from the MEMBER RECORD (relay.js matchRecord, the `sinkEmit` call) and cannot be
-/// lied to about any of them. It takes mask, slot, chan, truncated and text FROM THE DATAGRAM.
-///
-/// So the forger cannot become another player, but they can write a line into the transcript
-/// carrying a SLOT THEY DO NOT OCCUPY and a CHANNEL THEY WERE NEVER ON - including 'd', which
-/// renders in evidence as disconnect-screen chat from a match that may not have had a disconnect.
-/// The line is still stamped with the forger's own identity, so the mitigation holds and nobody is
-/// impersonated; what is lost is that slot, channel and audience are CLAIMS BY THE SENDER and must
-/// be read as such. Anyone reading a transcript should treat the relay-stamped fields as fact and
-/// these four as testimony. This is a relay-contract limit, not a defect in this parser, and it is
-/// closed only by the relay deriving slot from membership - which it cannot do today, because the
-/// relay has no view of the match's slot assignment.
-///
-/// `truncated` is bit 0 of the flags nibble. Bits 1-3 are reserved, are written 0, and must be
-/// ignored on read.
+/// Build the body Transport::sendRelayMatchRecord puts after "GXREC <room> "; returns the length, or 0 if any
+/// field is out of range. OUT OF RANGE IS A REFUSAL, NEVER A CLAMP: a player can type a well-formed envelope into
+/// lobby chat, so strictness is the only mitigation. The relay takes mask, slot, chan, truncated and text from
+/// the datagram: read them as the sender's CLAIMS. `truncated` is bit 0 of the flags nibble; bits 1-3 are written 0.
 inline int gxMatchBuildEnvelope( unsigned long long mask, int slot, char chan, int truncated,
                                  const char *utf8Text, char *out, int outSize )
 {

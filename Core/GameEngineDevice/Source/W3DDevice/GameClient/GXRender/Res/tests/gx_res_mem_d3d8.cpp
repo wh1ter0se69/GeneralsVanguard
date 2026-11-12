@@ -1,7 +1,25 @@
-// GeneralsX: WS-C week 2: the CLASSIC arm of gx_res_mem - DXVK's d3d8 exactly as the game boots it
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The CLASSIC arm of gx_res_mem - DXVK's d3d8 exactly as the game boots it
 // on macOS (SDL3Main.cpp: SDL video, DXVK_WSI_DRIVER=SDL3, SDL_Vulkan_LoadLibrary, an SDL window; dx8wrapper.cpp: dlopen
 // libdxvk_d3d8.dylib by bare name through DYLD_LIBRARY_PATH, Direct3DCreate8). SDL3 and DXVK are dlopened, so this
-// tool links neither; the window is a visible 64x64 one (Mini only - no windows on the MacBook). Compiled in its own TU
+// tool links neither; the window is a visible 64x64 one. Compiled in its own TU
 // against the fork's native D3D8 headers.
 #include "gx_res_mem.h"
 

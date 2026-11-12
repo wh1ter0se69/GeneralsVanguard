@@ -62,8 +62,8 @@ const FieldParse Image::m_imageFieldParseTable[] =
 // PRIVATE FUNCTIONS //////////////////////////////////////////////////////////////////////////////
 // GeneralsX: Every field a MappedImage definition writes goes through this table, so the image
 // collection hears of every definition parsed after start-up - a map's map.ini / solo.ini - by the parser itself, not by
-// comparing values afterwards (a restatement equal to a value we hold changes nothing a comparison can see;
-// lui-r6). At start-up, and into the scratch collection of gxKeepOriginals, it is a no-op (nothing is swapped yet).
+// comparing values afterwards (a restatement equal to a value we hold changes nothing a comparison can see).
+// At start-up, and into the scratch collection of gxKeepOriginals, it is a no-op (nothing is swapped yet).
 static void gxNoteRedefined( void *instance )
 {
 	if( TheMappedImageCollection != nullptr )

@@ -16,32 +16,11 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: AN ADMIN'S CHEAT ORDER IS SIGNED BY THE ADMIN, so no other peer can send one
-// in the admin's name.
-//
-// WHY A SIGNATURE AND NOT THE ORDER'S SENDER FIELD. A network order names its sender in a packet field
-// (NetCommandMsg::getPlayerID) that is not bound to the peer the datagram came from: the packet router relays
-// everybody's orders and a frame resend carries a third peer's, and command envelopes are not authenticated
-// per hop (a known limit of the inherited lockstep design). So "the admin's slot sent it" is not evidence.
-// A signature is: each
-// relay-proven admin holds a per-match Ed25519 key (GameClient/GXAdminKey.h), the relay publishes the public half
-// for live admins only (relay.js GXAKR), every peer confirms the host stamped exactly that key at the start
-// (LANAPI::OnGameStart), and the simulation accepts an admin order only with a valid signature under the stamped key
-// for the sender's slot and a sequence number above the last one it accepted from that slot. Whoever relays, resends
-// or forges the envelope, nobody without the private half can make an order the simulation accepts.
-//
-// WHAT IS SIGNED - the payload below, byte for byte, over the order's LOGICAL arguments (the trailer excluded):
-//     "GXAO1" | slot u8 | seq u32 | seed u32 | type u32 | argc u32 | per argument: tag u8 + value
-// little-endian throughout; tags 'I' int32, 'B' bool (1 byte), 'R' float32 bits, 'L' three float32 bits. Any other
-// argument type makes the order unsignable, and so unacceptable - no cheat uses one. `seed` is the match's random
-// seed and `seq` a per-slot counter, so an order signed for one match or one moment is refused in any other.
-//
-// THE TRAILER is 18 INTEGER arguments appended after the logical ones: seq, the 64-byte signature as 16
-// little-endian words, then GX_ADMIN_ORDER_MAGIC last. Its presence is recognised by that last word alone, so an
-// order without one keeps meaning exactly what it did (the one-human sandbox never signs).
-//
-// INSIDE THE DIGEST (Common/), header only, and standalone: scripts/test/admin-order-test.sh compiles it with
-// nothing but GXEd25519.cpp and GXSha512.cpp. The GameMessage adapters live in the engine files that use them.
+// Admin cheat orders are Ed25519-signed because a network order sender field is not bound to its peer.
+// Payload: GXAO1 slot:u8 seq:u32 seed:u32 type:u32 argc:u32, then per arg tag u8 + value (I, B, R, L); little-endian.
+// Other argument types are unsignable, so refused. Seed (the match seed) and seq bind an order to one match and moment.
+// Trailer: 18 INTEGER args after the logical ones: seq, 64-byte signature as 16 LE words, GX_ADMIN_ORDER_MAGIC last.
+// Seq must rise per slot. Test: scripts/test/admin-order-test.sh.
 
 #pragma once
 

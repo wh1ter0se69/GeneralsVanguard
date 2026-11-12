@@ -36,71 +36,27 @@ Bool CommandRequiresDirectSend(NetCommandMsg *msg);
 Bool IsCommandSynchronized(NetCommandType type);
 const char* GetNetCommandTypeAsString(NetCommandType type);
 
-// GeneralsX: In-game chat is attacker-controlled text.
-//
-// The only thing standing between another player's keyboard and TheInGameUI's message list is this
-// function. It is applied TWICE on purpose: once in ConnectionManager::sendChat, so the local echo
-// and the wire copy are identical and a local IME cannot smuggle anything out; and once in
-// NetPacket::readChatMessage, because a hostile peer obviously does not run our send path.
-//
-// What it removes and why:
-//   * C0 (< 0x20) and DEL and C1 (0x80-0x9F). A newline in a chat line is the classic way to push
-//     a single message across several rows of the message list, and the message list is drawn
-//     over the tactical view.
-//   * Lone surrogates and the U+FFFE/U+FFFF non-characters, which are not text and which the
-//     Windows 16-bit and POSIX 32-bit wchar_t paths disagree about.
-//   * The bidi controls: U+200B-U+200F, U+202A-U+202E, U+2066-U+2069, U+FEFF, and the U+2028/2029
-//     separators. An unterminated RLO reorders every glyph drawn AFTER it, so one player could
-//     scramble the rest of another player's HUD text rather than merely their own line.
-//
-// It is deliberately a whitelist-shaped blacklist over ranges rather than a call into any locale
-// aware classifier: this runs on four platforms whose iswprint() do not agree, and a chat filter
-// that behaves differently per platform is a filter that has not been tested.
-//
-// GX_NET_CHAT_MAX_CHARS bounds the result. The shipped InGameChat.wnd entry field is MAXLEN 64, so
-// this is nearly double what any stock client can produce, while staying far below
-// UnicodeString::MAX_FORMAT_BUF_LEN (2048) - which matters because processChat runs the text
-// through UnicodeString::format, and POSIX vswprintf returns -1 rather than truncating on overflow,
-// so an over-long line would silently discard the WHOLE row instead of clipping it.
+// In-game chat is attacker-controlled text. Applied on send (local echo matches the wire copy) and again in
+// NetPacket::readChatMessage, since a hostile peer skips our send path. Strips C0, DEL, C1, lone surrogates,
+// U+FFFE/U+FFFF and bidi controls, by range because iswprint() differs per platform. The length cap stays under
+// UnicodeString::MAX_FORMAT_BUF_LEN (2048): POSIX vswprintf returns -1 on overflow, dropping the whole row.
 const Int GX_NET_CHAT_MAX_CHARS = 127;
 
 /// Strip everything that is not safely displayable and clamp to GX_NET_CHAT_MAX_CHARS.
 /// Returns TRUE when anything survived; a line that sanitises away to nothing is not worth drawing.
 Bool GXSanitizeChatText(UnicodeString &text);
 
-// GeneralsX: [GXNET] counters.
-//
-// Free-running totals for the four events that decide whether a lockstep stall is packet loss or
-// something else. They exist because every DEBUG_LOG on every one of those paths compiles to
-// ((void)0) in a deploy build (RTS_DEBUG is not defined for RelWithDebInfo without
-// RTS_BUILD_OPTION_DEBUG), which is exactly why two previous stutter fixes were aimed at the
-// render loop - it was the only observable part of the system.
-//
-// Plain globals rather than members, deliberately: a member on Connection or Transport would be
-// per-object and would have to be summed over slots by something that can see them all, and both
-// classes reset their own metrics on their own schedules (Connection::doRetryMetrics zeroes
-// m_numRetries every 10 s). These only ever go up; the reader takes deltas.
-//
-// Reading them costs nothing when the trace is off - the increments are unconditional but are a
-// single add on paths that already do a syscall or a memcpy.
+// [GXNET] counters: free-running totals separating packet loss from other lockstep stalls. Plain globals, not
+// Connection/Transport members, which reset their own metrics (doRetryMetrics zeroes m_numRetries every 10 s).
+// They only go up; the reader takes deltas. DEBUG_LOG is compiled out of deploy builds.
 extern UnsignedInt TheGxNetRetries;    ///< ack-requiring commands re-offered after m_retryTime
 extern UnsignedInt TheGxNetSendFails;  ///< Transport::doSend, socket write returned <= 0
 extern UnsignedInt TheGxNetSendDrops;  ///< of those, the ones discarded as permanently undeliverable
 extern UnsignedInt TheGxNetRecvDrops;  ///< datagrams read off the socket with no free in-buffer slot
 
-// GeneralsX: A file-transfer progress value meaning "this peer could not
-// write the file". The progress field is a signed Int on the wire (NetCommandMsg.h:597-604), so a
-// negative value costs no protocol change and cannot collide with a real 0..100 percentage.
-//
-// WHY THIS EXISTS. ConnectionManager::processFile reported a flat 100 whether or not openFile
-// succeeded - the only trace of a failure was a DEBUG_LOG that is compiled out of shipping builds.
-// The host's transfer loop takes the MIN across slots and calls 100 "MapTransfer:Done", so a peer
-// that wrote nothing still reported the map delivered. That is the reported 2026-08-10 symptom in
-// full: the owner watched a map be "sent, delivered, done" and then found that only Windows could
-// play it. The bytes really were lost on the other three; nothing on either side said so.
-//
-// A silent false success is the worst available failure mode here, because the joiner then bails on
-// its own map check (LANAPICallbacks.cpp:261) and the host is left believing the transfer worked.
+// File-transfer progress value meaning this peer could not write the file. Progress is a signed Int on the wire
+// (NetCommandMsg.h:597-604), so a negative value needs no protocol change and cannot collide with a real 0..100.
+// Without it processFile reported 100 even when openFile failed, and the host counted the map as delivered.
 const Int GX_FILE_PROGRESS_FAILED = -1;
 
 #ifdef DEBUG_LOGGING

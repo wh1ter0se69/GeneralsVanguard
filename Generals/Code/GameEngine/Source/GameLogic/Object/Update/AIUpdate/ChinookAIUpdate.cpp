@@ -1183,7 +1183,6 @@ void ChinookAIUpdate::aiDoCommand(const AICommandParms* parms)
 	// GeneralsX: The same refusal privateExit applies (TheSuperHackers #3089/#3136), made before the
 	// AICMD_EXIT case below starts landing the Chinook: a script's "team exit all buildings" sends aiExit(nullptr) to every
 	// member, and a flying Chinook in the team landed (dropping its order) only to find it was inside nothing
-	//
 	if (parms->m_cmd == AICMD_EXIT)
 	{
 		const Object *container = parms->m_obj != nullptr ? parms->m_obj : getObject()->getContainedBy();

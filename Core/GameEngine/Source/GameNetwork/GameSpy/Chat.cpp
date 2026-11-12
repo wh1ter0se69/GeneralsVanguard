@@ -206,7 +206,7 @@ Bool GameSpyInfo::sendChat( UnicodeString message, Bool isAction, GameWindow *pl
 	return false;
 }
 
-// GeneralsX @feature Chat text drawn in a player's own lobby colour is unreadable for the
+// GeneralsX: Chat text drawn in a player's own lobby colour is unreadable for the
 // darker half of the multiplayer palette (red, blue, purple) on the near-black chat listbox.
 // Lift anything below a luma floor by blending it toward white: luma is linear in the
 // components, so the exact blend factor can be solved for instead of iterating, and blending
@@ -231,7 +231,7 @@ static Color MakeChatColorReadable( Color color )
 	return GameMakeColor(red, green, blue, alpha);
 }
 
-// GeneralsX @feature Resolve the lobby colour a chat line should be drawn in. Speakers who hold
+// GeneralsX: Resolve the lobby colour a chat line should be drawn in. Speakers who hold
 // no slot in the current staging room (anyone chatting in a group room, or a player who already
 // left), slots still set to a random colour and observers keep the GameSpy palette colour,
 // which is what the "???" / "None" swatch in the slot list shows for them.
@@ -360,7 +360,7 @@ void GameSpyInfo::addChat( PlayerInfo p, UnicodeString msg, Bool isPublic, Bool 
 		fullMsg.format( L"[%ls] %ls", name.str(), msg.str() );
 	}
 
-	// GeneralsX @feature Public chat in a game room is drawn in the speaker's lobby colour so
+	// GeneralsX: Public chat in a game room is drawn in the speaker's lobby colour so
 	// who said what reads at a glance. Private messages keep their palette colour, otherwise a
 	// whisper would be indistinguishable from something the whole room can see.
 	Color chatColor = GameSpyColor[style];

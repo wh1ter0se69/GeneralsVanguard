@@ -303,19 +303,9 @@ void ConnectionManager::init()
 #ifdef MEMORYPOOL_DEBUG
 	TheMemoryPoolFactory->debugSetInitFillerIndex(m_localSlot);
 #endif
-	// GeneralsX: Was a bare `m_packetRouterSlot = 0;` carrying retail's
-	// "@todo The LAN/WOL interface should be telling us who the packet router is based on machine
-	// specs passed around through game options."
-	//
-	// This is only the pre-lobby placeholder now. The real choice is made by electPacketRouter(),
-	// called from parseUserList() once the slot list is known - see the long note there for why the
-	// election is what it is, and for what a MEASURED election would actually require.
-	//
-	// Leaving a literal 0 here was not merely untidy. Nothing guarantees slot 0 holds a human: if it
-	// does not, m_connections[0] is null on every peer, isPacketRouter() is false for everyone, and
-	// updateRunAhead's non-router branch dereferences m_connections[m_packetRouterSlot] with no null
-	// check - a hard crash on every peer at the first metrics interval. electPacketRouter() picks a
-	// slot that is provably occupied, and the null guard added at that call site catches the rest.
+	// Pre-lobby placeholder; electPacketRouter() picks the real router from parseUserList().
+	// Slot 0 may hold no human: m_connections[0] is then null and updateRunAhead would dereference it,
+	// so the election chooses a slot that is provably occupied.
 	m_packetRouterSlot = 0;
 	for (i = 0; i < MAX_SLOTS; ++i) {
 		m_packetRouterFallback[i] = -1;
@@ -414,33 +404,8 @@ void ConnectionManager::reset()
 #endif
 	m_packetRouterSlot = -1;
 
-	// GeneralsX: BOUND BY THE ARRAY, NOT BY A HISTORY LENGTH.
-	//
-	// These two are m_fpsAverages[MAX_SLOTS] and m_latencyAverages[MAX_SLOTS] - one entry PER PLAYER,
-	// written by processRunAheadMetrics at [playerID]. They are not history rings; the rings live in
-	// FrameMetrics and are the things m_network*HistoryLength is actually for. Walking a MAX_SLOTS
-	// array to a history length was a straight out-of-bounds write into whatever follows.
-	//
-	// THIS WAS LIVE FOR ALMOST THE WHOLE PROJECT, not merely latent. An earlier revision of this
-	// comment said it "has not fired yet", which was true of the tree the fix landed on and false of
-	// every tree before it. Corrected here rather than left to be quoted onward:
-	//
-	//   * retail import 3d0ee53a0..c757f213b - defaults 30 and 200, MAX_PLAYER 7 so MAX_SLOTS 8. The
-	//     fps loop wrote 22 Ints past its array and the latency loop 192 Reals - 768 bytes - through
-	//     m_fpsAverages, the scalars after it, and into the file-transfer maps. Live.
-	//   * c757f213b dropped both defaults to 10, but MAX_SLOTS was still 8. Still live, 2 past each.
-	//   * 3c8e01846 (12/08/2026) raised MAX_SLOTS to 12. 10 < 12, so it went latent - ONE DAY before
-	//     this fix.
-	//
-	// Both lengths are INI-parsed (GlobalData.cpp: "NetworkFPSHistoryLength",
-	// "NetworkLatencyHistoryLength"), so a data file raising either past MAX_SLOTS makes it live
-	// again - a DATA file silently corrupting engine memory on every reset(). Bounding by the array
-	// is what closes that, not the current defaults. The init path a few hundred lines above always
-	// used MAX_SLOTS; only reset() was wrong.
-	//
-	// An unbounded search of the tree at 91f386ad0 found no second instance in either direction: no
-	// other MAX_SLOTS array walked by a history length, and no history-length ring indexed by a slot
-	// without a guard.
+	// Bound by the array, not by a history length: these are per-player arrays of MAX_SLOTS entries.
+	// Both history lengths are INI-parsed, so walking to them could write past the arrays from a data file.
 	for (i = 0; i < (UnsignedInt)MAX_SLOTS; ++i) {
 		m_fpsAverages[i] = -1;
 	}
@@ -573,25 +538,11 @@ static void gxReportResendUnacked() {
 	}
 }
 
-// GeneralsX: A disconnect-range command that did not arrive from the peer it
-// names - refused in processNetCommand, and NOT ACKED in doRelay either. The ack
-// goes to the NAMED peer and carries the forger's command ID, so it could cancel the retransmission
-// of that peer's own queued command with the same ID. Every other acked type can still be forged to
-// the same end - a GAMECOMMAND's sender field is just as unbound - so this closes only the range the
-// gate can judge; the envelope needs per-hop authentication for the rest.
-// GeneralsX: FRAMERESENDREQUEST joins the range (and the name drops
-// "Disconnect"): it too is only ever sent DIRECT by the peer it names (requestFrameDataResend ->
-// sendLocalCommandDirect) and never relayed, so it can be judged the same way - and it must be judged
-// HERE, before doRelay's ackCommand, or a forged one still gets an ack sent to the named peer with the
-// forger's (originalPlayerID, commandID). processFrameResendRequest refuses the request itself.
-// GeneralsX: The three file-transfer types join it. Each is CommandRequiresDirectSend
-// and sent only by the peer it names (sendFileAnnounce / sendFile by the host, a progress report by its
-// receiver, all through sendLocalCommandDirect, relay = the one recipient), so the datagram carrying one came
-// from that peer. FILEANNOUNCE and FILEPROGRESS always fit one datagram (a name of at most _MAX_PATH; two
-// numbers), so one reassembled from a wrapper (m_recvFrom nullptr, arrivedFrom FALSE) is forged too - review
-// net-hardening r1: a one-chunk wrapper from the attacker's own slot carried a "failed" report in another
-// peer's name. A FILE is legitimately reassembled; that case is not judged here. (With RETAIL_COMPATIBLE_NETWORKING's
-// 476-byte packets - no preset builds it - a long map path does wrap an announce, so there it is judged like a FILE.)
+// Commands sent only DIRECT by the peer they name (disconnect range, FRAMERESENDREQUEST, file transfer) are judged
+// here, before doRelay acks them: the ack would go to the named peer and could cancel its retransmit.
+// FILEANNOUNCE and FILEPROGRESS fit one datagram, so a reassembled one is forged; a FILE is reassembled legitimately.
+// With RETAIL_COMPATIBLE_NETWORKING (476-byte packets) a long map path can wrap an announce: judged like a FILE.
+// Other acked types (GAMECOMMAND) stay forgeable; that needs per-hop authentication.
 Bool ConnectionManager::isForgedDirect(NetCommandMsg *msg) {
 	const NetCommandType cmdType = msg->getNetCommandType();
 #if RETAIL_COMPATIBLE_NETWORKING
@@ -703,19 +654,10 @@ void ConnectionManager::relayDatagramCommand(NetCommandRef *cmd) {
 	}
 }
 
-// GeneralsX: ONE REASSEMBLED SERIALIZATION (v16 section 5).
-// Its chunks were acked hop by hop (WRAPPERACK); the command itself is acked as base acks any command - to the hop it came from,
-// the source, as ackCommand acks a datagram's sender. Then:
-//  - From its own sender (source == sender): as base, processNetCommand and, unless it says no, sendRemoteCommand, which re-wraps
-//    it per connection with the recipient-only mask - the router relays the COMMAND, never the chunks. One exception keeps base's
-//    forwarding obligation: a synchronized command for a frame this peer has already executed is still owed to the
-//    rest of its relay, through the connection loop only - never into local frame data (FrameDataManager indexes frame %
-//    FRAME_DATA_LENGTH unchecked, so a stale command would count into a later frame).
-//  - From anyone else (a frame resend, or a forgery): local delivery only. Stated deviation: base forwarded it on
-//    its relay; honest ones carry recipient-only masks, so nothing honest changes, and a forgery is not exported.
-//  - A replay (a whole copy of a recorded synchronized serialization arrived again: its sender retried after a lost ack): handled as
-//    base handles a duplicate - acked and processed against the CURRENT frame data - and owed to the record's relay as one full copy
-//    per recipient (Task 5's obligations).
+// One reassembled serialization: chunks were acked hop by hop, the command is acked to the hop it came from.
+// From its own sender: processed, then re-wrapped per connection with the recipient-only mask. A stale synchronized
+// command is only forwarded, never put into frame data (frame % FRAME_DATA_LENGTH is unchecked).
+// From anyone else: local delivery only. A replayed copy is acked, processed and relayed.
 void ConnectionManager::processReadyWrapped(const GXReadyItem &item) {
 	NetCommandRef *cmd = item.ref;
 	NetCommandMsg *c = cmd->getCommand();
@@ -818,36 +760,10 @@ Bool ConnectionManager::processNetCommand(NetCommandRef *ref) {
 	if ((cmdType == NETCOMMANDTYPE_ACKSTAGE1) ||
 			(cmdType == NETCOMMANDTYPE_ACKSTAGE2) ||
 			(cmdType == NETCOMMANDTYPE_ACKBOTH)) {
-		// GeneralsX: An ack must come from the peer it names (the acker,
-		// msg->getPlayerID()) or from our packet router. processAckStage1 trusted the field, so a forged
-		// ACKBOTH (playerID R, commandID X, originalPlayerID V) sent to V deleted V's queued command X
-		// to R (Connection::processAck) and its retransmission stopped; IDs are 16-bit and sequential.
-		// Honest sources, from every sender in this file:
-		//  - ackCommand sends each ack straight from the acker to its destination, playerID = acker.
-		//  - An ack carries no relay field (NetAckCommandMsg::getSmallNetPacketSelect), so it inherits
-		//    the previous command's mask in its packet; behind a non-router's own commands that is
-		//    "everyone but me", and the router's sendRemoteCommand below forwards it to them. Those
-		//    copies arrive from the ROUTER naming someone else, so they must still pass. (Until 02/10/2026
-		//    they were also the only way a frame resent to that acker (sendSingleFrameToPlayer) got cleared
-		//    from the resender's queue; ackCommand now acks the resender directly.)
-		//  - processAckStage2's ACKSTAGE2 never sets playerID (0 on the wire) and is sent by the
-		//    relayer - the router - so it too arrives from the router.
-		// The router itself has no connection to itself, so it accepts only acks from their acker and
-		// relays nothing else: a forged ACK PACKET cannot be laundered through it. A refused ack is not
-		// relayed.
-		// Known limit: command envelopes are not authenticated per hop (inherited lockstep design).
-
-
-
-
-
-
-
-
-
-
-
-
+		// An ack must come from the peer it names or from our packet router; a forged ACKBOTH could delete another
+		// peer queued command with the same 16-bit ID and stop its retransmission. Honest sources: ackCommand,
+		// router-forwarded acks, and ACKSTAGE2 (playerID 0, from the router). The router accepts only acks from their acker.
+		// Not closed: forging the acked COMMAND gives the same cancel; that needs per-hop authentication.
 		if (!arrivedFrom(msg->getPlayerID()) && !arrivedFrom(m_packetRouterSlot)) {
 			static Int s_ackRefusals = 0;	// Trade-off: capped, as the disconnect gate below
 			if (s_ackRefusals < 32) {
@@ -912,23 +828,10 @@ Bool ConnectionManager::processNetCommand(NetCommandRef *ref) {
 
 	// Handle disconnect commands as a range
 	if ((cmdType > NETCOMMANDTYPE_DISCONNECTSTART) && (cmdType < NETCOMMANDTYPE_DISCONNECTEND)) {
-		// GeneralsX: A disconnect command speaks for the peer that SENT it.
-		//
-		// Its sender is getPlayerID(), a packet field, and the disconnect machinery trusted it as a
-		// person: a vote counted for whoever the packet named, so one peer could cast every vote
-		// needed to vote anyone out, and a DISCONNECTPLAYER naming the router as its sender passed
-		// for the router's. Measured: forged as the router by slot 1, it dropped slot 2 from the
-		// router's mesh (scripts/test/net-kill-gates.sh forge-eject-as-router).
-		//
-		// This whole range can be bound to the transport, unlike a synchronised order: every one of
-		// these is sent DIRECT by the peer it names (CommandRequiresDirectSend, or sendLocalCommandDirect
-		// for the keepalive and the router query/ack), is never relayed (this branch returns TRUE,
-		// which stops the router forwarding it) and is never re-sent on another peer's behalf
-		// (sendSingleFrameToPlayer only resends frame data). So the datagram it arrived in came from
-		// the peer it names, or it is forged. What the datagram came from is not a claim: through a
-		// relay it is the source the relay checked against the sender's registration (relay.js
-		// refuses a mismatch), direct it is the source whose pair key verified the tag
-		// (Transport::doRecv, authVerifyAndStrip), and on a LAN it is the socket's source address.
+		// A disconnect command speaks for the peer that SENT it. Each is sent DIRECT by the peer it names and never
+		// relayed or re-sent for another peer, so the datagram source must be that peer (relay registration, pair key
+		// tag, or LAN socket address). Otherwise one peer could cast every vote needed to vote anyone out, or forge
+		// a DISCONNECTPLAYER as the router.
 		if (isForgedDirect(msg)) {
 			static Int s_refusals = 0;	// Trade-off: capped so a flood of forgeries cannot turn into a flood of fflush
 			if (s_refusals < 32) {
@@ -994,15 +897,13 @@ Bool ConnectionManager::processNetCommand(NetCommandRef *ref) {
 			processChat((NetChatCommandMsg *)msg);
 			return FALSE;
 
-		// GeneralsX: A file transfer speaks for the peer that sent it, and only the
-		// game host sends files. Any connected peer could send a FILE and have it written (sweep v-files-01),
-		// or an announce that replaced the host's (its name is what the host's progress poll matches), or a
-		// "failed" report in another peer's name that aborted the host's transfer. isForgedDirect binds a
-		// datagram to the slot it names; slot 0 is the host (GameInfo::amIHost) and the only one that calls
-		// sendFileAnnounce / sendFile (FileTransfer.cpp doFileTransfer). None of the three is ever relayed: each is
-		// sent direct to its one recipient (relay = that slot). An accepted one carrying a wider relay mask was
-		// forwarded, the copy was refused downstream (it arrives from us, naming its sender) and so never acked,
-		// and the host's queue never emptied - the transfer stalled (net-hardening r2). TRUE = do not relay.
+		// A file transfer speaks for the peer that sent it, and only the game host (slot 0, GameInfo::amIHost) sends
+		// files (FileTransfer.cpp doFileTransfer). Otherwise any connected peer could send a FILE and have it written,
+		// replace the host's announce (its name is what the host's progress poll matches), or send a "failed" report in
+		// another peer's name that aborts the transfer. isForgedDirect binds a datagram to the slot it names.
+		// None of the three is relayed: each is sent direct to its one recipient (relay = that slot). A wider relay mask
+		// was forwarded, the copy was refused downstream (it arrives from us, naming its sender) and never acked, and
+		// the host's queue never emptied. TRUE = do not relay.
 		case NETCOMMANDTYPE_FILE:
 		case NETCOMMANDTYPE_FILEANNOUNCE:
 		case NETCOMMANDTYPE_FILEPROGRESS:
@@ -1138,33 +1039,10 @@ void ConnectionManager::processRunAheadMetrics(NetRunAheadMetricsCommandMsg *msg
 	}
 }
 
-// ---------------------------------------------------------------------------
-// GeneralsX: THE ROUTER PUBLISHES ITS ROW; EVERY PEER RENDERS IT.
-//
-// WHY THIS EXISTS AT ALL. The in-game topology is a star. A non-router peer exchanges timed
-// traffic with the packet router and with nobody else (sendLocalCommand's else branch puts the
-// per-frame FRAMEINFO on the router's connection alone), so it can measure exactly ONE number:
-// its own round trip to the host. The router, by contrast, has every peer's leg, because its own
-// FRAMEINFO is fanned out to every connection and every peer acks it. A per-player ping column is
-// therefore not a rendering problem - the data does not exist on a client until somebody sends
-// it. This is that send. It is also exactly the wire change electPacketRouter's note specified.
-//
-// WHAT IT IS NOT. It is not a latency MATRIX. Nobody measures d(i, j) between two non-router
-// peers and this does not change that; every figure published here is a leg to the router, which
-// is the only thing anybody measured. The scoreboard is honest about this because that is what a
-// ping column means in a star: your latency to the host.
-//
-// WHY IT CANNOT PERTURB THE SIMULATION, structurally rather than by assertion:
-//   * The values land in m_peerPingMs, which is a different array from m_latencyAverages. The
-//     two pacing inputs, getMaximumLatency() and getMinimumFps(), read m_latencyAverages and
-//     m_fpsAverages and are called from exactly one place each - the router-only branch of
-//     updateRunAhead. Neither reads m_peerPingMs. Nothing else does either, bar the display
-//     accessor.
-//   * NETCOMMANDTYPE_LATENCYREPORT is absent from IsCommandSynchronized, so it never enters
-//     frame data and never gates allCommandsReady. It is processed on arrival and discarded.
-//   * It is absent from CommandRequiresAck and DoesCommandRequireACommandID, so it adds nothing
-//     to the pending-command or retransmit machinery. A lost report costs one stale interval.
-// ---------------------------------------------------------------------------
+// The router publishes its latency row; every peer renders it. A non-router peer measures only its own round trip
+// to the router, so a per-player ping column needs the router to send its figures; each is a leg to the router.
+// LATENCYREPORT cannot perturb the simulation: it lands in m_peerPingMs, not m_latencyAverages, is not synchronized,
+// and needs no ack or command ID, so a lost report costs one stale interval.
 void ConnectionManager::publishLatencyReport()
 {
 	// Only the centre of the star has anything to say.
@@ -1642,7 +1520,7 @@ void ConnectionManager::processFile(NetFileCommandMsg *msg)
 void ConnectionManager::processFileAnnounce(NetFileAnnounceCommandMsg *msg)
 {
 	DEBUG_LOG(("ConnectionManager::processFileAnnounce() - expecting '%s' (%s) in command %d", msg->getPortableFilename().str(), msg->getRealFilename().str(), msg->getFileID()));
-	// GeneralsX @debug /08/2026 GX_MAPDBG: A1 measurement probe - the realFilename stored
+	// GeneralsX: GX_MAPDBG: measurement probe - the realFilename stored
 	// here is the string every later getFileTransferProgress(path) poll has to match exactly.
 	static const Bool s_mapDbg = (getenv("GX_MAPDBG") != NULL);
 	if (s_mapDbg)
@@ -1681,16 +1559,9 @@ void ConnectionManager::processFileAnnounce(NetFileAnnounceCommandMsg *msg)
 			fflush(stderr);
 		}
 	}
-	// GeneralsX: Store the PORTABLE name, not a reconstructed real path.
-	// The progress poll in doFileTransfer compares against this entry by string, and the real
-	// path it polls with is built locally from getMap() - which does not have to spell the same
-	// path the same way. Measured live 2026-08-10 (GX_MAPDBG, Linux relay harness): the host
-	// polled the lowercased MapCache-key spelling while this entry held the mixed-case round-trip
-	// through portableMapPathToRealMapPath, differing by CASE alone - so every poll missed, the
-	// miss path returns 0, and the host timed out after 60 s and bounced to the lobby while the
-	// transfer had completed 59 s earlier. The portable name is the one string both ends provably
-	// share (it crossed the wire, canonical lowercase-backslash form), so the poll side converts
-	// its path to portable and compares in that space instead - see getFileTransferProgress.
+	// Store the PORTABLE name, not a reconstructed real path. The progress poll in doFileTransfer compares by
+	// string, and the locally built real path can spell the same path differently (case), so every poll missed.
+	// The portable name crossed the wire in canonical form, so both ends share it; the poll converts to portable.
 	s_fileCommandMap[msg->getFileID()] = msg->getPortableFilename();
 	s_fileRecipientMaskMap[msg->getFileID()] = msg->getPlayerMask();
 	for (Int i=0; i<MAX_SLOTS; ++i)
@@ -1732,9 +1603,8 @@ void ConnectionManager::processFileProgress(NetFileProgressCommandMsg *msg)
 	//
 	// This is a MONOTONIC max, and processFileAnnounce seeds the entry with 0, so max(0, -1) is 0 -
 	// GX_FILE_PROGRESS_FAILED would be silently swallowed here and the host would wait out its full
-	// two-minute timeout exactly as before. The failure path would have been dead code that read as
+	// two-minute timeout. The failure path would be dead code that reads as
 	// live, which is the failure mode where a gate is never observed to fire because it cannot.
-	// Caught by cross-model review; the sentinel was inert as first written.
 	//
 	// Sticky in both directions: once a peer has reported it cannot store the file, a later stale or
 	// retransmitted progress packet must not resurrect it into a partial success.
@@ -1812,19 +1682,9 @@ void ConnectionManager::processAckStage1(NetCommandMsg *msg) {
 	if (ref != nullptr) {
 		if (s_gxResendTrace)
 			gxNoteResendAcked(playerID, ref->getCommand(), arrivalSlot());
-		// GeneralsX: Only OUR OWN FRAMEINFOs are a latency sample. The router
-		// also queues every relayed FRAMEINFO (sendRemoteCommand) and every one sendSingleFrameToPlayer
-		// resends on another slot's behalf, and the ack for those comes back here too - matched by
-		// (id, originator) in Connection::processAck. FrameMetrics times it against m_pendingLatencies,
-		// which holds OUR stamp for that frame, so the sample was originator's lag + originator->router
-		// + router->acker->router, and it landed in the same frame%L slot as our own sample and usually
-		// overwrote it. With N humans the line ran (N-1)^2 times per frame instead of N-1, and the
-		// router's run-ahead input (m_latencyAverages[m_localSlot], updateRunAhead) was inflated in
-		// every 3+ player match. 2-player matches relay nothing and are unchanged.
-		// GeneralsX: ...and not one sendSingleFrameToPlayer RESENT: that copy of an old frame carries
-		// a fresh ID, and m_pendingLatencies holds the stamp of the frame's FIRST send (or of a newer frame in the same
-		// slot), so the sample read the stall the resend answered - seconds - into the run-ahead mean. Stock reached this
-		// only when the resender was the acker's router; since ackCommand acks the hop, every resender would.
+		// Only OUR OWN FRAMEINFOs are a latency sample, and not a RESENT one. Acks for FRAMEINFOs the router relays or
+		// resends for another slot come back here too, but m_pendingLatencies holds our stamp for the original frame,
+		// so such a sample is wrong and would inflate the router run-ahead input (m_latencyAverages, updateRunAhead).
 		if ((ref->getCommand()->getNetCommandType() == NETCOMMANDTYPE_FRAMEINFO) &&
 				(ref->getCommand()->getPlayerID() == m_localSlot) &&
 				!((NetFrameCommandMsg *)(ref->getCommand()))->isResent()) {
@@ -1926,7 +1786,7 @@ void ConnectionManager::processAck(NetCommandMsg *msg) {
  */
 PlayerLeaveCode ConnectionManager::processPlayerLeave(NetPlayerLeaveCommandMsg *msg) {
 	UnsignedByte playerID = msg->getLeavingPlayerID();
-	// GeneralsX @bugfix Validate the slot before indexing.
+	// GeneralsX: Validate the slot before indexing.
 	//
 	// getLeavingPlayerID() is a separate payload field from the already-validated
 	// sender ID and carries any value 0-255, while m_connections/m_frameData hold
@@ -1940,28 +1800,10 @@ PlayerLeaveCode ConnectionManager::processPlayerLeave(NetPlayerLeaveCommandMsg *
 		DEBUG_LOG(("ConnectionManager::processPlayerLeave() - rejecting out-of-range player id %d", playerID));
 		return PLAYERLEAVECODE_UNKNOWN;
 	}
-	// GeneralsX: A player may only announce its OWN leave. The leaving slot
-	// is a payload field and nothing tied it to the sender, so any peer could eject any other:
-	// measured, a PLAYERLEAVE naming slot 2 sent from slot 1 ended slot 2's match on its own machine
-	// (scripts/test/net-kill-gates.sh forge-leave). getPlayerID() is the slot whose frame data carried
-	// this order - the same on every peer - and this runs at the same frame on all of them, so every
-	// peer refuses the same forgery; it was already counted, so nobody waits for it.
-	// What this stops is a client that names ITSELF as the sender. Both slots are packet fields and a
-	// synchronised order cannot be bound to the transport the way the disconnect range is (see
-	// processNetCommand): the router relays every other slot's orders and any peer may answer a frame
-	// resend with them. So a router can still put a PLAYERLEAVE into the victim's own frame data, and
-	// so may a peer that also forges the victim's frame count (not measured).
-	//
-	// AND THAT RESIDUAL IS NOT LIMITED TO PLAYERLEAVE, WHICH THIS NOTE USED TO IMPLY. The same forged
-	// envelope carries a plain GAMECOMMAND, whose acting player is also just the packet's sender field
-	// (NetGameCommandMsg::constructGameMessage builds "player%d" from getPlayerID()), and
-	// MSG_SELF_DESTRUCT reaches Player::killPlayer() through GameLogic::onSelfDestruct with none of
-	// the checks in this change in its path - they are scoped to DESTROYPLAYER, PLAYERLEAVE and the
-	// disconnect range. It is the SHORTER kill path, not a longer one. Same precondition, so not a new
-	// class: the forgery must also land in the victim's frame data with a matching command count. The
-	// fix is the same one named there - authenticate the frame-data envelope per hop, or accept a
-	// slot's GAMECOMMAND/FRAMEINFO only from that slot's own transport where it is directly reachable.
-	// Until that exists, these gates narrow the kill paths; they do not close them.
+	// A player may only announce its OWN leave. getPlayerID() is the slot whose frame data carried the order, the
+	// same on every peer, so every peer refuses the same forgery.
+	// A synchronised order cannot be bound to the transport, so a forged envelope can still carry a PLAYERLEAVE or
+	// GAMECOMMAND: these gates narrow the kill paths, closing them needs per-hop authentication.
 	if (msg->getPlayerID() != playerID) {
 		static Int s_refusals = 0;	// Trade-off: capped so a flood of forgeries cannot turn into a flood of fflush
 		if (s_refusals < 32) {
@@ -1986,7 +1828,7 @@ PlayerLeaveCode ConnectionManager::processPlayerLeave(NetPlayerLeaveCommandMsg *
 		DEBUG_LOG(("ConnectionManager::processPlayerLeave() - setQuitting() on player %d on frame %d", playerID, TheGameLogic->getFrame()));
 		m_connections[playerID]->setQuitting();
 	}
-	// GeneralsX @bugfix The assert below dereferenced m_frameData[playerID] before
+	// GeneralsX: The assert below dereferenced m_frameData[playerID] before
 	// the null test on the following line, so a null entry crashed in debug and the
 	// check was pointless in release. Test first.
 	DEBUG_ASSERTCRASH(m_frameData[playerID] == nullptr || m_frameData[playerID]->getIsQuitting() == FALSE,
@@ -2170,28 +2012,10 @@ void ConnectionManager::ackCommand(NetCommandRef *ref, UnsignedInt localSlot, Un
 			}
 		}
 	} else {
-		// GeneralsX: ACK THE HOP: a non-direct command is acked to the peer whose datagram
-		// carried it. Every hop's sender keeps the command on its Connection queue, retransmitting, until the hop's
-		// RECEIVER acks it (Connection::processAck, keyed on the command's ID and named slot). The stock rule - ack my
-		// packet router, or, on the router, the slot the command names - names that sender on every ordinary path: a
-		// non-router hears every relayed command from the router, and the router hears each command from the slot it
-		// names. It names the wrong peer for a frame resent on another slot's behalf (sendSingleFrameToPlayer: the
-		// disconnect catch-up and FRAMERESENDREQUEST), which the RESENDER sends direct with the original slot as its
-		// player. The resender then heard only when it was the router itself, or when this ack happened to inherit a
-		// mask naming it (an ack has no relay field) and the router forwarded it; when this peer WAS the router, never.
-		// It retransmitted the frame for the rest of the match (
-		// section 5; net-kill-gates.sh honest-handover). The misrouted ack also cancelled whatever REAL command shared its
-		// (ID, slot) on the router's queue to us, or on the named slot's queue to us when we route - and a resent
-		// FRAMEINFO's ID comes from the resender's counter, which runs about in step with every other peer's. So: ack whoever
-		// sent the datagram. On every ordinary path that is the peer the stock rule named, so ordinary traffic is
-		// unchanged. The one other direct sender of these types, sendLocalCommand's fallback for a peer with no
-		// router connection, queues them on its own connections too, so it also needs the ack. A resend carries the
-		// resender's own commands as well, and this ACKBOTH now clears them from its m_pendingCommands, as the
-		// router-forwarded copy always did when it got through: harmless, since a resend covers only frames before
-		// the resender's own, and every peer still missing them is behind and gets its own resend. Without a datagram - a reassembled wrapper, whose chunks were acked hop by hop as they arrived - the
-		// stock rule stands.
-		// GeneralsX: A reassembled command has no datagram; its hop is the slot its chunks came from
-		// (processReadyWrapped passes it - design v16 residual 6.3, the same trade).
+		// Ack the hop: a non-direct command is acked to the peer whose datagram carried it. That sender keeps the
+		// command queued until acked (Connection::processAck, keyed on ID and named slot). The stock rule names that
+		// peer on ordinary paths but the wrong one for a frame resent on another slot behalf (sendSingleFrameToPlayer).
+		// A reassembled command has no datagram: its hop is the slot its chunks came from, else the stock rule stands.
 		const UnsignedInt from = (hopSlot < MAX_SLOTS) ? hopSlot : arrivalSlot();
 		if ((from < MAX_SLOTS) && (m_connections[from] != nullptr)) {
 			m_connections[from]->sendNetCommandMsg(ackmsg, gxSlotBit(from));
@@ -2298,10 +2122,10 @@ void ConnectionManager::sendWrapperAck(Int hopSlot, const NetWrapperCommandMsg *
 }
 
 // GeneralsX: FIRST COPIES ONLY. A duplicate copy (a retransmission, or one the router relayed)
-// arrives AFTER the original, finds the frame already ready, and used to be sampled with that later time: a cushion near
+// arrives AFTER the original and finds the frame already ready; sampling it would give a cushion near
 // zero. Network::timeForNewFrame slows the frame rate 10% whenever the minimum cushion drops under the run-ahead slack,
-// so duplicates pulled the whole lobby to ~55 fps: with frame data resent every 30 ms a network lab ran at
-// 56 TPS with ZERO loss (cushion 0-2 frames vs 10-11, same latency). The cushion is how early the input ARRIVED; only the
+// so duplicates would pull the whole lobby to ~55 fps even with ZERO loss.
+// The cushion is how early the input ARRIVED; only the
 // copy that delivered it can say. Callers: sendRemoteCommand for a command FrameData had not seen, processFrameInfo for
 // a frame's first FRAMEINFO.
 void ConnectionManager::sampleArrivalCushion(NetCommandMsg *cmd) {
@@ -2314,61 +2138,10 @@ void ConnectionManager::sampleArrivalCushion(NetCommandMsg *cmd) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// GeneralsX: [GXNET], a 1 Hz network-liveness probe.
-//
-// WHY IT EXISTS. [GXPACE] (GameClient/GameClient.cpp) proved the stutter is time blocked on peer
-// input rather than the local frame limiter, but it cannot say WHY the input is late, and every
-// DEBUG_LOG on every loss path compiles to ((void)0) in a deploy build. That is why two shipped
-// "stutter fixes" both targeted the render loop: it was the only observable part of the system.
-//
-// WHAT IT DECIDES. The standing hypothesis is ordinary WAN packet loss repaired by
-// Connection::m_retryTime, a hard-coded 2000 ms with no NACK for the missing-packet case
-// (FrameData::allCommandsReady only asks for a resend when there are too MANY commands). If that
-// is right, `retries` is non-zero in exactly the seconds [GXPACE] reports as slow, and each retry
-// costs ~2 s of lockstep. If `retries` is 0 through a slow second, the hypothesis is WRONG and the
-// block is somewhere else - which is the outcome this probe exists to be able to report.
-//
-// blocked= names the first slot whose frame data is incomplete for the frame we are waiting on,
-// with its counts, so "we are stalled" becomes "we are stalled on slot 2, which has 0 of 1
-// commands for frame N". Read through FrameDataManager's public getters and NOT through
-// allCommandsReady(), which is not const - its FRAMEDATA_RESEND branch calls reset() and would
-// make the probe change the thing it measures.
-//
-// cushion= and latency= both had to be re-sourced after the first run, and the reasons are worth
-// keeping because both mistakes produced plausible numbers rather than obvious ones:
-//
-//   * NOT getPacketArrivalCushion(), which is a DESTRUCTIVE read - it returns the value and
-//     immediately resets it to -1. Its only other consumer is the network line on the in-game
-//     debug display (W3DDisplay.cpp:1659), which would have silently started reading -1 on a
-//     rendering peer the moment this probe was switched on.
-//     Reading the member m_smallestPacketArrivalCushion directly avoided that but was WORSE as a
-//     measurement: nothing else resets it on a headless peer, so it is a minimum-since-the-match-
-//     began that decays to 0 and stays there. The first run duly reported "cushion 60 -> 7 -> 4
-//     -> 1 -> 0", which reads exactly like a draining buffer and is really a running minimum.
-//     m_frameMetrics.getMinimumCushion() is the honest one: a rolling minimum over
-//     m_networkCushionHistoryLength samples, reset per window (FrameMetrics.cpp:125-134), and it
-//     is the same value Network::timeForNewFrame() self-slugs on.
-//
-//   * NOT getMaximumLatency(), which averages m_latencyAverages[] - a table populated only on the
-//     PACKET ROUTER, by processRunAheadMetrics. On every other peer it is all zeros, so the first
-//     run reported latency=0.000 for the whole match on the joining peer and looked like a broken
-//     field rather than an inapplicable one. getLocalAverageLatency() is this peer's own measured
-//     round trip and is populated everywhere.
-//
-// Off unless GX_NET is set, env read once. 1 Hz, its own tag on its own line, never folded into
-// [GXCRC] - several harnesses md5sum and diff the .crc streams across peers byte for byte, so a
-// per-peer clock in that stream would make every one of them report a false desync.
-// ---------------------------------------------------------------------------
-// A monotonic nanosecond clock. timeGetTime() is milliseconds and is what the engine uses for its
-// own pacing, but an iteration period on a free-running headless peer is tens of MICROseconds, and
-// the whole point of iter_max is to compare a single long iteration against a multi-hundred-ms
-// stall. Millisecond resolution would quantise the common case to 0 and the interesting case would
-// still be visible - but the mean would be a lie.
-// The longest main-loop iteration since the last [GXNET] emit. Written by gxStallWatch (which runs
-// first and already has the measurement) and drained by gxNetSample, so a peer that HITCHES is
-// visible on its own 1 Hz line even when it never stalls itself - which is the whole point, since
-// the hitching peer is by definition the one that is NOT waiting.
+// [GXNET], a 1 Hz network-liveness probe, off unless GX_NET is set. Never in [GXCRC].
+// cushion= uses getMinimumCushion(): getPacketArrivalCushion() is a destructive read. latency= uses
+// getLocalAverageLatency(): m_latencyAverages is filled only on the router.
+// Monotonic ns clock (too short for timeGetTime()); the longest iteration is set by gxStallWatch.
 static int64_t s_gxIterMaxNs = 0;
 
 static int64_t gxMonoNs( void )
@@ -2387,34 +2160,10 @@ static int64_t gxMonoNs( void )
 #endif
 }
 
-// ---------------------------------------------------------------------------
-// GeneralsX: [GXSTALL], the event-level companion to [GXNET].
-//
-// WHY A SECOND PROBE. The first live measurement (18,000 frames, mac+linux, evidence/
-// ) killed the packet-loss hypothesis: total retransmissions were
-// 5 and 6, while the ~1.7 s stall clusters carried ZERO retries. So the stalls are real and the
-// wire is not losing anything. That leaves two possibilities that a 1 Hz aggregate CANNOT tell
-// apart, and this probe exists solely to separate them:
-//
-//   (a) THIS peer is WAITING - somebody else's input is genuinely late on the wire.
-//   (b) SOME peer is COMPUTING - one long logic frame (a big AI pathfind, a page fault, a log
-//       flush) that lockstep then charges to everyone else as a stall.
-//
-// iter_max_ms is what separates them, and it is measured rather than inferred. ConnectionManager::
-// update() is called exactly once per main-loop iteration from Network::liteupdate(), so the gap
-// between consecutive calls IS the iteration period - everything the engine did outside the network
-// update, which on a headless peer is essentially the logic frame. A peer that HITCHES shows a huge
-// iter_max and reports little or no stall of its own; the peers waiting on it show a long stall
-// with a small iter_max. Comparing the two streams at the same frame names the culprit.
-//
-// Also why [GXPACE]'s stall_ms could never answer this: it is a per-SECOND SUM, so a contiguous
-// block longer than a second is chopped across buckets and its shape is destroyed. That is exactly
-// why "13 buckets averaging 693 ms" would not reconcile with "4-5 two-second events". This emits
-// one line per EVENT, on stall exit, with the true duration.
-//
-// Event-driven rather than sampled, so it is silent on a healthy match and cannot flood the iOS
-// peer's 8 MB filtered stderr sink.
-// ---------------------------------------------------------------------------
+// [GXSTALL], the event-level companion to [GXNET]: one line per stall, on exit, with its true duration.
+// iter_max_ms separates a peer WAITING on late input from a peer COMPUTING one long logic frame that lockstep charges
+// to the others. update() runs once per main-loop iteration, so the gap between calls is the iteration period.
+// [GXPACE] stall_ms is a per-second sum and splits long stalls. Event-driven, so silent on a healthy match.
 void ConnectionManager::gxStallWatch( void )
 {
 	static const Bool s_enabled = (getenv("GX_NET") != NULL);
@@ -2709,25 +2458,17 @@ void ConnectionManager::updateRunAhead(Int oldRunAhead, Int frameRate, Bool didS
 					++connected;
 				}
 			}
-			// GeneralsX: NO RENDER-FPS CLAMP WITHOUT A REMOTE PEER. The clamp exists so the
-			// other peers do not outrun a slow one and then stall on its commands (FrameData::allCommandsReady). With no
-			// remote peer connected - a LAN host alone with AI, an observer host watching AI - there is nobody to wait
-			// for, and the clamp only slows this machine's own game to its 30-second AVERAGE render rate
-			// (FrameMetrics::doPerFrameMetrics). After a slow stretch (zoomed out) the game then stays slow for 3-30 s
-			// once the frames are back (perf-6v6 PART 1, #4: Mini 55 tps for ~3 s at 120 fps, MacBook 18-32 tps for
-			// 20+ s). Nothing is lost by dropping it: Network::timeForNewFrame still paces to the tick rate, and a
-			// machine that cannot draw that fast still ticks once per drawn frame. Any remote peer, observer included,
-			// keeps the clamp exactly as before - it simulates every frame, so its rate binds like a player's.
-			// Only the RATE sent is lifted (the two setFrameRate calls below): the run-ahead keeps the measured minFps, so
-			// the local player's command delay is integration's exactly (lifting minFps itself
-			// made a slow solo match's run-ahead 7 frames instead of 4).
+			// No render-fps clamp without a remote peer. The clamp stops other peers outrunning a slow one; with nobody
+			// to wait for it only slows this machine to its 30-second average render rate. Network::timeForNewFrame
+			// still paces to the tick rate. Any remote peer, observer included, keeps the clamp. Only the RATE sent is
+			// lifted (the setFrameRate calls below); run-ahead keeps the measured minFps so command delay is unchanged.
 			const Bool noRemotePeer = (connected <= 1);
 			if ((minFps >= ((frameRate * 9) / 10)) && (minFps < frameRate)) {
 				// if the minimum fps is within 10% of the desired framerate, then keep the current minimum fps.
 				minFps = frameRate;
 			}
 
-			// GeneralsX @diag /08/2026 Env-gated trace of the rate negotiation.
+			// GeneralsX: Env-gated trace of the rate negotiation.
 			// DEBUG_LOG_LEVEL below is dead in every deploy preset, so the two DEBUG_LOG_LEVEL lines
 			// bracketing this clamp print nothing in a shipping build - which is why three theories
 			// about why a 60 Hz build ticks at 33 all had to be guesses. This prints the actual
@@ -2747,75 +2488,9 @@ void ConnectionManager::updateRunAhead(Int oldRunAhead, Int frameRate, Bool didS
 
 			// TheSuperHackers @info this clamps the logic time scale fps in network games
 			//
-			// GeneralsX: The ceiling must never be below the tick rate.
-			//
-			// MEASURED on an instrumented 60 Hz build: minFps_in=127 fpsLimit=30 LOGICRATE=60. The
-			// peer was rendering at 127 and perfectly able to simulate 60, but this clamp pulled the
-			// negotiated LOGIC rate down to the RENDER limit of 30, and the 10% ramp below turned
-			// that into exactly (30 * 11) / 10 == 33 - the value a 60 Hz build was stuck at across
-			// 4000 frames. The 30 comes from the saved render preset, whose ladder starts at 30, so
-			// it is the ordinary case rather than a misconfiguration.
-			//
-			// Clamping the logic rate by the render cap is sound in principle - the engine advances
-			// at most one logic frame per main-loop iteration, so you cannot simulate faster than
-			// you iterate - but a ceiling BELOW the tick rate is never meaningful: it asks the
-			// simulation to run slower than its own nominal rate. Taking the max with
-			// LOGICFRAMES_PER_SECOND keeps the real constraint and drops the nonsensical one.
-			//
-			// Fixed HERE rather than by raising TheGlobalData->m_framesPerSecondLimit globally:
-			// that was tried and broke match start outright ("simulated 0 frames"), because the same
-			// global also feeds the frame pacer and the logic-time-scale gate.
-			//
-			// No behavioural change at the default 30 Hz: the ladder's lowest entry IS 30, so the
-			// max() picks the same value the clamp already used.
-			//
-			// GeneralsX: THE CEILING MUST NOT BE ABOVE THE TICK RATE EITHER.
-			//
-			//
-			//
-			// A logic frame IS 1/LOGICFRAMES_PER_SECOND of game time - SECONDS_PER_LOGICFRAME_REAL,
-			// and every duration in the INI is denominated in it. Negotiating a rate ABOVE the tick
-			// rate therefore does not make the game smoother, it makes the game world run fast: at
-			// 210 tps on a 60 Hz build every build time, every reload, every unit's speed is 3.5x.
-			//
-			// The value being clamped is min(measured average RENDER fps) over the live slots
-			// (getMinimumFps). Remote reports are clamped to 100 in processRunAheadMetrics, but the
-			// router's OWN entry (:2024) is not clamped at all, so once a peer is the only live slot
-			// left the ceiling is the only thing standing between the lobby rate and its render
-			// rate. FramePacer::getActualFramesPerSecondLimit used to floor render fps to 8x the tick
-			// rate inside a network game, so "its render rate" was a big number by construction; since
-			// 27/09/2026 it is the player's max-FPS cap, anything from the tick rate up, or unlimited.
-			//
-			// WHO THIS CHANGES, precisely: only a peer whose SAVED render preset is above the tick
-			// rate, and only while it is the packet router. GameEngine::init clamps an unset
-			// m_framesPerSecondLimit to LOGICFRAMES_PER_SECOND, so a default install computed
-			// max(60, 60) == 60 and is bit-identical before and after. The ladder
-			// (FrameRateLimit.cpp:280) offers 65 through 480 and Uncapped(1000000) above it, and
-			// picking any of those was enough: at 240 the lobby could negotiate 240 tps, which is
-			// the ~210 logic frames per second seen in the field.
-			//
-			// The 05/08/2026 fix above stays fixed - 60 is still not below the tick rate, so the
-			// 30 -> 33 collapse it cured cannot come back. And this makes the two branches of this
-			// function agree: the SLOWEST player's rate at :2149 has always been capped at
-			// LOGICFRAMES_PER_SECOND. Only the rate sent to everyone ELSE was uncapped. That
-			// asymmetry was the whole defect.
-			//
-			// AND THE WIRE FIELD IS A BYTE. NetRunAheadCommandMsg::setFrameRate takes an
-			// UnsignedByte (NetCommandMsg.h:319-320) while minFps here is an Int, so the
-			// setFrameRate(minFps) below narrows silently. Under the old ceiling minFps could reach
-			// m_framesPerSecondLimit, and the render ladder's top two entries are 480 and
-			// UncappedFpsValue == 1000000 (FrameRateLimit.cpp:280) - so a router on those presets
-			// could put a value on the wire that truncates mod 256. 480 becomes 224; anything
-			// landing on a multiple of 256 becomes 0, and every receiving peer then divides by it
-			// in Network::processRunAheadCommand and again in Network::timeForNewFrame. Capping at
-			// the tick rate makes the narrowing unreachable, since LOGICFRAMES_PER_SECOND is 30 or
-			// 60. The 0 case is separately defended at the consumer; see Network.cpp.
-			//
-			// Dropping m_framesPerSecondLimit from the expression loses nothing. It was there for
-			// "you cannot simulate faster than you iterate", but that constraint is already carried
-			// by the measured average this clamps, and the raw global is the WRONG number for it in
-			// a network game anyway - a player who picked 30 iterated at 480 because of the (since
-			// removed) network floor, which is exactly why using it as a ceiling caused the 33 Hz bug.
+			// The ceiling is the tick rate: below it the simulation would run slower than nominal, above it the game
+			// world runs fast (a logic frame is 1/LOGICFRAMES_PER_SECOND of game time). It also keeps the
+			// setFrameRate narrowing safe: the wire field is an UnsignedByte, so 480 would truncate mod 256.
 			const Int fpsCeiling = (Int)LOGICFRAMES_PER_SECOND;
 			minFps = clamp<Int>(MIN_LOGIC_FRAMES, minFps, fpsCeiling);
 			DEBUG_LOG_LEVEL(DEBUG_LEVEL_NET, ("ConnectionManager::updateRunAhead - minFps after adjustment is %d", minFps));
@@ -2824,17 +2499,10 @@ void ConnectionManager::updateRunAhead(Int oldRunAhead, Int frameRate, Bool didS
 			// The runahead should always be rounded up to the next integer value to prevent variations in latency from causing stutter
 			// The network slack pushes the runahead up to the next value when the latency is within the slack percentage of the current runahead
 			const Real runAheadSlackScale = 1.0f + ( (Real)TheGlobalData->m_networkRunAheadSlack / 100.0f );
-			// GeneralsX: With 3+ humans, allow for the RELAYED path's frame-grouping tail.
-			// The input that arrives last is relayed: A's send deferral (capped at 2 frames,
-			// Network::processRunAheadCommand) + A->router + the router's deferral (half that, setFrameGrouping)
-			// + router->B. Up to 3 frames of deferral, 1.5 on average. The latency below is a round trip whose
-			// samples carry the same 1.5-frame MEAN, so the mean is covered and the 1.5-frame tail above it is not.
-			// And the usable headroom is RA - 1 ticks, not RA: Network::processCommand sends FRAMEINFO only through
-			// frame + RA - 1 (`i < executionFrame`). So the allowance is that tail + 1 = 2.5 frames; the 10% slack
-			// alone covers it only past ~370 ms at 60 Hz. Until processAckStage1 stopped timing relayed FRAMEINFOs (NL-1)
-			// that inflated sample hid this. 2 humans relay nothing and are unchanged. Router-only, broadcast as
-			// NETCOMMANDTYPE_RUNAHEAD: deterministic, but it moves the frame every 3+ human command executes on.
-			// See scripts/test/audit/bench/latency_own_frameinfo_only.cpp.
+			// With 3+ humans, allow for the relayed path frame-grouping tail: sender deferral (up to 2 frames) plus the
+			// router deferral (half that), 1.5 frames on average. The latency below is a round trip whose samples already
+			// carry the 1.5-frame mean; usable headroom is RA - 1 ticks (Network::processCommand), so the allowance is 2.5.
+			// 2 humans relay nothing. Router-only and broadcast as NETCOMMANDTYPE_RUNAHEAD, so it is deterministic.
 			const Real groupingTailFrames = (connected >= 3) ? 2.5f : 0.0f;
 			// GeneralsX: Saturate before the float->int conversion. The latency is
 			// a raw wire Real (processRunAheadMetrics), so +Inf or anything past INT_MAX reached `(Int)ceilf`,
@@ -2851,7 +2519,7 @@ void ConnectionManager::updateRunAhead(Int oldRunAhead, Int frameRate, Bool didS
 			// We also limit the upper range of the runahead to prevent it getting out of hand
 			newRunAhead = clamp<Int>(MIN_RUNAHEAD, newRunAhead, MAX_FRAMES_AHEAD / 2);
 
-			// GeneralsX @diag /09/2026 [GXRA] out - the run-ahead the router is about to broadcast. The
+			// GeneralsX: [GXRA] out - the run-ahead the router is about to broadcast. The
 			// [GXRA] line above prints only the INPUTS, and the one line that shows the negotiated value,
 			// [GXPACE] runahead=, lives in GameClient::update, which a -headless peer never runs. So a headless
 			// multi-peer run (the NL-1 gate, scripts/test/nl1-latency-local.sh) could not see the number it is
@@ -3273,82 +2941,10 @@ void ConnectionManager::setFrameGrouping(time_t frameGrouping) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// GeneralsX: Packet router election.
-//
-// WHAT THE ROUTER COSTS. The in-game topology is a STAR, not a mesh: sendLocalCommand sends a
-// non-router peer's commands ONLY to m_connections[m_packetRouterSlot], and the router then fans
-// them out one connection at a time. So peer j receives peer i's input after
-// leg(i->router) + leg(router->j). Under lockstep no peer executes frame N until EVERY peer's
-// input for N has arrived, so the quantity that actually binds the match is the sum of the two
-// worst router-adjacent legs. Everything else is slack. Choosing the centre badly is therefore
-// paid by every player, twice.
-//
-// WHAT DATA EXISTS, AND WHERE. Measured against this tree, not assumed:
-//
-//  * A non-router peer's m_frameMetrics.getAverageLatency() is a genuine one-hop round trip to the
-//    ROUTER. processFrameTick() stamps the send time (FrameMetrics::doPerFrameMetrics) and hands
-//    the FRAMEINFO to sendLocalCommand, which for a non-router puts it on the router's connection
-//    alone; the router acks it itself (ackCommand's "we are the packet router, send the ack to the
-//    player that sent the command" branch), and processAckStage1 turns that ack into
-//    FrameMetrics::processLatencyResponse. One hop out, one hop back.
-//  * Every non-router peer unicasts that number to the router every m_networkRunAheadMetricsTime ms
-//    (updateRunAhead's else branch), and processRunAheadMetrics files it in m_latencyAverages.
-//    => THE ROUTER KNOWS d(i, router) FOR EVERY PEER i. That is one ROW of the latency matrix.
-//  * Nothing sends it back out. On a non-router peer m_latencyAverages is all zeroes - even its own
-//    entry, which is written only inside updateRunAhead's router-only branch. A non-router has no
-//    table at all.
-//  * NOBODY, router included, knows d(i, j) for two non-router peers. Nothing ever measures it.
-//    Peers exchange no timed traffic with each other: the only packets that bypass the router are
-//    the CommandRequiresDirectSend set (disconnect, file transfer, frame resend), and the one
-//    periodic direct peer-to-peer message, NetKeepAliveCommandMsg from doKeepAlive(), carries no
-//    command ID and is not in CommandRequiresAck - it is fire-and-forget and cannot be timed.
-//
-// WHY THAT ROW CANNOT ELECT A BETTER ROUTER. This is a proof, not a shortage of cleverness.
-// Write C(x) for the binding cost with x as the centre: the largest d(.,x) plus the second largest.
-// C(router) is directly measured. For any other candidate x, every bound on d(i,j) derivable from
-// the row {d(.,router)} is a bound through the router, i.e. the triangle inequality
-// d(i,j) <= d(i,router) + d(router,j). Feeding that in gives C(x) <= C(router) + 2*d(x,router),
-// which is ALWAYS >= C(router). The lower bound d(i,x) >= |d(i,router) - d(x,router)| runs the
-// other way and can only ever certify that a candidate is WORSE (it proves x is worse than the
-// incumbent when d(x,router) exceeds the sum of the two worst legs - the "never promote the peer on
-// bad wifi" rule). So one row of the matrix can PROVE a candidate is worse and can NEVER prove one
-// is better. Any "elect the best-connected peer" rule built on this data is an inference from an
-// unvalidated additive-link model, and being wrong about it costs every player in the lobby.
-//
-// Hence: NO MEASURED ELECTION SHIPS. What ships is (a) a deterministic election that is correct
-// where the retail literal was not, and (b) the measurement, [GXROUTE] in gxRouterTrace(), that
-// makes C(router) observable so the decision can be made on numbers from a real run.
-//
-// THE SMALLEST WIRE CHANGE THAT WOULD MAKE A REAL ELECTION POSSIBLE, for whoever picks this up:
-// a new acked, direct-send NETCOMMANDTYPE_PEERPROBE (round-robin, one peer per second, exactly like
-// doKeepAlive already walks the connections) so each peer measures its OWN row; then widen
-// NetRunAheadMetricsCommandMsg - today a Real latency plus an Int fps - by MAX_SLOTS latencies so
-// each peer ships its row to the router. As UnsignedShort milliseconds that is 8 * 2 = 16 bytes on
-// a command that today carries 8, inside a NetCommandMsg whose packet budget is
-// RETAIL_GAME_PACKET_SIZE = 476 and which is nowhere near it. That gives the router the whole
-// matrix and makes C(x) computable for every candidate. It does NOT make the handover safe on its
-// own - see the note in electPacketRouter() about when a change may be applied.
-//
-// WHY ELECTION IS AT MATCH START AND THE ROUTER NEVER CHANGES MID-MATCH BY CHOICE. There is no
-// latency data at match start (the boxcar in FrameMetrics::init is pre-loaded, not measured), so a
-// measured election is inherently a mid-match handover, and a handover is the risky operation: a
-// peer that flips the centre at a different moment from its neighbours routes its input somewhere
-// the others are not reading. It is survivable rather than instantly fatal - doRelay/
-// sendRemoteCommand fan out purely on the relay mask and never test isPacketRouter(), and
-// FrameData::addCommand dedupes by command identity before it increments the count that
-// allCommandsReady tests, so the retransmit path already makes duplicate delivery harmless - but
-// run-ahead negotiation breaks (two routers fight, or none computes one) and the null deref noted
-// in init() becomes reachable. If a handover is ever added it must ride the frame-synchronised
-// path that NETCOMMANDTYPE_RUNAHEAD already uses (IsCommandSynchronized -> every peer's frame data
-// -> Network::processFrameSynchronizedNetCommand at the command's execution frame), so that every
-// peer flips on the SAME logic frame, and it must call resendPendingCommands() exactly as the
-// PLAYERLEAVECODE_PACKETROUTER path does. Nothing less is safe.
-//
-// HOW EVERY PEER AGREES ON THE ANSWER. This function reads only the replicated slot list, runs the
-// same integer code on every peer, and sends nothing. No latency, no floating point, no timing, no
-// arrival order. Peers cannot disagree because there is nothing peer-local in the input.
-// ---------------------------------------------------------------------------
+// Packet router election. Nobody measures d(i, j) between non-router peers, so there is no measured election.
+// This one reads only the replicated slot list (integer code, no latency, timing or arrival order), so every peer
+// computes the same answer. A mid-match router change must ride a frame-synchronised command and call
+// resendPendingCommands(), as the PLAYERLEAVECODE_PACKETROUTER path does.
 void ConnectionManager::electPacketRouter() {
 	// m_packetRouterFallback was just built by parseUserList as an ordered, compacted list of the
 	// slots that hold humans: rank 0 is the lowest-numbered human slot, and unused ranks are -1.
@@ -3359,19 +2955,9 @@ void ConnectionManager::electPacketRouter() {
 		elected = m_packetRouterFallback[0];
 	}
 
-	// GX_ROUTER_SLOT - harness-only override, default off, and DANGEROUS in a way the other GX_*
-	// knobs in this file are not.
-	//
-	// GX_GROUPING_DIV can safely differ between peers because it only changes WHEN a packet is sent.
-	// This one changes WHERE input is sent, so it MUST be set to the same value on every peer in the
-	// lobby or the peers disagree about the centre (see the paragraph on handovers above for what
-	// that does and does not break). It exists for one purpose: C(x) for a candidate other than the
-	// incumbent is not computable from the incumbent's row, so the only sound way to obtain it is to
-	// run the same lobby again with the centre moved and read the [GXROUTE] line. That is a
-	// measurement, not a policy.
-	//
-	// Refused unless it names a slot that is actually in the fallback plan, so a typo degrades to
-	// the elected value on every peer identically rather than to a different value on each.
+	// GX_ROUTER_SLOT - harness-only override, default off. Unlike GX_GROUPING_DIV it changes WHERE input is sent, so it
+	// MUST be the same on every peer in the lobby or peers disagree about the centre.
+	// Refused unless it names a slot in the fallback plan, so a typo degrades to the elected value on every peer alike.
 	const char *routerOverride = getenv("GX_ROUTER_SLOT");
 	if (routerOverride != NULL) {
 		const Int wanted = atoi(routerOverride);
@@ -3407,31 +2993,10 @@ void ConnectionManager::electPacketRouter() {
 	DEBUG_LOG(("ConnectionManager::electPacketRouter - packet router is slot %u (local slot %u)", (unsigned)m_packetRouterSlot, (unsigned)m_localSlot));
 }
 
-// ---------------------------------------------------------------------------
-// GeneralsX: [GXROUTE] - the router's latency row, once a second.
-//
-// This is the measurement that the election above deliberately does not act on. Only the router has
-// the data (see electPacketRouter), so only the router prints, and one line carries the whole row
-// plus the derived quantity that matters:
-//
-//   cost_ms = worst leg + second-worst leg, i.e. C(router). Under lockstep that sum is what every
-//   peer waits for, so it is the number to compare between runs. A single leg is not - improving
-//   the third-worst leg changes nothing at all.
-//
-// Read it with GX_ROUTER_SLOT: run the lobby, note cost_ms, re-run the identical lobby with the
-// centre forced elsewhere on EVERY peer, note cost_ms again. That difference is a measured A/B of
-// two centres, which is the only sound way to compare them.
-//
-// Two biases to state rather than discover later. The legs include frame-grouping deferral, which
-// is a deliberate send delay and not propagation - setFrameGrouping halves it for the router, so
-// the router's own outbound share is smaller than everyone else's. And local_ms is the ROUTER's own
-// m_frameMetrics figure, which is the last ack to arrive for a frame rather than any particular
-// peer's, so it tracks the worst leg and is not an independent sample; it is printed to show the
-// row is live, not as an eighth measurement.
-//
-// Its own tag on its own line, never folded into [GXCRC] - harnesses diff those streams byte for
-// byte across peers and a per-peer clock in that stream would report a false desync.
-// ---------------------------------------------------------------------------
+// [GXROUTE] - the router latency row, once a second; only the router has the data.
+// cost_ms = worst leg + second-worst leg, the sum every peer waits for under lockstep. Compare it between runs
+// with GX_ROUTER_SLOT forcing the centre elsewhere. Legs include frame-grouping deferral, a deliberate send delay;
+// local_ms tracks the worst leg and is not an independent sample. Own tag, never in [GXCRC].
 void ConnectionManager::gxRouterTrace( void ) {
 	static const Bool s_enabled = (getenv("GX_ROUTER_TRACE") != NULL);
 	if (!s_enabled || TheGameLogic == NULL)
@@ -3573,27 +3138,10 @@ PlayerLeaveCode ConnectionManager::disconnectPlayer(Int slot) {
 //	}
 
 	if (slot == m_packetRouterSlot) {
-		// GeneralsX: This walk read one past the end of the array.
-		//
-		// Retail: `while ((index < (MAX_SLOTS-1)) && (fallback[index] != router)) ++index; ++index;
-		// m_packetRouterSlot = m_packetRouterFallback[index];`
-		//
-		// Two defects, one visible. The bound MAX_SLOTS-1 means rank 7 is never COMPARED, so a router
-		// sitting at the last rank is never found - the loop simply runs out and exits at index 7
-		// claiming a match it never made. Either way ++index then indexes m_packetRouterFallback[8]
-		// on an array of MAX_SLOTS == 8: an out-of-bounds read whose value is written straight into
-		// m_packetRouterSlot. That is the worst possible failure for this variable. Every peer runs
-		// this same code but reads its own adjacent stack, so peers can come out of it disagreeing
-		// about the centre, which is exactly the lobby split this whole change exists to avoid.
-		//
-		// Reachable whenever the incumbent is not in the plan - which is precisely the case the old
-		// hardcoded `m_packetRouterSlot = 0` created when slot 0 held no human. After the election
-		// fix the incumbent is always in the plan (and, because the plan is compacted on every leave,
-		// always at rank 0), so this is now belt and braces - but it must be correct belt and braces,
-		// because it decides the centre.
-		//
-		// Search the FULL range, then take the next rank that names a slot still in the game.
-		// Deterministic and input-identical on every peer, so they all land on the same successor.
+		// Search the FULL range, then take the next rank that names a slot still in the game. The retail walk stopped
+		// at MAX_SLOTS-1 and then read m_packetRouterFallback[index + 1], one past the end when the router is at the last
+		// rank or not in the plan; peers would read different adjacent memory and disagree about the centre.
+		// Deterministic and identical on every peer, so all land on the same successor.
 		Int index = 0;
 		while ((index < MAX_SLOTS) && (m_packetRouterFallback[index] != m_packetRouterSlot)) {
 			++index;
@@ -3993,10 +3541,9 @@ void ConnectionManager::sendChat(UnicodeString text, RelayMaskType playerMask, U
 	{
 		msg->setID(GenerateNextCommandID());
 	}
-	// GeneralsX: The message BODY used to be printed here. Chat contents
+	// GeneralsX: The message BODY is not logged. Chat contents
 	// do not belong in a log: this file is written to disk, is routinely pasted into bug reports,
-	// and the text is other players' private conversation. The id and mask are the parts that were
-	// ever diagnostically useful and they stay.
+	// and the text is other players' private conversation. The id and mask are the diagnostic parts.
 	DEBUG_LOG_LEVEL(DEBUG_LEVEL_NET, ("Chat message has ID of %d, mask of %16.16llX", msg->getID(), (unsigned long long)msg->getPlayerMask()));
 
 	sendLocalCommand(msg, ALL_SLOTS_MASK ^ (gxSlotBit(m_localSlot)));
@@ -4048,11 +3595,9 @@ UnsignedShort ConnectionManager::sendFileAnnounce(AsciiString path, RelayMaskTyp
 	announceMsg->setRealFilename(path);
 	announceMsg->setPlayerMask(playerMask);
 
-	// GeneralsX: If the portable conversion fell back to the raw local
-	// path (seen on the wire in the 2026-08-10 session-5 run 3), every receiver's normalization
-	// refuses the file SILENTLY and the lobby waits out the full transfer timeout. Refuse at the
-	// send side instead, loudly and at once. 0 is the caller-visible failure sentinel - the same
-	// one the open-failure path above already returns.
+	// If the portable conversion fell back to the raw local path, every receiver normalization refuses the file
+	// SILENTLY and the lobby waits out the full transfer timeout. Refuse at the send side instead, loudly and at once.
+	// 0 is the caller-visible failure sentinel, as in the open-failure path above.
 	if (!TheGameState->isPortableFilePath(announceMsg->getPortableFilename()))
 	{
 		fprintf(stderr, "[GXFILE] NOT announcing '%s' - portable conversion failed ('%s' would be refused by every receiver)\n",
@@ -4178,7 +3723,7 @@ void ConnectionManager::sendFile(AsciiString path, RelayMaskType playerMask, Uns
 
 Int ConnectionManager::getFileTransferProgress(Int playerID, AsciiString path)
 {
-	// GeneralsX @debug /08/2026 GX_MAPDBG: A1 measurement probes. The miss path below
+	// GeneralsX: GX_MAPDBG: measurement probes. The miss path below
 	// returns 0 - the same value as "announced but not started" - so a poll that can never match
 	// is indistinguishable from a transfer that never progresses. Log the first hits and the first
 	// misses WITH the announced map contents so a run shows which of the two is happening.

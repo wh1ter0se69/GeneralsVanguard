@@ -1,4 +1,22 @@
-// gx_cs_test.cpp - the custom-shader catalogue's gates, no GPU (WS-E, rw2-E, 11/10/2026).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// gx_cs_test.cpp - the custom-shader catalogue's gates, no GPU.
 //   build:  cmake --build <dir> --target gx_cs_test && <dir>/gx_cs_test            (exit 0 = every check passed)
 // Every acceptance check has a refusal twin: a fixture the catalogue must NOT accept (an overridden asset, a missing asset, a renamed
 // copy, a different vertex declaration, a one-bit change). gx_cs_test_broken is this same suite linked against a catalogue that
@@ -14,7 +32,7 @@
 #include "../shaders/gx_cs_vel.frag.h"
 #include "../shaders/gx_cs_shadow.vert.h"
 #include "../shaders/gx_cs_shadow.mut.vert.h"
-#include "../../../../../../Include/W3DDevice/GameClient/GxShadowVolumeVS.h"   // the bytes the game creates (rw3-R11)
+#include "../../../../../../Include/W3DDevice/GameClient/GxShadowVolumeVS.h"   // the bytes the game creates
 #include "../../../../../../../GameEngine/Include/GameClient/GXWaterLive.h"   // live water's two ps.1.1 programs
 #include "../../../../../../../GameEngine/Include/GameClient/GXGroundPrograms.h"   // the remastered ground's three (R-G1, the same session)
 #include "../../../../../../../GameEngine/Include/GameClient/GXWaterRA3.h"   // RA3 water's sheen and its river sheen

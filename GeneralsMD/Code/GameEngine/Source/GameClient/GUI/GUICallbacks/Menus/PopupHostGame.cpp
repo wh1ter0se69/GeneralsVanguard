@@ -340,21 +340,9 @@ void PopupHostGameInit( WindowLayout *layout, void *userData )
 	textEntryGamePassword = TheWindowManager->winGetWindowFromId(parentPopup, textEntryGamePasswordID);
 	GadgetTextEntrySetText(textEntryGamePassword, UnicodeString::TheEmptyString);
 
-	// GeneralsX: The confirm field, and its label.
-	//
-	// Both are added by !GXUI.big, which overrides Window\Menus\PopupHostGame.wnd. That is safe and
-	// was MEASURED rather than assumed: probe-dataid.sh over a modified copy of this very layout
-	// leaves dataID at AB9092CC, identical to baseline, while the asset fingerprint moves - so the
-	// archive is genuinely mounted and dataID genuinely ignores it. The engine's identity code says
-	// the same thing in words ("a skinned UI has no effect on the simulation and must not be a
-	// compatibility barrier").
-	//
-	//
-	//
-	// EVERY LOOKUP IS NULL-TOLERANT. A player running the stock archive without !GXUI.big gets a
-	// layout with neither control, and must still be able to host - so an absent confirm field
-	// means "no confirmation required", not a dead button. That is the only reason this feature can
-	// ship ahead of the archive reaching every install.
+	// The confirm field and its label are added by !GXUI.big, which dataID ignores (a skin must not be a barrier).
+	// Every lookup is null-tolerant: a stock archive has neither control and must still host, so an absent
+	// confirm field means "no confirmation required".
 	textEntryGamePasswordConfirmID = TheNameKeyGenerator->nameToKey("PopupHostGame.wnd:TextEntryGamePasswordConfirm");
 	textEntryGamePasswordConfirm = TheWindowManager->winGetWindowFromId(parentPopup, textEntryGamePasswordConfirmID);
 	if (textEntryGamePasswordConfirm != nullptr)
@@ -378,21 +366,8 @@ void PopupHostGameInit( WindowLayout *layout, void *userData )
 			TheGameText->FETCH_OR_SUBSTITUTE("GUI:ConfirmPassword", L"Confirm password"));
 	}
 
-	// GeneralsX: Asterisks, not the password.
-	//
-	// The .wnd authors this box as ordinary text, so it rendered what was typed in the clear - on a
-	// screen people stream and screenshot, and this is the one field on it worth reading over
-	// somebody's shoulder. The game-options screen one click later already masks its own password
-	// box, so showing it here was also the two screens disagreeing about the same secret.
-	//
-	// secretText is the engine's own flag for this (Gadget.h: "If TRUE text appears as asterisks"),
-	// which is display-only - GadgetTextEntryGetText still returns the real string, so the create
-	// path below is unaffected. Set here rather than in the layout because editing the .wnd would
-	// move dataID and every peer would refuse every join; this is why the mask has to be code.
-	//
-	// Unconditional, not relay-only: the GameSpy path has exactly the same shoulder, and the flag
-	// changes nothing it reads. Generals Online masks theirs the same way and for the same stated
-	// reason ("hide password for streams").
+	// Mask the password with asterisks: the .wnd authors it as plain text, which would show on streams.
+	// secretText is display-only (GadgetTextEntryGetText still returns the real string). Unconditional: GameSpy too.
 	if (textEntryGamePassword != nullptr)
 	{
 		EntryData *pwEntry = (EntryData *)textEntryGamePassword->winGetUserData();
@@ -619,40 +594,15 @@ WindowMsgHandledType PopupHostGameSystem( GameWindow *window, UnsignedInt msg, W
 				name = GadgetTextEntryGetText(textEntryGameName);
 				name.trim();
 
-				// GeneralsX: THE RELAY LOBBY BRANCHES BEFORE createGame().
-				//
-				// createGame() ends at TheGameSpyPeerMessageQueue->addRequest(req), and on the relay
-				// path that pointer is NULL by construction - it is the switch the whole relay lobby
-				// is built on, which is what lets these retail screens be reused without touching
-				// their GameSpy half. Falling through would be a null call on every host.
-				//
-				// It also fills a PeerRequest with ladder addresses, an exeCRC/iniCRC pair and a
-				// staging-room description that mean nothing without a GameSpy backend, so there is
-				// nothing here to salvage for us beyond the two fields the player actually typed.
-				//
-				// The password is handed over as typed and is NOT trimmed: leading or trailing
-				// spaces are legitimate in a password, and silently eating them would make a lobby
-				// refuse the very string its host believes they set. The game NAME is trimmed,
-				// because that one is displayed.
+				// The relay lobby branches before createGame(), which ends at TheGameSpyPeerMessageQueue->addRequest(req);
+				// that pointer is NULL on the relay path, so falling through would be a null call on every host.
+				// The password is passed as typed (spaces are legitimate); the game name is trimmed because it is displayed.
 				if (GXRelayLobbyIsActive())
 				{
-					// GeneralsX: A typo here locks the host out of their
-					// own lobby, and silently: the password is stored as a salted verifier, so
-					// nothing can recover or even display what was actually set, and the first
-					// symptom is a friend being refused with a password the host is certain is
-					// right. Confirming costs one comparison and removes that whole class of
-					// report. Refused BEFORE anything is created, so a mistyped game is never
-					// advertised at all.
-					//
-					// Compared on the WIDE strings, before any translate(): AsciiString::translate
-					// casts each WideChar to char - its own @todo says "will only work for 7-bit
-					// ascii" - so two different non-ASCII passwords can flatten to the same bytes
-					// and compare equal. The check has to be at least as strict as the thing it is
-					// guarding.
-					//
-					// Skipped entirely when the field is absent, which is a stock archive without
-					// !GXUI.big. Such a player simply gets the previous behaviour rather than a
-					// button that cannot work.
+					// A typo locks the host out of their own lobby: the password is stored as a salted verifier and cannot
+					// be recovered. A mismatch is refused before anything is created.
+					// Compared on the WIDE strings, before translate() casts each WideChar to char and can flatten two
+					// different non-ASCII passwords to equal bytes. Skipped when the confirm field is absent.
 					const UnicodeString typed = GadgetTextEntryGetText(textEntryGamePassword);
 					if (textEntryGamePasswordConfirm != nullptr)
 					{

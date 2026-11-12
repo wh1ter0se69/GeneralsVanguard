@@ -486,7 +486,7 @@ void AIGuardRetaliateOuterState::xfer( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 void AIGuardRetaliateOuterState::loadPostProcess()
 {
-	// GeneralsX @bugfix A stray 'AIGuardRetaliateOuterState' sat here, which made the next line
+	// GeneralsX: A stray 'AIGuardRetaliateOuterState' sat here, which made the next line
 	// parse as a declaration — 'AIGuardRetaliateOuterState onEnter();' — rather than a call. The
 	// state was therefore never re-entered after loading a save, so guarding
 	// units abandoned their guard orders on load.

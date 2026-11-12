@@ -23,25 +23,11 @@
 // Note: Retail compatibility must not be broken before this project officially does.
 // Use RETAIL_COMPATIBLE_CRC, RETAIL_COMPATIBLE_DATA and RETAIL_COMPATIBLE_XFER_SAVE to guard breaking changes.
 
-// GeneralsX: EVERY PRESERVE_* AND RETAIL_COMPATIBLE_* SWITCH BELOW MUST
-// HAVE A SIMBIT IN computeEngineID (Core/GameEngine/Source/Common/Diagnostic/SimulationId.cpp).
-// These switches change simulation behaviour, and engineID is what refuses a peer that disagrees.
-// A switch that is declared here but missing there does not fail loudly: both peers compute the
-// same engineID, the join succeeds, and they simulate different games. That happened once already
-// with PRESERVE_SNIPING_EMPTY_STINGER_SITES. Add the macro and its SIMBIT in the same commit.
-//
-// Note also that the common call-site form `#if RETAIL_COMPATIBLE_CRC || PRESERVE_X` guards the
-// OLD behaviour, so a PRESERVE_X set to 0 only takes effect while RETAIL_COMPATIBLE_CRC is 0.
-//
-// GeneralsX: THE UPSTREAM FIXES ARE BUILT IN, ALWAYS.
-// CRC, XFER_SAVE, PATHFINDING,
-// PATHFINDING_ALLOCATION, NETWORKING and AIGROUP below default to 0, as Generals Online ships them. GeneralsX
-// never plays against retail peers or loads retail saves (engineID refuses the one, the save format moved long
-// ago for the other), so retail compatibility bought nothing and kept ~110 TheSuperHackers fixes compiled out.
-// The defaults live HERE and not in cmake: the SimID source digest hashes files, not the build cache, so a
-// -D override would change the simulation without changing the digest. Still at 1, on purpose:
-// RETAIL_COMPATIBLE_DATA (the shipped data IS retail data) and RETAIL_COMPATIBLE_CIRCLE_FILL_ALGORITHM (the
-// retail fill is the cheaper one; performance first, and Generals Online keeps it too).
+// Every PRESERVE_* and RETAIL_COMPATIBLE_* switch here needs a SIMBIT in computeEngineID (SimulationId.cpp), else two
+// peers that disagree compute the same engineID and simulate different games.
+// `#if RETAIL_COMPATIBLE_CRC || PRESERVE_X` guards the OLD behaviour: PRESERVE_X = 0 only works while that is 0.
+// Defaults live here, not in cmake, because the SimID digest hashes files, not the build cache. CRC, XFER_SAVE,
+// PATHFINDING(_ALLOCATION), NETWORKING and AIGROUP default to 0; DATA and CIRCLE_FILL_ALGORITHM stay 1.
 
 #ifndef PRESERVE_BUILDING_RESUMPTION_DELAY
 #define PRESERVE_BUILDING_RESUMPTION_DELAY (0) // The fix for this unfavorable behavior was approved by the Game Design Committee.
@@ -158,106 +144,11 @@
 #define RETAIL_COMPATIBLE_AIGROUP (0) // AIGroup logic is expected to be CRC compatible with retail Generals 1.08, Zero Hour 1.04
 #endif
 
-// GeneralsX:
-// Manual escape hatch for the join-time compatibility identity (SimID).
-// The automatic source digest is the primary detector and you should normally never
-// touch this; bump it only when you knowingly change simulation behaviour from a file
-// OUTSIDE the digested paths (Core/GameEngine's Common, GameLogic and GameNetwork
-// trees, Core/Libraries/Include, WWMath, the two game trees' equivalents, and the
-// build configuration under cmake/, triplets/, CMakePresets.json and the vcpkg files).
-// Nothing depends on you remembering to bump it.
-//
-// 2 (29/07/2026): dataID stopped being m_iniCRC alone and became m_iniCRC mixed with a
-// digest of the loose simulation-relevant files (Data\Scripts\*.scb). Bumped so an
-// epoch-1 peer refuses at engineID with ENGINE_DIFFERS - "these are different
-// generations of the check" - instead of at dataID with DATA_DIFFERS, which would have
-// told an honest player their INI files disagreed when in fact only the recipe changed.
-//
-// 3 (30/07/2026): engineID now hashes LOGICFRAMES_PER_SECOND, the simulation tick rate.
-// It resolves to WWSyncPerSecond in Core/Libraries/Source/WWVegas/WWLib/WWCommon.h, and
-// WWLib is NOT one of the digested paths listed above - so editing that single enum
-// changed the rate of every logic frame while leaving BOTH sourceID and engineID
-// untouched. A 30 Hz and a 60 Hz build reported the same SimID, passed SimIdCompare and
-// desynced on contact, which is precisely the failure class this identity exists to turn
-// into a refused join. Latent rather than live in this tree - WWSyncPerSecond is 30 and
-// WW3D2/htree.cpp:614 static_asserts it - but Generals Online ships the 60 Hz variant
-// behind GENERALS_ONLINE_HIGH_FPS_SERVER (see references/generals-online-client), so the
-// pairing is reachable in practice, not hypothetical. Bumped rather than left implicit
-// because the new field changes engineID for every existing build, and the epoch is the
-// one place that records WHY two generations of the check disagree.
-// 4 (01/08/2026): the loose scan now covers CommandButton.ini and CommandSet.ini, and its
-// hash key changed from the file's basename to its canonical virtual path. Both halves are
-// TheSuperHackers/GeneralsGameCode#80: ControlBar::init loads those two with a nullptr Xfer
-// (ControlBar.cpp:1082-1086) so they never reach m_iniCRC, while CommandButton's WeaponSlot
-// and MaxShotsToFire reach the simulation via GUICommandTranslator.cpp:149,151 - an edited
-// CommandButton.ini injected chosen integers into everyone's simulation while both tier-1
-// gates reported a match. The key had to move at the same time because the basename form
-// folds Data\INI\CommandButton.ini and Data\INI\Default\CommandButton.ini into one entry, and
-// ControlBar::init loads BOTH. Measured on the deployed macOS game dir: 24 basename
-// collisions under Data\INI, commandbutton.ini among them. Bumped because the recipe changed
-// for every existing build - an epoch-3 peer now refuses at engineID with ENGINE_DIFFERS
-// rather than at dataID with DATA_DIFFERS, which would have told an honest player their INI
-// files disagreed when in fact only the coverage changed.
+// Manual bump for simulation changes the digest cannot see; it counts generations of the check.
+// 2: dataID mixes loose Scripts. 3: engineID hashes the tick rate. 4: CommandButton/CommandSet.ini join the scan.
 // GeneralsX @bugfix wh1ter0se 11/08/2026 Epoch 5: two formerly CRC-gated fixes were ungated
-// (hacker re-order, dead-aircraft locomotor), so a peer built WITHOUT git metadata - whose
-// sourceID is the reserved 0 sentinel and whose comparison is therefore SKIPPED - could join a
-// mismatched build and desync mid-game instead of being refused at the door. The epoch bump
-// closes that hole for every peer built from here on: an epoch-4 binary refuses an epoch-5 one
-// at engineID outright, git metadata or not. Deliberately shipped WITH the first post-ungate
-// digest batch rather than alone, because the bump itself forces the atomic 4-platform rebuild.
-// GeneralsX: Epoch 6: the dynamic Game LOD fields that GameLogic reads
-// (DebrisSkipMask via isDebrisSkipped, SlowDeathScale) are now pinned to their neutral values
-// whenever TheRecorder->isMultiplayer(), because the LOD level selecting them is chosen from the
-// local render rate and can never be made to agree between peers. Same class as epoch 5 and bumped
-// for the same reason, not because any digest recipe changed - this one did not touch dataID at
-// all. On stock data the guard is inert, but against a mod that restores EA's commented-out
-// values a guarded and an unguarded peer simulate different games, and sourceID cannot refuse that
-// pairing when either side was built without git metadata: SimulationId.cpp skips the sourceID
-// comparison outright when either value is the reserved 0 sentinel. engineID is the only gate that
-// still fires for those peers, and the epoch is what moves it.
-// GeneralsX: Epoch 8: Pathfinder::findClosestPath now has an expansion
-// and allocation bound (MAX_CLOSEST_PATH_CELL_COUNT / MAX_CLOSEST_PATH_INFO_COUNT in
-// AIPathfind.cpp), and a bounded search can return a different "closest" cell than the unbounded
-// one it replaces. Same class as epochs 5 and 6 and bumped for the same reason rather than for any
-// recipe change: it moves sourceID and nothing else - not dataID - and SimulationId.cpp:800 skips
-// the sourceID comparison outright when either side is the reserved 0 sentinel, which is what a
-// peer built without git metadata carries. For those peers engineID is the only gate left, and the
-// epoch is what moves it.
-// GeneralsX: Epoch 9: Pathfinder::internalFindPath now has the same
-// allocation bound (MAX_INTERNAL_PATH_INFO_COUNT and the renamed PATHFIND_SEARCH_FREE_RESERVE in
-// AIPathfind.cpp), and a bounded search can FAIL where an unbounded one succeeded - a sharper
-// divergence than epoch 8's, because the caller then takes the findClosestPath fallback and the
-// two peers path differently from that frame on. Same class as epochs 5, 6 and 8 and bumped for
-// the same reason rather than for any recipe change: it moves sourceID and nothing else - not
-// dataID - and SimulationId.cpp:800 skips the sourceID comparison outright when either side is
-// the reserved 0 sentinel, which is what a peer built without git metadata carries. For those
-// peers engineID is the only gate left, and the epoch is what moves it.
-//
-// INTEGRATOR: this bump is deliberately isolated in its own commit so it can be dropped. If
-// another branch in the same batch also bumps, resolve the conflict to a SINGLE (9) and keep both
-// reason paragraphs - the epoch counts generations of the check, not commits, so (10) would be
-// wrong. If nothing else in the batch bumps, this must ship, because the change above is a
-// simulation-behaviour change.
-//
-// GeneralsX @simid /08/2026 EPOCH 10 - checkPathCost's cost return.
-//
-// ONE of the two fixes above needs this; the other does not, and the difference is the whole
-// reason to read this paragraph rather than pattern-match it.
-//
-//   * The processHierarchicalCell hasInfo() guard needs NO epoch. It is a no-op in Zero Hour (the
-//     cell always has an info by then), and in Generals it turns a segfault into a skip. A peer
-//     that crashes is not a peer that diverges, so there is no silent disagreement to gate.
-//
-//   * checkPathCost returning MAX_COST instead of 0 DOES need it. That path is live in both
-//     builds, and two peers at the same pool state on the same frame - which lockstep guarantees -
-//     would answer checkForAdjust differently: the patched one rejects the adjusted destination,
-//     the unpatched one accepts it. Different destinations, same frame, no error. That is exactly
-//     the silent desync the epoch exists to refuse.
-//
-// INTEGRATOR, CONDITIONAL. Epoch 9 is in batch/2026-08-25b and has NOT shipped. The epoch counts
-// generations of the check, not commits: if this ships in the SAME release as that batch, resolve
-// back to (9); if the batch ships first, as it is queued to, this must be (10). Isolated in its
-// own commit so it can be dropped either way.
+// 5-10: sim fixes that move only sourceID, skipped when a side has none (0); engineID is then the only gate.
+// 6: Game LOD fields pinned in multiplayer. 8-9: bounded pathfinder searches. 10: checkPathCost returns MAX_COST.
 #ifndef SIMID_EPOCH
 #define SIMID_EPOCH (10)
 #endif

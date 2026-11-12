@@ -9,43 +9,12 @@
 */
 
 ////////////////////////////////////////////////////////////////////////////////
-//                                                                            //
-//  IOSBackgroundTask.mm                                                      //
-//                                                                            //
-//  GeneralsX: Keep the network alive for the ~30 s //
-//  iOS grants a backgrounded app.                                            //
-//                                                                            //
-//  WHY THIS EXISTS, measured rather than assumed.                            //
-//                                                                            //
-//  In a live four-platform match on 2026-08-07 the Linux host recorded 35    //
-//  [GXSTALL] events. FIVE of them were ~20 SECONDS each, every one blocked   //
-//  on the iPad, at frames 15181/15281/15329/15530/15674 - about 100 seconds  //
-//  of frozen wall clock inside a 240 second match, and roughly 95% of all    //
-//  blocked time. All five reported retries=0: not packet loss. The peer had  //
-//  stopped sending entirely because iOS had SUSPENDED the process.           //
-//                                                                            //
-//  Under lockstep a frame cannot execute anywhere until every peer's input   //
-//  for it has arrived, so one suspended iPad freezes all four players. The   //
-//  operator confirmed he had switched away from the game.                    //
-//                                                                            //
-//  The engine already does its part: SDL3GameEngine keeps GameEngine::update //
-//  running while backgrounded in a network match and suspends only the GPU   //
-//  (GX_SetRenderSuspended, honoured in W3DDisplay::draw). What was missing   //
-//  is that iOS does not GIVE a backgrounded app execution time unless it is  //
-//  asked. Nothing in this tree ever asked - an unbounded search for          //
-//  beginBackgroundTask, UIBackgroundModes and backgroundTimeRemaining across //
-//  the app, the Info.plist and the vendored SDL3 returned nothing, and none  //
-//  of the five reference forks has it either (all are desktop-only).         //
-//                                                                            //
-//  THIS IS A BOUND, NOT A CURE. iOS grants roughly 30 seconds. Every episode //
-//  observed was under 20.5 s and so would be fully absorbed, but a longer    //
-//  absence still ends in expiration. That is why the expiration path sets a  //
-//  flag for the engine to act on rather than pretending the problem is gone. //
-//                                                                            //
-//  Objective-C++ because UIApplication has no C API. Kept behind extern "C"  //
-//  so exactly one translation unit in the build needs the Objective-C++      //
-//  compiler and SDL3GameEngine.cpp stays plain C++.                          //
-//                                                                            //
+//
+//  IOSBackgroundTask.mm: keep the network alive for the ~30 s iOS grants a backgrounded app.
+//  Under lockstep one suspended iPad freezes every player; iOS grants execution time only when asked.
+//  A bound, not a cure: a longer absence still expires, and the expiration path sets a flag for the engine.
+//  Objective-C++ (UIApplication has no C API), behind extern "C" so only this unit needs that compiler.
+//
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <atomic>

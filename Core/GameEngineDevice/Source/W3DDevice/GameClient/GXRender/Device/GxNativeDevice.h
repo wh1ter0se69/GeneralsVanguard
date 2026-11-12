@@ -1,17 +1,25 @@
-// GeneralsX: L1 in the game: the native d3d8 device.
-//
-// GxNativeDevice implements IDirect3DDevice8 over GXRender: VkCtx (+ VkSwapchain when there is a window), GXRES resources,
-// the FF/custom pipeline cache, GxPacketWriter and GxD3D8Translate (which holds the d3d8 state). Textures, surfaces and
-// vertex/index buffers are d3d8 objects over GxTexture / GxRenderTarget / GxBuffer. Everything the game can observe follows
-// the DXVK d3d8 path it replaces (the CLASSIC reference, references/fbraz3-dxvk 954c5c692): back-buffer rotation, CopyRects'
-// pool dispatch, reference counting, the present interval.
-//
-// Threading: the device is called by one thread at a time (the d3d8 ring hands it between main and its render thread with
-// its own synchronisation - DESIGN §9); nothing here is thread-affine. Render-only: nothing the simulation reads.
-// A23-B (v8.1): every entry point is a FRONT half (validation, bindings, refcounts, the
-// getter mirror, host copies, creation) run on the caller and an EXEC half (translator, writer, GXRES uploads, recording,
-// acquire, present) run on the device's own worker `gx-native-cs` in call order (GX_NATIVE_CS=1, the default), or inline right
-// after the front half (GX_NATIVE_CS=0 = today's path, and inside every S point - §3.10).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// L1 in the game: the native d3d8 device, implementing IDirect3DDevice8 over GXRender. Everything the game can observe
+// follows the DXVK d3d8 path it replaces. Called by one thread at a time. Each entry point is a FRONT half (validation,
+// bindings, refcounts, host copies) on the caller and an EXEC half (translator, writer, uploads, present) on the worker
+// `gx-native-cs` in call order (GX_NATIVE_CS=1, default) or inline (=0).
 #pragma once
 
 #include <d3d8.h>
@@ -33,7 +41,7 @@ typedef BOOL WINBOOL;   // Wine/DXVK's spelling of BOOL (DXVK windows_base.h:38)
 #include "GxRenderTarget.h"
 #include "GxSceneCopy.h"   // F-depth+ (GxSceneTap.h, the game's side)
 #include "GxTexture.h"
-#include "GxWorldPass.h"   // render-hud-seam-1: Core/GameEngineDevice/Include/W3DDevice/GameClient (the seam's device interface)
+#include "GxWorldPass.h"   // Core/GameEngineDevice/Include/W3DDevice/GameClient (the seam's device interface)
 #include "GxShadowMap.h"   // (S7): the shadow-map device interface (same folder)
 #include "GxShadowCasters.h"
 #include "VkCtx.h"
@@ -80,20 +88,20 @@ struct GxNativeHost
 	// GX_NATIVE_FIF=2|3 (A30 step 2, TEST knob): frames in flight, ONE value for the writer's ring and the swapchain's slots.
 	// Default 2 = today. 0 = a refused value (anything but 2 or 3): the device logs it and keeps 2.
 	uint32_t framesInFlight = 2;
-	bool waitStats = false;               // GX_NATIVE_WAITS=1 (A30): a [GXWAIT] line (frame-ring + present-slot wait) per 120 presents
-	// FG/Reflex submit-thread guard (FG P0 §2): what the PLAYER REQUESTED (GXFrameGen 0-4 / GXReflex 0-2), filled by BOTH hosts from
+	bool waitStats = false;               // GX_NATIVE_WAITS=1: a [GXWAIT] line (frame-ring + present-slot wait) per 120 presents
+	// FG/Reflex submit-thread guard: what the PLAYER REQUESTED (GXFrameGen 0-4 / GXReflex 0-2), filled by BOTH hosts from
 	// GXGraphics, not whether Streamline loaded. Either > 0 turns the gx-vk-submit thread OFF (wins over GX_VK_SUBMIT_THREAD=1) until
 	// frame generation's census has run at thread=1.
 	int requestedFrameGen = 0;
 	int requestedReflex = 0;
 	int requestedUpscaler = 0;           // GXGraphics::upscaler(): non-zero = the world/HUD seam runs (render/dlss x A23-B guard below)
 	bool testNoFifGuard = false;         // TESTS: X-fifguard-*'s plant - FIF 3 kept although FG/Reflex is requested (creation-time)
-	bool testShadowMapCreateFails = false;   // TESTS (S7 P2, A36 item 5): the atlas creation fails -> a key-off session (sm-create-fail)
+	bool testShadowMapCreateFails = false;   // TESTS: the atlas creation fails -> a key-off session (sm-create-fail)
 	bool testShadowMapFailKeepsBit = false;  // TESTS: X-sm-create-fail's plant - the look bit is kept after that failure (creation-time)
 	bool testA2cNoFallback = false;          // TESTS: X-a2c-prewarm-fail's plant - a failed init prewarm with A2C on fails init
 	                                         // (the "A2C turns itself off" fallback removed; creation-time)
-	bool testSwapchainInterposed = false;  // TESTS (FG P0 H3): the swapchain images may be proxies, as with DLSS-G loaded (creation-time)
-	uint32_t testSwapchainDropUsage = 0;   // TESTS (FG P0 H3): VkImageUsageFlags the swapchain does NOT request - the planted proxy
+	bool testSwapchainInterposed = false;  // TESTS: the swapchain images may be proxies, as with DLSS-G loaded (creation-time)
+	uint32_t testSwapchainDropUsage = 0;   // TESTS: VkImageUsageFlags the swapchain does NOT request - the planted proxy
 	bool testSwapchainViewsWithoutUsage = false; // TESTS: X-present-direct-interposed-views' plant - swapchain views made without proven
 	                                             // COLOR_ATTACHMENT, the one-pass present still refused (creation-time)
 	bool testPresentDirectIgnoresUsage = false;  // TESTS: X-present-direct-usage / -interposed's plant - swapchain views made and the
@@ -104,10 +112,10 @@ struct GxNativeHost
 	// VkPhysicalDeviceIDProperties::deviceUUID must equal it, checked right after VkCtx::init (before any surface or swapchain)
 	const uint8_t* requireDeviceUuid = nullptr;
 	const Res::FormatCaps* testFormatCaps = nullptr;   // TESTS: forced GXRES capabilities (e.g. no BC: DXT decoded on upload)
-	// GeneralsX: (PREREG A36.2): the HMODULE of a vetted interposer that owns
+	// The HMODULE of a vetted interposer that owns
 	// getInstanceProcAddr (NVIDIA Streamline's, loaded only for DLSS on NVIDIA); session row S8 accepts exactly that module.
 	void* loaderInterposer = nullptr;
-	// GeneralsX: (PREREG A36.2): NVIDIA Streamline, set by the install code ONLY in a
+	// NVIDIA Streamline, set by the install code ONLY in a
 	// GX_STREAMLINE build when the player chose DLSS on an NVIDIA adapter - otherwise null and nothing of it is in the process.
 	// getInstanceProcAddr is then its interposer's (S8 accepts loaderInterposer = its HMODULE).
 	Upscale::Streamline* streamline = nullptr;
@@ -117,14 +125,14 @@ struct GxNativeHost
 	bool fdepthForcePass = false;        // GX_FDEPTH_RESOLVE=pass: never the in-scope resolve (the A/B's other arm)
 };
 
-// (GxNativeDlss.cpp, PREREG A36.2): fills host.streamline / getInstanceProcAddr / loaderInterposer when
+// (GxNativeDlss.cpp): fills host.streamline / getInstanceProcAddr / loaderInterposer when
 // wantDlss (the player's GXUpscaler=dlss), this is a GX_STREAMLINE build, DXVK's default adapter is NVIDIA and NVIDIA's signed
 // Streamline loads from GX_STREAMLINE_DIR or <exe dir>\Streamline. Otherwise the host is untouched and nothing of it loads.
 // One line on stderr either way when wantDlss.
-// (PREREG A39): reflex = GXReflex 0-2, frameGen = GXFrameGen 0-4 (generated frames per real one); either one
+// reflex = GXReflex 0-2, frameGen = GXFrameGen 0-4 (generated frames per real one); either one
 // loads Streamline too (Reflex / DLSS Frame Generation), with the same NVIDIA-adapter + signed-DLL gates.
 void GxNativeLoadStreamline(IDirect3D8* dxvk, GxNativeHost& host, bool wantDlss, int reflex = 0, int frameGen = 0);
-// (PREREG A39b): the game's Windows message loop reports every message here (any thread may call it: atomics only).
+// The game's Windows message loop reports every message here (any thread may call it: atomics only).
 // PCL Stats' latency ping and a left click (the Reflex flash) become PCL markers on the device's next frame. No-op without Reflex.
 void GxNativeNoteWindowsMessage(unsigned message);
 
@@ -149,10 +157,10 @@ struct GxNativeDebug
 	bool fdepthFallbackNothing = false;      // the pass / copy path records nothing but publishes (fdepth-1x / -pass must fail)
 	bool motionNoSeed = false;               // Begin does not seed the clean projection set before motion ran (jitter-inherit must fail)
 	bool shadowCmdDirect = false;     // S7 X-sm-queued: IGxShadowMap's commands run on the CALLER instead of the worker's exec half
-	bool smLookFrameStale = false;    // S7 P2 X-sm-receive: the writer never writes set 2's UBO (handed to it by BeginShadowFrame)
-	bool smNoRebind = false;          // S7 P2 X-sm-rebind: set 2 not rebound after outsideScope (A36 4a; handed over by BeginShadowFrame)
+	bool smLookFrameStale = false;    // X-sm-receive: the writer never writes set 2's UBO (handed to it by BeginShadowFrame)
+	bool smNoRebind = false;          // X-sm-rebind: set 2 not rebound after outsideScope (handed over by BeginShadowFrame)
 	bool smNoDivide = false;          // S7 A39 X-sm-persp-divide: the receivers read the perspective map undivided (handed over likewise)
-	bool smCreateFailKeepsBit = false;// S7 P2 X-sm-create-fail's marker: the harness hands it to host.testShadowMapFailKeepsBit (creation-time)
+	bool smCreateFailKeepsBit = false;// X-sm-create-fail's marker: the harness hands it to host.testShadowMapFailKeepsBit (creation-time)
 	bool noRotate = false;            // Present does not rotate the back buffers
 	bool fifFgGuardSkipped = false;   // gx_native_test X-fifguard-*'s marker: the harness hands it to host.testNoFifGuard BEFORE creation
 	bool csDlssGuardSkipped = false;  // gx_native_test X-csguard-*'s marker: the harness hands it to host.testNoCsDlssGuard BEFORE creation
@@ -185,10 +193,10 @@ struct GxNativeDebug
 	bool presentPipelineFails = false; // the present shader reports failure (TEST fault injection, not a defect)
 	bool injectSurfaceLost = false;   // the next acquire reports SURFACE_LOST before acquiring (TEST fault injection)
 	bool injectCreateSurfaceLost = false; // the surface is lost and a recreation is due before the acquire (as after a resize): swapchain
-	                                  // creation on it fails until a new surface exists (TEST fault injection, design-r5 #1)
+	                                  // creation on it fails until a new surface exists (TEST fault injection)
 	bool injectPresentSurfaceLost = false; // the next present reports SURFACE_LOST and the surface stays lost (TEST fault injection)
 	bool failNextSurfaceCreate = false; // the next VkSurfaceKHR creation fails (TEST fault injection)
-	bool failFrameInRecreate = false; // the writer frame after the next recreation cannot begin (TEST fault injection, design-r5 #2)
+	bool failFrameInRecreate = false; // the writer frame after the next recreation cannot begin (TEST fault injection)
 	uint32_t failFrameInRecreateAfter = 0; // A23-B: the same for the Nth recreation from now (1 = the next) - an S Present's retry
 	bool createLossUnclassified = false; // a swapchain creation that failed on a lost surface is not recognised (no new surface)
 	bool retryAcquireSkipsFrameCheck = false; // the retry acquire after a recreation does not check that a writer frame is open
@@ -198,14 +206,14 @@ struct GxNativeDebug
 	bool presentWhileNotReset = false; // Present runs on a NotReset device (DXVK answers DEVICELOST and presents nothing)
 	bool injectPresentError = false;  // the next vkQueuePresentKHR fails as OUT_OF_*_MEMORY: not enqueued (TEST fault injection)
 	bool presentErrorIgnored = false; // a generic present failure is not followed by a rebuild (the image stays stranded)
-	bool resetDropsPresentStatus = false; // R19: Reset leaves the submit thread's pending present status untaken (stale at the next Present)
-	bool presentDropsPresentStatus = false; // R19: Present takes the previous present's deferred status and ignores it
-	bool threadSkippedPresentOk = false;  // R19: (forwarded to Vk::g_testMutants by the arm) a present skipped behind a refusal reads Ok
+	bool resetDropsPresentStatus = false; // Reset leaves the submit thread's pending present status untaken (stale at the next Present)
+	bool presentDropsPresentStatus = false; // Present takes the previous present's deferred status and ignores it
+	bool threadSkippedPresentOk = false;  // (forwarded to Vk::g_testMutants by the arm) a present skipped behind a refusal reads Ok
 	bool orderCheckStaysInstalled = false; // the device is destroyed without GxOrderCheck::uninstall (the next device goes unchecked)
 	bool swvpStateFromTranslator = false; // GetRenderState(SOFTWAREVERTEXPROCESSING) answers the translator's slot, not the mode
 	bool getIndicesNeverCalled = false; // GetIndices still counted as a never-called method (L2's fallback calls it)
 	bool getTextureNeverCalled = false;      // these four still counted as never-called methods (the world/HUD seam's composite
-	bool getStreamSourceNeverCalled = false; // saves and restores the device state with them: render-hud-seam-2)
+	bool getStreamSourceNeverCalled = false; // saves and restores the device state with them)
 	bool getVertexShaderNeverCalled = false;
 	bool getPixelShaderNeverCalled = false;
 	bool presentIgnoresDeviceLoss = false;
@@ -221,7 +229,7 @@ struct GxNativeDebug
 	bool presentAfterFailedSubmit = false; // presents although the frame's submission failed (waits on an unsignalled semaphore)
 	bool presentFailNoClear = false;  // a failed present shader leaves the target as it was (a stale frame is shown)
 	bool resetZFromOldParams = false; // a Reset's ZENABLE comes from the previous parameters
-	bool resetBKeepsLost = false;     // Reset leaves a NotReset device NotReset when d3d9's early validation fails (design-r3 #7)
+	bool resetBKeepsLost = false;     // Reset leaves a NotReset device NotReset when d3d9's early validation fails
 	bool presentResolveAverages = false; // an MSAA back buffer presented through vkCmdResolveImage (averages the encoded values)
 	bool presentBlitLinear = false;   // a scaled present through vkCmdBlitImage LINEAR instead of DXVK's footprint rule
 	bool copySrcMipZero = false;      // a GPU CopyRects reads level 0 of the source texture whatever its level
@@ -231,7 +239,7 @@ struct GxNativeDebug
 	bool destroyImmediately = false;  // the last private release destroys on the releasing thread
 	bool resetPhasesCollapsed = false; // Reset's late (recreation) checks run before the unbinding
 	bool copyDecodedAsBlocks = false; // a decoded DXT level read back from the GPU is copied as if it were blocks
-	bool resetDropsRetainedStorage = false; // Reset destroys the storage of a back buffer the caller still holds (code-r6 #2)
+	bool resetDropsRetainedStorage = false; // Reset destroys the storage of a back buffer the caller still holds
 	bool resourceErrorsUncounted = false; // GXRES error lines are printed but not counted (ask)
 	bool copyNoAliasLayout = false;   // a GPU copy between two levels of one texture transitions the image twice
 	bool forgetDropsPendingClear = false; // destroying an attachment of the writer's pass drops its pending clear
@@ -282,25 +290,23 @@ struct GxNativeDebug
 	bool csRecoverIgnoresLatchWorker = false; // X-cs-recover-ignores-latch-worker: the same, in the WORKER's recovery only
 	bool csPsBindDropped = false;       // X-cs-ps-bind-dropped: SetPixelShader's exec half (CS=1) binds 0, the trace names the handle
 	bool csLightEnableTrue = false;     // X-cs-light-enable-true: LightEnable's exec half (CS=1) forwards TRUE, the trace keeps the call's
-	                                    //
 	bool csIndexedStartZero = false;    // X-cs-indexed-start-zero: DrawIndexedPrimitive's exec half (CS=1) passes start index 0, the trace
 	                                    // keeps the call's
 	bool csClearRectShort = false;      // X-cs-clear-rect-short: Clear's rectangle payload copies count x 4 bytes (CS=1)
 	bool csDeleteSkipsExec = false;     // X-cs-delete-skips-exec: Delete{Pixel,Vertex}Shader's exec half (CS=1) traces and never deletes
-	                                    //
 	bool csIndicesBaseZero = false;     // X-cs-indices-base-zero: SetIndices' exec half (CS=1) passes base vertex 0, the trace keeps the
 	                                    // call's
-	// rw3-X-3 (A23-B merge gate): the translator-input plants (item 3) and the plants
+	// The translator-input plants
 	bool csTrVsCodeAtDecl = false;      // X-strict-vs-code: CreateVertexShader's exec half (CS=1) hands the translator the declaration's
 	                                    // words as the code (a ring offset slip); the trace hashes the right bytes - payload class
 	bool csTrSkipRenderState = false;   // X-strict-light-rs: SetRenderState's exec half (CS=1) traces and never reaches the translator
 	                                    // - dropped-call class
 	bool csMaterialByRef = false;       // X-cs-ff-payload-material: SetMaterial's command keeps the caller's pointer, read when the
-	                                    // worker runs it (r10-oracle P2-1)
+	                                    // worker runs it
 	bool csLightByRef = false;          // X-cs-ff-payload-light: the same for SetLight
 	bool csViewportByRef = false;       // X-cs-ff-payload-viewport: the same for SetViewport
 	bool csDeleteSkipsUnbound = false;  // X-strict-shader-unbound-delete: Delete{Vertex,Pixel}Shader's exec half (CS=1) deletes only a
-	                                    // BOUND shader - an unbound one keeps its record (r10-oracle P2-2)
+	                                    // BOUND shader - an unbound one keeps its record
 	bool csShaderOversizeRefused = false; // X-strict-shader-oversize: Create{Vertex,Pixel}Shader's oversize S branch (CS=1) answers
 	                                      // INVALIDCALL instead of today's body
 	bool csOversizeLateDrain = false;   // X-cs-shader-oversize-order / X-cs-oversize-order: an oversize S body that calls its inline
@@ -310,7 +316,7 @@ struct GxNativeDebug
 	                                    // instead of today's body
 	bool csCopyDestOrigin = false;      // X-strict-copy-offsets: the queued host -> DEFAULT copy's exec half (CS=1) writes at the
 	                                    // destination's origin instead of the call's point
-	// rw3-X-3, Lock/Unlock + CopyRects census (one plant per forwarding error it names; inert when false)
+	// Lock/Unlock + CopyRects census (one plant per forwarding error it names; inert when false)
 	bool csUploadOffsetZero = false;    // X-strict-buffer-ranges-offset: a static unlock's upload (CS=1) lands at offset 0
 	bool csPlainLockForwardsDiscard = false; // X-strict-buffer-ranges-plain: the plain-lock S fallback locks with DISCARD
 	bool csRectPitchSwap = false;       // X-strict-texture-partial: a partial MANAGED upload (CS=1) passes the level pitch to the
@@ -329,15 +335,13 @@ struct GxNativeDebug
 	                                    // worker-written lastUse on the front - a real race the TSan lane must report
 	bool csDrainTimeZero = false;       // X-cs-drain-attribution (X'): a csSync (accessor) drain is recorded with 0 ns
 	bool csDrainTimeZeroS = false;      // X-cs-drain-attribution-s: an SScope drain is recorded with 0 ns
-	// rw3-X-3,
 	bool csHostCopyTwinPhysFmt = false; // X-strict-host-copy-nobc: the twin takes the destination's PHYSICAL format (A8R8G8B8 decoded)
 	bool csFrontRefusalCounts = false;  // X-cs-host-copy-refused-count: the front block-check refusal (CS=1) counts a copiesRefused
 	bool csWorkerDefaultStack = false;  // X-cs-deep-clear: only selects the X- child (which sets GxNativeCs::testDefaultStack before its
 	                                    // device); no effect on the device itself
 	bool csMultiplySkip = false;        // X-strict-multiply: MultiplyTransform's S body (CS=1) skips the multiplication, keeping the
-	                                    // drain, the accounting and D3D_OK (r10-oracle P2-3)
+	                                    // drain, the accounting and D3D_OK
 	bool csPresentTransposed = false;   // X-cs-present-transposed: the worker's Present (CS=1) takes the call's width and height swapped
-	                                    //
 	bool csDeleteUnbinds = false;       // X-cs-delete-unbinds: Delete{Pixel,Vertex}Shader's exec half (CS=1) unbinds instead of
 	                                    // deleting - a shader deleted while bound stops drawing
 	bool csPsBindFront = false;         // X-cs-ps-bind-front: SetPixelShader's exec half (CS=1) binds the FRONT's current m_ps, not
@@ -379,14 +383,14 @@ struct GxNativeDebug
 	bool csSerial = false;            // A23-B §7 STRICT (TEST-ONLY, not a plant): the SERIAL schedule - every exec half dispatched is
 	                                  // run (the worker drained) and the device idled before the caller goes on (both modes); the
 	                                  // caller also sets g_gxPipeTestMutants.syncSpec (getFF waits for its specialised build)
-	bool vsConstCapsFromDxvk = false; // GetDeviceCaps passes DXVK's 256 vertex-shader constants through (the translator holds 96; rw3-R11)
-	// rw3-W lever (2) W-a, the one-pass present (A20)
+	bool vsConstCapsFromDxvk = false; // GetDeviceCaps passes DXVK's 256 vertex-shader constants through (the translator holds 96)
+	// The one-pass present
 	bool presentDirectOff = false;    // TEST control, not a plant: the one-pass present is not taken (the old path, inside an arm)
 	bool presentDirectAverage = false; // the one-pass present averages MSAA samples as stored values, not in linear light
 	bool presentDirectAnyExtent = false; // the one-pass present is taken although the window is not the back buffer's size
 	bool presentDirectIgnoresFit = false; // the one-pass present is taken where the old path's 1:1 fit does not cover the image
-	bool swapchainViewsWithoutUsage = false; // FG P0 H3: X-present-direct-interposed-views' marker (host.testSwapchainViewsWithoutUsage)
-	bool presentDirectIgnoresUsage = false; // FG P0 H3: X-present-direct-usage / -interposed's marker - the harness hands it to
+	bool swapchainViewsWithoutUsage = false; // X-present-direct-interposed-views' marker (host.testSwapchainViewsWithoutUsage)
+	bool presentDirectIgnoresUsage = false; // X-present-direct-usage / -interposed's marker - the harness hands it to
 	                                        // host.testPresentDirectIgnoresUsage BEFORE creation (the views are made with the swapchain)
 	bool capturePresent = false;      // TESTS: every present also copies the swapchain image into a host buffer (testReadPresent)
 	// (tier 1): each drops ONE seam entry point's SScope - its body then records on the front
@@ -415,7 +419,7 @@ struct GxNativeStats
 	uint64_t gammaIgnored = 0;
 	uint64_t resourceErrors = 0;      // GXRES errors (a staging / upload failure): the d3d8 call itself answered D3D_OK
 	uint64_t copiesRefused = 0;       // a CopyRects the device cannot do as DXVK does (a decoded DXT level read back as blocks)
-	uint64_t vsConstantsRefused = 0;  // SetVertexShaderConstant past kGxNativeMaxVsConst (rw3-R11): INVALIDCALL, counted in bad
+	uint64_t vsConstantsRefused = 0;  // SetVertexShaderConstant past kGxNativeMaxVsConst: INVALIDCALL, counted in bad
 	uint64_t targetsRefused = 0;      // a render target the device cannot attach (a texture level > 0): its clears/draws refused
 	uint64_t targetSizeRefused = 0;   // SetRenderTarget refused for a depth smaller than the target (DESIGN 16f residual: must stay 0)
 	uint64_t presentsSkipped = 0;     // frames not shown (swapchain recreation / acquire / present target failed; retried next Present)
@@ -425,8 +429,8 @@ struct GxNativeStats
 	uint64_t presentErrors = 0;       // the present shader could not draw: the frame was shown black
 	uint64_t presentFailures = 0;     // vkQueuePresentKHR failed otherwise (out of memory): the swapchain is rebuilt
 	uint64_t stretchedPresents = 0;   // back buffer and window extents differed: DXVK's scaled present (DESIGN 8.2)
-	uint64_t presentsDirect = 0;      // rw3-W W-a: presents drawn straight into the swapchain image (no window-sized target)
-	uint64_t presentsShown = 0;       // FG P0 H3: presents the swapchain accepted (Ok / Suboptimal; enqueue-time under the submit thread)
+	uint64_t presentsDirect = 0;      // presents drawn straight into the swapchain image (no window-sized target)
+	uint64_t presentsShown = 0;       // presents the swapchain accepted (Ok / Suboptimal; enqueue-time under the submit thread)
 	int64_t losable = 0;              // live DEFAULT-pool objects the game created (DXVK's m_losableResourceCounter)
 };
 
@@ -437,7 +441,7 @@ struct GxNativeValidation
 };
 
 // The vertex-shader constants this device implements (GxCustomCatalog.h kGxCsVsConstCount): GetDeviceCaps reports MaxVertexShaderConst
-// = min(DXVK's, this) and SetVertexShaderConstant past it is refused (rw3-R11); gxcap-replay --native's caps check (e) applies the same min.
+// = min(DXVK's, this) and SetVertexShaderConstant past it is refused; gxcap-replay --native's caps check (e) applies the same min.
 constexpr DWORD kGxNativeMaxVsConst = kGxCsVsConstCount;
 
 class GxNativeDevice;
@@ -467,9 +471,9 @@ protected:
 	virtual void destroyStorage() = 0;   // the storage and the object itself (delete): the worker, or direct
 	void destroy() { destroyFront(); destroyStorage(); }
 	virtual bool containerOwned() const { return false; }   // a texture level: never queued, its texture owns it
-	// A23-B §7.1 TEST-ONLY: retire every address the exec traces name this object by (the most-derived object, its storage, a
-	// texture's level surfaces) - the base subobject alone is not one of them (rw3-X-3: a freed buffer's id stayed live and a reused
-	// address aliased differently per run)
+	// TEST-ONLY: retire every address the exec traces name this object by (the most-derived object, its storage, a
+	// texture's level surfaces) - the base subobject alone is not one of them (otherwise a freed buffer's id stays live and a reused
+	// address aliases differently per run)
 	virtual void traceRetire(GxCsExecSink&) const {}
 	GxNativeDevice& m_owner;
 
@@ -798,8 +802,8 @@ public:
 	GxNativeDebug& debug() { csSync("accessor debug"); return m_debug; }
 	GxNativeValidation validation();
 	Res::GxResources& resources() { csSync("accessor resources"); return m_gx; }
-	// rw3-X-3 (A23-B X'): the format table, immutable after GxResources::init (device creation, before the worker starts) - a
-	// front read that NEVER drains (GetDesc / GetLevelDesc used resources() and drained the worker on every call)
+	// The format table, immutable after GxResources::init (device creation, before the worker starts) - a
+	// front read that NEVER drains (resources() drains the worker, which GetDesc / GetLevelDesc must not do on every call)
 	const Res::FormatTable& formats() const { return m_gx.formats(); }
 	Rec::GxPacketWriter& writer() { csSync("accessor writer"); return m_writer; }
 	uint32_t framesInFlight() const { return m_fif; }   // A30: the resolved GX_NATIVE_FIF (2 or 3) - set in initVulkan before the
@@ -847,7 +851,7 @@ public:
 	// TESTS: the swapchain image the last Present showed (its own format's rows, B8G8R8A8 on every surface met so far), captured
 	// when debug().capturePresent was set before that Present; false when it was not captured (no readback usage, no capture)
 	bool testReadPresent(std::vector<uint8_t>* out, uint32_t* width, uint32_t* height);
-	// TESTS (FG P0 H3): the swapchain has at least one image view
+	// TESTS: the swapchain has at least one image view
 	bool testSwapchainViewsMade() const
 	{
 		for (uint32_t i = 0; i < m_swapchain.imageCount(); ++i)
@@ -898,7 +902,7 @@ public:
 	void worldBegin(const GxMotionBegin& b, IDirect3DSurface8* colour, IDirect3DSurface8* depth);
 	void worldEnd();
 	void worldJitter(float ndc[2]) const { m_motion.jitterNdc(ndc); }
-	HRESULT worldObjectVelocity(IDirect3DSurface8* o);   // IGxWorldPass::SetObjectVelocity (render-motion-units-1's target; null cancels)
+	HRESULT worldObjectVelocity(IDirect3DSurface8* o);   // IGxWorldPass::SetObjectVelocity (the object-velocity target; null cancels)
 	// IGxWorldPass::NextTargetsAreWorld: under GXWP_TEMPORAL the NEXT depth-stencil surface created gets SAMPLED + a DEPTH-aspect
 	// view (one-shot: only the world depth). Without it every depth image is created exactly as before.
 	void worldNextTargets(uint32_t flags) { m_nextDepthSampled = (flags & GXWP_TEMPORAL) != 0; }
@@ -915,9 +919,9 @@ public:
 	HRESULT sceneSetReader(const char* name, uint32_t needs);
 	bool sceneWanted() const { return m_sceneInit && m_scene.readers().needs() != 0; }
 	HRESULT sceneOpaqueDone();
-	// FRONT: something will sample the world depth after this point of the frame - motion-1's End-of-pass resolve, or an F-depth+
-	// depth reader (whose mid-frame copy needs the depth stored at its split). Lever 2b (W-b, depth DONT_CARE at the last scope)
-	// must keep the depth while this is true (A20s note 2; the integrator 17/10: W-b wires it, whichever lands second).
+	// FRONT: something will sample the world depth after this point of the frame - the motion End-of-pass resolve, or an F-depth+
+	// depth reader (whose mid-frame copy needs the depth stored at its split). A DONT_CARE depth at the last scope
+	// must keep the depth while this is true.
 	bool depthReadAfterPass() const { return m_motionInit || (m_scene.readers().needs() & GX_SCENE_DEPTH) != 0; }
 	// TESTS: F-depth+'s state (probe texel / timing, frame(), stats()) and the probe's last value (depth, r, g, b)
 	GxSceneCopy& testScene() { return m_scene; }
@@ -1098,22 +1102,22 @@ private:
 	struct Dlss;                                        // (GxNativeDlss.cpp); null without Streamline
 	Dlss* m_dlss = nullptr;
 	PFN_vkGetInstanceProcAddr dlssLoaderRoot() const;   // initVulkan's VkCtx root: m_host's, or Streamline::loaderRoot()
-	// FG P0 H3: DLSS-G is loaded (or TESTS say so): every swapchain is a Streamline proxy whose images' usage is unknowable
+	// DLSS-G is loaded (or TESTS say so): every swapchain is a Streamline proxy whose images' usage is unknowable
 	bool swapchainInterposed() const;
 	bool m_interposedLogged = false;
 	void dlssInit();                                    // end of initVulkan
 	void dlssShutdown();                                // destructor: before GxResources and the device go (slShutdown first)
 	// (GxNativeDlss.cpp): the per-frame contract - one Streamline frame per presented frame.
 	// No-ops without Streamline. slSceneBegin: the frame's first BeginScene (simulation ends, rendering starts); slPresentBegin: before
-	// presentToSwapchain (the HUD-less tag, eRenderSubmitEnd); slPresentHook: the present hook (FG P0 H3) - ePresentStart / ePresentEnd
+	// presentToSwapchain (the HUD-less tag, eRenderSubmitEnd); slPresentHook: the present hook - ePresentStart / ePresentEnd
 	// around vkQueuePresentKHR alone, on the presenting thread, for this frame's token (false: no hook); slFrameEnd: after the present is
 	// counted - DLSS-G state, then the next frame begins.
 	void slSceneBegin();
-	void fgHudBegin();      // (PREREG A39c, TEST-ONLY GX_FG_HUDLESS=1): WorldPass::HudBegin - the scene without HUD, copied
+	void fgHudBegin();      // TEST-ONLY GX_FG_HUDLESS=1: WorldPass::HudBegin - the scene without HUD, copied
 	void fgHudlessTag();    // slPresentBegin: that copy resolved like the present and tagged as DLSS-G's HUD-less colour
 	void slPresentBegin();
 	bool slPresentHook(Vk::PresentHook* out);
-	// FG P0 H3 (F8): around presentToSwapchain's swapchain recreation - frame generation off before it, back on (with its own
+	// Around presentToSwapchain's swapchain recreation - frame generation off before it, back on (with its own
 	// recreation) after kFgStableFrames presented frames with no recreation. No-ops without Streamline / frame generation.
 	void slBeforeRecreate();
 	void slAfterRecreate();
@@ -1169,9 +1173,9 @@ private:
 	std::mutex m_deadLock;
 	std::vector<GxNativeRefs*> m_dead;   // released, not yet destroyed (deferDestroy)
 
-	// GeneralsX: the world/HUD seam's interface (GxWorldPass.h), answered by
+	// the world/HUD seam's interface (GxWorldPass.h), answered by
 	// QueryInterface(IID_GxWorldPass); its reference count is the device's. Bodies in GxNativeWorldPass.cpp: each stream adds its
-	// work as one call there (render-motion-1 Begin/End, the upscaler backends Supports/Upscale). Front-end contract: GxWorldPass.h.
+	// work as one call there (motion Begin/End, the upscaler backends Supports/Upscale). Front-end contract: GxWorldPass.h.
 	struct WorldPass final : public IGxWorldPass
 	{
 		GxNativeDevice* dev = nullptr;
@@ -1192,7 +1196,7 @@ private:
 		HRESULT sharpen(const GxUpscaleCall& c);   // Upscale(GX_UPSCALE_RCAS)
 	};
 	WorldPass m_worldPass;
-	// GeneralsX: F-depth+'s interface (GxSceneTap.h), answered by QueryInterface(IID_GxSceneTap)
+	// F-depth+'s interface (GxSceneTap.h), answered by QueryInterface(IID_GxSceneTap)
 	// whatever the seam does; its reference count is the device's.
 	struct SceneTap final : public IGxSceneTap
 	{
@@ -1221,7 +1225,7 @@ private:
 	bool m_shadowLastOnWorker = false;   // TESTS: the last IGxShadowMap command ran in the worker's exec half
 	Rec::GxShadowCasters m_casters;
 	Res::GxImage m_atlas;
-	VkImageView m_atlasView = VK_NULL_HANDLE;   // DEPTH aspect: the pass's attachment view and (P2) the receivers' sampled view
+	VkImageView m_atlasView = VK_NULL_HANDLE;   // DEPTH aspect: the pass's attachment view and the receivers' sampled view
 	Res::GxImage m_smScratch;                    // S7 A92 TEST-ONLY replay-k: copies 2..k render here (k > 1 only; never sampled)
 	VkImageView m_smScratchView = VK_NULL_HANDLE;
 	FILE* m_gpuDump = nullptr;                   // S7 A92 TEST-ONLY GX_GPUTIME_DUMP: one line per GPU sample (logGpu's drain)
@@ -1234,7 +1238,7 @@ private:
 	void shadowMapReport(uint64_t presents);   // the periodic [GXSHADOWMAP] line + the TEST-ONLY atlas dump (GX_SHADOWMAP_DUMP_EVERY)
 	Rec::GxCasterStats m_smPrev;
 	uint32_t m_smDumpEvery = 0, m_smDumps = 0;
-	uint32_t m_lookFeatures = 0;   // S7 P2: the effective look mask (the host's, bit 0 cleared when the atlas could not be made)
+	uint32_t m_lookFeatures = 0;   // the effective look mask (the host's, bit 0 cleared when the atlas could not be made)
 	uint32_t m_smFilter = 0;       // GX_SHADOWMAP_FILTER=hard (TEST-ONLY, the cost table): one compare tap
 	uint64_t m_smRcvPrev[7] = {};  // the translator's receiver class counts (+ A44 castOnlyDropped, A61 castOnlySolid) at the last periodic line
 	// (A108): alpha-to-coverage for the session = look bit 1 AND a multisampled creation (init's present parameters); then the
@@ -1252,14 +1256,14 @@ public:
 	bool testShadowMapOn() const { return m_shadowMapOn; }
 	const Rec::GxShadowCasters& testCasters() const { return m_casters; }
 	const Res::GxImage& testAtlas() const { return m_atlas; }
-	// S7 A92 TEST-ONLY (GX_GPUTIME_DUMP; the integrator's P4 ruling (4)): the logic frame the game draws, queued on the cs stream like
+	// TEST-ONLY (GX_GPUTIME_DUMP): the logic frame the game draws, queued on the cs stream like
 	// SetShadowTags and stored with the writer frame it lands in - each per-frame sample of the dump then names its game frame
 	void testSetLogicFrame(uint32_t frame);
 	const Res::GxImage& testSmScratch() const { return m_smScratch; }   // S7 A92: replay-k's scratch image (null image when k = 1)
-	uint32_t testLookFeatures() const { return m_lookFeatures; }   // S7 P2: the EFFECTIVE look mask (a create failure clears bit 0)
+	uint32_t testLookFeatures() const { return m_lookFeatures; }   // the EFFECTIVE look mask (a create failure clears bit 0)
 	bool testA2COn() const { return m_a2cOn; }   // (A108): the a2c family is loaded and the translator decides per draw
 	uint32_t testA2COffCount() const { return m_a2cOffCount; }   // [GXA2C] state=off reason=... lines printed by the fallback
-	GxPipeStats testCacheStats() const { return m_cache.stats(); }   // S7 P2 A11: every compile counter
+	GxPipeStats testCacheStats() const { return m_cache.stats(); }   // every compile counter
 	const Rec::GxPacketWriter& testWriter() const { return m_writer; }
 	bool testShadowLastOnWorker() const { return m_shadowLastOnWorker; }
 	uint32_t testShadowTags() const { return m_tr.shadowTags(); }

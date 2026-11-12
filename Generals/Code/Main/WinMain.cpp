@@ -40,6 +40,7 @@
 #include <dbt.h>
 
 // USER INCLUDES //////////////////////////////////////////////////////////////
+#include "GameClient/GXEnvAllowList.h"  // GeneralsX: shipped builds ignore every GX_* not on the list
 #include "WinMain.h"
 #include "Lib/BaseType.h"
 #include "Common/CommandLine.h"
@@ -542,7 +543,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 			}
 
 			//-------------------------------------------------------------------------
-			// GeneralsX @feature tilt-thumb-buttons 06/10/2026 Mouse buttons 4 (XBUTTON1) / 5 (XBUTTON2): held state only.
+			// GeneralsX: mouse buttons 4 (XBUTTON1) / 5 (XBUTTON2): held state only.
 			case 0x020B: // WM_XBUTTONDOWN
 			case 0x020C: // WM_XBUTTONUP
 			{
@@ -824,6 +825,8 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
                       LPSTR lpCmdLine, Int nCmdShow )
 {
 	Int exitcode = 1;
+	// GeneralsX: a shipped build reads only the GX_* variables on its allow-list: first, before anything reads one
+	gxScrubEnvironment();
 	try {
 
 		SetUnhandledExceptionFilter( UnHandledExceptionFilter );

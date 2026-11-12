@@ -254,29 +254,9 @@ static void showSelectiveButtons( Int show )
 	buttonChinaLoadGame->winHide(!(show == SHOW_CHINA ));
 }
 
-// ------------------------------------------------------------------------------------------------
-// GeneralsX: Sign-in prompt on Online.
-//
-// The owner's requirement, verbatim: "when a player clicks online, if he isn't signed in it will
-// prompt him to sign in and open the browser with the oAuth directly on discord where he accepts;
-// and he's now logged in, that's it."
-//
-// SAYING NO DOES NOT OPEN THE LOBBY. See "ONLINE IS SIGN-IN ONLY" further down this file, which is
-// the paragraph that governs.
-//
-// GeneralsX:
-// That is deliberate..." - and it had been false since 11/08/2026, when gxSignInNoCallback
-// was changed to call gxSignInRefused() instead of gxEnterOnlineLobby(). It sat 1600 lines above the
-// code that contradicts it, read as a design invariant, and cost a planning round on 20/09/2026: a
-// brief was written around "declining Online still opens the lobby" and the owner had to correct it.
-// The mechanism is at GXOnlineGate.h:79-88 (DECISION_ENTER only when hasVerifiedIdentity); the call
-// site is the ButtonOnline branch of MainMenuSystem below, which takes the refusal path on anything
-// but DECISION_ENTER; and scripts/test/online-gate-test.cpp:112 asserts that no login state with
-// hasVerifiedIdentity=false ever enters, from either entry point.
-//
-// GameWinMsgBoxFunc is a bare void(*)() with no user data (GameWindow.h:85), which is why the
-// intent lives in a file static - the same shape quitCallback below already uses.
-// ------------------------------------------------------------------------------------------------
+// Sign-in prompt on Online: clicking Online while signed out opens the browser on the OAuth page; saying no
+// does not open the lobby. The decision is GXOnlineGate.h (scripts/test/online-gate-test.cpp covers it).
+// GameWinMsgBoxFunc is a bare void(*)() with no user data, so the intent lives in a file static.
 
 // GXOnlineGate mirrors GXLoginState so its decision can be unit-tested without dragging the engine
 // into the test TU. Pin the two together: adding or reordering a state in either is a COMPILE
@@ -297,22 +277,8 @@ static UnicodeString s_pendingRefusalBody;
 // the title travels with the body instead of being hardcoded at the drain.
 static UnicodeString s_pendingRefusalTitle;
 
-// GeneralsX: A refusal has to be recorded somewhere, or it is not a
-// refusal - it is a delay until the next button press.
-//
-// The gate in MainMenuSystem re-evaluates hasVerifiedIdentity() every time Online is pressed, so
-// with nothing remembering the "No" a player who never intends to link an account gets the modal
-// on every single press. GXIdentityAssertion.h makes an absent assertion a normal permanent
-// state, which makes declining forever a supported answer rather than something to nag out of.
-//
-// Persisted rather than held for the session because a daily player would otherwise be asked
-// daily, which is the same defect on a slower clock. It is not a dead end: /login in the lobby
-// (GXLobbyCommands.cpp) still links an account at any time, and once one is linked
-// hasVerifiedIdentity() short-circuits the gate permanently anyway.
-//
-// The value is cached in a static because the common path - already declined - would otherwise
-// re-parse Options.ini on every press. Named constant rather than a repeated literal so a typo
-// cannot leave the writer and the reader disagreeing, which would silently restore the nagging.
+// A refusal is recorded so the modal does not reappear on every Online press; declining forever is supported
+// (/login in the lobby links an account later). Persisted so a daily player is not asked daily; cached in a static.
 static const char * const GX_PREF_SIGN_IN_DECLINED = "GXSignInDeclined";
 static Bool s_signInDeclinedLoaded = FALSE;
 static Bool s_signInDeclined = FALSE;
@@ -345,23 +311,9 @@ static void gxEnterOnlineLobby()
 	TheShell->push( "Menus/WOLCustomLobby.wnd" );
 }
 
-// GeneralsX: ONLINE IS SIGN-IN ONLY.
-//
-// Both roads that used to end in the lobby without an identity end here instead. Online is the
-// screen where other players see your name, add you as a friend and swap codes with you; every one
-// of those is meaningless for somebody nobody can identify, and the card exchange has nothing to
-// bind to. NETWORK is deliberately untouched - a LAN game needs no account and never will.
-// GeneralsX: SHOW THE SPECIFIC REASON, AND ALWAYS DRAIN THE QUEUE.
-//
-// GXLoginFlow queues the actionable text - "the account could not be saved" and friends - and its
-// ONLY consumer in the tree is the lobby (WOLLobbyMenu.cpp:4539, unbounded grep). While a failed
-// login still entered the lobby that was fine. Now that a refusal keeps the player on the main
-// menu, showing only a generic "try again" would hide the one sentence that matters: a player
-// whose assertion could not be PERSISTED is told to retry, and the retry fails identically for
-// ever.
-//
-// Draining here also matters even when the queued line is not shown, because an undrained line
-// survives into the NEXT attempt - so every refusal path goes through this one function.
+// ONLINE IS SIGN-IN ONLY: other players see your name and add you as a friend. NETWORK is untouched.
+// Show the specific reason and always drain the queue: only the lobby consumes GXLoginFlow's queued text,
+// and an undrained line would survive into the next attempt.
 static void gxShowSignInRefusal( const UnicodeString &fallbackBody )
 {
 	UnicodeString queued;
@@ -382,39 +334,15 @@ static void gxShowSignInRefusal( const UnicodeString &fallbackBody )
 		body = fallbackBody;
 	}
 
-	// GeneralsX: QUEUE IT - DO NOT OPEN A MESSAGE BOX FROM INSIDE ONE.
-	//
-	// Reported by the operator: answer No to "Sign in?" and every main-menu button stops working.
-	// Reproduced here by driving the UI - after No -> OK, ONLINE, NETWORK and BACK all do nothing.
-	//
-	// The cause is that this function used to run inside the Yes/No box's own noCallback:
-	//   ExtendedMessageBox.cpp:284  noCallback() runs        <- opens a SECOND box here
-	//   ExtendedMessageBox.cpp:66   the second box calls winSetModal() and overwrites the SHARED
-	//                               global MsgBoxCallbacks struct that the first box is still using
-	//   ExtendedMessageBox.cpp:294  winDestroy(window)       <- tears the FIRST box down underneath
-	//                               the second one, with the modal stack now belonging to the second
-	// The menu is left with a stranded modal, so input never returns to it.
-	//
-	// Showing it one frame later from MainMenuUpdate costs nothing visually - the player sees the
-	// same box - and the first box is fully destroyed before the second is created.
+	// Queue the refusal rather than open a message box from inside one: the second box's winSetModal()
+	// overwrites the shared MsgBoxCallbacks struct and destroying the first strands the modal stack.
 	s_pendingRefusalBody = body;
 	s_pendingRefusalTitle = TheGameText->FETCH_OR_SUBSTITUTE("GUI:GXSignInNeededTitle", L"Sign in needed");
 	s_showRefusalPending = TRUE;
 }
 
-// GeneralsX: NO NETWORK GAME WITHOUT THE BASE GENERALS ARCHIVES.
-//
-// Zero Hour is an expansion and its maps reference base-game art. An install that cannot reach
-// Textures.big/W3D.big/Terrain.big is missing the bridge models, and a peer that cannot load a
-// bridge model computes a different bridge footprint from everybody else in the lobby - it would
-// play a subtly different game and desync. Before 2026-09-20 it was worse still: the bridge
-// SIMULATION objects were not created at all and the match desynced from frame 0, with one line
-// on stderr as the only symptom.
-//
-// Both roads into a network game ask this, so ONLINE and NETWORK refuse identically. Skirmish,
-// the campaign, replays and the map editor are untouched - they have exactly one peer, so a
-// different footprint is not a disagreement with anybody. The question is the one that matters,
-// asked directly: can every bridge model load (TerrainVisual::isEveryBridgeModelAvailable).
+// No network game without the base Generals archives: Zero Hour's maps reference base-game art, and a peer that
+// cannot load a bridge model computes a different footprint and desyncs. Single-peer modes do not ask.
 static Bool gxNetworkPlayNeedsBaseAssets()
 {
 	return TheTerrainVisual != nullptr && !TheTerrainVisual->isEveryBridgeModelAvailable();
@@ -789,19 +717,8 @@ void MainMenuInit( WindowLayout *layout, void *userData )
 	buttonLoad = TheWindowManager->winGetWindowFromId( parentMainMenu, buttonLoadID );
 	buttonCredits = TheWindowManager->winGetWindowFromId( parentMainMenu, buttonCreditsID );
 
-	// GeneralsX @bugfix Hide the Steam re-release's "Custom Mission" button.
-	//
-	// The Steam depot adds it in PatchWindow.big (MainMenu.wnd) with its strings
-	// in PatchData.big (Data/Patch.str), and Steam's own executable implements the
-	// feature. This engine descends from EA's 2003 GPL source, which predates it:
-	// there is no handler for the control anywhere in the codebase, and the string
-	// table loader never reads Patch.str, so the button renders as
-	// MISSING:'GUI:CustomMission' and does nothing when pressed. Reproduced on
-	// GeneralsOnline for Windows as well, so this is not port-specific.
-	//
-	// Hide it rather than label it: a correctly-labelled button that silently does
-	// nothing is worse than no button. Should the feature ever be implemented,
-	// delete this block and load Patch.str alongside the main string table.
+	// Hide the Steam re-release's "Custom Mission" button: this engine has no handler and never reads Patch.str,
+	// so it would show MISSING:'GUI:CustomMission'. If the feature is implemented, delete this block.
 	{
 		GameWindow *buttonCustomMission = TheWindowManager->winGetWindowFromId(
 			parentMainMenu,
@@ -1147,27 +1064,13 @@ void MainMenuUpdate( WindowLayout *layout, void *userData )
 		return;
 	}
 
-	// GeneralsX: The player said yes, went to their browser, and came
-	// back. Carry them into the lobby the moment the login lands.
-	//
-	// Watched here rather than signalled from GXLoginFlow because the flow lives below the GUI and
-	// has no idea which screen is on top - the player may well have walked somewhere else while
-	// the browser was open, and in that case this simply never fires and the login still took
-	// effect. GXLoginFlow::update() is ticked from GameClient::update, so the state is already
-	// current by the time this runs.
-	//
-	// GeneralsX: This sits BELOW the in-game guard above, and must stay
-	// there. Shell::update() calls runUpdate() on every layout still on the stack - there is no
-	// hidden check and no top-of-stack check (Shell.cpp) - and GameClient::update() ticks the
-	// shell every frame, so this function keeps running throughout a live match. Above the guard,
-	// a login landing mid-match pushed WOLCustomLobby.wnd straight over the game; Shell::push()
-	// has no duplicate or in-game check that would have caught it.
+	// After the player signs in via the browser, carry them into the lobby when the login lands. Watched here
+	// because GXLoginFlow does not know which screen is on top.
+	// Must stay BELOW the in-game guard: Shell::update() runs every layout on the stack,
+	// so a mid-match login would push the lobby.
 	if (s_openLobbyAfterLogin)
 	{
 		// GeneralsX: A FAILED LOGIN NO LONGER OPENS THE LOBBY.
-		//
-		//
-		//
 		//
 		// The button refused you and this let you through one click later. Found by cross-model
 		// review; the comment that justified it was the most dangerous part, because it read as a
@@ -1875,44 +1778,9 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 					break;
 				}
 
-				// GeneralsX: DECIDE BEFORE TOUCHING ANY TRANSITION STATE.
-				//
-				// Reported by an external tester: begin the sign-in, close the browser without
-				// finishing, and the game becomes a shell map with no UI that has to be force-quit.
-				//
-				// The four lines that used to sit here are retail's "the player is leaving the main
-				// menu" preamble, and both halves of it are one-way. buttonPushed = TRUE makes
-				// GBM_SELECTED break on EVERY later button (line ~1630), and reversing a FLASH or
-				// WINFADE transition ENDS with winHide(TRUE) on each of its windows
-				// (GameWindowTransitionsStyles.cpp:125 and :654) - for this group that is MapBorder1,
-				// ButtonOnline, ButtonNetwork, ButtonMultiBack and the Logo. Retail could set both
-				// unconditionally because the next statement was StartPatchCheck(), whose every abort
-				// path calls HandleCanceledDownload() to put the menu back - the function is even
-				// named CancelPatchCheckCallbackAndReopenDropdown (MainMenuUtils.cpp:560). Replacing
-				// the patch chain with the sign-in gate removed the only caller of that recovery, so a
-				// gate that refuses left the menu hidden with its input latched off and nothing on the
-				// shell stack to restore it. An abandoned browser holds GX_LOGIN_WAITING for
-				// GIVE_UP_MS - ten minutes (GXLoginFlow.cpp) - so DECISION_WAIT parks the player on
-				// that dead screen for the whole of it.
-				//
-				// The Generals twin hit the identical wedge one day earlier and answered it this way,
-				// in its own words: "Deliberately BEFORE any transition state is touched ... a message
-				// shown from inside that half-transitioned state left the menu wedged behind the
-				// dialog. Nothing here to restore means nothing to wedge." Zero Hour now agrees with
-				// it. Calling HandleCanceledDownload() after the fact would also un-wedge the menu,
-				// but it drops the player back to the top-level menu they did not ask to leave, and it
-				// only helps a path that got as far as refusing.
-				//
-				// Answering Yes still navigates: MainMenuUpdate pushes the lobby when the login lands,
-				// over a menu that is intact rather than latched.
-				//
-				// GeneralsX: Ask about signing in first, once, if there is no
-				// verified identity. hasVerifiedIdentity() is compiled on all four platforms (unlike the
-				// flow itself used to be), and it is the same predicate /login uses.
-				//
-				// GeneralsX: The gate is the identity ALONE. It deliberately
-				// does not consult gxSignInDeclined(): a previous refusal must not become a bypass,
-				// which is what it would be the moment declining still let you through.
+				// Decide before touching transition state: the retail preamble is one-way (buttonPushed = TRUE, transition
+				// reversal ends with winHide(TRUE)), and the sign-in gate has no recovery, so a refusal would leave the menu hidden.
+				// Ask once if there is no verified identity; the gate ignores gxSignInDeclined() so a refusal is no bypass.
 				const GXOnlineGate::Decision gate = GXOnlineGate::onOnlinePressed(
 					(GXOnlineGate::LoginState)GXLoginFlow::state(),
 					GXPlayerIdentity::hasVerifiedIdentity() != FALSE);
@@ -1952,29 +1820,9 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 				dropDownWindows[DROPDOWN_MULTIPLAYER]->winHide(FALSE);
 				TheTransitionHandler->reverse("MainMenuMultiPlayerMenuTransitionToNext");
 
-				// GeneralsX @feature Matchmaking. Online now opens the RELAY lobby instead of
-				// starting the GameSpy chain.
-				//
-				// StartPatchCheck() began patch-check -> login -> peerchat against
-				// gamestats.gamespy.com and peerchat.gamespy.com. GameSpy was shut down in 2014,
-				// so that path can only ever end in "CANNOT CONNECT ... please check your internet
-				// connection" - which blames the player's connection for a service that no longer
-				// exists. There is nothing to reconnect to and nothing to fix.
-				//
-				// The relay lobby does what Online used to: it reaches a server on startup, lists
-				// every game being advertised, and joining one puts the match on the relay. Same
-				// three steps, a backend we run.
-				//
-				// WOLCustomLobby.wnd is Zero Hour's OWN Online lobby - the multi-column browser
-				// with a player list and sort buttons - and it has been sitting unused in our
-				// archives the whole time. It is driven from our relay rather than from GameSpy;
-				// see the "relay lobby" block in WOLLobbyMenu.cpp. This replaces the stopgap that
-				// pointed Online at Menus/NetworkDirectConnect.wnd, which is a text field and a
-				// combo box narrower than one of its own rows.
-				//
-				// NetworkDirectConnect.wnd is NOT retired: it is still reachable from the LAN
-				// lobby, and it is the browser that has actually carried real matches. It stays
-				// until this one has too.
+				// Online opens the relay lobby instead of the GameSpy chain, which can only end in "CANNOT CONNECT".
+				// WOLCustomLobby.wnd is Zero Hour's own Online lobby, driven from our relay (see WOLLobbyMenu.cpp).
+				// NetworkDirectConnect.wnd is still reachable from the LAN lobby.
 
 				// GeneralsX: Drop any pending post-login navigation before
 				// entering, or the lobby opens twice. Falling through here with a login still in

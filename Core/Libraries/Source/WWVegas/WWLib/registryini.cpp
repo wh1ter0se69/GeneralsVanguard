@@ -1,3 +1,21 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "registryini.h"
 
 #include <ctype.h>
@@ -114,7 +132,7 @@ namespace {
 		}
 
 	#ifndef _WIN32
-		// GeneralsX: A registry.ini that is a link to nothing (its volume not mounted) is not a
+		// A registry.ini that is a link to nothing (its volume not mounted) is not a
 		// file to create: the "a" below would make an empty shadow behind the link, the read would then succeed on it,
 		// and the save would replace the link. Nothing is read or written then.
 		struct stat linkInfo;
@@ -332,7 +350,7 @@ namespace {
 		return normalized;
 	}
 
-	// GeneralsX: `unreadable`, when asked for, is set when registry.ini exists and could not be
+	// `unreadable`, when asked for, is set when registry.ini exists and could not be
 	// read: any fopen failure but "not there", or a read error part way. The writers below refuse then - they used to
 	// ignore this function's result, so an unreadable registry.ini loaded as an empty registry and the next write
 	// replaced the file with that one value (the file-wipe class, sweep). What is loaded and returned is
@@ -428,7 +446,7 @@ namespace {
 			return false;
 		}
 
-		// GeneralsX: Written beside the file and swapped in, never truncated in place: a crash or
+		// Written beside the file and swapped in, never truncated in place: a crash or
 		// a full disk between the fopen("w") and the last line used to leave an empty or half registry.
 		// A fresh temp made exclusively ("x"): a link left at the temp's name is never followed, so nothing else is
 		// truncated through it, and two writers never share one.
@@ -494,7 +512,7 @@ namespace RegistryIni {
 		return kLocalMachineRoot;
 	}
 
-	// GeneralsX: Persist non-Windows registry reads and writes in registry.ini.
+	// Persist non-Windows registry reads and writes in registry.ini.
 	bool ReadString(const char *root, const char *path, const char *key, std::string &value)
 	{
 		RegistryIniData data;

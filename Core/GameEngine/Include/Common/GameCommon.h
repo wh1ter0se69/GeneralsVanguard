@@ -73,31 +73,10 @@ const Real MSEC_PER_LOGICFRAME_REAL = (((Real)MSEC_PER_SECOND) / ((Real)LOGICFRA
 const Real LOGICFRAMES_PER_SECONDS_REAL = (Real)LOGICFRAMES_PER_SECOND;
 const Real SECONDS_PER_LOGICFRAME_REAL = 1.0f / LOGICFRAMES_PER_SECONDS_REAL;
 
-// ----------------------------------------------------------------------------------------------
-// GeneralsX: GX_FRAMES30 - retune a hard-coded frame count to the tick rate.
-//
-// The engine is full of durations written as bare frame counts against the historic 30 Hz tick:
-// `m_framesToWait = 15`, `UPDATE_SLEEP(2)`, `m_scanDelayInFrames = 100`. Every one of them means a
-// WALL-CLOCK duration, and every one of them silently halves under GX_LOGIC_60HZ.
-//
-// INI-authored values do NOT need this - they arrive in seconds or milliseconds and already go
-// through ConvertDurationFromMsecsToFrames / ConvertVelocityInSecsToFrames, which scale correctly.
-// This is only for literals baked into the source.
-//
-// USE IT ONLY FOR DURATIONS. It is wrong for:
-//   * per-frame RATES and decay factors - a factor applied once per frame needs an EXPONENT, not a
-//     divisor: at 60 Hz that is sqrt(f), written as an #if GX_LOGIC_60HZ LITERAL (or sqrtf() of an
-//     INI value, which IEEE rounds identically everywhere) - NEVER powf/pow/exp/log, which differ in
-//     the last bit between platforms and desync. Per-frame velocities and one-shot impulses halve,
-//     per-frame^2 accelerations quarter (corrected 23/09/2026: this used to suggest powf);
-//   * per-frame BUDGETS such as PATHFIND_CELLS_PER_FRAME, where halving preserves the wall-clock
-//     cost and leaving it doubles throughput - a design decision, not a unit conversion;
-//   * counts that are genuinely "a number of ticks" rather than a span of time.
-//
-// Integer division, and deliberately so: frame counts are integers and the engine compares them
-// with ==. Exact at 30 (x * 30 / 30 == x) and exact doubling at 60. A duration of 1 frame stays 2
-// frames at 60 Hz rather than rounding to 1, because the sites using 1-3 frames are "next tick or
-// two" guards where being too short is the failure.
+// GX_FRAMES30: retune a frame count written against the 30 Hz tick. Only for durations baked into source.
+// Not for per-frame rates (use an exponent: sqrt(f) as an #if GX_LOGIC_60HZ literal; powf/pow/exp/log desync),
+// per-frame budgets, or counts that are really ticks. Integer division: exact at 30 and 60 Hz; a 1-frame
+// duration becomes 2 at 60 Hz because 1-3 frame guards fail when too short.
 inline Int GX_FRAMES30( Int framesAt30Hz )
 {
 	return (framesAt30Hz * (Int)LOGICFRAMES_PER_SECOND) / (Int)BaseFps;

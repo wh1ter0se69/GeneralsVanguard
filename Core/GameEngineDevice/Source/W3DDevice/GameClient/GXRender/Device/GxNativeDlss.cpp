@@ -1,5 +1,22 @@
-// GeneralsX: DLSS Super Resolution behind IGxWorldPass::Upscale (PREREG A36.2,
-// ). Without GX_STREAMLINE, or without Streamline loaded (m_host.streamline
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// DLSS Super Resolution behind IGxWorldPass::Upscale. Without GX_STREAMLINE, or without Streamline loaded (m_host.streamline
 // null: not DLSS, not NVIDIA, no DLLs), every entry point is FALSE / E_NOTIMPL and the seam draws its own bilinear quad.
 //
 // Upscale records ONE outside-scope command (GxPacketWriter::outsideScope: the scope closes, fn runs, every cached binding is
@@ -28,7 +45,7 @@ namespace GXRender { namespace Dev {
 #if defined(GX_STREAMLINE)
 namespace
 {
-// (PREREG A39b): set by the Windows message loop, consumed by the device at its next frame (PCL guide 1: "set a flag for
+// Set by the Windows message loop, consumed by the device at its next frame (PCL guide 1: "set a flag for
 // the next simulation to send the ping marker" - the frame id is what matters, not the instant).
 std::atomic<uint32_t> g_pclMessage{ 0 };	// PCL Stats' ping message id, 0 = Reflex not running
 std::atomic<bool> g_pclPingPending{ false };
@@ -36,7 +53,7 @@ std::atomic<bool> g_flashPending{ false };
 
 uint64_t g_dlssEvaluations = 0;	// the whole run's DLSS evaluations, for the exit census (device thread writes, atexit reads)
 
-// PREREG A36.2 gate (1): which NVIDIA Streamline / DLSS modules this process holds, printed at process exit in EVERY native
+// Which NVIDIA Streamline / DLSS modules this process holds, printed at process exit in EVERY native
 // session of a GX_STREAMLINE build (key off must say sl=0). At exit, not at device teardown: the game exits without destroying
 // its device. Windows only; elsewhere nothing of Streamline can load.
 void logStreamlineModules()
@@ -79,7 +96,7 @@ void GxNativeLoadStreamline(IDirect3D8* dxvk, GxNativeHost& host, bool wantDlss,
 	// TEST-ONLY GX_STREAMLINE_FORCE_LOAD=1: the interposer as loader root with the upscaler off - the A36.2 overhead arm
 	const char* force = std::getenv("GX_STREAMLINE_FORCE_LOAD");
 	const bool forced = force && std::strcmp(force, "1") == 0;
-	// TEST-ONLY GX_REFLEX_MEASURE_ONLY=1 (PREREG A39e's baseline arm): Reflex loads for its PCL markers - so PresentMon can read PC
+	// TEST-ONLY GX_REFLEX_MEASURE_ONLY=1 (the baseline arm): Reflex loads for its PCL markers - so PresentMon can read PC
 	// latency - with low latency OFF, i.e. today's latency behaviour, measurable.
 	const char* measure = std::getenv("GX_REFLEX_MEASURE_ONLY");
 	const bool measureOnly = measure && std::strcmp(measure, "1") == 0;
@@ -108,9 +125,9 @@ void GxNativeLoadStreamline(IDirect3D8* dxvk, GxNativeHost& host, bool wantDlss,
 		dir = (slash == std::wstring::npos ? std::wstring(L".") : dir.substr(0, slash)) + L"\\Streamline";
 	}
 	// Never destroyed, like the device it serves (GxNativeDevice.cpp: the device lives to process exit by design): NO slShutdown at
-	// a normal exit - NVIDIA's telemetry shutdown hangs outside a console session (A36.1) and the OS reclaims everything. slShutdown
-	// runs only in a device teardown (dlssShutdown). A static object here ran slShutdown at exit (A36.2's census showed the
-	// plugins unloaded); render-integration-5 + dlss-integrator ruled against that 13/10.
+	// a normal exit - NVIDIA's telemetry shutdown hangs outside a console session and the OS reclaims everything. slShutdown
+	// runs only in a device teardown (dlssShutdown). A static object here would run slShutdown at exit and unload the
+	// plugins.
 	static Upscale::Streamline* const s_streamline = new Upscale::Streamline();
 	std::string why;
 	Upscale::StreamlineFeatures want;
@@ -154,19 +171,19 @@ struct GxNativeDevice::Dlss
 	bool refused[6] = {};	// one log line per reason
 	uint64_t evaluations = 0;
 	uint64_t lastPresent = ~0ull;	// one evaluation per presented frame (Streamline's frame token, DLSS history)
-	// (PREREG A39): the per-frame contract + Reflex + DLSS Frame Generation
+	// The per-frame contract + Reflex + DLSS Frame Generation
 	bool frameBegun = false;	// a Streamline frame is open (frameBegin succeeded)
 	bool sceneMarked = false;	// this frame's first BeginScene was marked
 	bool frameFailLogged = false;
 	uint32_t reflexMode = 0;	// set and accepted
 	uint32_t fgWanted = 0;	// GXFrameGen: generated frames per real one
 	bool fgSupported = false;
-	bool fgProbe = false;	// TEST-ONLY GX_FG_PROBE=1: switch frame generation on before P3 lands (first light, never merged)
+	bool fgProbe = false;	// TEST-ONLY GX_FG_PROBE=1: switch frame generation on
 	bool fgSubrect = false;	// TEST-ONLY GX_FG_SUBRECT=1: frame generation on the camera viewport only
 	bool fgOn = false;	// slDLSSGSetOptions(eOn) accepted
 	bool fgRefused = false;	// tried and refused: never retried this session
 	bool fgSubrectLogged = false;
-	// FG P0 H3 (F8, DLSS_G guide §0 / §17 / §18): frame generation OFF before a swapchain recreation (resize, minimise, a dirty or
+	// Frame generation OFF before a swapchain recreation (resize, minimise, a dirty or
 	// out-of-date swapchain) and the swapchain recreated on every on/off toggle. fgSuspended: off for a recreation, back on once
 	// kFgStableFrames frames were presented with no recreation; fgToggleRecreate: the recreation that follows turning it back on (it does
 	// not suspend again); fgStableFrom: m_stats.presents at the last recreation.
@@ -177,7 +194,7 @@ struct GxNativeDevice::Dlss
 	uint32_t fgSuspends = 0, fgResumes = 0;
 	uint64_t testRecreateAt[4] = {};	// TEST-ONLY GX_TEST_FG_RECREATE_AT=<present>[,<present>...]: force a swapchain recreation there
 	uint32_t fgLastStatus = ~0u;
-	// PREREG A39c (TEST-ONLY GX_FG_HUDLESS=1): the scene without HUD. hudMS = a copy of the back buffer at HudBegin (its sample count);
+	// TEST-ONLY GX_FG_HUDLESS=1: the scene without HUD. hudMS = a copy of the back buffer at HudBegin (its sample count);
 	// hud1x = that copy resolved with the present's own shader (DXVK's linear-light resolve: the same pixels the final frame gets).
 	bool hudlessWanted = false;
 	bool hudCaptured = false;
@@ -185,7 +202,7 @@ struct GxNativeDevice::Dlss
 	std::unique_ptr<Res::GxRenderTarget> hudMS, hud1x;
 	std::unique_ptr<GxNativePresent> hudPresent;
 	SeamSlots hudUse;	// its descriptor slots: one is reused only after the submission that last used it completed
-	// PREREG A39c v1 (TEST-ONLY GX_FG_UIALPHA=1, with GX_FG_HUDLESS=1): UI alpha = where the final frame differs from the HUD-less one.
+	// TEST-ONLY GX_FG_UIALPHA=1, with GX_FG_HUDLESS=1: UI alpha = where the final frame differs from the HUD-less one.
 	// final1x = the back buffer (with HUD) resolved by the same shader on slot + N of hudPresent; alpha = GxFgUiAlpha::kAlphaFormat at back-buffer size.
 	bool uiAlphaWanted = false;
 	std::unique_ptr<Res::GxRenderTarget> final1x;
@@ -216,7 +233,7 @@ Upscale::DlssImage dlssImage(const Res::GxImage& i, VkImageView view, VkImageUsa
 
 // The DLSS mode whose scale is nearest the seam's (GXUpscaleQuality decided the render size; any size inside the mode's
 // min..max is accepted). The mode picks NVIDIA's preset only.
-// The published frame's depth / motion vectors (render-motion-1's GxMotionFrame: by value, in the layout the device keeps each in when
+// The published frame's depth / motion vectors (GxMotionFrame: by value, in the layout the device keeps each in when
 // this command runs - DEPTH_STENCIL_READ_ONLY / SHADER_READ_ONLY after its resolve). DLSS tags them as they are and transitions nothing
 // of theirs (Streamline hands every tagged image back in its tagged layout).
 Upscale::DlssImage motionImage(const GxMotionImage& m, VkImageUsageFlags usage, VkImageAspectFlags aspect)
@@ -276,7 +293,7 @@ void GxNativeDevice::dlssInit()
 	logLine("[GXSL] dlss=%s %s%s%s", m_dlss->supported ? "supported" : "unsupported", m_dlss->sl->versions().c_str(),
 		why.empty() ? "" : " why=", why.c_str());
 	if (m_dlss->supported) {
-		setTemporalConsumer(true);	// render-motion-1: the world pass jitters only for a backend that consumes it
+		setTemporalConsumer(true);	// the world pass jitters only for a backend that consumes it
 		m_motion.setMinJitterPhases(16);	// DLSS wants >= 16 phases
 	}
 	// Reflex (mandatory with frame generation) and DLSS-G. Missing plugins = that feature off, logged.
@@ -296,7 +313,7 @@ void GxNativeDevice::dlssInit()
 		m_dlss->fgSupported = m_dlss->sl->frameGenSupported(m_ctx.physicalDevice(), &w);
 		const char* probe = std::getenv("GX_FG_PROBE");
 		const char* sub = std::getenv("GX_FG_SUBRECT");
-		if (const char* rc = std::getenv("GX_TEST_FG_RECREATE_AT")) {	// TEST-ONLY (FG P0 H3 on wh1ter0se's PC): forced recreations
+		if (const char* rc = std::getenv("GX_TEST_FG_RECREATE_AT")) {	// TEST-ONLY: forced recreations
 			uint32_t n = 0;
 			for (const char* p = rc; *p && n < 4; ++n) {
 				m_dlss->testRecreateAt[n] = std::strtoull(p, const_cast<char**>(&p), 10);
@@ -317,7 +334,7 @@ void GxNativeDevice::dlssInit()
 	}
 	// The frame contract starts with frame 0, NOW: every DLSS evaluate of this session then names a begun frame. Without it the first
 	// evaluates took tokens from motion's frame index and the presents-based ids met them again - Streamline refused the second set of
-	// constants for that frame (sl::Result 27) and DLSS switched itself off (first-light arm A, 14/10 04:09Z).
+	// constants for that frame (sl::Result 27) and DLSS switched itself off.
 	if (m_dlss->reflexMode || m_dlss->fgWanted) {
 		std::string w;
 		m_dlss->frameBegun = m_dlss->sl->frameBegin(0u, &w);
@@ -541,9 +558,8 @@ void GxNativeDevice::slPresentBegin()
 
 namespace
 {
-// FG P0 H3: ePresentStart / ePresentEnd bracket vkQueuePresentKHR ALONE (they bracketed the whole presentToSwapchain - acquire, the frame's
-// submission, the present - before), on the thread that calls it, for the frame whose token the hook carries (F9: the presented frame's
-// id). ctx = the Streamline; token = its frame handle. They call Streamline only - never back into the VkCtx (the hook's contract).
+// ePresentStart / ePresentEnd bracket vkQueuePresentKHR ALONE (not the acquire or the frame's submission), on the thread that calls it,
+// for the frame whose token the hook carries (the presented frame's id). ctx = the Streamline; token = its frame handle. They call Streamline only - never back into the VkCtx (the hook's contract).
 void slHookStart(void* ctx, uint64_t token)
 {
 	static_cast<Upscale::Streamline*>(ctx)->markerOn(Upscale::PclMarker::PresentStart, reinterpret_cast<void*>(uintptr_t(token)));
@@ -568,7 +584,7 @@ bool GxNativeDevice::slPresentHook(Vk::PresentHook* out)
 
 // After the present is counted (thread 0: this IS the presenting thread - DLSS_G guide §6.0 / §15.1 want DLSS-G's options and state
 // there). Then the next frame begins: its id is the number of frames presented so far.
-// FG P0 H3 (F8): before presentToSwapchain recreates the swapchain - frame generation off (eOff keeps its resources:
+// Before presentToSwapchain recreates the swapchain - frame generation off (eOff keeps its resources:
 // eRetainResourcesWhenOff), unless this recreation is the one that follows turning it back on
 void GxNativeDevice::slBeforeRecreate()
 {
@@ -718,7 +734,7 @@ void GxNativeDevice::dlssShutdown()
 			vkDestroyImageView(m_ctx.device(), m_dlss->outView, nullptr);	// the device is idle (destructor)
 		m_dlss->out.destroy(m_gx);
 	}
-	// PREREG A39c's HUD-less targets and their resolve pipeline (the device is idle here: destructor)
+	// The HUD-less targets and their resolve pipeline (the device is idle here: destructor)
 	if (m_dlss->hudPresent)
 		m_dlss->hudPresent->shutdown();
 	if (m_dlss->uiAlpha)

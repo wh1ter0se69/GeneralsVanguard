@@ -1,4 +1,22 @@
-// GeneralsX: (R-DL6): the projection the GPU shadow-volume VS gets (gxShadowGpuFlush).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// (R-DL6): the projection the GPU shadow-volume VS gets (gxShadowGpuFlush).
 // The volumes are drawn inside the jittered world pass, where the device answers GetTransform(PROJECTION) with the CLEAN matrix, so
 // the VS must add the pass's jitter itself, as the trees (W3DTreeBuffer) and water (W3DWater) do. Header-only so gx_native_test can
 // check the constants; GX_TEST_NO_SHADOW_JITTER (tests only) removes the call = the X- arm.

@@ -1,4 +1,22 @@
-// GeneralsX: AI RULE BANK, the engine side - see GXRuleBank.h. Everything this file decides is GXRuleCore.h's
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// AI RULE BANK, the engine side - see GXRuleBank.h. Everything this file decides is GXRuleCore.h's
 // or GXTierFilter.h's (pure, unit-tested by scripts/test/gx-rulebank-test.cpp); this file adapts. Determinism: no
 // random draw, rules in id order, own objects in ObjectID order, no wall clock / env / file in a decision - the clocks, the env knobs and
 // every [GXRULE] line exist in test-instruments builds only.
@@ -54,7 +72,7 @@ static GXRuleImpl *gxRuleMake(int id)
 }
 
 #if defined(GX_TEST_INSTRUMENTS)
-// ONE timer per rule around EVERY dispatch of it - ticks, maintain() and every hook (PLAN 2.2.7): a placement rule does its work in a
+// ONE timer per rule around EVERY dispatch of it - ticks, maintain() and every hook: a placement rule does its work in a
 // hook, so a tick-only timer would call it cheap. GXHookTimer sums a frame's calls and prints [GXHOOK] ... hook=rule_<NAME> over at 2 ms.
 #define GX_RB_HOOK_STATS(id, cls, name, tiers, vision, cadence, live) GX_HOOK_STATS(gxRuleHook_##cls, "rule_" name);
 GX_RULE_TABLE(GX_RB_HOOK_STATS, GX_RB_SKIP7, GX_RB_SKIP4, GX_RB_SKIP2, GX_RB_SKIP1)
@@ -107,8 +125,8 @@ static void gxSenseLine(int player, const char *ev, const std::string &kv)
 	fflush(stderr);
 }
 
-// the bank's dispatch clock: this thread's CPU where the platform has one (clock=thread), else wall time (clock=wall: Windows today -
-// never CPU evidence, PLAN 3.7)
+// the bank's dispatch clock: this thread's CPU where the platform has one (clock=thread), else wall time (clock=wall: Windows -
+// never CPU evidence)
 static long long gxRuleClockUs(Bool *thread)
 {
 #ifndef _WIN32
@@ -327,7 +345,7 @@ void GXRuleBank::dropInstance(int rule)
 }
 
 #if defined(GX_TEST_INSTRUMENTS)
-// GX_RULE_TEST_COUNTERS=<N> (257..1000; test-instruments builds only, the lead's MAX_COUNTERS / MAX_FLAGS condition 30/10): once per process,
+// GX_RULE_TEST_COUNTERS=<N> (257..1000; test-instruments builds only): once per process,
 // at the first bank update on or after frame 300. A process that finds no "gxrbc_0" PLANTS N counters gxrbc_<i> = 7i + 1 and N flags
 // gxrbf_<i> = (i even) (ev=test_counters); one that finds it - the loaded half of a save/load - CHECKS every one by name and value
 // (ev=test_counters_check). rb-saveload-judge.py's loads-counters kind reads both.
@@ -452,7 +470,7 @@ Bool GXRuleBank::permitHook(int hook, const char *context)
 	}) ? TRUE : FALSE;
 }
 
-// ---- SENSE.ENEMY_FACTION (GeneralsX 01/11/2026 rb-sense-1) ----
+// ---- SENSE.ENEMY_FACTION ----
 // Determinism: the lobby half is each slot's ORIGINAL template (GameSlot::saveOriginalSetup, recorded before the random draw on every
 // peer, in a replay's header and in a skirmish save), the sighting half is the logic's own partition, shroud and stealth state, sampled
 // at frames fixed by the logic frame and the player index. Nothing reads the local player, the client's shroud or the UI.
@@ -583,7 +601,7 @@ void GXRuleBank::senseSample(unsigned now, Bool force)
 	if (!force && ((now + pi) % period) != 0u)
 		return;
 	senseLobby();
-	// GeneralsX: a PlayerMaskType (64-bit), not 32 bits: MAX_PLAYER_COUNT is 40.
+	// a PlayerMaskType (64-bit), not 32 bits: MAX_PLAYER_COUNT is 40.
 	PlayerMaskType track = 0u;
 	for (size_t i = 0; i < m_faction.size() && i < (size_t)MAX_PLAYER_COUNT; ++i)
 		if (gxrb::senseOpen(m_faction[i]))
@@ -681,7 +699,7 @@ Bool GXRuleBank::senseEnemyFaction(const Player *enemy, const char *faction)
 	return answer;
 }
 
-// ---- SENSE.FOG_CONDITIONS (GeneralsX 02/11/2026 rb-sense-2) ----
+// ---- SENSE.FOG_CONDITIONS ----
 Int GXRuleBank::seenCount(const Player *who, const ObjectTypes &types)
 {
 	if (who == nullptr || who == m_player || m_sense == nullptr)

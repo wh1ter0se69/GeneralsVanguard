@@ -32,9 +32,9 @@
   },
   {
    "id": "generalsx-launcher",
-   "name": "GeneralsX Launcher",
+   "name": "Generals Vanguard launcher",
    "version": "this release",
-   "license": "GeneralsX Launcher terms (below); a separate program, not covered by the GPL",
+   "license": "Generals Vanguard launcher terms (below); a separate program, not covered by the GPL",
    "url": "https://wh1ter0se.dev/generals/download/",
    "copyright": [
     "Copyright 2026 GeneralsX contributors"
@@ -44,12 +44,14 @@
     "linux",
     "windows"
    ],
-   "where": "the launcher: GeneralsXLauncher.exe on Windows, the GeneralsX Launcher app on macOS, the launcher AppImage (generals-x-launcher) on Linux. It downloads and starts the game; it is not part of the game. The Windows updater GeneralsXUpdate.exe is part of the game's entry above",
+   "where": "the launcher: GeneralsXLauncher.exe on Windows, the Generals Vanguard app on macOS (GeneralsX Launcher in installs made before the rename), the launcher AppImage on Linux. It downloads and starts the game; it is not part of the game. The Windows updater GeneralsXUpdate.exe is part of the game's entry above",
    "texts": [],
    "files": [
     "GeneralsXLauncher.exe",
     "generals-x-launcher",
-    "GeneralsX Launcher"
+    "generals-vanguard",
+    "GeneralsX Launcher",
+    "Generals Vanguard"
    ],
    "note": "Free to use and to share unmodified. Source not published. You may reverse-engineer it to debug its use of the LGPL libraries it bundles. The Rust crates (section 3), fonts and, on Linux, Debian/Ubuntu packages (section 2) it is built from or bundles stay under their own licences."
   },

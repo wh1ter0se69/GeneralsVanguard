@@ -871,24 +871,9 @@ static void saveOptions()
 	GadgetComboBoxGetSelectedPos( comboBoxResolution, &index );
 	Int xres, yres, bitDepth;
 
-	// GeneralsX: Save the resolution in POINTS, not render PIXELS.
-	//
-	// newDispSettings below is filled from getDisplayModeDescription, which is the offered mode list
-	// and is in POINTS. getWidth()/getHeight() are the RENDER resolution, which on a Retina Mac is
-	// density times larger (see SDL3_GetRenderPixelDensity in W3DDisplay.cpp). So old and new were
-	// in different units, and both of the places that consume oldDispSettings got a pixel value
-	// where a point value was meant:
-	//
-	//   * MainMenu.cpp DeclineResolution() feeds it straight back to setDisplayMode(), which takes
-	//     POINTS - so declining a resolution change on a 2x Mac asked for twice the resolution it
-	//     was meant to restore;
-	//   * the same function then writes it to TheWritableGlobalData->m_x/yResolution and to
-	//     Options.ini's "Resolution" key, both of which are POINTS - so every decline permanently
-	//     doubled the stored resolution, and the next launch doubled it again from there.
-	//
-	// TheGlobalData globals are the point-valued copy: W3DDisplay::init() deliberately leaves them
-	// alone when it scales the render resolution, and OptionsMenu/MainMenu only ever assign point
-	// values into them. Reading them here makes both DisplaySettings structs speak one unit.
+	// Save the resolution in POINTS, not render PIXELS: newDispSettings comes from the offered mode list (points),
+	// while getWidth()/getHeight() are render pixels, density times larger on a Retina Mac. Mixing them doubled
+	// the stored resolution on every decline. TheGlobalData's globals are the point-valued copy.
 	oldDispSettings.xRes = TheGlobalData->m_xResolution;
 	oldDispSettings.yRes = TheGlobalData->m_yResolution;
 	oldDispSettings.bitDepth = TheDisplay->getBitDepth();
@@ -903,19 +888,8 @@ static void saveOptions()
 			{
 				dispChanged = TRUE;
 
-				// GeneralsX: Read the EFFECTIVE size back; do not assume
-				// the request survived.
-				//
-				// setDisplayMode can reduce a request that no attached display is able to present -
-				// see SDL3_RequestExceedsDisplayCapability in W3DDisplay.cpp - and it publishes what
-				// it actually set into these two globals. Assigning the REQUEST here instead, which
-				// is what this did, overwrote that correction a line after it was made, so every
-				// consumer below inherited a number that was not on screen: the preference written
-				// at the bottom of this block, newDispSettings, the confirm dialog's text, and the
-				// baseline AcceptResolution latches for the next revert.
-				//
-				// Identical to the old two assignments whenever nothing was reduced, which is every
-				// resolution picked out of the combo box on hardware that can draw it.
+				// Read the effective size back: setDisplayMode can reduce a request no attached display can present,
+				// and publishes what it set into these globals. Assigning the request would overwrite that correction.
 				xres = TheGlobalData->m_xResolution;
 				yres = TheGlobalData->m_yResolution;
 
@@ -1309,20 +1283,8 @@ void OptionsMenuInit( WindowLayout *layout, void *userData )
 	// populate resolution modes
 	GadgetComboBoxReset(comboBoxResolution);
 	Int numResolutions = TheDisplay->getDisplayModeCount();
-	// GeneralsX: POINTS, not getWidth()/getHeight().
-	//
-	// These two are matched below against the offered mode list, and that list is in POINTS (see
-	// SDL3_GetRenderPixelDensity in W3DDisplay.cpp for the split). getWidth()/getHeight() carry
-	// PIXELS once init() has scaled them, so on a 2x Mac the comparison could never succeed and
-	// selectedResIndex stayed -1 - which sends the fallback below on to append the pixel-valued
-	// resolution as a phantom extra entry the adapter never offered.
-	//
-	// Before the setDisplayMode fix in this same change the defect was intermittent: setDisplayMode
-	// left getWidth() in points, so the mismatch healed after the player's first resolution change.
-	// Making setDisplayMode take points makes getWidth() reliably PIXELS, which would have made
-	// this permanent. Same reasoning, and the same globals, as oldDispSettings above.
-	//
-	// A no-op on Windows, Linux and iOS, where m_x/yResolution and getWidth()/getHeight() are equal.
+	// POINTS, not getWidth()/getHeight(): these are matched against the offered mode list, which is in points.
+	// On a 2x Mac the pixel values never match and a phantom entry is appended. A no-op elsewhere.
 	UnsignedInt displayWidth = TheGlobalData->m_xResolution;
 	UnsignedInt displayHeight = TheGlobalData->m_yResolution;
 
@@ -1647,19 +1609,8 @@ WindowMsgHandledType OptionsMenuSystem( GameWindow *window, UnsignedInt msg,
 			buttonAccept = TheNameKeyGenerator->nameToKey( "OptionsMenu.wnd:ButtonAccept" );
 			buttonKeyboardOptionsMenu = TheNameKeyGenerator->nameToKey( "OptionsMenu.wnd:ButtonKeyboardOptions" );
 
-			// GeneralsX: Removed the runtime-created "Debug" button.
-			//
-			// It was added dynamically here because OptionsMenu.wnd in WindowZH.big has no such
-			// control, which meant it could only be positioned by hardcoded coordinates - it was
-			// placed at (320,528) at a 145x32 size. Those are layout-space constants in a screen
-			// whose real controls come from the .wnd, so at 1600x900 it landed directly ON TOP of
-			// the Scroll Speed slider, drawing as a coloured block over the middle of the bar and
-			// swallowing clicks meant for the slider.
-			//
-			// The Debug screen itself is untouched and is still reachable from the floating debug
-			// overlay (DebugFloatButton.cpp), which is drawn parentless with WIN_STATUS_ABOVE and
-			// so cannot collide with any screen's layout. That overlay is the supported entry
-			// point; this second one only existed before it did.
+			// The runtime-created "Debug" button is removed: OptionsMenu.wnd has no such control, and at 1600x900 it
+			// covered the Scroll Speed slider and swallowed its clicks. The Debug screen opens from DebugFloatButton.cpp.
 
 			break;
 

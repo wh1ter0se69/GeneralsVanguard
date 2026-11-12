@@ -396,7 +396,7 @@ public:  // ********************************************************************
 	virtual void messageNoFormat( const RGBColor *rgbColor, const UnicodeString& message ); ///< display a colored message to the user
 	virtual void message( UnicodeString format, ... );				  ///< display a message to the user
 	virtual void message( AsciiString stringManagerLabel, ... );///< display a message to the user
-	// GeneralsX @feature Announce a general's skill being purchased or used, in REPLAY PLAYBACK
+	// GeneralsX: Announce a general's skill being purchased or used, in REPLAY PLAYBACK
 	// only. The purchase half (used=FALSE) is SUPPRESSED for a science some special power requires,
 	// because a "used" banner will follow it, and kept for a science that has no activation at all -
 	// for those the purchase is the only event that will ever exist. See GXSkillAnnouncePolicy.h.
@@ -652,7 +652,7 @@ private:
 	void drawNetworkLatency(Int &x, Int &y);
 	void drawNetworkResends(Int &x, Int &y);
 	void drawLogicRate(Int &x, Int &y);
-	void drawFastForward(); ///< GeneralsX @feature the fast-forward speed, top centre, while it is on (FramePacer::setFastForward)
+	void drawFastForward(); ///< GeneralsX: the fast-forward speed, top centre, while it is on (FramePacer::setFastForward)
 	void drawRenderFps(Int &x, Int &y);
 	void drawSystemTime(Int &x, Int &y);
 	void drawGameTime(Int rowWidth, Int rowHeight);
@@ -829,20 +829,10 @@ protected:
 	VideoStreamInterface*				m_cameoVideoStream;///< Video stream;
 
 	// Network Latency Counter
-	//
-	// GeneralsX: This reads MILLISECONDS now, not run-ahead frames.
-	// m_networkLatencyColor is the configured colour and is now only the fallback: the drawn
-	// colour is banded green/yellow/red off the measured value. Run-ahead is still traced by
-	// [GXPACE], so nothing that was observable stopped being observable.
-	// GeneralsX: One switch that hides EVERY HUD readout at once.
-	//
-	// Each readout is individually controlled by its own font-size preference in Options.ini
-	// (PlayerInfoListFontSize, NetworkLatencyFontSize, RenderFpsFontSize...), which is fine for
-	// deciding what you normally want and useless for "get all of it off my screen NOW" - a
-	// spectator taking a clean screenshot, or anyone who wants the view back for one moment. This
-	// is a runtime override on top of those preferences: it hides, it never shows something the
-	// preferences had switched off, and it is deliberately NOT persisted, so the next launch is
-	// whatever the preferences say.
+	// GeneralsX: reads MILLISECONDS, not run-ahead frames. m_networkLatencyColor is only a fallback;
+	// the drawn colour is banded green/yellow/red off the measured value.
+	// m_hudOverlayHidden hides every HUD readout at once: runtime-only, never persisted, never shows
+	// what Options.ini turned off.
 	Bool												m_hudOverlayHidden;
 
 	DisplayString *							m_networkLatencyString;
@@ -904,7 +894,7 @@ protected:
 	// RenderFpsFontSize preference, 0 = off. tps is a rate counter and belongs to the rate
 	// preference - a player who turned the fps counter off does not want a second one appearing.
 	DisplayString *							m_logicRateString;
-	DisplayString *							m_fastForwardString;	///< GeneralsX @feature drawFastForward; created on first use
+	DisplayString *							m_fastForwardString;	///< GeneralsX: drawFastForward; created on first use
 	UnsignedInt									m_fastForwardShownKey;	///< speed*1000 + achieved*10 last typeset, so the text is set only on change
 	UnsignedInt									m_logicRateWindowStartMs;
 	UnsignedInt									m_logicRateWindowStartFrame;
@@ -938,7 +928,7 @@ protected:
 		void init(const AsciiString &fontName, Int pointSize, Bool bold);
 		void clear();
 
-		// GeneralsX @feature Army/SciencePoints/KD/Power are the extended columns, shown only in
+		// GeneralsX: Army/SciencePoints/KD/Power are the extended columns, shown only in
 		// replay playback and observer mode - enemy science points and K/D are intel a live player
 		// must not have. Enum order IS column order; keep LabelType and ValueType in lockstep,
 		// because drawPlayerInfoList indexes both with the same loop variable.
@@ -978,7 +968,7 @@ protected:
 			LastValues();
 			UnsignedInt values[LabelType_Count][MAX_PLAYER_COUNT];
 			UnicodeString name[MAX_PLAYER_COUNT];
-			// GeneralsX @feature Army is a string that cannot change during a match, so it follows
+			// GeneralsX: Army is a string that cannot change during a match, so it follows
 			// the set-once pattern `name` already uses rather than living in the UnsignedInt
 			// change-detection array.
 			UnicodeString army[MAX_PLAYER_COUNT];

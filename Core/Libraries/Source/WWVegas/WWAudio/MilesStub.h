@@ -26,18 +26,10 @@
 ** files to compile without the Miles SDK headers. These are only used when
 ** SAGE_USE_OPENAL is defined (Linux builds).
 **
-** GeneralsX @build 27/07/2026
-** Expanded into a complete compile-only shim for the Miles API surface that WWAudio
-** references. WWAudio is the Miles-based audio engine; on SAGE_USE_OPENAL builds the
-** game uses the OpenAL audio device instead and nothing links libwwaudio, so every
-** entry point below is deliberately inert. Enumerators return "no more entries" and
-** provider/open calls return failure so that no stubbed loop can spin forever.
-**
-** NOTE: HANDLE used to be defined here as an object-like macro (#define HANDLE void*).
-** That collided with the real `typedef void *HANDLE;` in CompatLib's types_compat.h
-** (it expanded to `typedef void *void*;`) in every translation unit that saw both.
-** It is a plain typedef now - identical redeclaration of a typedef is legal C++, so it
-** is inert no matter which header the compiler sees first.
+** Compile-only shim for the Miles API that WWAudio references, used under SAGE_USE_OPENAL (no Miles SDK headers).
+** Nothing links libwwaudio in those builds, so every entry point is inert: enumerators return "no more entries" and
+** provider/open calls fail, so no stubbed loop can spin forever.
+** HANDLE is a plain typedef, not a macro: a macro collided with the real typedef in CompatLib's types_compat.h.
 */
 
 #pragma once
@@ -70,22 +62,9 @@ typedef void*          HANDLE;
 
 #else // _WIN32
 
-// GeneralsX: WINDOWS NEEDS A HEADER HERE TOO, and until now it got one
-// only by accident. This whole file is the OpenAL branch of Utils.h's include - the arm taken when
-// mss.h is NOT included. On Windows mss.h was what dragged in <windows.h>, so dropping Miles also
-// dropped CRITICAL_SECTION, InitializeCriticalSection and DeleteCriticalSection - the exact three
-// the comment above says Utils.h and WWAudio.cpp need. The !_WIN32 arm supplies them through
-// threads_compat.h and the _WIN32 arm supplied nothing, so a Windows build configured with
-// -DSAGE_USE_OPENAL=ON failed at Utils.h:71 with "'_MSSLockCriticalSection': unknown override
-// specifier" - the compiler's way of saying it has never heard of CRITICAL_SECTION.
-//
-// It stayed hidden because a local build\win64 configured WITHOUT the -D silently falls back to
-// Miles and compiles (records that trap), so the OpenAL configuration is the one
-// that ships and was not the one being built by hand.
-//
-// WIN32_LEAN_AND_MEAN because all that is wanted is the synchronisation primitives; pulling the
-// full header into every WWAudio translation unit costs build time and drags in macros (min/max,
-// PlaySound) that this tree has been bitten by before.
+// Windows needs a header here too: this is the OpenAL arm of Utils.h's include, taken when mss.h is not included,
+// and mss.h was what pulled in <windows.h> (CRITICAL_SECTION, InitializeCriticalSection, DeleteCriticalSection).
+// WIN32_LEAN_AND_MEAN: only the synchronisation primitives are wanted, not the min/max and PlaySound macros.
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -93,25 +72,9 @@ typedef void*          HANDLE;
 
 #endif // !_WIN32
 
-// GeneralsX: The Miles scalar typedefs must NOT be inside the !_WIN32
-// guard above.
-//
-// Everything after this point uses them unconditionally - S32 in DIG_DRIVER just below is the
-// first of ~35 uses through the inline stub bodies. On Windows the guard above is skipped and
-// mss.h is never reached either (that is the whole point of the #else in WWAudio.h,
-// AudibleSound.h, SoundBuffer.h and Utils.h when SAGE_USE_OPENAL is set), so nothing in the tree
-// defines S32 and every WWAudio translation unit fails with C2065. That is the hard error which
-// has made -DSAGE_USE_OPENAL=ON uncompilable on win64, and it is not a one-line patch at the
-// first use site - it has to be fixed here, once.
-//
-// Only HANDLE stays guarded, because Windows genuinely defines that one. The scalar names are
-// Miles' own and collide with nothing in the Windows SDK. The widths are correct on every target
-// we build: MSVC x64 is LLP64 so int stays 32 bits, matching the reference win64 port
-// (references/jmarshall-win64-modern Code/Libraries/Bink/include/mss.h), which declares these
-// unconditionally for exactly this reason.
-//
-// This file is in Core/Libraries/Source/WWVegas/WWAudio/, which is NOT in any digested path -
-// only WWMath is digested under WWVegas - so this cannot move sourceID.
+// The Miles scalar typedefs (U8, S32, ...) must NOT be inside the !_WIN32 guard above: the inline stub bodies use them
+// unconditionally, and on Windows mss.h is never reached, so nothing else defines them.
+// Only HANDLE stays guarded, because Windows defines it. The widths hold everywhere (MSVC x64 is LLP64, int is 32-bit).
 typedef unsigned char  U8;
 typedef signed char    S8;
 typedef unsigned short U16;

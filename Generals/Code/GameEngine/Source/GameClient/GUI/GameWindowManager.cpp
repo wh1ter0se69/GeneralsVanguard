@@ -831,18 +831,9 @@ WinInputReturnCode GameWindowManager::winProcessKey( UnsignedByte key,
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX: Tell the mouse WHAT the cursor is hovering, so it can
-	* restart the tooltip hover wait when the cursor reaches something new instead of every time the
-	* cursor twitches. See Mouse::setTooltipTarget.
-	*
-	* A listbox is a single GameWindow but many separate things to hover, so it is keyed by row as
-	* well. That is the granularity the per-row tooltip callbacks (gameTooltip, playerTooltip, ...)
-	* already resolve at, and it is exactly what "keep the card up while I stay on this player"
-	* means. Column is deliberately NOT part of the key: sliding along a row swaps the card's
-	* contents at once rather than blanking it for another full delay.
-	*
-	* GadgetListBoxGetEntryBasedOnXY blind-casts winGetUserData() to ListboxData, so the style check
-	* is load-bearing, not defensive. */
+/** GeneralsX: tell the mouse what the cursor hovers, so the tooltip wait restarts only on a new target.
+	* A listbox is keyed by row as well (the tooltip callbacks resolve per row); column is not part of the key.
+	* The style check is load-bearing: GadgetListBoxGetEntryBasedOnXY blind-casts winGetUserData() to ListboxData. */
 //-------------------------------------------------------------------------------------------------
 static void noteTooltipTarget( GameWindow *toolTipWindow, const ICoord2D *mousePos )
 {
@@ -1850,30 +1841,9 @@ GameWindow *GameWindowManager::gogoMessageBox(Int x, Int y, Int width, Int heigh
 	GameWindow *staticTextMessage = winGetWindowFromId(parent, staticTextMessageID);
 	GadgetStaticTextSetText(staticTextMessage,bodyString);
 
-	// GeneralsX: Grow the box to fit the body instead of clipping it.
-	//
-	// Ported from the Zero Hour twin, where this landed the same day. It has to be here too and
-	// not "later": the join-failure diagnostics that overflow this dialog are built in
-	// Core/GameEngine/Source/GameNetwork/LANAPICallbacks.cpp, which is SHARED - it compiles into
-	// g_gameengine as well - so a body long enough to be clipped reaches both games at once.
-	//
-	// MessageBox.wnd is a fixed-size layout from 2003, when every message in it was one short
-	// retail sentence, and it is not ours to change: three archives on a normal install ship
-	// their own copy of it, with message areas anywhere from 480x120 to 270x208 in their own
-	// authoring space. Compute the size, never author it.
-	//
-	// Measured, not assumed: the DisplayString here is BRAND NEW - winCreateFromScript builds a
-	// fresh layout on every call - and a new Render2DSentenceClass starts at WrapWidth 0
-	// (render2dsentence.cpp:71). Get_Formatted_Text_Extents only wraps when WrapWidth > 0 (:800),
-	// and the only place that ever sets it is drawStaticTextText (W3DStaticText.cpp:97), a frame
-	// later at draw time. So getSize() reports a ONE LINE height unless the three calls the draw
-	// path makes are mirrored here first, in its order.
-	//
-	// GeneralsX: The box also WIDENS now, and steps its body font down as a
-	// last resort, so a twelve-player desync report fits: see GameClient/MessageBoxFit.h for the
-	// three steps and why each is gated on the one before. A body that fits the layout as authored
-	// takes none of them and draws exactly as it did. The wrap width is no longer set once here:
-	// the fit sets it per candidate width, after the other two draw-path calls below.
+	// GeneralsX: size the box to fit the body instead of clipping; MessageBox.wnd is fixed-size and not ours to change.
+	// A new DisplayString has wrap width 0, so mirror the draw path's three calls first or getSize() reports one line.
+	// The fit may also widen the box and step the body font down; see GameClient/MessageBoxFit.h.
 	GameFont *bodyFont = ( staticTextMessage != nullptr ) ? staticTextMessage->winGetFont() : nullptr;
 	if( staticTextMessage != nullptr && bodyFont != nullptr && TheDisplay != nullptr )
 	{

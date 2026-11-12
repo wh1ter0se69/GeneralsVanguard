@@ -185,7 +185,7 @@ public:
 
 	static Bool isInInteractiveGame(GameMode mode) { return mode != GAME_NONE && mode != GAME_SHELL; }
 
-	/// GeneralsX @security May MSG_GX_CHEAT_* run in this match? Only with at most one human in it.
+	/// GeneralsX: May MSG_GX_CHEAT_* run in this match? Only with at most one human in it.
 	/// Simulation state only, so every peer and every replay agrees. Defined in GameLogicDispatch.cpp.
 	static Bool gxCheatsAllowed();
 
@@ -194,7 +194,7 @@ public:
 	/// by startNewGame). Simulation state only, like gxCheatsAllowed. Defined in GameLogicDispatch.cpp.
 	Bool gxCheatAllowedFor( const Player *sender ) const;
 	/// The relay-proven admin slots this match runs on, bit i = slot i. 0 outside a relay match and after a load.
-	UnsignedInt64 getGxAdminSlotMask() const { return m_gxAdminSlotMask; }	// GeneralsX 06/11/2026 64-bit: 34 slots
+	UnsignedInt64 getGxAdminSlotMask() const { return m_gxAdminSlotMask; }	// 64-bit mask: 34 slots
 	/// The seed this match's admin orders are signed over (Common/GXAdminOrder.h), for the signer.
 	UnsignedInt getGxAdminSeed() const { return m_gxAdminSeed; }
 	/// GeneralsX: THE admin-path decision for one cheat order from `sender`'s slot: a valid
@@ -206,7 +206,7 @@ public:
 	/// orderer's state has no say. Simulation state only. Defined in GameLogicDispatch.cpp.
 	static Bool gxSpawnGoesNeutral( const Player *target );
 
-	/// GeneralsX @feature Spawn `count` of `tmpl` for `target` on a hex lattice around `where` - the
+	/// GeneralsX: Spawn `count` of `tmpl` for `target` on a hex lattice around `where` - the
 	/// MSG_GX_CHEAT_SPAWN_UNIT placement, shared with the lobby-agreed stress battlefield. Appends each
 	/// new object's id to `spawnedIds` when given; returns how many were made. No cheat gate - the
 	/// callers own that decision. Defined in GameLogicDispatch.cpp.
@@ -354,7 +354,7 @@ private:
 	bool onDebugHurtObject(GameMessage *msg);
 	bool onDebugKillObject(GameMessage *msg);
 #endif
-	// GeneralsX @feature LAN-safe cheats. Unconditional - the shipping presets define neither
+	// GeneralsX: LAN-safe cheats. Unconditional - the shipping presets define neither
 	// RTS_DEBUG nor _ALLOW_DEBUG_CHEATS_IN_RELEASE, and a handler that exists on one peer and not
 	// the other is a silent CRC mismatch. Defined in Core/.../GameLogicDispatch.cpp, which is
 	// compiled into both g_gameengine and z_gameengine, so this block is mirrored from the

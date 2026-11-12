@@ -1,19 +1,25 @@
-// GeneralsX: CLEARER WATER - the engine glue (the look and its arithmetic: GameClient/GXWaterClear.h).
-//
-// Included at the end of W3DWater.cpp, below every GX-SIMID region, and called from three places that are outside the SimID
-// closure: WaterRenderObjClass::load and ::update (simdigest_exclusions.txt: the water object's own load and per-frame update)
-// and skyBoxMapReset (W3DDisplay::reset, also on that list). It writes TheWaterTransparency's override chain and, through
-// BaseHeightMapRenderObjClass::setShoreLineDetail, the terrain's shoreline tiles and depth LUT; only render code reads either.
-//
-// THE OVERRIDE. One WaterTransparencySetting appended LAST on TheWaterTransparency's chain - after Water.ini's master and the
-// map's own map.ini / solo.ini blocks, which loadMapINI appends before the terrain loads - holding a copy of the final values
-// with the two the option moves. It is an override (markAsOverride), so GameLogic::reset deletes it with the map's own; the
-// pointer kept here is dropped at that teardown (skyBoxMapReset) and never dereferenced unless it is found on the live chain.
-// OFF unlinks and deletes it: the chain is then exactly Water.ini plus the map's own again.
-//
-// THE REFRESH. setShoreLineDetail rescans the whole map's shoreline tiles from the chain and refreshes the depth LUT when the
-// opacity moved (BaseHeightMap.cpp). The other readers (the frame's alpha clear, the water's blend) read the chain every frame.
-// No texture moves: the copy keeps every texture name, so updateMapOverrides has nothing to re-point.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// CLEARER WATER: the engine glue (the look and its arithmetic: GameClient/GXWaterClear.h).
+// Included at the end of W3DWater.cpp, below every GX-SIMID region, and called only from outside the SimID closure.
+// It appends one override WaterTransparencySetting last on TheWaterTransparency's chain (dropped at skyBoxMapReset);
+// OFF unlinks it. setShoreLineDetail refreshes the shoreline tiles and depth LUT; only render code reads either.
 
 #include "Common/OptionPreferences.h"
 
@@ -86,7 +92,7 @@ static void gxWaterClearApplyNow(const char *why)
 		: (const WaterTransparencySetting *)head->friend_getFinalOverride();
 	GxWaterClearValues v = gxWaterClearApply(own->m_transparentWaterDepth, own->m_minWaterOpacity,
 		s_gxWaterOn ? s_gxWaterStrength : 0.0f, s_gxWaterTargets);
-	// GeneralsX: RA3 water, while on, supplies both values itself (its longer Beer-Lambert band and
+	// RA3 water, while on, supplies both values itself (its longer Beer-Lambert band and
 	// its own cap, GameClient/GXWaterRA3.h), whatever this option's key says; off, this returns false and nothing changes.
 	const Bool ra3 = gxWaterRA3OverrideValues(own->m_transparentWaterDepth, own->m_minWaterOpacity, &v.depth, &v.minOpacity) ? TRUE : FALSE;
 	const Bool wanted = (v.depth != own->m_transparentWaterDepth || v.minOpacity != own->m_minWaterOpacity);

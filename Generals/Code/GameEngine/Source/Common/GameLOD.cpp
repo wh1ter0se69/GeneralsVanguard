@@ -328,7 +328,7 @@ void GameLODManager::init()
 	//always get this data in case we need it later.
 	testMinimumRequirements(nullptr,&m_cpuType,&m_cpuFreq,&m_numRAM,nullptr,nullptr,nullptr);
 
-	// GeneralsX @bugfix fighter19 14/03/2026 Apply reasonable hardware defaults on non-Windows only when detection fails
+	// GeneralsX: reasonable hardware defaults on non-Windows, only when detection fails
 #ifndef _WIN32
 	// Apply fallback defaults on non-Windows platforms when testMinimumRequirements cannot determine these values.
 	if (m_numRAM == 0)

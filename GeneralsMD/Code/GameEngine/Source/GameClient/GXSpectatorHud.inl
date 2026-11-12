@@ -1,30 +1,27 @@
 /*
-**	GeneralsX: the GeneralsX spectator HUD: "C2" caster layout + the "B3" Tab scoreboard,
-**	in the game's blue (the owner's pick of 05/10/2026, points 1-16).
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
 **
-**	Included ONCE, at the end of InGameUI.cpp, instead of being a .cpp of its own: a new translation unit has to be
-**	named in GeneralsMD/Code/GameEngine/CMakeLists.txt, and that file is inside the SimID digest - a display feature
-**	would then split every lobby. InGameUI.cpp is digested only between its GX-SIMID markers; nothing here is.
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
 **
-**	WHO SEES IT: SpectatorUI=generalsx in GXHud.ini AND gxViewerMaySeeFeed() (replay playback, an observer seat, or a
-**	defeated player). SpectatorUI=legacy (or the key absent) leaves every readout exactly as it was. The decisions that
-**	can go wrong silently live in GXSpectatorHud.h, which is unit-tested.
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
 **
-**	PLAYER MODE (owner's pick of 05/10/2026, layout "C"): the same switch also gives a player still playing a versus game
-**	the GeneralsX look - the control bar's art replaced by these navy panels, the retail radar window in the map's own
-**	shape, the players bar folded into its tab, an economy line on the command bar and a player Tab board. FAIR BY
-**	CONSTRUCTION: gatherRows() reads another player's private numbers only when maySeePrivate() allows it (never for a
-**	player), and names his general and colour as retail's Diplomacy screen does (GameSlot's apparent values). See the
-**	PLAYER MODE section below.
-**
-**	COST: everything is a plain read of state the local simulation already holds. Text is re-set only when its value
-**	changes (txt() keys every string), unit and building counts are refreshed 4 times a second, and the "what they
-**	bought" list is built only while the mouse is on a player's stars. Nothing here writes game state; the engine calls
-**	with an effect are ControlBar::setObserverLookAtPlayer (the focus; retail's observer panel sets the same pointer),
-**	HideControlBar (the retail F9 path; window visibility and the tactical view's height only). A spectator's click on the
-**	battlefield only remembers an object id (inspectAt) - never the selection - and the OrderGate translator drops the
-**	selection orders retail would still send for him.
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+/*
+**	The GeneralsX spectator HUD: "C2" caster layout + the "B3" Tab scoreboard, in the game's blue.
+**	Included ONCE, at the end of InGameUI.cpp: a new .cpp would have to be named in a CMakeLists.txt in the digest.
+**	Shown for SpectatorUI=generalsx AND gxViewerMaySeeFeed(); plain reads, writes no game state.
+**	Player mode ("C"): gatherRows() reads another player's private numbers only when maySeePrivate() allows it.
+ */
 
 #include "GameClient/GXSpectatorHud.h"
 #include "GameClient/GUICallbacks.h"
@@ -298,8 +295,8 @@ static void put( DisplayString *ds, Int x, Int y, Color c ) { if (ds) ds->draw( 
 static void putR( DisplayString *ds, Int right, Int y, Color c ) { if (ds) ds->draw( right - ds->getWidth(), y, c, 0 ); }
 static void putC( DisplayString *ds, Int cx, Int y, Color c ) { if (ds) ds->draw( cx - ds->getWidth() / 2, y, c, 0 ); }
 
-/// `name` cut to fit `maxW` pixels in this font, with an ellipsis ("Hard Arm" is a bug, "Hard Ar..." is a name; owner
-/// 06/10). Measured on a scratch string with the real font, so it is exact for any script; the result is cached by the
+/// `name` cut to fit `maxW` pixels in this font, with an ellipsis ("Hard Arm" is a bug, "Hard Ar..." is a name).
+/// Measured on a scratch string with the real font, so it is exact for any script; the result is cached by the
 /// caller's txt() key. Returns whether it was cut through *cut (the full name then goes on the hover tip).
 static UnicodeString ellipsize( const UnicodeString &name, Int px, Bool bold, Int maxW, Bool *cut )
 {
@@ -351,7 +348,6 @@ static Color faded( Color c )
 }
 
 /// Panels that carry text keep at least this much navy whatever the opacity.
-///
 /// ~71% holds the labels above 4.5:1 over the brightest ground measured in real frames (player-ui-c contrast.py).
 /// Panels without text of ours (the bar's islands, the map) follow the opacity setting alone.
 enum { TEXT_ALPHA_FLOOR = 182 };
@@ -439,7 +435,7 @@ static AsciiString gxHudPath()
 	return path;
 }
 
-// GeneralsX: GXHud.ini is read and written through SettingsFile (GXSpectatorHud.h), which
+// GXHud.ini is read and written through SettingsFile (GXSpectatorHud.h), which
 // tells a file that is not there from one that cannot be read: the second is never replaced, and a match whose load
 // could not read it saves nothing at all (it would save the defaults). The reasons go to the log once a match.
 static SettingsFile s_file;
@@ -1174,7 +1170,7 @@ static void clickPlayer( Int slot )
 }
 
 /// GX_SPECHUD_RETAIL_CLICKS=1 - a TEST fail arm: a spectator's battlefield clicks go the retail way (meta map, selection
-/// translator) and the order gate lets every selection order out, i.e. the behaviour before 12/10/2026. With
+/// translator) and the order gate lets every selection order out. With
 /// GX_SPECHUD_NETPROBE=1 its run must show the selection orders the default arm does not.
 static Bool retailClicks()
 {
@@ -1206,11 +1202,11 @@ static ObjectID s_inspectID = INVALID_ID;	///< what a spectator's battlefield cl
 
 /// A spectator's click on the battlefield: the
 /// unit or building under it goes on the FOCUS panel and its owner is followed (viewAfterObjectClick; in a replay the follow
-/// stays, since there it is also whose recorded camera plays - owner 14/10/2026); empty ground clears the
+/// stays, since there it is also whose recorded camera plays); empty ground clears the
 /// card and keeps the focus. It picks what retail's point click picks (SelectionTranslator: pickDrawable + CanSelectDrawable)
 /// and only REMEMBERS it: the client selection is never touched, because retail and simulation code read it (the observer
 /// bar's portrait mints NameKeys for its cameos, a solo mission's "named unit selected" condition, a selection carried over
-/// to a replacement object as MSG_CREATE_SELECTED_GROUP_NO_SOUND - spectator-click /P2).
+/// to a replacement object as MSG_CREATE_SELECTED_GROUP_NO_SOUND).
 static void inspectAt( Int x, Int y )
 {
 	if (TheTacticalView == nullptr || TheGameLogic == nullptr)
@@ -1381,8 +1377,7 @@ static void drawCard( const Row &r, Int x, Int y, Int w, Int h, Bool followed )
 		}
 		return;
 	}
-	// The NAME takes the whole top row, so a long one fits; the portrait sits UNDER it with the numbers beside it (owner
-	// 06/10: "move the picture of the faction a bit down to make the player name snap to the left").
+	// The NAME takes the whole top row, so a long one fits; the portrait sits UNDER it with the numbers beside it.
 	const Bool names = shown( SHOW_NAMES );
 	const Int nameRow = names ? th( 13 ) + S( 1 ) : 0;
 	Int ty = y + S( 5 );
@@ -2085,7 +2080,7 @@ static const Image *chevronFor( const Object *o )
 }
 
 // ---- what is inside: the card's occupants ----------------------------------------------------------------------------
-// GeneralsX: Owner, on a spectator's China Bunker card: "Am I not supposed to be able to see how many
+// Owner, on a spectator's China Bunker card: "Am I not supposed to be able to see how many
 // units he has in those?" The card lists a container's occupants as retail's exit buttons do for their owner
 // (ControlBar::doTransportInventoryUI / populateStructureInventory): each occupant's ButtonImage cameo with its veterancy overlay,
 // then one empty box per free slot. Spectators only (mayShowOccupants); the decisions are GXSpectatorHud.h's, unit-tested.
@@ -2124,7 +2119,7 @@ static Int drawOccupants( const Rect &b, Object *o, const ThingTemplate *tt, Boo
 			}
 	const UnsignedInt now = timeGetTime();
 	s_arrivals.update( (unsigned)o->getID(), s_occIds.data(), (int)s_occIds.size(), now );
-	// Slots as the owner's pips count them (getContainerPipsToShow, a getter in every override: an Overlord's follow its Battle
+	// Slots as the container's pips count them (getContainerPipsToShow, a getter in every override: an Overlord's follow its Battle
 	// Bunker's redirect, whose extra slots getExtraSlotsInUse would miss); a container that draws no pips (a Combat Cycle, a Helix
 	// whose data turns them off) from its own getters.
 	Int pipTotal = 0, pipFull = 0;
@@ -2208,7 +2203,7 @@ static Int drawOccupants( const Rect &b, Object *o, const ThingTemplate *tt, Boo
 		}
 	}
 
-	// Run evidence (pictures, tests): one line per change of what the group says or how it is laid out (spectator-occupants r1).
+	// Run evidence (pictures, tests): one line per change of what the group says or how it is laid out.
 	const std::wstring text = occupantLabel( kind, slots ) + L"|" + std::to_wstring( fit.units ) + L"," + std::to_wstring( fit.free ) + L","
 		+ std::to_wstring( fit.overflow );
 	if (s_occLogObj != o->getID() || s_occLogText != text)
@@ -2965,18 +2960,10 @@ static void drawDisplayPanel()
 	putR( fixed( "d.op1", 10, FALSE, L"solid 100%" ), r.x + r.w - S( 22 ), y, dim() );
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
-// PLAYER MODE - the GeneralsX UI for a player still playing a versus game (owner's pick of 05/10/2026, layout "C"):
-//   * the control bar's art gives way to these navy panels at the shared opacity; every retail button, cameo, the money
-//     text, the power bar, the general's button and the superweapon buttons stay where they are, drawn on top;
-//   * the retail radar WINDOW is resized to the map's own shape (fitRadar): the radar draws, clips its view box and maps
-//     clicks, right-click orders and pings through that window's rect, so all of that keeps working untouched;
-//   * the players bar (own team left, my card beside the clock) is folded into its tab until Alt+P or a click;
-//   * an economy line on the command bar (PlayerShowStrip) and a player Tab board (PlayerShowTabBoard; Shift+Tab =
-//     Diplomacy) - my own numbers in full, everyone else only as retail's Diplomacy screen shows him.
-// Nothing here writes game state: window size and the art flag are display state, and the keys and clicks taken are
-// the player's own raw input over these panels.
-// ---------------------------------------------------------------------------------------------------------------------
+// PLAYER MODE: the GeneralsX UI for a player still in a versus game (layout "C"). Navy panels replace the control
+// bar's art; retail buttons, cameos, money, power bar and superweapon buttons stay where they are, on top.
+//   * the retail radar WINDOW is resized to the map's shape (fitRadar), so clicks, orders and pings still work;
+//   * the players bar folds into its tab (Alt+P or click); an economy line and a player Tab board are added.
 enum { BW_COMMAND, BW_MONEY, BW_UPGRADES, BW_GENERAL, BW_RADAR, BW_RADARBLOCK, BW_COUNT };
 static GameWindow *s_bw[BW_COUNT];
 static Bool s_bwLooked[BW_COUNT];
@@ -3396,7 +3383,7 @@ static Bool generalChordTaken( Int k, Int m )
 /// Player keys (CommandButtonHotKeys.ini, the Keybinds page's "While playing" rows). They are caught in FRONT of the
 /// meta map, so one may never shadow an in-match binding: a chord needs a modifier (playerChordAllowed - bare Tab
 /// excepted, retail Diplomacy's key, which the board takes over: GeneralsX mode has no Diplomacy window, its Tab board
-/// mutes - owner 06/10), and a chord the active CommandMap already binds in a
+/// mutes), and a chord the active CommandMap already binds in a
 /// match is skipped (retail binds Alt+0..9 to "view team"). A value that fails either test falls back to the default,
 /// which is tested the same way.
 static void loadPlayerChords()
@@ -4370,7 +4357,7 @@ static Bool drawPlayerMode()
 	if (s_barHome.y < s_H / 3)
 	{
 		s_topInset = s_barHome.y + s_barHome.h + S( 26 );
-		// The message column avoids the bar's HOME footprint only while the bar is drawn OPEN (lead 11/10: a folded bar must not
+		// The message column avoids the bar's HOME footprint only while the bar is drawn OPEN (a folded bar must not
 		// make the list wrap at a line nobody can see). The vertical start never depends on it.
 		s_insetSpanOn = open;
 		s_insetX0 = s_barHome.x; s_insetX1 = s_barHome.x + s_barHome.w; s_insetY0 = s_barHome.y;
@@ -4414,12 +4401,10 @@ static GameMessageDisposition onPlayerKey( Int key, Int mods, Bool down, Bool re
 	return KEEP_MESSAGE;
 }
 
-/// Owner 05/10/2026: "How can I tell who am I spectating exactly? seems hard to tell". One chip at the top centre, always
-/// up for a spectator: VIEWING <name> in his colour when the view is through his eyes (his fog of war), else VIEWING
+/// One chip at the top centre, always up for a spectator, saying who is being spectated: VIEWING <name> in his colour when the view is through his eyes (his fog of war), else VIEWING
 /// WHOLE MAP, then FOLLOWING <name> when the follow panel is on someone. His card and his board row carry the accent
 /// frame too. It changes on the frame the view does, with no animation: the view moves on a key press, many times a match.
 /// THEIR CAMERA when the camera is the followed player's own, played back from the replay.
-///
 /// A click switches between the whole map and the followed player's eyes, and the
 /// chip says which a click gives; Esc leaves both. The plate lights its frame under the mouse while a click would act.
 static void drawViewingChip()
@@ -4513,9 +4498,8 @@ static void leaveMode()
 }
 
 // ---- where the toast's power was aimed
-//
 /// Every targeted power's newest order, one per caster and power (a ring let unannounced radar scans push a live row's
-/// target out, spectator-click r1-BC P2); emptied each match.
+/// target out); emptied each match.
 struct NoteAt { PowerNote note; Coord3D at; };
 static std::map<std::pair<UnsignedInt, UnsignedInt>, NoteAt> s_notes;
 static RadiusDecal s_reticle;							///< the target preview drawn at a toast's target, kReticleMs long

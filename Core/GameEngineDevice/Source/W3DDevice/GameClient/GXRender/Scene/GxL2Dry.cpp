@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G: see GxL2Dry.h.
+// See GxL2Dry.h.
 
 #include "W3DDevice/GameClient/GXRender/Scene/GxL2Dry.h"
 #include "WW3D2/dx8renderer.h"
@@ -78,7 +78,7 @@ void GxL2Dry_FillCat(DX8TextureCategoryClass *cat, DX8PolygonRendererClass *pr, 
 	const ShaderClass sh = cat->Get_Shader();
 	c.shader.bits = sh.Get_Bits();
 	// PROXY from the bits, for the static census only: E4 proper is decoded from the effective post-Apply state at the run
-	// (E4, contract r2 #3), which a raw write can make differ from these bits.
+	// (E4), which a raw write can make differ from these bits.
 	c.shader.blendOff = sh.Get_Src_Blend_Func() == ShaderClass::SRCBLEND_ONE && sh.Get_Dst_Blend_Func() == ShaderClass::DSTBLEND_ZERO;
 	c.shader.zEnable = true;
 	c.shader.depthWrite = sh.Get_Depth_Mask() == ShaderClass::DEPTH_WRITE_ENABLE;
@@ -133,7 +133,7 @@ void GxL2Dry_FillFlush(int site, gxl2::FlushCtx &f)
 	f.pass.texturingEnabled = WW3D::Is_Texturing_Enabled();
 	f.pass.coloringEnabled = WW3D::Is_Coloring_Enabled();
 	f.pass.debugSwitches = DX8RendererDebugger::Is_Enabled() || !DX8Wrapper::_Is_Triangle_Draw_Enabled()
-		|| DX8Wrapper::Get_Draw_Polygon_Low_Bound_Limit() != 0;	// GeneralsX: WS-G seat: Draw's low bound skips draws
+		|| DX8Wrapper::Get_Draw_Polygon_Low_Bound_Limit() != 0;	// Draw's low bound skips draws
 #ifdef WWDEBUG
 	f.pass.debugSwitches = f.pass.debugSwitches || WW3D::Expose_Prelit();	// the classic loop's prelit texture override (dx8renderer.cpp Render)
 #endif
@@ -183,7 +183,7 @@ void GxL2Dry_Plan(const std::vector<GxClassicDraw> &list, int site, GxL2FlushPla
 		if (d.kind == GxClassicDraw::MATPASS || d.kind == GxClassicDraw::DELAYED_MATPASS)
 			++procPasses[d.mesh];
 	std::unordered_map<const void *, bool> meshRefused;	// E8: a mesh with any refused task is claimed in no pass
-	// E8 (CONTRACT_L2 r6: onlyVisibleTask): a part refused at ITS run (E2/E4) cannot un-take another part of the same mesh drawn
+	// E8 (onlyVisibleTask): a part refused at ITS run (E2/E4) cannot un-take another part of the same mesh drawn
 	// elsewhere in the flush - another pass, or another category of the same pass (registration splits a mesh's polygons by
 	// texture/material/shader, dx8renderer.cpp:1248) - so phase 1 claims only meshes with exactly one visible task in the flush.
 	std::unordered_map<const void *, int> meshTasks;
@@ -255,7 +255,6 @@ void GxL2Dry_Plan(const std::vector<GxClassicDraw> &list, int site, GxL2FlushPla
 
 // §6 census asks: history-sensitive tasks in a body that has a run (each body once); null-light tasks and decals
 // after the first run. The task facts are static, so the execution-judged runs (GxScene.cpp) reuse the flush-start plan's flags
-//
 void GxL2Dry_RunCounters(const std::vector<GxClassicDraw> &list, const std::vector<gxl2::Reason> &reason,
 	const std::vector<uint8_t> &taskFlags, GxL2FlushPlan &out)
 {

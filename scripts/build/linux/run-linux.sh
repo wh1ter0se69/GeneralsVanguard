@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # GeneralsX @build felipebraz 16/02/2026 Launch script for Linux with DXVK
 
 set -e
@@ -59,16 +61,9 @@ if [[ -z "${VK_DRIVER_FILES:-}" && -z "${VK_ICD_FILENAMES:-}" ]]; then
     fi
 fi
 
-# GeneralsX @bugfix 09/03/2026 - Work around openal-soft 1.25.1 movaps alignment crash
-# alcOpenDevice() crashes with SIGSEGV in a 'movaps %xmm1, 0x26260(%rbx)' instruction
-# inside openal-soft's device initializer. movaps requires 16-byte alignment; if the
-# ALCdevice struct is not aligned correctly, it faults regardless of which backend is
-# selected. Disabling CPU extensions forces openal-soft to use scalar code paths that
-# do not have alignment requirements. The pipewire backend is also excluded because it
-# has its own crash at device-open time on PipeWire 1.4.x.
-# These env vars are read by openal-soft's static constructor at library load time,
-# so they must be set here in the launcher before the binary starts.
-# User can override by setting ALSOFT_DISABLE_CPU_EXTS or ALSOFT_DRIVERS explicitly.
+# Work around an openal-soft 1.25.1 crash: alcOpenDevice() faults on a 'movaps' in the device initializer, so
+# disable CPU extensions (scalar paths) and exclude the pipewire backend, which crashes at open on PipeWire 1.4.x.
+# openal-soft reads these in a static constructor, so set them before the binary starts. Explicit values override.
 if [[ -z "${ALSOFT_DISABLE_CPU_EXTS:-}" ]]; then
     export ALSOFT_DISABLE_CPU_EXTS="all"
     echo "INFO: OpenAL: ALSOFT_DISABLE_CPU_EXTS=all (movaps alignment crash workaround)"

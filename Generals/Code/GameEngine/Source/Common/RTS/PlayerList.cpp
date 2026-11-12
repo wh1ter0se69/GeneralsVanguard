@@ -617,16 +617,10 @@ void PlayerList::assignSlotIndices(const GameInfo& gameInfo)
 		if (!slot || !slot->isOccupied())
 			continue;
 
-		// GeneralsX: Every observer slot maps onto the ONE ReplayObserver
-		// (GameLogic::startNewGame gives it no side of its own), so each observer's orders - its CRC
-		// reports above all - resolve to a Player (NetGameCommandMsg::constructGameMessage needs one).
-		// Forward only, written directly: setSlotIndex keeps one slot per Player and would unmap the
-		// previous observer. The ReplayObserver's own reverse entry stays -1 - many slots have no single
-		// answer - so it keeps no stats row, and CRC reports carry their slot instead (GameMessage).
-		// The capacity rule guarantees the ReplayObserver exists here (PlayerCapacity.h); the log is the
-		// tripwire if that ever stops holding, because an unmapped slot is a null Player at its first order.
-		// GeneralsX: ...in the current layout: a legacy replay or save (GENREP/GENR12, an
-		// older SkirmishGameInfo) gave the observer its own Player, found by name below like any other slot.
+		// GeneralsX: every observer slot maps onto the one ReplayObserver so each observer order resolves to a Player.
+		// Forward map only, written directly: setSlotIndex keeps one slot per Player and would unmap the previous observer.
+		// Legacy replays and saves (GENREP/GENR12) give the observer its own Player, found by name below.
+		// The capacity rule (PlayerCapacity.h) guarantees the ReplayObserver exists; the log is the tripwire.
 		if (gameInfo.slotSharesReplayObserver(i))
 		{
 			if (replayObserver != nullptr)

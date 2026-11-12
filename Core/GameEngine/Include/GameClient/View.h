@@ -83,11 +83,16 @@ public:
 		ZoomHeightPerSecond = 10,
 		// GeneralsX: What the camera-height settings may hold. The player's range is the
 		// launcher's and OptionPreferences' (50 .. 300, 100 .. 1000 - 1000 is also Generals Online's lobby cap). The
-		// Debug menu reaches further (owner: down to 10, up to 10000 - "I need zoom past 3k", 30/09), and a value outside the player's range is
-		// honoured only while Options.ini carries the Debug menu's mark - see getPrefDebugCameraHeights.
+		// Debug menu reaches further (down to 5, and up to the whole map), and a value outside the player's range is
+		// honoured only while Options.ini carries the Debug menu's mark - see getPrefDebugCameraHeights. 50000 only bounds
+		// the setting: the view stops where the whole loaded map is on screen (W3DView::getWholeMapHeightAboveGround).
 		CameraMinHeightLo = 50,		CameraMinHeightHi = 300,
 		CameraMaxHeightLo = 100,	CameraMaxHeightHi = 1000,
-		DebugCameraMinHeightLo = 10,	DebugCameraMaxHeightHi = 10000,
+		DebugCameraMinHeightLo = 5,	DebugCameraMaxHeightHi = 50000,
+		// GeneralsX @feature The camera pitch in degrees: the player's range (Options and Debug sliders), and the Debug
+		// menu's "Uncap pitch" range. 90 is straight down; setPitch holds it at 89.9, where Look_At still knows the yaw.
+		CameraPitchLo = 20,			CameraPitchHi = 60,
+		DebugCameraPitchLo = 5,		DebugCameraPitchHi = 90,
 	};
 
 	/// Add an impulse force to shake the camera
@@ -140,6 +145,16 @@ public:
 	static Real getPrefCameraPitch( const OptionPreferences &prefs );
 	static void setPrefCameraPitch( OptionPreferences &prefs, Int sliderDegrees );	///< the player moved the slider here
 	static void clearPrefCameraPitch( OptionPreferences &prefs );										///< Defaults: back to the data default
+	/// GeneralsX: the Debug menu's "Uncap pitch" (prefs' UncapCameraPitch): the pitch may be chosen in DebugCameraPitch*
+	/// rather than CameraPitch*. It applies where debugRangeAllowed() does (GXHostCamera.h); with a second human in the
+	/// match the player's range holds. isCameraPitchUncapped() is the live copy, set at startup and by Camera Apply.
+	static Bool getPrefCameraPitchUncapped( const OptionPreferences &prefs );
+	static void setPrefCameraPitchUncapped( OptionPreferences &prefs, Bool uncapped );
+	static Bool isCameraPitchUncapped() { return s_cameraPitchUncapped; }
+	static void setCameraPitchUncapped( Bool uncapped ) { s_cameraPitchUncapped = uncapped; }
+	/// The pitch range the player's camera may take now, in radians: the uncapped one (to 89.9) when it is set and
+	/// allowed here, else CameraPitchLo .. CameraPitchHi.
+	static void getPlayerPitchRange( Real *lo, Real *hi );
 
 	virtual void setZoomLimited( Bool limit ) { m_zoomLimited = limit; }			///< limit the zoom height
 	virtual Bool isZoomLimited() const { return m_zoomLimited; }							///< get status of zoom limit
@@ -222,7 +237,7 @@ public:
 	virtual void setPitch( Real radians );															///< Rotate the view around the horizontal axis to the given angle (pitch)
 	virtual Real getPitch() { return m_pitch; }										///< Return current camera pitch
 	virtual void setDefaultPitch( Real radians );												///< Set new default camera pitch. It affects the camera distance to the ground
-	virtual Real getDefaultPitch() { return m_defaultPitch; }						///< Return current default camera pitch
+	virtual Real getDefaultPitch();																///< Return current default camera pitch (GeneralsX: an uncapped one only where allowed)
 	virtual void setAngleToDefault();															///< Set the view angle back to default
 	virtual void setPitchToDefault();															///< Set the view pitch back to default
 	void setPosition( const Coord3D &pos ) { m_pos = pos; }
@@ -241,9 +256,13 @@ public:
 	/// (optional) receives the factor for the overlays retail draws at a FIXED pixel size: 1.0 unless
 	/// the camera is above the ceiling the stock limit would give this view. See W3DView.
 	virtual Real getRetailReferenceZoom( Real *iconScale = nullptr ) { if (iconScale) *iconScale = 1.0f; return m_zoom; }
+	/// GeneralsX: the Max camera height setting from which this view zooms out to the whole loaded map; 0 when unknown.
+	virtual Real getWholeMapCameraHeightSetting() { return 0.0f; }
 	virtual void setZoom(Real z) { m_zoom = z; }
 	virtual Real getHeightAboveGround() { return m_heightAboveGround; }
 	Real getMaxHeightAboveGround() const { return m_maxHeightAboveGround; }	///< GeneralsX: the current max, aspect allowance included
+	/// GeneralsX: the height setZoom multiplies a zoom by - the max, or the max before a whole-map cap (W3DView)
+	virtual Real getZoomReferenceHeight() { return m_maxHeightAboveGround; }
 	virtual void setHeightAboveGround(Real z);
 	virtual void zoom( Real height ); ///< Zoom in/out, closer to the ground, limit to min, or farther away from the ground, limit to max
 	virtual void setZoomToMax();
@@ -376,6 +395,7 @@ protected:
 	Bool m_zoomLimited;																					///< Camera restricted in zoom height
 	Real m_defaultAngle;																				///< Expected normalized
 	Real m_defaultPitch;																				///< Expected normalized
+	static Bool s_cameraPitchUncapped;																	///< GeneralsX: see isCameraPitchUncapped
 	Real m_currentHeightAboveGround;														///< Actual camera height above ground, or rather height above ground at default pitch
 	Real m_terrainHeightAtPivot;																///< Actual terrain height at camera pivot
 

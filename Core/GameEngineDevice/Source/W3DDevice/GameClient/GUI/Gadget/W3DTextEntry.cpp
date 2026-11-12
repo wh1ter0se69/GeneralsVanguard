@@ -198,24 +198,9 @@ static void drawTextEntryText( GameWindow *window, WinInstanceData *instData,
 	if(parent && !BitIsSet(parent->winGetStyle(), GWS_COMBO_BOX))
 		parent = nullptr;
 
-	// GeneralsX: Blink the caret on the WALL CLOCK, not on rendered frames.
-	//
-	// This was `(drawCnt++ >> 3) & 0x1` over a `static Byte drawCnt` - a period of 16 RENDERED
-	// frames. That is 533 ms at the 30 fps this game shipped at, and the constant was chosen for
-	// that rate; but it is 133 ms at 120 fps and 33 ms at `-fps 480`, so on anything modern the
-	// caret strobes. It is not a debug-menu bug: drawTextEntryText is every text entry in the
-	// game, lobby chat included.
-	//
-	// The counter also only advanced while the entry HELD focus, because && short-circuits - so
-	// the phase was carried across fields and depended on how long you had been looking at one.
-	// A wall clock has no such state, which is why the static goes away entirely rather than
-	// being converted.
-	//
-	// BaseFps, deliberately, NOT LOGICFRAMES_PER_SECOND: the latter is WWSyncPerSecond and becomes
-	// 60 under GX_LOGIC_60HZ, which would halve the period again and re-introduce the bug on the
-	// builds that actually ship. BaseFps is fixed at 30 by definition - "the historic base frame
-	// rate for this game. This value must never change" (GameCommon.h) - so 8 * 1000 / BaseFps is
-	// 266 ms, and reproduces retail's cadence exactly at any render rate.
+	// Blink the caret on the WALL CLOCK, not on rendered frames (a 16-frame counter strobes at high fps).
+	// BaseFps, NOT LOGICFRAMES_PER_SECOND (60 under GX_LOGIC_60HZ): it is fixed at 30 (GameCommon.h),
+	// so 8 * 1000 / BaseFps = 266 ms reproduces retail's cadence at any render rate.
 	static const UnsignedInt CARET_HALF_PERIOD_MS = 8 * 1000 / (UnsignedInt)BaseFps;
 	const Bool caretVisible = ((timeGetTime() / CARET_HALF_PERIOD_MS) & 1) != 0;
 

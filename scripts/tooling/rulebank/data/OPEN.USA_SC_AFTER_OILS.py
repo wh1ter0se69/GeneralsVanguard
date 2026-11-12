@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule OPEN.USA_SC_AFTER_OILS: vanilla USA builds its Strategy Center
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule OPEN.USA_SC_AFTER_OILS: vanilla USA builds its Strategy Center
 # once its oil income is up. Stock "USA Strategy Center - H" waits for a War Factory and _ESCALATION >= 30 (enemy tech adds to it), and a
 # rule may neither retime nor read that clock. So a one-shot "GX Stock Strategy Center Off - H" switches the stock script off at the start
 # (a DISABLE is the one reference the compiler allows to enemy-gated stock logic), and the one-shot "GX Strategy Center - H" builds it

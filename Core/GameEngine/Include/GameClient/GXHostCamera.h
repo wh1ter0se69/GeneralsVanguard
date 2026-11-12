@@ -16,51 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// FILE: GXHostCamera.h //////////////////////////////////////////////////////////////////////////
-//
-// GeneralsX: Host-authoritative camera height limits.
-//
-// WHAT THIS IS FOR. In a networked match every peer should see the same amount of map. Today each
-// peer's MinCameraHeight/MaxCameraHeight come from its own Options.ini (parsed by
-// OptionPreferences, applied at View::init), so a player who edited the file - or used a launcher
-// that writes it - can zoom further out than everybody else and gets more information for free.
-// This module makes the HOST's pair govern every peer for the duration of a networked match.
-//
-// REPLACE, NOT min(). The host's value wins in BOTH directions:
-//     host 400 / local 500  -> the peer plays at 400   (host is more restrictive)
-//     host 1000 / local 400 -> the peer plays at 1000  (host is more PERMISSIVE)
-// A min() would only ever tighten, which would still leave peers seeing different amounts of map
-// whenever the host is the permissive one. Identical view is the whole point, so it is a replace.
-//
-// SCOPE IS DELIBERATELY TWO KEYS. MaxCameraHeight and MinCameraHeight only. Not CameraPitch, not
-// ScrollFactor, not TerrainDrawDistanceScale, and NOT EnforceMaxCameraHeight.
-//
-//   THE ESCAPE HATCH IS KNOWN AND WAS ACCEPTED. EnforceMaxCameraHeight is what decides whether the
-//   max is a hard ceiling at all; a peer that turns it off can still exceed the host's ceiling by
-//   other means. Extending the override to cover it was considered and deliberately declined - the
-//   owner chose the two-key scope with the hatch open. Do not "fix" this by widening the scope
-//   without going back to that decision.
-//
-// THIS IS A FAIRNESS FEATURE, NOT A DESYNC FIX. Nothing camera-related is simulation-visible:
-// View::crc() is an empty body, View::xfer() carries only version/angle/position, and
-// GameLogic::getCRC never reads GlobalData or the View. Peers with different camera limits do not
-// desync today and will not desync because of this. Do not sell it as a sync fix.
-//
-// WHERE IT LIVES, AND WHY. GameClient/, following the note at the top of View::init and the same
-// reasoning as GXLobbyPresence: Core/GameEngine/{Include,Source}/GameClient is NOT part of the
-// sourceID simulation digest, so a purely client-side camera limit must not cost every peer a wire
-// break. The read sites this feeds - View.cpp and W3DDevice/W3DView.cpp - are outside the digest
-// too, which is why this whole feature can ship without an atomic four-platform rebuild.
-//
-// RESOLUTION IS AT READ TIME. TheWritableGlobalData is NOT mutated. View::init does mutate it for
-// the Options.ini preference, which is correct for a process-lifetime setting and wrong for a
-// per-match override: a mutation would leak into the next skirmish, into a mid-match abort, and
-// into a lobby restored after a map transfer. Resolving on every read makes restoration
-// structural - there is no restore step left to forget.
-//
-// THIS FILE MUST NOT grow a dependency on anything outside Lib/BaseType.h. The two engine queries
-// below are the only contact with the engine, and they are implemented in one small block at the
-// bottom of GXHostCamera.cpp so the rest of the module can be compiled and exercised on its own.
+// FILE: GXHostCamera.h ///////////////////////
+// Host-authoritative camera limits: the HOST's Min/MaxCameraHeight replace every peer's, in BOTH directions.
+// Two keys only (not EnforceMaxCameraHeight). Fairness, not a desync fix: the camera is not simulation-visible.
+// Resolved AT READ TIME (the global is never mutated), so nothing leaks into the next skirmish.
 
 #pragma once
 
@@ -92,26 +51,10 @@ namespace GXHostCamera
 	const Real HOSTCAM_MAX_CEIL  = 1000.0f;
 
 	//-----------------------------------------------------------------------------------------------
-	// THE SEAM THE WIRE BRANCH BUILDS AGAINST.
-	//
-	// feat/hostcam-wire carries the host's pair over the network; everything below is what it calls.
-	// The contract, in order:
-	//
-	//   HOST SIDE   getLocalLimits(&mine) -> put mine.minHeight / mine.maxHeight in the game-start
-	//               payload. validate() them first if you want to fail loudly rather than let the
-	//               receiver silently clamp.
-	//
-	//   PEER SIDE   setHostLimits(min, max) once, from the game-start path, BEFORE the match starts.
-	//               It validates and clamps for you; a pair it cannot make sense of is refused and
-	//               the peer simply keeps its own limits.
-	//               clearHostLimits() when the match ends or the lobby is left.
-	//
-	// Everything else is defensive and needs nothing from the caller:
-	//   * A second setHostLimits() inside a match that already adopted a pair is stored but NOT
-	//     applied, so a host that drops or re-sends cannot pop everyone's camera mid-match.
-	//   * Leaving a multiplayer match drops the override on its own, so a wire branch that forgets
-	//     clearHostLimits() still cannot leak the host's limits into the next skirmish.
-	//   * Nothing here is applied outside a multiplayer match, whatever the latch holds.
+	// The seam the wire path builds against. HOST SIDE: getLocalLimits(&mine), put mine.minHeight / maxHeight in the
+	// game-start payload. PEER SIDE: setHostLimits(min, max) once from the game-start path BEFORE the match (it
+	// validates and clamps; a pair it cannot make sense of is refused); clearHostLimits() when the match ends. A
+	// second setHostLimits() mid-match is stored but NOT applied.
 	//-----------------------------------------------------------------------------------------------
 
 	/** Latch the host's pair for the current/next match. Returns TRUE if the pair was accepted
@@ -183,6 +126,17 @@ namespace GXHostCamera
 	  * FALSE before the player list exists. An observer sees the whole map already, so the fairness clamp has
 	  * nothing to protect and does not apply to him. */
 	Bool isLocalPlayerObserving( void );
+
+	/** TRUE in a multiplayer match with no second human in it: the local player is the one human, by
+	  * GameLogic::gxCheatsAllowed (observers count as humans; the engine's own ReplayObserver does not), the same
+	  * sandbox test the Debug menu's cheats and intel use. Such a player is exempt like an observer: with nobody else
+	  * in the match there is nobody to see more map than. FALSE until the local human exists, so a match that is
+	  * still loading never reads as one. Player types are fixed when the match starts, so it cannot change during it. */
+	Bool isSoloNetworkMatch( void );
+
+	/** TRUE when the Debug menu's camera range (heights past the player's range, uncapped pitch) may apply now:
+	  * outside a multiplayer match, for an observer, or in a multiplayer match with no second human. */
+	Bool debugRangeAllowed( void );
 
 }  // namespace GXHostCamera
 

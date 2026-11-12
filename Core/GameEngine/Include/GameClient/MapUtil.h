@@ -89,20 +89,9 @@ public:
 	Coord3DList m_techPositions;
 	AsciiString m_fileName;
 
-	// GeneralsX: THE PATH AS IT ACTUALLY IS ON DISK, case intact.
-	//
-	// m_fileName is deliberately lowercased (MapUtil.cpp, findMaps) because it is the cache KEY and
-	// the identity that travels in the multiplayer game options (GameInfo.cpp:1796). That is fine on
-	// Windows and macOS, whose volumes are case-insensitive, and fatal on iOS, whose app-data volume
-	// is case-sensitive: a user map's absolute path contains
-	// '/private/var/mobile/Containers/Data/Application/<UPPERCASE-UUID>/Library/Application Support/',
-	// none of which survives toLower(). The open then fails, the map is never parsed, the sides list
-	// stays empty, and the match runs with no players and zero objects - measured 2026-08-19.
-	//
-	// The file system's own case-insensitive fallback cannot rescue it: that works by enumerating the
-	// parent directory, and an iOS app is sandboxed out of listing /private/var/mobile.
-	//
-	// So keep both: the lowercase identity for keys and the wire, the real path for opening.
+	// The path as it is on disk, case intact. m_fileName is lowercased: it is the cache key and the identity sent
+	// in the game options (GameInfoToAsciiString). That breaks on iOS, whose app-data volume is case-sensitive and whose
+	// sandbox cannot list /private/var/mobile for a fallback. Keep both: lowercase for keys and the wire, this to open.
 	AsciiString m_filePathOnDisk;
 };
 
@@ -169,7 +158,7 @@ extern TechAndSupplyImages TheSupplyAndTechImageLocations;
 // TheSuperHackers @refactor xezon 28/11/2025 Refactors the map list population implementation
 // by breaking it into smaller pieces to make it more maintainable.
 
-// GeneralsX @feature Optional display-name filter, so a search box can narrow the list without
+// GeneralsX: Optional display-name filter, so a search box can narrow the list without
 // duplicating any of the grouping, ordering, medal or item-data logic. It is defaulted to empty,
 // which means "match everything", so every existing caller keeps its current behaviour untouched.
 Int populateMapListbox( GameWindow *listbox, Bool useSystemMaps, Bool isMultiplayer, AsciiString mapToSelect = AsciiString::TheEmptyString,

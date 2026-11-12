@@ -1,25 +1,25 @@
-// FILE: GXReplayDiagFormat.h /////////////////////////////////////////////////////////////////////
-//
-// GeneralsX: The replay diagnostics block: the bytes, and the arithmetic of a timeline row.
-//
-// and we asked for his replay: a replay said nothing about
-// HIS machine. This makes "send me the replay" the whole ask: build, renderer, settings, coarse machine facts and a 10 s
-// performance timeline travel inside the .rep. scripts/tooling/replay-info.py reads them.
-//
-// THE RECORDS ARE COMMENTS IN THE COMMAND STREAM. A record has the exact shape RecorderClass::writeToFile gives a command
-// (frame, type, player, one INTEGER argument group), with type MSG_BEGIN_NETWORK_MESSAGES. That marker is never recorded as a
-// command, and RecorderClass::appendNextCommand parses it like any other and deletes it instead of appending it to the command
-// list, on every build back to before this block existed. So nothing on the read path changed, and the simulation cannot
-// see a record. Why not the header or a trailer: a new magic hides the replay from an old build's list, a trailer reads as
-// a bad frame number and a crash never writes it. In the stream it reaches disk with the same flush as the commands, so a
-// crashed match keeps it up to the last window.
-//
-// A RECORD CARRIES THE FRAME OF THE LAST COMMAND WRITTEN, 0 before the first. Playback ends at end of file and waits for each
-// frame it reads, so a record stamped later would make a match that quit or crashed simulate on past its last command. Stamped
-// this way it is consumed in that command's own loop and never adds a frame to the sequence playback waits on. A window's
-// time is in its row (frame_end), not in this field. RecorderClass::writeDiagRecord stamps it.
-//
-// This header includes nothing of the engine's, so scripts/test/replay-diag-format-test.cpp compiles it alone.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Replay diagnostics block: byte layout and timeline-row arithmetic, read by scripts/tooling/replay-info.py.
+// Records are comments in the command stream (MSG_BEGIN_NETWORK_MESSAGES, dropped on read by every build), so the sim
+// never sees one. Each carries the frame of the last command written, so playback never simulates past it.
+// Includes no engine headers, so scripts/test/replay-diag-format-test.cpp compiles it alone.
 
 #pragma once
 
@@ -140,7 +140,7 @@ inline bool gxDiagContainsName( const char *text, const char *needle )
 	return false;
 }
 
-/// An os-release ID, which is a file the owner can edit: a name from this list, or "other". "ID=someones-workstation" is a perfectly
+/// An os-release ID, which is a file the user can edit: a name from this list, or "other". "ID=someones-workstation" is a perfectly
 /// well-formed word, so the shape of a value proves nothing; only knowing the name does.
 inline const char *gxDiagDistroName( const char *in )
 {
@@ -392,29 +392,22 @@ inline void gxDiagWindowRow( const GXDiagWindow &w, const GXDiagIter &it, long l
 	row[ GX_DIAG_ROW_FLAGS ] = flags;
 }
 
-// ------------------------------------------------------------------------------------------------
-// TELEMETRY: per-second rows on the same comment-record path. Kinds 3 PERF, 4 VIEW, 5 INPUT keep
-// prelude ver 1 (an old replay-info.py ignores a kind it does not know; a ver above its own reads as "future"). One record is one
-// BATCH: a 14-byte header, `rows` fixed-size rows, then for PERF a 16-bucket frame-time histogram. Every field is little endian.
+// TELEMETRY: per-second rows on the same record path. Kinds 3 PERF, 4 VIEW, 5 INPUT keep prelude ver 1.
+// One record is one batch: 14-byte header, `rows` fixed-size rows, then (PERF) a 16-bucket histogram.
+// Little endian. A reader takes rowBytes from the header, so fields are only ever APPENDED to a row.
+// Too large for the field = CENSORED (u16 0xFFFE, u8 0xFE); not measured = UNKNOWN (u16 0xFFFF, u8 0xFF).
 //
 //   batch header: u8 rowBytes | u8 rows | u8 flags (bit0 histogram follows the rows, bit1 telemetry was dropped before this batch)
 //                 | u8 droppedSeconds (slow-I/O skips since this kind's previous batch, saturating 255) | u32 frameStart
 //                 | u32 msSinceStart | u16 droppedEntries (INPUT ring overflow, saturating 65535; 0 for other kinds)
 //
-// A reader takes rowBytes from the header, so fields are only ever APPENDED to a row: an old reader parses the prefix it knows.
-//
-//   PERF row, 58 bytes (offset field unit):
+//   PERF row, 58 bytes, every field u16 unless marked (offset field unit):
 //     0 wallMs ms | 2 drawn | 4 iters | 6 ftP50 | 8 ftP95 | 10 ftP99 | 12 ftMax | 14 ftP99_3s (frame times in 0.1 ms) | 16 ticks
 //     18 tickMaxX10 0.1 ms | 20 simMs | 22 stallMs | 24 holdMs | 26 drawMs | 28 cushionMin u8 frames | 29 netRate u8 Hz
 //     30 netRetries | 32 netRecvDrop | 34 cpuProcMs | 36 cpuMainMs | 38 cpuRenderMs | 40 cpuAudioMs | 42 cpuPcoreMs
 //     44 sysCpuX10 0.1 % | 46 gpuProcMs | 48 gpuFrameX10 0.1 ms | 50 sysGpuPct u8 % | 51 rss16M | 53 sysAvailMb16M (16 MiB units)
-//     55 flags u8 | 56 iterMaxX10 0.1 ms: the longest main-loop ITERATION in the second (a frame interval spans skipped draws, so
-//     ft_max cannot stand in for it; "waiting on a peer" needs the loop's own iteration time normal - measurement rules)
-//
-// Every field is u16 unless marked. NOTHING IS TRUNCATED: a value too large for its field is the CENSORED marker (u16 0xFFFE, u8
-// 0xFE), a value not measured is UNKNOWN (u16 0xFFFF, u8 0xFF). A 90 s wallMs cast to u16 would read 24,464 ms; censored it reads
-// ">= 65.5 s", and the WINDOW row's i32 fields keep the exact long values.
-// ------------------------------------------------------------------------------------------------
+//     55 flags u8 | 56 iterMaxX10 0.1 ms: the longest main-loop iteration in the second (a frame interval spans skipped draws, so
+//     ftMax cannot stand in for it)
 enum
 {
 	GX_DIAG_KIND_PERF  = 3,
@@ -786,7 +779,7 @@ inline void gxTelPerfSuspend( GxTelPerf &p )
 	p.prevDrawNs = -1;
 }
 
-/// GeneralsX: The player is away (true) or back (false) while the loop KEEPS running: a match that
+/// The player is away (true) or back (false) while the loop KEEPS running: a match that
 /// goes on unwatched (iOS in the background, a minimised or Alt+Tabbed Windows peer). Every row that overlaps the away span closes
 /// with GX_TEL_F_UNFOCUSED - the one open when it began, every one started during it, and the one open when it ended - so fps 0 at
 /// 60 TPS reads as "nobody was looking", never as a render failure. A flag only: no row closes here and no field moves.

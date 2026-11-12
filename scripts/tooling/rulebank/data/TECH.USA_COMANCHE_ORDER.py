@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule TECH.USA_COMANCHE_ORDER: Air Force researches its Comanche
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule TECH.USA_COMANCHE_ORDER: Air Force researches its Comanche
 # upgrades in the order Stealth, Countermeasures, Rocket Pods. Stock Air Force Hard buys Stealth Comanche at its first Air Field
 # ("USA Upgrade Stealth Comanche", 2500 cash) and Countermeasures at its second ("USA Upgrade to Counter Measures", 1500), so the order
 # is usually but not strictly Stealth first, and it never buys Rocket Pods (no stock script; the Air Field offers them). Here, with

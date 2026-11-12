@@ -87,7 +87,7 @@ static ICoord2D	s_dragOrigin	= { 0, 0 };
 // device pixels) so the two layers agree on what counts as a tap.
 static const Int DEBUG_FLOAT_DEAD_ZONE_PX = 8;
 
-// GeneralsX: Defined in InGameUI.cpp (GXSpectatorHud.inl): where the spectator HUD's top strip ends (0 =
+// Defined in InGameUI.cpp (GXSpectatorHud.inl): where the spectator HUD's top strip ends (0 =
 // no strip). The default corner sits below it - at y = margin the DEBUG button covered the last player card.
 extern Int gxSpectatorHudTopInset();
 
@@ -383,22 +383,8 @@ static void debugFloatBuild( void )
 	s_dragMoved = FALSE;
 }
 
-//-------------------------------------------------------------------------------------------------
-/// Is the debug overlay wanted at all?
-///
-/// GeneralsX: IT USED TO BE UNCONDITIONAL. DebugFloatButtonCreate() ran
-/// from GameClient::init() on every build, so a RELEASE build a friend installed showed a DEBUG
-/// button and a frame-rate readout over the main menu - and the launcher's "Enable debug mode"
-/// checkbox had nothing to do with it, because nothing anywhere read that setting. Turning the
-/// checkbox off changed nothing, which is worse than the button being there.
-///
-/// Default: ON in a debug build, where it is the point; OFF otherwise, unless Options.ini says
-/// DebugMenu = yes. That key is deliberately in the GAME's own settings rather than the launcher's
-/// private ini, because the engine already reads this file and the launcher does not need a new
-/// channel to write one line into it.
-///
-/// Read once. It is a launch-time choice, and re-reading it per call would make an option somebody
-/// edits mid-session take effect in a way nothing else here does.
+/// Is the debug overlay wanted at all? ON in a debug build, OFF otherwise, unless Options.ini says DebugMenu = yes.
+/// Read once: it is a launch-time choice.
 static Bool debugFloatWanted( void )
 {
 	static Int s_wanted = -1;

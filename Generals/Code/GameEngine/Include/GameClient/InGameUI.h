@@ -756,7 +756,7 @@ protected:
 	// Network Latency Counter
 	DisplayString *							m_networkLatencyString;
 	AsciiString									m_networkLatencyFont;
-	Bool												m_hudOverlayHidden;	///< GeneralsX @feature runtime hide-all for the HUD readouts
+	Bool												m_hudOverlayHidden;	///< GeneralsX: runtime hide-all for the HUD readouts
 	Int													m_networkLatencyPointSize;
 	Bool												m_networkLatencyBold;
 	Coord2D											m_networkLatencyPosition;

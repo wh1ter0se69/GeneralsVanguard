@@ -32,8 +32,8 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 #ifdef GX_RENDER_NATIVE
-#include "VkWsi.h"	// GeneralsX: sdl3PreferVulkanLoader
-#include "W3DDevice/GameClient/GxNativeInstall.h"	// GeneralsX: FlushFinalStats
+#include "VkWsi.h"	// sdl3PreferVulkanLoader
+#include "W3DDevice/GameClient/GxNativeInstall.h"	// FlushFinalStats
 #endif
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
@@ -50,7 +50,7 @@
 #endif
 #include <cstdlib>
 #include <cctype>
-#include <filesystem>        // GeneralsX: the DXVK folder, on every POSIX target
+#include <filesystem>        // the DXVK folder, on every POSIX target
 #include <initializer_list>
 #include <string>
 #include <system_error>
@@ -71,12 +71,13 @@
 #include "Common/GameMemory.h"
 #include "Common/Debug.h"
 #include "Common/version.h"  // GeneralsX: Version class + TheVersion extern
-#include "GXStderrLog.h"     // GeneralsX: desync evidence on disk
-#include "GXCrashLog.h"      // GeneralsX: one crash log per crash, in our folder
+#include "GXStderrLog.h"     // desync evidence on disk
+#include "GXCrashLog.h"      // one crash log per crash, in our folder
 #include "GameClient/SaveLoadFeedback.h"  // TheGXCrashLogWriter
 #include "gitinfo.h"
-#include "GameClient/GXUserDataDir.h"  // GeneralsX: GX_USERDATA_DIR (iOS Options.ini seed)
-#include "GameLogic/GXHookTimer.h"  // GeneralsX: ai-wh1ter0se-econ: GX_HOOK_FLUSH_ALL before _exit (test-instruments builds)
+#include "GameClient/GXEnvAllowList.h"  // GeneralsX: shipped builds ignore every GX_* not on the list
+#include "GameClient/GXUserDataDir.h"  // GX_USERDATA_DIR (iOS Options.ini seed)
+#include "GameLogic/GXHookTimer.h"  // GX_HOOK_FLUSH_ALL before _exit (test-instruments builds)
 #include "SDL3GameEngine.h"
 
 // DXVK WSI
@@ -85,24 +86,8 @@
 
 // CRITICAL SECTIONS (Linux needs these too)
 
-// GeneralsX: Build these handlers on Linux as well as iOS.
-//
-// The Linux peer installed no fatal-signal handler at all, so its crashes left only the
-// kernel's one-line dmesg record. Reconstructing a symbol from that line means taking the
-// fault ip, subtracting the VMA base the kernel prints, and then remembering to ADD the
-// executable segment's vaddr, because the binary is PIE. On 2026-08-04 a session skipped
-// that last term, resolved an address 0x252000 short of the real one, and got
-// INI::parseAnim2DDefinition - load-time code that could not possibly be running at frame
-// 10791. Both addr2line and nm "confirmed" it, because both were handed the same wrong
-// address, and the impossible answer was written up as evidence of memory corruption. The
-// real fault was a plain null dereference in ParticleSystem::attachToObject.
-//
-// One backtrace at the moment of the crash removes that entire class of arithmetic.
-//
-// GeneralsX: And on macOS, and actually INSTALLED on Linux. The only call
-// to installCrashHandlers() was inside the iOS block of main(), so Linux compiled these and never
-// used them, and macOS did not compile them at all. Both now install them after the command line
-// is parsed, where the user-data folder is known and GXCrashLog can write into it.
+// Crash backtrace handlers for Linux and macOS as well as iOS, installed once the user-data folder is known.
+// A bare Linux kernel fault record is error-prone to symbolise by hand: the binary is PIE, so add the segment vaddr.
 #if !defined(_WIN32)
 #define GX_HAVE_CRASH_BACKTRACE 1
 #endif
@@ -112,27 +97,10 @@
 #include <execinfo.h>
 #include <exception>
 
-// Fatal-signal reporting.
-//
-// A crash used to leave nothing behind: the log simply stopped mid-line and the
-// cause had to be inferred from whatever happened to be the last thing written.
-// These handlers make every fatal signal announce itself, with a backtrace, into
-// the session log — Documents on iOS, plain stderr on Linux, which is what the
-// test harnesses already capture.
-//
-// This does not prevent crashes — nothing can, in a codebase this size — it
-// guarantees you are never left guessing about one.
-//
-// Everything here must be async-signal-safe: raw write(), no printf, no malloc.
-// backtrace()/backtrace_symbols_fd() are safe on Darwin by design. On glibc they
-// are NOT, strictly: the first backtrace() dlopens libgcc to get the unwinder,
-// which allocates. installCrashHandlers() below forces that work to happen at
-// startup so the handler itself never takes that path.
-//
-// Linux symbolisation note: backtrace_symbols_fd resolves only dynamic symbols,
-// so most frames print as GeneralsXZH(+0xOFFSET). That offset is already relative
-// to the image base and can be fed straight to addr2line with no PIE arithmetic —
-// which is the entire point.
+// Fatal-signal handlers write a backtrace into the session log (Documents on iOS, stderr on Linux).
+// Must be async-signal-safe: raw write(), no printf or malloc. glibc's first backtrace() dlopens libgcc and
+// allocates, so installCrashHandlers() forces that at startup. Linux frames print as GeneralsXZH(+0xOFFSET),
+// an offset already relative to the image base, so addr2line takes it directly with no PIE arithmetic.
 static int s_crashLogFd = -1;
 
 static void crashWrite(const char *s)
@@ -153,11 +121,11 @@ static void crashSignalHandler(int sig)
 		case SIGTRAP: name = "SIGTRAP (trap)";                       break;
 		default: break;
 	}
-	// GeneralsX: Lines still queued for the stderr pump go out before ours.
+	// Lines still queued for the stderr pump go out before ours.
 	GXStderrLog_Settle();
 	void *frames[64];
 	const int n = backtrace(frames, 64);
-	// GeneralsX: The crash's own file first: the stderr mirror below is
+	// The crash's own file first: the stderr mirror below is
 	// rotated by the next launch, this one is kept until the launcher has asked about it.
 	GXCrashLog_Write(name, frames, n);
 
@@ -176,7 +144,7 @@ static void crashSignalHandler(int sig)
 
 static void crashTerminateHandler()
 {
-	GXStderrLog_Settle();  // GeneralsX: queued lines first, as above
+	GXStderrLog_Settle();  // queued lines first, as above
 	void *frames[64];
 	const int n = backtrace(frames, 64);
 	GXCrashLog_Write("std::terminate (unhandled C++ exception)", frames, n);
@@ -184,7 +152,7 @@ static void crashTerminateHandler()
 	if (s_crashLogFd >= 0) backtrace_symbols_fd(frames, n, s_crashLogFd);
 	backtrace_symbols_fd(frames, n, STDERR_FILENO);
 	crashWrite("FATAL: end of backtrace\n");
-	// GeneralsX: abort(), not _exit(1), now that macOS and Linux install
+	// abort(), not _exit(1), now that macOS and Linux install
 	// this too: an unhandled exception has always ended there in SIGABRT, which harnesses and the
 	// OS crash report both key on. SIG_DFL first so the SIGABRT handler does not log it twice.
 	signal(SIGABRT, SIG_DFL);
@@ -343,30 +311,14 @@ static void FilterSoftwareVulkanICDs()
 }
 
 /**
- * FilterPipeWireOpenAL
- *
- * Sets ALSOFT_DRIVERS to skip PipeWire, falling back to pulse/alsa.
- *
- * Workaround for openal-soft PipeWire backend crash: alcOpenDevice() segfaults
- * inside the PipeWire backend while opening the default playback device.
- * The crash occurs in PipeWire's stream/context internals and is unrecoverable
- * from userspace. Excluding PipeWire via ALSOFT_DRIVERS causes openal-soft to
- * fall back to the PulseAudio backend, which works correctly on PipeWire systems
- * via the PulseAudio compatibility layer.
- *
- * NOTE: openal-soft reads ALSOFT_DRIVERS from a static global constructor when
- * libopenal.so is loaded by the dynamic linker, which is before main() runs.
- * This function is therefore only effective for builds that use lazy
- * initialization. The authoritative fix is in the launch scripts (run-linux-zh.sh
- * etc.), which set ALSOFT_DRIVERS before the binary starts.
- *
- * Only applied when ALSOFT_DRIVERS is not already set by the user.
- *
- * GeneralsX @bugfix 09/03/2026
+ * Sets ALSOFT_DRIVERS to skip PipeWire, so openal-soft falls back to pulse/alsa.
+ * Workaround for an openal-soft PipeWire backend segfault in alcOpenDevice().
+ * openal-soft reads ALSOFT_DRIVERS in a static constructor before main(), so this only helps lazy-init builds;
+ * the launch scripts set it authoritatively. Does nothing when ALSOFT_DRIVERS is already set.
  */
 static void FilterPipeWireOpenAL()
 {
-	// GeneralsX: PipeWire/OpenAL workaround is Linux-only; keep macOS CoreAudio backend selection untouched.
+	// PipeWire/OpenAL workaround is Linux-only; keep macOS CoreAudio backend selection untouched.
 	#if defined(__linux__)
 	// Crash: alcOpenDevice() hits 'movaps %xmm1,0x26260(%rbx)' — SSE movaps requires
 	// 16-byte alignment; a misaligned ALCdevice struct faults regardless of backend.
@@ -404,7 +356,7 @@ GameEngine *CreateGameEngine(void)
 	return engine;
 }
 
-// GeneralsX: A2: a fresh install starts from the shipped pipeline record (resources/dxvk/seed: the
+// A2: a fresh install starts from the shipped pipeline record (resources/dxvk/seed: the
 // DXVK state cache plus the fixed-function shader keys the patched Apple DXVK warms from, see
 // LoadScreen::waitForPipelineWarmup), so even its first match compiles its pipelines during the load screen. Each file
 // is copied only when absent: a player's own record grows from there and is never replaced. Before the d3d8 dylib
@@ -441,6 +393,8 @@ static void gxSeedDxvkCache(const char *seedDir)
 int main(int argc, char* argv[])
 {
 	int exitcode = 1;
+	// GeneralsX: a shipped build reads only the GX_* variables on its allow-list: first, before anything reads one
+	gxScrubEnvironment();
 
 	// TheSuperHackers @build felipebraz 13/02/2026
 	// Store command line arguments in globals for CommandLine.cpp parser
@@ -448,19 +402,9 @@ int main(int argc, char* argv[])
 	__argv = argv;
 
 #if !defined(_WIN32) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-	// GeneralsX: DXVK WRITES INTO THE WORKING DIRECTORY UNLESS TOLD OTHERWISE, AND ON macOS AND
-	// LINUX THE WORKING DIRECTORY IS THE ZERO HOUR FOLDER - often one GeneralsX does not own.
-	//
-	// fbraz3-dxvk opens <exe>_d3d9.log (src/util/log/log.cpp getFileName) and <exe>.dxvk-cache
-	// (src/dxvk/dxvk_state_cache.cpp getCacheDir) relative to the cwd when DXVK_LOG_PATH / DXVK_STATE_CACHE_PATH are
-	// empty. The .app exports neither, and the Linux launchers even export DXVK_LOG_LEVEL=info. Both paths are read
-	// LAZILY - on the first log line and at device creation - so setting them here, before the renderer exists, is in
-	// time. (DXVK_LOG_LEVEL is not: the logger reads it in a static constructor at dylib load, which is why it is not
-	// touched here; where the log goes is what matters.) Never over a value the caller set, and dxvk.conf is untouched.
-	//
-	// The folder is GeneralsX's own user-data root, resolved the way GlobalData::BuildUserDataPathFromRegistry resolves
-	// it. Trade-off: a second derivation of that root; foreign-folder-engine-test.sh check 5 pins the two together, and a
-	// shared helper is the upgrade if a third copy appears. Windows is not here: its cwd is the install folder we own.
+	// DXVK writes <exe>_d3d9.log and <exe>.dxvk-cache into the cwd, often a Zero Hour folder GeneralsX does not own.
+	// DXVK_LOG_PATH / DXVK_STATE_CACHE_PATH are read lazily, so setting them here is in time; a caller's value wins.
+	// The folder re-derives GlobalData's user-data root; foreign-folder-engine-test.sh check 5 pins the two together.
 	{
 		std::string dxvkDir;
 		if (!gxUserDataDirOverride(dxvkDir))
@@ -485,7 +429,7 @@ int main(int argc, char* argv[])
 			std::error_code ec;
 			std::filesystem::create_directories(dxvkDir, ec);
 			// A caller's value is kept - but an EMPTY one is not a value: DXVK reads "" exactly as unset and
-			// falls back to the cwd (review of a0510e7b6, P3-1).
+			// falls back to the cwd.
 			for (const char *name : { "DXVK_LOG_PATH", "DXVK_STATE_CACHE_PATH" })
 			{
 				const char *had = getenv(name);
@@ -517,17 +461,9 @@ int main(int argc, char* argv[])
 		// covers modules that read it before the config.
 		setenv("DXVK_LOG_LEVEL", "none", 0);
 
-		// GeneralsX: ONE MoltenVK, not two. The executable force-loads the
-		// build host's static libMoltenVK.a (cmake/config-build.cmake, for SDL3), while DXVK dlopens the
-		// pinned framework in Frameworks/ (Patches/dxvk-ios.patch) and creates the VkInstance with it.
-		// SDL then created the surface through the STATIC copy's vkGetInstanceProcAddr on the
-		// framework's instance - two MoltenVK versions (1.4.2 static, 1.4.1 framework in the 22/09
-		// package) sharing objects whose layout only happens to agree, and two copies reading any
-		// MVK_CONFIG_*. SDL's UIKit loader takes SDL_HINT_VULKAN_LIBRARY before its RTLD_DEFAULT probe,
-		// so naming the framework here puts SDL on DXVK's copy. Only when the framework is there:
-		// without it the static copy is the one that works, as before. The [GXMVK] line after
-		// SDL_Vulkan_LoadLibrary says which copy SDL actually got; nothing is printed here, because this
-		// runs before the stderr mirror below exists and an icon launch's bare stderr goes nowhere.
+		// Use one MoltenVK: DXVK creates its VkInstance with Frameworks/MoltenVK.framework, so SDL must create the surface
+		// through that copy, not the static libMoltenVK.a. Set only when the framework is present.
+		// Nothing is printed here (the stderr mirror does not exist yet); the [GXMVK] line says which copy SDL got.
 		{
 			const char *base = SDL_GetBasePath();
 			std::string mvk = std::string(base ? base : "") + "Frameworks/MoltenVK.framework/MoltenVK";
@@ -535,40 +471,16 @@ int main(int argc, char* argv[])
 				SDL_SetHint(SDL_HINT_VULKAN_LIBRARY, mvk.c_str());
 		}
 
-		// GeneralsX: Turn the network trace on by default, on iOS only.
-		//
-		// [GXSTALL], [GXNET] and the LAN traces are all gated on getenv("GX_NET") - and an
-		// icon-launched, sideloaded iOS app has no way to be given an environment variable, so the
-		// iPad has NEVER emitted any of them. Every stall number we have is the Linux host's view
-		// of the iPad; the iPad's own view has been structurally unavailable.
-		//
-		// That matters because the iPad is the peer that blocked 23 of 35 stalls, a 4.6:1 skew.
-		// The host's trace cannot tell "the iPad hitched" from "the iPad's packet was late" -
-		// only iter_max_ms on the iPad itself can, and that is exactly the field needed to decide
-		// whether the remaining short stalls are a send-deferral problem or a main-loop problem.
-		//
-		// Cheap: [GXSTALL] fires per stall event, not per frame, and the sink below is filtered
-		// and capped at 8 MB. Uses overwrite=0 so an explicit value still wins.
+		// Enable the network trace by default on iOS: an icon-launched app cannot be given GX_NET, so [GXSTALL], [GXNET]
+		// and the LAN traces would never print. They tell a local hitch (iter_max_ms) from a late packet.
+		// overwrite=0, so an explicit value wins. Cheap: [GXSTALL] fires per stall and the sink is capped at 8 MB.
 		setenv("GX_NET", "1", 0);
 
 		const char *diagHome = getenv("HOME");
 		if (diagHome != nullptr) {
-			// Documents, not Library/Caches: Caches is purgeable (a device restart or
-			// storage pressure can empty it), and Documents is user-reachable via the
-			// Files app since the bundle enables UIFileSharingEnabled. That is also why
-			// this install happens HERE rather than through the common call site after
-			// the command line is parsed — the engine's user-data path on iOS is inside
-			// Library/Application Support, which the Files app cannot see.
-			//
-			// GeneralsX: The sink itself (rotation, filter,
-			// 8 MB cap, error lines past the cap) moved verbatim into GXStderrLog.cpp so
-			// Windows and macOS get the same policy rather than a re-derived one. One
-			// behaviour did change and it was a latent bug: the past-cap allow-list was
-			// err:/ERROR/FATAL, which would have dropped the [CRC] MISMATCH lines that
-			// are the entire point of keeping a log.
-			//
-			// GeneralsX: Under GX_USERDATA_DIR, in its folder
-			// (GameClient/GXUserDataDir.h): the rotation below deleted the owner's last log.
+			// Documents, not Library/Caches (purgeable); Documents is reachable from the Files app (UIFileSharingEnabled).
+			// Installed here rather than at the common call site because the iOS user-data path is not visible to the Files app.
+			// The sink's policy (rotation, filter, 8 MB cap) is in GXStderrLog.cpp. Under GX_USERDATA_DIR it goes in that folder.
 			if (GXStderrLog_Install(gxIosStderrLogDir(diagHome).c_str())) {
 				// Hand the raw fd to the fatal-signal handlers: inside a signal handler
 				// only write() is safe, so they cannot go through the FILE* sink.
@@ -652,19 +564,9 @@ int main(int argc, char* argv[])
 			}
 
 			{
-				// Seed default settings on first run (full detail instead of the
-				// 2003 auto-detect, which drops unknown GPUs to Low).
-				//
-				// No longer gated on running from the bundle: a code-only build runs
-				// from Documents, where DefaultOptions.ini now also lives (see the
-				// asset seed above). Gating it here meant such a build silently fell
-				// back to the 2003 GPU auto-detect — Low LOD and quarter-resolution
-				// textures — which the porting playbook calls the number one cause of
-				// "looks worse than my PC".
-				//
-				// GeneralsX: Into GX_USERDATA_DIR's folder when it applies
-				// (GameClient/GXUserDataDir.h), the one GlobalData will use: a test profile gets the same
-				// first-run settings, and the owner's folder is not touched.
+				// Seed default settings on first run: full detail, instead of the 2003 GPU auto-detect that drops unknown GPUs to Low.
+				// Not gated on running from the bundle: a code-only build runs from Documents.
+				// Written into GX_USERDATA_DIR's folder when it applies (GameClient/GXUserDataDir.h), the one GlobalData uses.
 				std::string userDataDir;
 				if (!gxUserDataDirOverride(userDataDir))
 					userDataDir = std::string(home) + "/Library/Application Support/GeneralsX/GeneralsZH/";
@@ -678,18 +580,8 @@ int main(int argc, char* argv[])
 					}
 				}
 
-				// Seed Documents with the bundled assets, once.
-				//
-				// A full build carries ~2.7 GB of game data inside the signed bundle,
-				// which makes every update a multi-gigabyte transfer — painful when
-				// the device is nowhere near the build machine. A code-only build is
-				// ~100 MB, but it needs the data to already exist in Documents.
-				//
-				// So the self-contained build hands the data over: on first launch it
-				// copies its GameData into Documents and drops a marker. From then on
-				// a code-only build finds it and runs, and updates cost 100 MB instead
-				// of 2 GB. Costs one copy and the disk to hold it.
-				//
+				// Seed Documents with the bundled assets once, and drop a marker.
+				// A full build carries ~2.7 GB of data in the signed bundle; a code-only build (~100 MB) needs it in Documents.
 				// Opt out by creating a file named "no-asset-seed" in Documents.
 				{
 					char docsSeed[1024];
@@ -787,27 +679,15 @@ int main(int argc, char* argv[])
 		// For now, let CommandLine::parseCommandLineForStartup() handle this
 		CommandLine::parseCommandLineForStartup();
 
-		// GeneralsX: Give the desync report somewhere to land.
-		//
-		// A Mac launched from Finder has stderr wired to /dev/null, so GameLogic.cpp:3000's
-		// release-build "[CRC] MISMATCH frame=... player=... crc=..." — the only output that
-		// names the diverging peer and the frame — has never once been readable after a real
-		// game. This mirrors stderr into the same directory the release crash log uses.
-		//
-		// Deliberately placed after parseCommandLineForStartup(): that is the call which
-		// constructs TheGlobalData (CommandLine.cpp:1743), so getPath_UserData() is the real
-		// per-platform path from here on and nothing has to be re-derived. The cost is that
-		// output from before this line is not in the file; on this path that is the banner
-		// above and the memory-manager bring-up, neither of which has ever been the question.
-		//
-		// A no-op on iOS, which already installed its own sink into Documents above, and on
-		// Linux, whose stderr the harnesses capture to a file already.
+		// Mirror stderr into the user-data folder: a Finder launch sends stderr to /dev/null, losing "[CRC] MISMATCH".
+		// After parseCommandLineForStartup(), which constructs TheGlobalData, so getPath_UserData() is the real path.
+		// Earlier output is not captured. No-op on iOS (its own sink) and Linux (stderr already captured).
 		if (TheGlobalData != nullptr && GXStderrLog_Install(TheGlobalData->getPath_UserData().str())) {
 			fprintf(stderr, "[gx] stderr mirror installed: %sgenerals-stderr.log\n",
 				TheGlobalData->getPath_UserData().str());
 #if !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-			// GeneralsX: The [GXDXVK] line at the top of main() runs before this mirror
-			// exists, so it never reached generals-stderr.log (seen on the Mini's rendered run). Said again here.
+			// The [GXDXVK] line at the top of main() runs before this mirror
+			// exists, so it never reached generals-stderr.log. Said again here.
 			const char *dxvkLog = getenv("DXVK_LOG_PATH");
 			const char *dxvkCache = getenv("DXVK_STATE_CACHE_PATH");
 			fprintf(stderr, "[GXDXVK] log=%s cache=%s\n", dxvkLog ? dxvkLog : "(unset)", dxvkCache ? dxvkCache : "(unset)");
@@ -815,7 +695,7 @@ int main(int argc, char* argv[])
 		}
 
 #if !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-		// GeneralsX: macOS and Linux: <userdata>/CrashLogs/, then the
+		// macOS and Linux: <userdata>/CrashLogs/, then the
 		// handlers. iOS did both before GlobalData existed (above). A crash before this line still
 		// reaches only the OS's own report, exactly as before.
 		if (TheGlobalData != nullptr)
@@ -823,11 +703,11 @@ int main(int argc, char* argv[])
 		s_crashLogFd = GXStderrLog_GetFd();  // -1 on Linux, which mirrors nothing
 		installCrashHandlers();
 #endif
-		// GeneralsX: The save gate writes a crash log for a load it stopped
+		// The save gate writes a crash log for a load it stopped
 		// because it would have crashed (SaveLoadFeedback.cpp); Core code reaches the writer through this.
 		TheGXCrashLogWriter = GXCrashLog_Write;
 
-		// GeneralsX: Skip SDL3 window bootstrap for CLI/headless replay execution.
+		// Skip SDL3 window bootstrap for CLI/headless replay execution.
 		const bool isHeadlessMode = (TheGlobalData != nullptr && TheGlobalData->m_headless);
 		if (isHeadlessMode) {
 			fprintf(stderr, "INFO: Headless mode detected, skipping SDL3 video/Vulkan window initialization\n");
@@ -844,35 +724,9 @@ int main(int argc, char* argv[])
 		// double-deliver finger 1 and fight the two-finger pan logic.
 		SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
 #endif
-		// GeneralsX: DO NOT MINIMISE THIS WINDOW WHEN IT LOSES FOCUS.
-		//
-		// SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS defaults to "auto", which means "minimise if the
-		// window is fullscreen_exclusive and mode switching is not emulated". This engine asks for
-		// EXCLUSIVE fullscreen (W3DDisplay.cpp passes a non-NULL SDL_DisplayMode to
-		// SDL_SetWindowFullscreenMode) and Cocoa does not emulate mode switching, so on macOS that
-		// default was armed and every alt-tab minimised the window.
-		//
-		// Minimising drops the window out of fullscreen, which reverts it to the restored size -
-		// SDL3Main creates it at a placeholder 1024x768 POINTS and the fullscreen path never resized
-		// it - so the backbuffer was rebuilt at 2048x1536 px on a 2.0-density display: 4:3 on a
-		// 1.5397 panel, letterboxed to fit=2048x1330@0,103, and it never recovered. The cursor went
-		// with it, because SDL3Mouse grabs the cursor to the WINDOW: the reported "my mouse can only
-		// move in a certain box" was the OS correctly confining it to a window that really had shrunk.
-		//
-		// MEASURED on a 3024x1964 Retina MacBook Pro, one Cmd-Tab, same binary, one variable:
-		//   default ("auto")    64 log lines, 1 Device reset, 2x backbuffer=2048x1536, never recovers
-		//   this hint = "0"      0 log lines, 0 Device reset, 0x backbuffer=2048x1536
-		// with AXMinimized reading false in the second case, catching the minimise itself as the link.
-		//
-		// WHY NOT ASK FOR FULLSCREEN DESKTOP INSTEAD (pass NULL for the mode)? That also fixes the
-		// alt-tab, and it was tried and measured first - but a macOS fullscreen SPACE reserves the
-		// notch/menu-bar strip, so the drawable becomes 3024x1898 and the game's 1.5397 surface is
-		// pillarboxed into it with 51 px bars at REST. Measured: settled state went from
-		// "3024x1964 1:1, no pillarbox" to "backbuffer=3024x1898, fit=2922x1898@51,0". This hint keeps
-		// the exclusive path, and with it the whole panel, and costs nothing else.
-		//
-		// Set before SDL_InitSubSystem and long before SDL_CreateWindow, because SDL reads it when the
-		// window handles the focus event, and an env var of the same name still overrides it.
+		// Do not minimise on focus loss: the "auto" default minimises exclusive fullscreen on Cocoa, so alt-tab dropped the
+		// window out of fullscreen, rebuilt the backbuffer at the wrong size and left the cursor grabbed to the small window.
+		// Desktop fullscreen would avoid that but pillarboxes around the notch strip. Set before SDL_InitSubSystem.
 		SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 		if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
 			fprintf(stderr, "FATAL: Failed to initialize SDL3: %s\n", SDL_GetError());
@@ -889,7 +743,7 @@ int main(int argc, char* argv[])
 		FilterPipeWireOpenAL();
 
 #ifdef GX_RENDER_NATIVE
-		// GeneralsX: native-device session: name the Vulkan loader before SDL
+		// native-device session: name the Vulkan loader before SDL
 		// loads Vulkan, so SDL and the native device share ONE Vulkan implementation; S8 then qualifies the outcome. Only when
 		// the process asked for the native session - a classic launch keeps today's SDL choice byte for byte.
 		// the first reader of the renderer switch (Options.ini GXRenderer, GX_RENDERER over it);
@@ -905,7 +759,7 @@ int main(int argc, char* argv[])
 			fprintf(stderr, "WARNING: Continuing without Vulkan (may use software rendering)\n");
 		}
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-		// GeneralsX: Which MoltenVK SDL got (see the SDL_HINT_VULKAN_LIBRARY note
+		// Which MoltenVK SDL got (see the SDL_HINT_VULKAN_LIBRARY note
 		// above): the image its vkGetInstanceProcAddr lives in - Frameworks/MoltenVK.framework/MoltenVK when
 		// SDL shares DXVK's copy, the executable when it fell back to the static one.
 		{
@@ -921,21 +775,8 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "INFO: Creating SDL3 Vulkan window...\n");
 		Uint32 windowFlags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;  // Start hidden, show after D3D init
 #if defined(__APPLE__)
-		// Request a native-resolution Metal drawable (e.g. 2868x1320 instead of the
-		// 956x440 point size). Without this the swapchain renders at point size and
-		// the display upscales 3x, visibly blurring textures and terrain.
-		//
-		// GeneralsX: This was iOS-only and macOS needs it identically.
-		// A Retina Mac has exactly the same 2x point/pixel split as the iPad, so without the flag
-		// the swapchain is built at POINT size and the compositor upscales the whole window. The
-		// result was reported from an M5 MacBook with screenshots: "everything is very fuzzy and
-		// not very defined", "the buttons are huge", "the health bars and stuff are massive" - and,
-		// tellingly, "the cursor is tiny", because the OS draws the cursor at NATIVE density while
-		// every game-drawn element is being blown up 2x around it. One cause, four symptoms.
-		//
-		// Safe on non-Retina hardware by construction: where pixel density is 1.0 the drawable and
-		// the point size are the same buffer, so this flag changes nothing at all. Verified with the
-		// engine's own GX_PBOX probe on a 1x Mac: native=1920x1080 density=1.000.
+		// Request a native-resolution Metal drawable. Without it the swapchain is built at point size and the
+		// compositor upscales the window (blurry, oversized UI, tiny cursor). Needed on Retina Macs too; no-op at 1.0.
 		windowFlags |= SDL_WINDOW_HIGH_PIXEL_DENSITY;
 #endif
 		TheSDL3Window = SDL_CreateWindow(
@@ -1060,9 +901,9 @@ int main(int argc, char* argv[])
 	}
 
 #ifdef GX_RENDER_NATIVE
-	// GeneralsX: the native session's final stats line if its device outlived
+	// the native session's final stats line if its device outlived
 	// the engine's teardown: _exit() below runs no atexit handler, and the line allocates - so here, before the memory manager goes.
-	// GeneralsX: and before SDL destroys the window: the flush first joins the native renderer's submit
+	// and before SDL destroys the window: the flush first joins the native renderer's submit
 	// thread (lever 3, A21 am. 4), which may still be presenting to that window's swapchain.
 	GxNative::FlushFinalStats();
 #endif
@@ -1094,11 +935,11 @@ int main(int argc, char* argv[])
 	TheMemoryPoolCriticalSection = nullptr;
 	TheDebugLogCriticalSection = nullptr;
 
-	// GeneralsX: ai-wh1ter0se-econ (ke-timer-*-r1): the _exit below runs no static destructors - print every
+	// The _exit below runs no static destructors - print every
 	// [GXHOOK] timer's open frame and window and the "[GXHOOK] exit" line now, before the queue is settled (test-instruments only)
 	GX_HOOK_FLUSH_ALL();
 	fprintf(stderr, "\nExiting with code %d\n", exitcode);
-	GXStderrLog_Settle();  // GeneralsX: _exit runs no atexit: write out the queue first
+	GXStderrLog_Settle();  // _exit runs no atexit: write out the queue first
 
 	// GeneralsX: — use _exit() to skip C++ global destructors.
 	// On macOS, __cxa_finalize_ranges runs ObjectPoolClass<X,256> global dtors after main() returns.

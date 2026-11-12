@@ -329,25 +329,10 @@ void TextureLoader::Init()
 }
 
 
-// GeneralsX: Stop the loader thread WITHOUT holding the lock it needs.
-//
-// This used to take _BackgroundCriticalSection and then call Stop(). LoaderThreadClass::
-// Thread_Function() takes that same lock whenever the background queue is not empty, so it parked
-// there and could never get back to its `while (running)` test - which is the only thing Stop() is
-// waiting for. Stop() then spun on Sleep(0) for its whole 3000 ms default (thread.h) and
-// TerminateThread'd the loader, silently, on every exit that still had texture work queued. Alt+F4
-// pays that cost where the Exit button does not. Windows-only: ThreadClass::Stop is `return;` under
-// _UNIX.
-//
-// Nothing needs the lock afterwards either. What it protects the queues FROM is the loader thread,
-// and Stop() is what makes that thread stop existing; once it returns this is the only thread that
-// touches them. Neither ThumbnailManagerClass::Deinit() nor Delete_Free_Pool() takes it.
-//
-// AND RE-TAKING IT AFTER Stop() WOULD BE WORSE THAN THE BUG. FastCriticalSectionClass is a bare
-// spinlock over an atomic_flag with no owner and no abandonment recovery (WWLib/mutex.h), and Stop()
-// can still end in TerminateThread if the loader is inside a long task->Load() while HOLDING it.
-// Acquiring an abandoned flag spins forever, so the obvious "just move the lock down" turns a
-// bounded 3000 ms delay into a permanent hang on exit.
+// GeneralsX: stop the loader thread WITHOUT holding _BackgroundCriticalSection; Thread_Function() takes it whenever the
+// queue is not empty, so Stop() spun for its full 3000 ms and TerminateThread'd the loader (Windows only).
+// Do not re-take it after Stop(): FastCriticalSectionClass is a bare spinlock, and a TerminateThread inside a long
+// task->Load() leaves it held, so re-taking it would hang on exit.
 void TextureLoader::Deinit()
 {
 	if (Is_DX8_Thread()) DX8Ring::Fallback();	// d3d8 ring spike: d3d texture work needs the ring replayed first (main thread only: some of these also run on the loader thread)

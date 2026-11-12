@@ -197,7 +197,7 @@ DECLARE_PERF_TIMER(MemoryPoolInitFilling)
 static Bool thePreMainInitFlag = false;
 static Bool theMainInitFlag = false;
 
-// GeneralsX: A5: the owner word of a FOREIGN block (see "FOREIGN BLOCKS" above
+// The owner word of a FOREIGN block (see FOREIGN BLOCKS above
 // DynamicMemoryAllocator::allocateBytesDoNotZeroImplementation). Its address is never a real MemoryPoolBlob.
 static char theForeignBlobTag;
 
@@ -551,8 +551,7 @@ inline void **BlockCheckpointInfo::getStacktraceInfo() { return m_stacktrace; }
 */
 inline void* MemoryPoolSingleBlock::getUserDataNoDbg()
 {
-	// GeneralsX @bugfix 09/03/2026
-	// Round header size up to 16-byte boundary so user data is always 16-byte aligned.
+	// Round header size up to a 16-byte boundary so user data is always 16-byte aligned.
 	// Third-party code (e.g. openal-soft DeviceBase) may use SSE movaps which requires
 	// 16-byte alignment. sizeof(MemoryPoolSingleBlock) == 24 (3 ptrs, MPSB_DLINK), so
 	// the raw offset would be only 8-byte aligned; rounding to 32 fixes this.
@@ -583,7 +582,6 @@ inline void* MemoryPoolSingleBlock::getUserData()
 */
 inline /*static*/ Int MemoryPoolSingleBlock::calcRawBlockSize(Int logicalSize)
 {
-	// GeneralsX @bugfix 09/03/2026
 	// Use the 16-byte-rounded header size (same as getUserDataNoDbg / recoverBlockFromUserData).
 	// Round the total up to a multiple of 16 so that every block in a blob array starts at a
 	// 16-byte aligned address (malloc/sysAllocate guarantees 16-byte alignment for the first
@@ -1118,7 +1116,7 @@ void MemoryPoolSingleBlock::debugVerifyBlock()
 	DEBUG_ASSERTCRASH(this, ("null this"));
 	DEBUG_ASSERTCRASH(m_magicCookie == SINGLEBLOCK_MAGIC_COOKIE, ("wrong cookie"));
 	DEBUG_ASSERTCRASH(m_debugLiteralTagString != nullptr, ("bad tagstring"));
-	if (isForeign())	// GeneralsX @perf A5: m_nextBlock holds the cookie, not a link
+	if (isForeign())	// GeneralsX: A5: m_nextBlock holds the cookie, not a link
 	{
 		DEBUG_ASSERTCRASH(hasForeignCookie(), ("foreign block header corrupt"));
 		debugCheckUnderrun();
@@ -2226,7 +2224,7 @@ void DynamicMemoryAllocator::debugIgnoreLeaksForThisBlock(void* pBlockPtr)
 #endif
 
 	MemoryPoolSingleBlock *block = MemoryPoolSingleBlock::recoverBlockFromUserData(pBlockPtr);
-	if (block->isForeign())	// GeneralsX @perf A5: no pool owns it, so no leak report lists it
+	if (block->isForeign())	// GeneralsX: A5: no pool owns it, so no leak report lists it
 		return;
 	if (block->getOwningBlob())
 	{
@@ -2243,16 +2241,11 @@ void DynamicMemoryAllocator::debugIgnoreLeaksForThisBlock(void* pBlockPtr)
 #endif
 
 //-----------------------------------------------------------------------------
-// FOREIGN BLOCKS - GeneralsX: A5 (ROADMAP_2027 M2).
-// The replaced global operator new/delete send EVERY thread in the process through this allocator and its one
-// TheDmaCriticalSection: the graphics driver's shader-compile threads (DXVK, MoltenVK, SPIRV-Cross) too, which queue
-// on it during compile bursts, and so would helper threads and a render
-// thread. A block requested by any thread but the simulation thread is a FOREIGN block instead: a
-// MemoryPoolSingleBlock header on system memory whose owner is foreignBlob(), taken and given back with no lock.
-// The simulation thread's path, pool choice and allocation order are unchanged. freeBytes reads the header of the
-// block being freed - which only its owner writes - before locking, so either kind may be freed on any thread.
-// "The simulation thread" is the one that calls initMemoryManager(), re-keyed by setMemoryManagerSimulationThread();
-// until then, and with GX_ALLOC_FOREIGN=0, every thread takes the locked path as before.
+// FOREIGN BLOCKS: the replaced global operator new/delete route every thread through this allocator and its one
+// TheDmaCriticalSection. A block requested by any thread but the simulation thread (the one calling
+// initMemoryManager(), re-keyed by setMemoryManagerSimulationThread()) gets a lock-free block owned by foreignBlob().
+// freeBytes reads the block header (written only by its owner) before locking, so either kind frees on any thread.
+// GX_ALLOC_FOREIGN=0 disables it.
 static std::atomic<uintptr_t> theSimulationThread{0};
 
 static inline uintptr_t currentThreadKey()
@@ -2414,7 +2407,7 @@ void DynamicMemoryAllocator::freeBytes(void* pBlockPtr)
 		return;
 
 	MemoryPoolSingleBlock *foreign = MemoryPoolSingleBlock::recoverBlockFromUserDataNoDbg(pBlockPtr);
-	if (foreign->isForeign())	// GeneralsX @perf A5: no lock - see "FOREIGN BLOCKS"
+	if (foreign->isForeign())	// GeneralsX: A5: no lock - see "FOREIGN BLOCKS"
 	{
 		if (!foreign->hasForeignCookie())
 			RELEASE_CRASH("foreign memory block header corrupt");
@@ -2577,7 +2570,7 @@ Bool DynamicMemoryAllocator::debugIsBlockInDma(void *pBlockPtr)
 		return false;
 
 	MemoryPoolSingleBlock *block = MemoryPoolSingleBlock::recoverBlockFromUserData(pBlockPtr);
-	if (block->isForeign())	// GeneralsX @perf A5: issued by the DMA, owned by no pool
+	if (block->isForeign())	// GeneralsX: A5: issued by the DMA, owned by no pool
 		return true;
 	if (block->getOwningBlob())
 	{
@@ -3585,7 +3578,7 @@ void operator delete[](void * p, const char *, int)
 // The game pool allocator only guarantees MEM_BOUND_ALIGNMENT (4-byte), so SSE
 // movaps instructions in library constructors crash on pool-allocated memory.
 // These overloads bypass the pool and use posix_memalign for such allocations.
-// GeneralsX @bugfix 09/03/2026
+//
 #ifndef _WIN32
 #include <new>
 #include <cstdlib>
@@ -3718,7 +3711,7 @@ void initMemoryManager()
 	theMainInitFlag = true;
 
 #ifndef MEMORYPOOL_OVERRIDE_MALLOC	// with it, ::malloc is this allocator, and foreign blocks need the system's
-	// GeneralsX @perf A5: from here on, only this thread uses the pools (see "FOREIGN BLOCKS")
+	// GeneralsX: A5: from here on, only this thread uses the pools (see "FOREIGN BLOCKS")
 	const char *foreignEnv = getenv("GX_ALLOC_FOREIGN");
 	if (!(foreignEnv && strcmp(foreignEnv, "0") == 0))
 		theSimulationThread.store(currentThreadKey(), std::memory_order_relaxed);

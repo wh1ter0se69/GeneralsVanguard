@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule PLAN.USA_SEARCH_DESTROY: run the Strategy Center on Search and
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule PLAN.USA_SEARCH_DESTROY: run the Strategy Center on Search and
 # Destroy (+range, stealth detection) instead of Hold the Line, and build it right after the War Factory (rows 35, 97). Stock Hard USA
 # and Air Force build the Strategy Center at War Factory (Airfield) + _ESCALATION >= 30 and their "USA Use Battle Plans" (Easy/Normal/
 # Hard) picks Hold the Line. This adds Hard-only one-shots: one switches the stock plan script off at the start, one picks Search and

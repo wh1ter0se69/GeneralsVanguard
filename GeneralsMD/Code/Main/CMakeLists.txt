@@ -70,20 +70,10 @@ if(MSVC)
     target_link_options(z_generals PRIVATE "/NODEFAULTLIB:libci.lib")
 endif()
 
-# GeneralsX: Drop code and data nothing can reach from the game executable (cleanup Batch 2,
-# measured on macOS: about -2 MB per game). Link options only: no object file changes, and this file is not on the
-# SimID digest's build-config list, so the simulation identity cannot move.
-# Nothing looks a symbol up in the executable at run time except one: on iOS, SDL's UIKit Vulkan loader falls back to
-# dlsym(RTLD_DEFAULT, "vkGetInstanceProcAddr") in the statically linked MoltenVK (cmake/config-build.cmake). -dead_strip
-# keeps that symbol exported, because MoltenVK reaches it (measured with nm -gU).
-# GeneralsX: NEVER restrict the export list (-exported_symbol / -exported_symbols_list). The game
-# replaces the global operator new/delete (GameMemory.cpp), and dyld binds libc++ and the dylibs to that replacement only
-# while the executable exports it. An iOS-only `-exported_symbol _vkGetInstanceProcAddr` removed that export, so memory
-# allocated by one allocator was freed by the other and the iPad aborted at launch ("pointer being freed was not allocated").
-# Windows ships RelWithDebInfo, whose /DEBUG makes the linker default /OPT:NOREF,NOICF, so REF is asked for here. ICF
-# stays off: identical-COMDAT folding gives different functions one address, which breaks code that compares them.
-# Linux is left out on purpose: without -ffunction-sections (a compile flag, in the digested cmake/) --gc-sections
-# measured -81 KB of 232 MB.
+# Drop code and data nothing can reach from the game executable (about -2 MB per game on macOS). Link options only.
+# NEVER restrict the export list (-exported_symbol): the game replaces the global operator new/delete, and dyld
+# binds libc++ to that replacement only while the executable exports it; otherwise the iPad aborts at launch.
+# Windows asks for /OPT:REF; ICF stays off (it gives different functions one address). Linux is left out: no gain.
 if(APPLE)
     target_link_options(z_generals PRIVATE "LINKER:-dead_strip")
     # GeneralsX: Keep the whole set of operator new/delete overloads GameMemory.cpp replaces alive

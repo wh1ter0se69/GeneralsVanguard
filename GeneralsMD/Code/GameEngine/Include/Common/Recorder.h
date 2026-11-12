@@ -89,17 +89,9 @@ enum RecorderModeType CPP_11(: Int) {
 
 enum CPP_11(: Int)
 {
-	// GeneralsX: The .rep header carries disconnect flags at fixed byte
-	// offsets - a FILE FORMAT quantity, deliberately NOT MAX_SLOTS (AI slots never disconnect).
-	//
-	// It was pinned at 8 while humans were confined to slots 0-7. Twelve human machines breaks
-	// that premise, so the block must cover every human slot - which MOVES every byte after it.
-	// The format is therefore keyed by the MAGIC rather than by a version field: "GENREP" means
-	// the legacy 8-flag block, "GENR12" means MAX_HUMAN_SLOTS flags. Same six bytes either way,
-	// so every offset up to the block is unchanged and the reader can tell them apart before it
-	// has read anything it could mis-parse. Legacy replays - including the regression corpus -
-	// stay readable; new replays are not readable by old builds, which is what the hard cutover
-	// already implies.
+	// Disconnect flags sit at fixed .rep header offsets: a file-format quantity, not MAX_SLOTS (AI slots never disconnect).
+	// The magic selects the flag count (GENREP: 8, GENR12: 12, GENR14/GENS14/GENS15: 14, GENS34: 34); the six magic bytes
+	// keep every earlier offset. Legacy replays stay readable; new replays are not readable by old builds.
 	REPLAY_DISCON_SLOTS_LEGACY = 8,
 	// GeneralsX: "GENR12" files carry exactly 12 flags, forever: MAX_HUMAN_SLOTS
 	// went 12 -> 14 (12 players + 2 observers), so new recordings are "GENR14" with 14, and the reader
@@ -165,7 +157,7 @@ public:
 	static Bool replayMapDataMatches(const ReplayHeader& header, const AsciiString& mapName); ///< M1 2b: the map's map.ini/solo.ini hash as recorded (TRUE for a pre-identity file)
 	// GeneralsX: The recording build as a player can name it: "<version string>, build <commit>".
 	static UnicodeString describeRecordingBuild(const ReplayHeader& header);
-	// GeneralsX @diag /07/2026 GX_REPLAY_XPLAT=1 is a diagnostic that keeps playing past a CRC mismatch.
+	// GeneralsX: GX_REPLAY_XPLAT=1 is a diagnostic that keeps playing past a CRC mismatch.
 	// It also opens a replay of another sim source or commit (engine, data and name-key ordinal still enforced), or
 	// a pre-identity file whose iniCRC matches, so a corpus can be re-checked across a digest move.
 	static Bool isCrossPlatformReplayEnabled();

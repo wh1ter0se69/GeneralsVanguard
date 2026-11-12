@@ -1,12 +1,30 @@
-// GeneralsX: WS-B WSI: the swapchain and the final present of the native renderer.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The swapchain and the final present of the native renderer.
 //
 // Platform-agnostic: the caller owns the VkSurfaceKHR (VkWsi.h makes one from an SDL3 window or a Win32 HWND).
-// Present mode follows what the game does under DXVK today (BULLETIN "display-off-truth", MEASURED 10/10): a windowed run
+// Present mode follows what the game does under DXVK today: a windowed run
 // presents IMMEDIATE (fallback MAILBOX, then FIFO), fullscreen is FIFO. GX_VK_PRESENT_MODE=immediate|mailbox|fifo|
 // fifo_relaxed overrides when the surface supports it.
 // The present is the game's pillarbox (dx8wrapper.cpp Pillarbox_Setup/Pillarbox_End): the game-resolution image is blitted
 // into an aspect-correct fit rect (same float math, same truncation), the bars cleared black, POINT filtering when the rect
-// is 1:1 with the game resolution and LINEAR otherwise. MSAA is resolved before this by whoever renders (WS-C targets).
+// is 1:1 with the game resolution and LINEAR otherwise. MSAA is resolved before this by whoever renders.
 #pragma once
 
 #include "VkCtx.h"
@@ -34,7 +52,7 @@ struct SwapchainDesc
 	// MAILBOX, never IMMEDIATE), 0 False (sync: FIFO_RELAXED first).
 	int8_t tearFree = -1;
 	uint32_t framesInFlight = 2; // acquire semaphores, one per VkFrameRing slot
-	// FG P0 H3 (rw3-W ruling 1): the images may be a layer's PROXIES - NVIDIA Streamline with DLSS-G loaded hooks vkCreateSwapchainKHR /
+	// The images may be a layer's PROXIES - NVIDIA Streamline with DLSS-G loaded hooks vkCreateSwapchainKHR /
 	// vkGetSwapchainImagesKHR and hands out off-screen images (DLSS_G guide §18) whose real usage Vulkan cannot tell us. Then no usage is
 	// PROVEN: hasUsage() and canReadBack() answer false. The create info is unchanged.
 	bool interposed = false;
@@ -54,8 +72,8 @@ public:
 	bool recreate(uint32_t width, uint32_t height, bool fullscreen, std::string* why);
 	void shutdown(); // never destroys the surface
 
-	// The present split in two for a caller that draws into the swapchain image itself (GxNativeDevice's one-pass present, rw3-W
-	// lever (2) W-a): beginImage moves the acquired image from UNDEFINED to `layout` behind the acquire semaphore (waited at
+	// The present split in two for a caller that draws into the swapchain image itself (GxNativeDevice's one-pass present):
+	// beginImage moves the acquired image from UNDEFINED to `layout` behind the acquire semaphore (waited at
 	// ALL_TRANSFER, addSubmitSync, so the barrier's source stage chains on it); finishImage optionally copies it into readback (as
 	// recordPresent does) and moves it to PRESENT_SRC. (stage, access) = the caller's last write to the image in `layout`.
 	void beginImage(VkCommandBuffer cmd, uint32_t imageIndex, VkImageLayout layout, VkPipelineStageFlags2 stage, VkAccessFlags2 access) const;
@@ -82,7 +100,7 @@ public:
 	void addSubmitSync(uint32_t frameSlot, uint32_t imageIndex, SubmitDesc* submit) const;
 	// Synchronous context: the driver's answer. Submit thread (VkCtx::submitThreaded): the present is ENQUEUED behind the frame's
 	// submit and Ok is returned; its answer comes from takePresentStatus().
-	// hook: FG P0 H2 (VkCtx.h PresentHook), passed to VkCtx::present as is; null = the present exactly as before.
+	// hook: VkCtx.h PresentHook, passed to VkCtx::present as is; null = the present exactly as before.
 	Status present(uint32_t imageIndex, const PresentHook* hook = nullptr);
 	// Submit thread: waits for the last present to run and returns its status ONCE (Ok when none is pending, and when it went to
 	// a swapchain since replaced - counted in staleStatuses()). Call it where the swapchain can next be used or replaced (the
@@ -100,9 +118,9 @@ public:
 	uint32_t imageCount() const { return static_cast<uint32_t>(m_images.size()); }
 	bool fullscreen() const { return m_desc.fullscreen; }
 	bool canReadBack() const { return m_canReadBack; }
-	// TEST-ONLY (FG P0 H2 arm): whether some thread holds the host-access lock NOW (a helper thread's try_lock)
+	// TEST-ONLY: whether some thread holds the host-access lock NOW (a helper thread's try_lock)
 	bool testHostLockHeld();
-	// FG P0 H3: the images were created with every bit of `bits`, and that is known (not interposed: see SwapchainDesc::interposed)
+	// The images were created with every bit of `bits`, and that is known (not interposed: see SwapchainDesc::interposed)
 	bool hasUsage(uint32_t bits) const { return !m_desc.interposed && (m_usage & bits) == bits; }
 	const FitRect& lastFit() const { return m_lastFit; }
 
@@ -125,7 +143,7 @@ private:
 	std::vector<VkSemaphore> m_acquire;  // per frame slot
 	std::vector<VkSemaphore> m_present;  // per swapchain image (reused only after that image is re-acquired)
 	FitRect m_lastFit;
-	// R19: the last present under the submit thread, and the host-access lock its driver call and acquire share
+	// The last present under the submit thread, and the host-access lock its driver call and acquire share
 	std::mutex m_hostLock;
 	bool m_presentPending = false;
 	uint64_t m_presentSeq = 0;

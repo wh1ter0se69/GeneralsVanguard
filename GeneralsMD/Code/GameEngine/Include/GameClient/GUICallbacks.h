@@ -297,32 +297,15 @@ extern void PopupJoinGameInit( WindowLayout *layout, void *userData );
 extern WindowMsgHandledType PopupJoinGameSystem( GameWindow *window, UnsignedInt msg, WindowMsgData mData1, WindowMsgData mData2 );
 extern WindowMsgHandledType PopupJoinGameInput( GameWindow *window, UnsignedInt msg, WindowMsgData mData1, WindowMsgData mData2 );
 
-// GeneralsX: The lobby password prompt, and why it is a LANAPI subclass.
-//
-// A host that requires a password answers a join with RET_NEEDS_PASSWORD, and a wrong one with
-// RET_BAD_PASSWORD (LANAPI.h). Both land in LANAPI::OnGameJoin, which lives in
-// Core/GameEngine/Source/GameNetwork - INSIDE the sourceID digest. Adding a hook there would move
-// the digest and every peer on the shipped build would refuse every join, which is a wire break in
-// exchange for a menu. WOLLobbyMenu's relayHostGame already refused that trade for the same reason
-// and routed through the public applyLobbyCommand instead; this is the joining half of it.
-//
-// OnGameJoin is virtual, and HeadlessMatch.cpp has subclassed LANAPI to intercept exactly this
-// callback since the harness was written. So the prompt is installed by constructing a subclass
-// rather than by editing the base: every LANAPI the menus build comes from here, the override
-// turns the two password refusals into a prompt, and everything else is handed straight to
-// LANAPI::OnGameJoin unchanged.
-//
-// Use this in place of `NEW LANAPI()` in any menu that builds TheLAN. A screen that constructs the
-// base class directly still works - it simply falls back to the old "type /password in the chat
-// box" message box, which is the pre-existing behaviour and not a crash.
-//
-// HeadlessMatch deliberately keeps its own HeadlessLANAPI: a headless peer has no window manager
-// and must fail a passworded join rather than sit on a prompt nobody can answer.
+// GeneralsX: the lobby password prompt is a LANAPI subclass, not an edit to LANAPI.
+// OnGameJoin is in Core/GameNetwork, inside the sourceID digest: editing it would make every peer refuse every join.
+// The override turns RET_NEEDS_PASSWORD / RET_BAD_PASSWORD into a prompt and hands the rest to LANAPI::OnGameJoin.
+// Use it instead of NEW LANAPI() in menus that build TheLAN; the base class only gives the old /password message.
 class LANAPI;
 extern LANAPI *GXCreateLobbyLANAPI( void );
 
 //  Network Direct ConnectWindow ---------------------------------------------------------------------------------
-/// GeneralsX @feature Matchmaking. Build TheLAN for an online screen, in the one order that works.
+/// GeneralsX: Matchmaking. Build TheLAN for an online screen, in the one order that works.
 ///
 /// Extracted verbatim out of NetworkDirectConnectInit so the WOL lobby cannot drift from it. The
 /// sequence - throw TheLAN away, ask the relay for an identity in OUR host room, re-new, init,
@@ -334,18 +317,9 @@ extern LANAPI *GXCreateLobbyLANAPI( void );
 /// still built, just against an interface address).
 extern Bool SetUpOnlineLobbyLAN( void );
 
-// GeneralsX: /nickname, applied to every identity the game has.
-//
-// There are three, and before this they could disagree: the relay-held nickname (what the lobby
-// browser and lobby chat show), the LAN slot-list name (what GAME OPTIONS and in-match chat
-// show), and the persisted preference (what you are called next launch). Setting only the first
-// is why a name chosen in the lobby vanished the moment you joined a game and the slot list went
-// back to "r0se-winx64". Returns FALSE and fills outNote with the reason on rejection.
-// GeneralsX: Wide in (a name is characters, not bytes - callers use
-// GXLobbyTakeNickRest so the remainder never round-trips through AsciiString), normalisation
-// inside (space-trim, the LAN , : ; strip, g_lanPlayerNameLength cap, non-ASCII refused), and
-// outApplied returns the one normalised value for callers whose screen state must agree - the
-// LAN browser's name box, which LanLobbyMenuShutdown persists on the way out.
+// GeneralsX: /nickname, applied to the relay nickname, the LAN slot-list name and the persisted preference together.
+// Takes a wide string and normalises inside (space-trim, LAN , : ; strip, g_lanPlayerNameLength cap, ASCII only).
+// outApplied returns the normalised value; returns FALSE and fills outNote on rejection.
 extern Bool GXApplyNickname( const UnicodeString &requested, UnicodeString &outNote,
 							 UnicodeString *outApplied = nullptr );
 
@@ -422,18 +396,10 @@ extern void GXBuddyOpenRosterRCMenu( const char *layoutName, Int slot,
 extern void GXBuddyOpenSelfRCMenu( Int mouseX, Int mouseY );
 extern void GXLobbyAskSignOut( void );
 
-// GeneralsX: The friends/ignore/private-message commands, as controls.
-//
-// GXRelayRunSocialCommand is the ONE seam between the code-built friends panel and the existing
-// implementation. It takes a whole "/verb rest" line, splits it exactly the way relaySubmitChat
-// does (WOLLobbyMenu.cpp:3912-3917), and hands it to the same relayHandleSocialCommand that a typed
-// line reaches - so /friend, /ignore, /unignore, /msg, /mycode and /friendsonly keep one
-// implementation, one set of error messages and one place that resolves a name or a "P3" to a
-// player. Returns TRUE when the line was consumed.
-//
-// It lives on this seam rather than being called through the chat text entry because the panel is
-// not a chat screen: routing a synthesised line through the entry would need a focused, existing
-// text box, and would echo the player's own command back at them.
+// GeneralsX: the one seam between the code-built friends panel and the typed social commands.
+// Takes a whole "/verb rest" line and calls relayHandleSocialCommand, so /friend, /ignore, /unignore, /msg, /mycode and
+// /friendsonly share one implementation. Returns TRUE when the line was consumed.
+// Not routed through the chat text entry, which would need a focused box and echo the command back.
 extern Bool GXRelayRunSocialCommand( const AsciiString &line );
 
 // GeneralsX: The CodeGui friends panel (LobbyFriendsPanel.cpp) is

@@ -1,6 +1,6 @@
 /*
 **	Command & Conquer Generals Zero Hour(tm)
-**	Copyright 2026 TheSuperHackers
+**	Copyright 2026 GeneralsX contributors
 **
 **	This program is free software: you can redistribute it and/or modify
 **	it under the terms of the GNU General Public License as published by
@@ -18,23 +18,10 @@
 
 #pragma once
 
-// This static class loads and unloads mss32.dll at runtime.
-//
-// The Miles functions declared in mss/mss.h are implemented in this class and forward to
-// the matching export of the loaded module. Loading the module explicitly, rather than importing
-// mss32.dll into the executable, is what allows the library to be picked up from a working
-// directory that was chosen on the command line, because the process no longer needs to resolve
-// it before WinMain runs.
-//
-// A missing export is not an error. The retail mss32.dll does not export every function the
-// engine was built against, and an unresolved function returns the same neutral value the Miles
-// SDK stub library used to return. A missing mss32.dll therefore disables audio instead of
-// preventing the program from starting.
-//
-// Is not thread safe. Every call to load needs a paired call to unload, no matter if the load
-// was successful. Both are expected to be called from the main thread, before AIL_startup has
-// created the Miles timer thread and after AIL_shutdown has ended it, which is why the forwarding
-// functions can stay free of locking.
+// Loads and unloads mss32.dll at runtime; the Miles functions declared in mss/mss.h forward to its exports.
+// Loading explicitly, rather than importing, lets the library come from a working directory set on the command line.
+// A missing export is not an error: unresolved functions return a neutral value, so a missing dll only disables audio.
+// Not thread safe: pair every load with an unload, on the main thread, outside AIL_startup..AIL_shutdown.
 
 class MilesLoader
 {

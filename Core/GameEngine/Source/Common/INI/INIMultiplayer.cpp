@@ -44,7 +44,7 @@ void INI::parseMultiplayerSettingsDefinition( INI* ini )
 		if( ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES )
 		{
 			DEBUG_CRASH(("Creating an override of MultiplayerSettings!"));
-			TheMultiplayerSettings->keepPristineForOverrideLoad();	// GeneralsX @bugfix: reset() undoes the map's block
+			TheMultiplayerSettings->keepPristineForOverrideLoad();	// GeneralsX: reset() undoes the map's block
 		}
 	}
 	else

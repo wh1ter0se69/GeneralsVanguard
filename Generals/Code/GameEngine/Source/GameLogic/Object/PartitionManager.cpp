@@ -1675,16 +1675,9 @@ ObjectShroudStatus PartitionData::getShroudedStatus(Int playerIndex)
 		{	//Record that this object was seen by the player.  This info will be used to show fogged enemy faction buildings.
 			m_everSeenByPlayer[playerIndex] = true;
 			m_shroudedness[playerIndex] = OBJECTSHROUD_CLEAR;
-			// GeneralsX: A visible object has no fog memory: free its snapshot whatever the previous
-			// status was (both visible branches; freeSnapShot is a no-op without one), not only after FOGGED. A snapshot taken
-			// while FOGGED survives a later recompute that the "enemy building never seen" refinement above turns into SHROUDED
-			// (e.g. a derrick fogged while neutral, then captured by an enemy unseen): previous became SHROUDED, so retail's
-			// "== FOGGED" never freed it, and the stale clone stayed in the scene for good - a destroyed building drawn standing
-			// over its rubble. A save written
-			// by a leaking build can hold such a snapshot with previous CLEAR. freeSnapShot touches only
-			// the client's scene and snapshot list; m_shroudedness, m_everSeenByPlayer and m_shroudednessPrevious are written
-			// exactly as before. Freeing at the refinement instead would make a fogged building vanish from the fog when an
-			// enemy captures it unseen - telling the player about the capture.
+			// GeneralsX: A visible object has no fog memory: free its snapshot whatever the previous status was, not only FOGGED.
+			// A snapshot taken while FOGGED can outlive a recompute that turns previous into SHROUDED (a derrick captured unseen),
+			// leaving a stale clone drawn over the rubble. Only the client scene and snapshot list are touched.
 			if (m_ghostObject)
 			{	//object was previously fogged but now is visible so we no longer
 				//need a ghost object.
@@ -2682,14 +2675,14 @@ void PartitionManager::init()
 			m_worldExtents.hi.y = m_worldExtents.lo.y + 1.0f;
 		m_cellCountX = REAL_TO_INT_CEIL(m_worldExtents.width() * m_cellSizeInv);
 		m_cellCountY = REAL_TO_INT_CEIL(m_worldExtents.height() * m_cellSizeInv);
-		// GeneralsX: The product used to be taken in Int, so a large enough extent wrapped it
-		// (2^20 x 2^12 cells -> 0), allocated that, and the loop below then initialised cellCountX x cellCountY cells
+		// GeneralsX: The product is taken in Int64, because in Int a large enough extent wraps it
+		// (2^20 x 2^12 cells -> 0) and the loop below would initialise cellCountX x cellCountY cells
 		// far past the allocation. The map's boundaries are bounded where they are read (WorldHeightMap.cpp
 		// boundariesFitHeightMap), so this only fires on a grid no map produces; refusing it beats corrupting the heap,
 		// and a start refuses an ERROR_CORRUPT_FILE_FORMAT as a damaged map (GameLogic::startNewGame).
 		// GeneralsX: PartitionCellSize comes from GameData, which a map.ini may override: 1 on an
-		// 8,000-unit map asked for 64 million PartitionCells (gigabytes, then each initialised) before play.
-		// The grid is refused past 2^20 cells. Shipped data uses 40 everywhere and no map.ini sets it (817 scanned); the
+		// 8,000-unit map would ask for 64 million PartitionCells (gigabytes, then each initialised) before play.
+		// The grid is refused past 2^20 cells. Shipped data uses 40 everywhere and no map.ini sets it; the
 		// largest real map (802 x 860 height cells) makes 43,000 cells at 40.
 		const Int64 MAX_PARTITION_CELLS = 1 << 20;
 		const Int64 totalCellCount = (Int64)m_cellCountX * (Int64)m_cellCountY;
@@ -4063,14 +4056,8 @@ Bool PartitionManager::findPositionAround( const Coord3D *center,
 // is in Object where Allies make sense.  AddLooker literally just adds a looker for the player you specify.
 // This way, Full map reveals and Observer mode active look will not carry over to all
 // allies.  They'll use the RevealWholeDamnMap series, which call addLooker directly.
-// GeneralsX: A map script's reveal or shroud radius (MAP_REVEAL_AT_WAYPOINT, MAP_SHROUD_AT_WAYPOINT,
-// MAP_REVEAL_PERMANENTLY_AT_WAYPOINT and the named reveals) reaches these four as the file gave it: 1e10 overflowed the cell
-// conversion and DiscreteCircle reserved radius << 1 edges - a negative or multi-gigabyte request. Capped at a
-// million world units (100,000 cells): a circle that large around any point of a map already covers all of it, so the cells
-// it touches are the same. Real maps use 1..20,000 (2,641 maps scanned); sight ranges are far below. A NaN radius is 0 (one
-// cell, the minimum below): Zero Hour's fast_float_ceil turned NaN into INT_MAX cells, the same crash.
-// GeneralsX: The threat and value maps size the same circles from an object's VisionRange, which a
-// map.ini may override, so they take the same cap (real vision ranges reach 99,999; batch-0958).
+// GeneralsX: Script reveal and shroud radii are capped (MAX_SHROUD_RADIUS, 1e6 world units): larger values
+// overflowed the cell conversion and DiscreteCircle sizing. A NaN radius is 0. Threat and value maps share the cap.
 static const Real MAX_SHROUD_RADIUS = 1000000.0f;
 static Real shroudRadius(Real radius)
 {
@@ -4079,16 +4066,9 @@ static Real shroudRadius(Real radius)
 	return radius > MAX_SHROUD_RADIUS ? MAX_SHROUD_RADIUS : radius;
 }
 
-// GeneralsX: The cap above is in world units, so with PartitionCellSize = 1 (a map.ini may set it)
-// a reveal still built a million-cell DiscreteCircle and walked each scanline's whole two-million-cell span.
-// A circle that reaches every cell of the grid touches the same cells, each once, as any larger one, so the
-// radius a circle is built with stops there: the Manhattan distance from the centre cell to the farthest grid cell, plus 2
-// (the discrete circle of that radius contains the whole diamond, and so the grid - scripts/test/discrete-circle-test.sh
-// compares every cell against the uncapped circle, centres outside the grid included). Only the circle's size changes:
-// the threat and value falloff keeps its own radius, so every cell gets exactly the value it got before.
-// A circle whose bounding square (every row and span lies within centre +- radius) misses the grid touches no cell: 0, and
-// the caller draws nothing - nor builds a circle around a centre far enough out to overflow its Int rows.
-// Left: a centre outside the grid whose circle reaches part of it costs one linear walk of its radius (at most a million).
+// GeneralsX: The cap above is in world units; with PartitionCellSize = 1 a million-cell circle was still possible.
+// The radius also stops at the Manhattan distance to the farthest grid cell, plus 2 (that circle covers the grid).
+// A circle whose bounding square misses the grid returns 0 and the caller draws nothing.
 static Int gridCircleRadius(Int cellCenterX, Int cellCenterY, Int cellRadius, Int cellCountX, Int cellCountY)
 {
 	if ((Int64)cellCenterX + cellRadius < 0 || (Int64)cellCenterX - cellRadius > (Int64)cellCountX - 1

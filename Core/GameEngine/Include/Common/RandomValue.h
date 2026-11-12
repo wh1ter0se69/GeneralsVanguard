@@ -37,23 +37,9 @@ extern UnsignedInt GetGameLogicRandomSeedCRC();///< Get the seed (used for CRCs)
 extern UnsignedInt GetGameClientRandomSeedCRC();///< CRC of the client stream's state (diagnostics only)
 
 // TheSuperHackers @fix Okladnoj PR #2742 - ported to GeneralsX 04/08/2026.
-//
-// Lets a call site say WHICH random stream it wants instead of hardcoding one, so that work which
-// only exists to place a visual effect can be moved off the LOGIC stream and onto the CLIENT
-// stream without changing the shape of the calling code.
-//
-// Why this matters here, measured on this fork: ParticleSystemManagerDummy::createParticleSystem
-// returns nullptr under RETAIL_COMPATIBLE_CRC (ParticleSys.h), and several GameLogic sites draw
-// from the LOGIC random INSIDE the `if (particleSystem)` guard. A headless peer therefore skips
-// draws that a rendering peer takes, and the shared logic seed separates permanently. A lobby of
-// one headless host and three rendering clients desyncs on the first damage effect - which is
-// exactly what a four-platform match did on 2026-08-04, at frame 5477, with the three rendering
-// peers agreeing with each other and the headless host alone.
-//
-// Note the split declarations in this fork: the underlying entry points live in
-// GameLogic/LogicRandomValue.h and GameClient/ClientRandomValue.h, not here as they do upstream.
-// Only the implementations in RandomValue.cpp need them, so nothing has to include either header
-// to use this.
+// Lets a call site choose the LOGIC or CLIENT random stream.
+// The headless ParticleSystemManagerDummy::createParticleSystem returns nullptr, and some GameLogic sites draw
+// logic random inside the if (particleSystem) guard: a headless peer skips draws a rendering peer takes.
 struct RandomValueClass
 {
 	virtual Int GetRandomValueInt( Int lo, Int hi, const char *file, Int line ) const = 0;

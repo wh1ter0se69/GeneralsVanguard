@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-X2 - see W3DDevice/GameClient/GxDrawRun.h and
+// WS-X2 - see W3DDevice/GameClient/GxDrawRun.h and
 //
 // Threads: Available / Draw_Run run on the main thread and only queue work; DX8Wrapper::Device_Call runs Run_On_Device on the
 // thread that owns the d3d8 device at that point of the stream (the d3d8 ring's consumer inside the object-flush bracket, the
@@ -240,8 +240,8 @@ void Parse_Options()
 
 	const char *dg = GxTestEnv("GX_DRAWRUN_DIGEST");
 	// =1: Draw_Run brackets each run itself (the synthetic test); =2: the S1 seat brackets each run's OWN draws in both toggle states
-	// (open before PREPARE, closed after the carry-out's Apply / the classic last task's epilogue; never nested, never early
-	// rw1x-design-r17 #2/#4) and Draw_Run does not bracket. The carry-out is Check_Truth's (the oracle), not the digest's.
+	// (open before PREPARE, closed after the carry-out's Apply / the classic last task's epilogue; never nested, never early)
+	// and Draw_Run does not bracket. The carry-out is Check_Truth's (the oracle), not the digest's.
 	s_digest = s_test != 0 || (dg != nullptr && atoi(dg) == 1);
 }
 
@@ -367,7 +367,7 @@ void Truth_Call(IDirect3DDevice8 *dev, void *ctx)
 	D3DLIGHT8 li[4];
 	memset(li, 0, sizeof(li));
 	// the device's executed state (d3d8 keeps no copy of world / lights / render states: these are d3d9's values); each Get* names
-	// itself and its HRESULT when it fails (seat smoke S33/M33, 11/10)
+	// itself and its HRESULT when it fails
 	static char failed[96];
 	HRESULT hr = S_OK;
 	if (FAILED(hr = dev->GetIndices(&ib, &base)))
@@ -555,16 +555,9 @@ void Print_Stats(unsigned frame, bool final)
 		s_truthChecked[1].load(), s_truthMismatch[1].load(), s_truthUncreated[0].load(), s_truthUncreated[1].load(), final ? " final=1" : "");
 }
 
-// ---- the gate's in-run toggle ----
-// GX_DRAWRUN_TOGGLE=k: render frames in periods of k, OFF / ON alternating (odd periods ON); the first GX_DRAWRUN_TOGGLE_DROP (3)
-// frames of every period are dropped (frames in flight). GX_DRAWRUN_TOGGLE_WHAT:
-//   s1 (default) - ON: S1_On() is true, WS-G replaces its claimed runs with Draw_Run; OFF: classic. Clause (d).
-//   overhead     - S1 replaces the claimed runs in BOTH states; ON: every real run is preceded by one validate-only copy of
-//                  ITSELF (same tasks and light sets) through the production transport + the fork's entry and validation,
-//                  nothing drawn. Clause (a): per call = diff / validate-only calls per ON frame.
-// GX_DRAWRUN_TOGGLE_NULL=1: the bookkeeping with BOTH states OFF (the null arm). Lines: [GXDRUNP] per pair (an OFF period and the ON
-// period after it: diff = ON mean - OFF mean of the kept frames' periods) and [GXDRUNR] per 20 periods (rows close on an ON period,
-// are published when the next OFF period closes, so the device thread has drained their work) - rw1x2/drt.py reads both.
+// GX_DRAWRUN_TOGGLE=k alternates OFF / ON periods of k frames; the first _TOGGLE_DROP (3) of each period are dropped.
+// _WHAT=s1 (default): ON replaces claimed runs with Draw_Run. =overhead: ON adds a validate-only copy of each run.
+// GX_DRAWRUN_TOGGLE_NULL=1 runs both states OFF. Output: [GXDRUNP] per pair, [GXDRUNR] per 20 periods.
 
 unsigned long long Now_Ns()
 {

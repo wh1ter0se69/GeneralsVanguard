@@ -1,51 +1,28 @@
-// GeneralsX: a match's LIVE per-player numbers and its RESULT, as a peer
-// tells the relay: "GXSTAT" and "GXEND".
-//
-//   GXSTAT <room> <memberIp> sq=<n> mid=<8 hex> f=<frame> [rs=<slot>] p<slot>=<cells> ...   1 Hz
-//   GXEND  <room> <memberIp> sq=<n> mid=<8 hex> ef=<frame> [rs=<slot>] r<slot>=<cells> ...  once
-//
-//     <memberIp>  THE RELAY-MINTED 10.42.0.N, and it is at token 2 for a reason that is not style.
-//                 relay.js checks MEMBER_ID_RE there and then looks the member up by (room, id) and
-//                 compares the datagram's SOURCE ADDRESS against it. That check is the only thing
-//                 between this telemetry and any host on the internet writing rows for a match it is
-//                 not in. An earlier draft put <mid> here; the relay drops that line silently.
-//     sq=         per-peer, per-match, strictly increasing. The relay keeps a high-water and refuses
-//                 a replay, so a duplicated datagram cannot double-count.
-//     mid=        eight lowercase hex, gxMatchId below. Every peer computes the same one with no
-//                 exchange, which is what lets rows from different peers name one match.
-//     f=          the logic frame the sample describes - §9's clock bridge. ef= is the END frame.
-//     rs=         the reporting peer's own slot. Carried for diagnosis; NOTHING downstream trusts it
-//                 to say who owns a result, because the peer chooses it.
-//
-//   GXSTAT cells: money:cpm:built:lost:bbuilt:blost:kills:colour:flags
-//   GXEND  cells: <outcome>:built:lost:kills:bbuilt:blost:earned
-//                 <outcome> is a LETTER: w won, l lost, x left before the end.
-//
-// EVERY NUMERIC CELL IS BASE-36 LOWERCASE, flags included. One alphabet for every MAGNITUDE, so no
-// reader has to know which column is which base - an earlier draft called flags decimal while parsing
-// it base-36, which agrees by accident for 0..9 and diverges at the first value past it.
-//
-// THE OUTCOME IS THE ONE EXCEPTION AND IT IS DELIBERATE: it is a CATEGORY, not a magnitude, and a
-// letter cannot be misread as a count by anything that meets it.
-//
-//
-// A grammar agreed in two comments is not agreed.
-//
-// "-" IS NOT "0". A player nobody sampled and a player with no money are different facts, and
-// collapsing them is the defect tools/admin/schema.sql:127 exists to name. It is the only non-base-36
-// token a cell may hold.
-//
-// A VALUE TOO LARGE TO ENCODE IS SENT ABSENT, NOT CLAMPED AND NOT FATAL. Six base-36 characters hold
-// 2,176,782,335; a counter past that means something is already wrong upstream. Clamping would invent
-// a measurement nothing marks as invented, and refusing the line would lose the other eleven players
-// over one number. The cell says "-" and the panel renders it as unknown, which is true.
-//
-// PURE, for the reason GXRelaySlotsWire.h gives: the callers cannot be compiled on their own, so
-// scripts/test/relay-stats-wire-test.cpp drives THIS, and tools/relay/test-perf.js feeds this header's
-// own bytes to the relay's parser so the two halves cannot drift.
-//
-// IN THE DIGEST, harmlessly: Core/GameEngine/Include/GameNetwork is a digested root. Nothing here is
-// read by the simulation; the line is a control datagram the relay consumes.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GXSTAT <room> <memberIp> sq=<n> mid=<8 hex> f=<frame> [rs=<slot>] p<slot>=<cells>... at 1 Hz; GXEND: ef=, r<slot>=
+// memberIp is the relay-minted 10.42.0.N at token 2: relay.js checks the datagram source address against it.
+// sq= rises per peer and match (the relay refuses a replay); mid= is the same match id on every peer.
+// GXSTAT cells: money:cpm:built:lost:bbuilt:blost:kills:colour:flags.
+// GXEND cells: outcome:built:lost:kills:bbuilt:blost:earned.
+// Cells are lowercase base-36 (GXEND outcome is a letter w/l/x); - means unknown, not 0, or a value too large.
+// Pure: scripts/test/relay-stats-wire-test.cpp drives it.
 #pragma once
 
 #include <stddef.h>
@@ -54,12 +31,12 @@
 
 enum
 {
-	// GeneralsX: 14 slots (12 players + 2 observers). An observer slot sends
+	// 14 slots (12 players + 2 observers). An observer slot sends
 	// no group (it is the ReplayObserver, which has no slot of its own), but a 14-slot lobby on a map
 	// with no named civilian sides can seat 14 players, so the group count is MAX_SLOTS and the lines
 	// grew to hold fourteen worst-case groups: GXSTAT 100 + 14 x 66 + 13 = 1037, GXEND 100 + 14 x 47
 	// + 13 = 771. 1100 is MAX_UDP_PAYLOAD_SIZE, so neither datagram fragments.
-	// GeneralsX: scale32: 34 slots (32 players + 2 observers): GXSTAT is up to 2377 B and GXEND
+	// scale32: 34 slots (32 players + 2 observers): GXSTAT is up to 2377 B and GXEND
 	// 1731 B at 34 groups, so GX_STAT_LINE_MAX 1100 -> 2560 and GX_END_LINE_MAX 800 -> 2048 (the relay accepts exactly these).
 	// Both are control datagrams, bounded by GX_CONTROL_DATAGRAM_MAX (3200), no longer by MAX_UDP_PAYLOAD_SIZE.
 	GX_STAT_SLOTS_MAX = 34,		///< MAX_SLOTS, and relay.js SEATS_PER_LOBBY

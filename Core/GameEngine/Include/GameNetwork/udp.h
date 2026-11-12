@@ -104,7 +104,7 @@ class UDP
   Int           SetBlocking(Int block);
 
 #ifndef _WIN32
-  // GeneralsX @bugfix Maps a failed POSIX recvfrom into the Windows-style contract:
+  // GeneralsX: Maps a failed POSIX recvfrom into the Windows-style contract:
   // 0 for "nothing queued" (EAGAIN/EWOULDBLOCK/EINTR), -1 with m_lastError set otherwise.
   Int           mapPosixReadError();
 #endif

@@ -1,4 +1,6 @@
-# GeneralsX: WHICH DXVK PAIR A FOLDER HOLDS - dot-sourced by setup-run-win64.ps1,
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# WHICH DXVK PAIR A FOLDER HOLDS - dot-sourced by setup-run-win64.ps1,
 # package-windows-share.ps1 and build-dxvk-win64.ps1. Windows PowerShell 5.1 compatible.
 #
 # Two pairs exist, both pinned in dxvk-win64.pins:

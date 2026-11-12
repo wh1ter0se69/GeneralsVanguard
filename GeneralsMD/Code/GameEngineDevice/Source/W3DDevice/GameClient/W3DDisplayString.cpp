@@ -166,19 +166,9 @@ void W3DDisplayString::draw( Int x, Int y, Color color, Color dropColor )
 		return;  // nothing to draw (and no font factor to ask for)
 	draw( x, y, color, dropColor, 1, 1 );
 }
-// GeneralsX: GX_FONT - is the layout text UPSCALED, or just requested small?
-//
-// The operator asked why list and combo-box rows look pixelated at 1920x1080 while headers and
-// buttons are crisp. What is VERIFIED so far is only an asymmetry in the code: GlobalLanguage::
-// adjustFontSize() scales a point size for the resolution, credits/tooltips/header templates all
-// call it, and it is called NOWHERE in GameWindowManager.cpp or GameWindowManagerScript.cpp - so a
-// .wnd gadget keeps its design-size font. That predicts SMALL text, not blocky text, and the blocky
-// part was inference from a screenshot.
-//
-// This settles it with numbers instead: for every distinct string drawn, print the font actually in
-// use, its requested point size, its rasterised pixel height, and the extent the renderer reports.
-// A header and a list row drawn at the same on-screen size but from very different pointSize/height
-// is upscaling; matching numbers mean the rows are simply small and the pixelation is elsewhere.
+// GX_FONT diagnostic: for every distinct string drawn, print the font, its requested point size, its
+// rasterised pixel height and the extent the renderer reports; a large pointSize/height gap means upscaled text.
+// adjustFontSize() is not called from GameWindowManager*.cpp, so .wnd gadgets keep their design-size font.
 static Bool gxFontDiag(void)
 {
 	static Int s_on = -1;

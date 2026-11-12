@@ -167,21 +167,8 @@ void WOLMapSelectMenuInit( WindowLayout *layout, void *userData )
 		tmpString.format("WOLMapSelectMenu.wnd:ButtonMapStartPosition%d", i);
 		buttonMapStartPositionID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		buttonMapStartPosition[i] = TheWindowManager->winGetWindowFromId( winMapPreview, buttonMapStartPositionID[i] );
-		// GeneralsX: SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
-		//
-		// The shipped layouts author ButtonMapStartPosition0..7 - read out of WindowZH.big, all
-		// three map screens, exactly 8 rows. MAX_SLOTS became 12, so winGetWindowFromId returns
-		// null for 8..11 (GameWindowManager.cpp:719) and the two lines below dereferenced it
-		// unguarded: opening the map screen was an access violation at i == 8 on every real
-		// client. e1730b5e2 guarded the setup menus, the score screen and GUIUtil this way; it
-		// did not reach the three map screens or LoadScreen.
-		//
-		// WHY NO TEST CAUGHT IT: -headless swaps TheWindowManager for GameWindowManagerDummy
-		// (GameClient.cpp:367), whose winGetWindowFromId override returns m_windowList instead
-		// of null "because callers expect this to be non-null" (GameWindowManager.cpp:4214-4223).
-		// Every headless soak that validated 12 slots was structurally incapable of reaching this
-		// fault. A crash that only exists when a real window manager is installed needs an arm
-		// that runs one.
+		// GeneralsX: layouts author ButtonMapStartPosition0..7 only; winGetWindowFromId returns null for slots 8+.
+		// Guard the null: the headless dummy window manager never returns null, so only real clients crashed.
 		DEBUG_ASSERTCRASH(buttonMapStartPosition[i] || i >= LEGACY_WND_SLOT_ROWS,
 			("Could not find the ButtonMapStartPosition[%d]",i ));
 		if (buttonMapStartPosition[i] == nullptr)

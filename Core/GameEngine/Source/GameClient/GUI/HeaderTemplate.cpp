@@ -217,18 +217,9 @@ void HeaderTemplateManager::onResolutionChanged()
 
 void HeaderTemplateManager::populateGameFonts()
 {
-	// GeneralsX: GX_FONT=1 - the size every header-template control on every
-	// screen ends up at, and the single factor that produced it.
-	//
-	// This is where the menu furniture's size is actually decided. A .wnd's own FONT is parsed and
-	// then discarded for any control carrying a HEADERTEMPLATE (GameWindowManagerScript.cpp, the END
-	// branch), which is 134 of 290 controls across the layouts loaded at startup and EVERY control
-	// on the main menu that draws text - so this table, not the layout, is what "the menu is too big"
-	// is about.
-	//
-	// The factor is read out as adjustFontSize(100) rather than recomputed here: it is derived from a
-	// scaling method and a scaler that both live behind GlobalLanguage's private members, and a
-	// second implementation of that formula in a diagnostic is a second thing that can be wrong.
+	// GX_FONT=1 diagnostic: the size every header-template control ends up at, and the factor that produced it.
+	// A .wnd's FONT is discarded for any control with a HEADERTEMPLATE (GameWindowManagerScript.cpp); this table decides.
+	// The factor is read as adjustFontSize(100): the formula lives behind GlobalLanguage's private members.
 	{
 		static Int s_on = -1;
 		if( s_on < 0 )

@@ -1031,23 +1031,9 @@ void ShaderClass::Apply()
 	DX8Wrapper::Set_DX8_Render_State(D3DRS_CULLMODE,Get_Cull_Mode() ? _PolygonCullMode : D3DCULL_NONE);
 
 	// NPATCHES
-	// GeneralsX: Only set the tessellation level on a device that
-	// actually tessellates.
-	//
-	// This was the single N-patch site in the tree with no Support_NPatches() guard - every other
-	// one has had it all along (dx8renderer.cpp:1015 and :1213, dx8vertexbuffer.cpp:782,
-	// dx8indexbuffer.cpp:494, statistics.cpp:295). All four of our platforms render through DXVK,
-	// which does not implement D3DRS_PATCHSEGMENTS on either the d3d8 or the d3d9 path - it logs
-	// a warning and discards the value (see references/fbraz3-dxvk d3d8_device.cpp:1746-1748).
-	//
-	// Measured on macOS 2026-08-07: this produced
-	//   "warn: D3D9Device::SetRenderState: Unimplemented render state D3DRS_PATCHSEGMENTS"
-	// at ~2750 lines per second - 215 KB/s of SYNCHRONOUS log writes on the render thread, 200 MB
-	// in one session, and it continued while the game sat idle on a menu. dxvk.conf already sets
-	// logLevel = none and it did not suppress this.
-	//
-	// NPatchesLevel is 1 and nothing ever changes it (ww3d.cpp:216), so both branches below
-	// computed the same 1.0f and this only ever reset a state that was already unset.
+	// GeneralsX: only set the tessellation level on a device that tessellates (Support_NPatches()). Every platform
+	// renders through DXVK, which does not implement D3DRS_PATCHSEGMENTS: it logs a warning and discards the value,
+	// ~2750 synchronous log lines per second. NPatchesLevel is always 1, so both branches computed 1.0f.
 	if (diff&ShaderClass::MASK_NPATCHENABLE
 		&& DX8Wrapper::Get_Current_Caps()->Support_NPatches()) {
 		float level=1.0f;

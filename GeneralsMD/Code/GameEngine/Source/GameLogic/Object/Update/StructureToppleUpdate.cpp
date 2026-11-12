@@ -226,8 +226,7 @@ UpdateSleepTime StructureToppleUpdate::update()
 		UnsignedInt now = TheGameLogic->getFrame();
 		if (now >= m_nextBurstFrame) {
 			doToppleDelayBurstFX();
-			// This uses a cosmetic random value because the delay bursts are purely visual and aural effects (the client stream until
-			// render-split step 2, 06/10/2026; the simulation's cosmetic stream since).
+			// This uses a cosmetic random value because the delay bursts are purely visual and aural effects.
 			m_nextBurstFrame = now + GameLogicCosmeticRandomValue(d->m_minToppleBurstDelay, d->m_maxToppleBurstDelay);
 		}
 		if (now >= m_toppleFrame) {
@@ -284,8 +283,7 @@ UpdateSleepTime StructureToppleUpdate::update()
 
 		if (now >= m_nextBurstFrame) {
 			doToppleDelayBurstFX();
-			// This uses a cosmetic random value because the delay bursts are purely visual and aural effects (the client stream until
-			// render-split step 2, 06/10/2026; the simulation's cosmetic stream since).
+			// This uses a cosmetic random value because the delay bursts are purely visual and aural effects.
 			m_nextBurstFrame = now + GameLogicCosmeticRandomValue(d->m_minToppleBurstDelay, d->m_maxToppleBurstDelay);
 		}
 

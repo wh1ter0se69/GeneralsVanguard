@@ -45,6 +45,7 @@
 #include "GameClient/InGameUI.h"
 #include "GameClient/View.h"
 
+#include "GameLogic/GXP32AiProbe.h"
 #include "GameLogic/ScriptedCamera.h"
 #include "GameLogic/GameLogic.h"
 #include "GameLogic/Module/AIUpdate.h"
@@ -61,7 +62,7 @@
 #include "GameLogic/Scripts.h"
 #include "GameLogic/VictoryConditions.h"
 #include "GameLogic/AIPlayer.h"
-#include "GameLogic/GXRules/GXRuleBank.h"	// GeneralsX 01/11/2026 rb-sense-1: AI_PLAYER_GX_SENSE
+#include "GameLogic/GXRules/GXRuleBank.h"	// AI_PLAYER_GX_SENSE
 
 
 class ObjectTypesTemp
@@ -192,6 +193,71 @@ Player *ScriptConditions::playerFromParam(Parameter *pSideParm)
 	DEBUG_ASSERTCRASH(pPlayer, ("Couldn't find player %s", pSideParm->getString().str()));
 	return pPlayer;
 }
+
+// GeneralsX: EA caches these conditions against ScriptEngine::getFrameObjectCountChanged, a single
+// stamp any non-projectile create, destroy or completion by ANY player moves: at 32 players about every frame, so every AI's answers
+// were recomputed every frame. Where the stamp says recompute, this says whether the recompute can come out different. It cannot if
+// the player resolved now is the one the answer was computed for, its member histogram (all countObjectsByThingTemplate reads
+// without ignoreDead) has not been invalidated since, and no script ObjectTypes list has changed: then the answer is the cached one,
+// and customFrame is still written, so the stamp test behaves exactly as if the recompute had run. Where the stamp says hit,
+// nothing changes, stale answers included. Proof:
+static Bool gxConditionCacheCurrent(const Condition *pCondition, const Player *pPlayer)
+{
+	if (pCondition->getCustomData() == 0 || pCondition->gxGetCachePlayerIndex() != pPlayer->getPlayerIndex())
+		return false;
+	if (pCondition->gxGetCacheTypeListsGeneration() != TheScriptEngine->getObjectTypeListsGeneration())
+		return false;
+#if defined(GX_TEST_INSTRUMENTS)
+	if (gxP32Break() == GX_P32_BREAK_VERSION)
+		return true;	// the fail arm: a key that forgets the members
+#endif
+	return pCondition->gxGetCacheMemberVersion() == pPlayer->getMemberVersion();
+}
+
+static void gxConditionCacheStore(Condition *pCondition, const Player *pPlayer)
+{
+	pCondition->gxSetCacheKey(pPlayer->getPlayerIndex(), pPlayer->getMemberVersion(), TheScriptEngine->getObjectTypeListsGeneration());
+}
+
+#if defined(GX_TEST_INSTRUMENTS)
+GXP32AiCounters TheGXP32Ai;
+
+Bool gxP32AiOn()
+{
+	static const Bool on = getenv("GX_P32_AI") != nullptr;
+	return on;
+}
+
+Int gxP32Break()
+{
+	static const Int which = []() -> Int {
+		const char *s = getenv("GX_P32_BREAK");
+		if (s == nullptr) return GX_P32_BREAK_NONE;
+		if (strcmp(s, "version") == 0) return GX_P32_BREAK_VERSION;
+		if (strcmp(s, "group") == 0) return GX_P32_BREAK_GROUP;
+		if (strcmp(s, "trigger") == 0) return GX_P32_BREAK_TRIGGER;
+		return GX_P32_BREAK_NONE;
+	}();
+	return which;
+}
+
+void gxP32NoteMismatch(const char *what, UnsignedInt frame)
+{
+	if (TheGXP32Ai.mismatch++ < 20)
+		fprintf(stderr, "[GXP32 ai] MISMATCH %s f=%u\n", what, frame);
+}
+
+void gxP32AiTick(UnsignedInt frame)
+{
+	if (!gxP32AiOn() || frame == 0 || frame % 600 != 0)
+		return;
+	fprintf(stderr, "[GXP32 ai] f=%u cumulative base_hit=%llu skip=%llu recompute=%llu trig_calls=%llu trig_hit=%llu group_reissue=%llu group_rebuild=%llu mismatch=%llu\n",
+		frame, (unsigned long long)TheGXP32Ai.baseHit, (unsigned long long)TheGXP32Ai.skip, (unsigned long long)TheGXP32Ai.recompute,
+		(unsigned long long)TheGXP32Ai.trigCalls, (unsigned long long)TheGXP32Ai.trigHit, (unsigned long long)TheGXP32Ai.groupReissue,
+		(unsigned long long)TheGXP32Ai.groupRebuild, (unsigned long long)TheGXP32Ai.mismatch);
+	fflush(stderr);
+}
+#endif
 
 //-------------------------------------------------------------------------------------------------
 /** objectTypesFromParam */
@@ -436,7 +502,7 @@ Bool ScriptConditions::evaluateNamedInsideArea(Parameter *pUnitParm, Parameter *
 //-------------------------------------------------------------------------------------------------
 Bool ScriptConditions::evaluatePlayerHasUnitTypeInArea(Condition *pCondition, Parameter *pPlayerParm, Parameter *pComparisonParm, Parameter *pCountParm, Parameter *pTypeParm, Parameter *pTriggerParm )
 {
-	PolygonTrigger *pTrig = TheScriptEngine->getQualifiedTriggerAreaByName(pTriggerParm->getString());
+	PolygonTrigger *pTrig = TheScriptEngine->getQualifiedTriggerAreaForParam(pTriggerParm);
 	if (pTrig == nullptr) return false;
 
 	Player* pPlayer = playerFromParam(pPlayerParm);
@@ -879,6 +945,7 @@ Bool ScriptConditions::evaluateBuiltByPlayer(Condition *pCondition, Parameter* p
 		// We have a cached value.
 		if (TheScriptEngine->getFrameObjectCountChanged() == pCondition->getCustomFrame()) {
 			// object count hasn't changed.  Use cached value.
+			GX_P32_COUNT(baseHit);
 			if (pCondition->getCustomData()==1) return true;
 			if (pCondition->getCustomData()==-1) return false;
 		}
@@ -891,6 +958,26 @@ Bool ScriptConditions::evaluateBuiltByPlayer(Condition *pCondition, Parameter* p
 	const ThingTemplate* pTemplate = TheThingFactory->findTemplate(pTypeParm->getString());
 	if (!pTemplate) {
 		return false;
+	}
+
+#if defined(GX_TEST_INSTRUMENTS)
+	Bool gxShadow = false, gxShadowExpected = false;
+#endif
+	if (gxConditionCacheCurrent(pCondition, pPlayer))
+	{
+#if defined(GX_TEST_INSTRUMENTS)
+		if (gxP32AiOn())
+		{
+			TheGXP32Ai.skip++;
+			gxShadow = true;
+			gxShadowExpected = (pCondition->getCustomData() == 1);
+		}
+		else
+#endif
+		{
+			pCondition->setCustomFrame(TheScriptEngine->getFrameObjectCountChanged());
+			return pCondition->getCustomData() == 1;
+		}
 	}
 
 	ObjectTypesTemp types;
@@ -907,11 +994,20 @@ Bool ScriptConditions::evaluateBuiltByPlayer(Condition *pCondition, Parameter* p
 	}
 
 	Int sumOfObjs = rts::sum(counts);
+#if defined(GX_TEST_INSTRUMENTS)
+	if (gxShadow && gxShadowExpected != (sumOfObjs != 0)) {
+		gxP32NoteMismatch("builtBy", TheGameLogic->getFrame());
+	}
+	if (!gxShadow) {
+		GX_P32_COUNT(recompute);
+	}
+#endif
 	pCondition->setCustomData(-1); // false.
 	if (sumOfObjs != 0) {
 		pCondition->setCustomData(1); // true.
 	}
 	pCondition->setCustomFrame(TheScriptEngine->getFrameObjectCountChanged());
+	gxConditionCacheStore(pCondition, pPlayer);
 	return (sumOfObjs != 0);
 }
 
@@ -1790,6 +1886,7 @@ Bool ScriptConditions::evaluatePlayerUnitCondition(Condition *pCondition, Parame
 		if( TheScriptEngine->getFrameObjectCountChanged() == pCondition->getCustomFrame() )
 		{
 			// object count hasn't changed since we cached.  Use cached value.
+			GX_P32_COUNT(baseHit);
 			if( pCondition->getCustomData() == 1 )
 			{
 				return true;
@@ -1805,6 +1902,26 @@ Bool ScriptConditions::evaluatePlayerUnitCondition(Condition *pCondition, Parame
 	if (!pPlayer)
 	{
 		return false;
+	}
+
+#if defined(GX_TEST_INSTRUMENTS)
+	Bool gxShadow = false, gxShadowExpected = false;
+#endif
+	if (gxConditionCacheCurrent(pCondition, pPlayer))
+	{
+#if defined(GX_TEST_INSTRUMENTS)
+		if (gxP32AiOn())
+		{
+			TheGXP32Ai.skip++;
+			gxShadow = true;
+			gxShadowExpected = (pCondition->getCustomData() == 1);
+		}
+		else
+#endif
+		{
+			pCondition->setCustomFrame(TheScriptEngine->getFrameObjectCountChanged());
+			return pCondition->getCustomData() == 1;
+		}
 	}
 
 	ObjectTypesTemp types;
@@ -1847,12 +1964,23 @@ Bool ScriptConditions::evaluatePlayerUnitCondition(Condition *pCondition, Parame
 			DEBUG_CRASH(("ScriptConditions::evaluatePlayerUnitCondition: Invalid comparison type. (jkmcd)"));
 			break;
 	}
+#if defined(GX_TEST_INSTRUMENTS)
+	if (gxShadow && gxShadowExpected != comparison)
+	{
+		gxP32NoteMismatch("playerUnit", TheGameLogic->getFrame());
+	}
+	if (!gxShadow)
+	{
+		GX_P32_COUNT(recompute);
+	}
+#endif
 	pCondition->setCustomData(-1); // false.
 	if (comparison)
 	{
 		pCondition->setCustomData(1); // true.
 	}
 	pCondition->setCustomFrame(TheScriptEngine->getFrameObjectCountChanged());
+	gxConditionCacheStore(pCondition, pPlayer);
 	return comparison;
 }
 
@@ -2126,7 +2254,7 @@ Bool ScriptConditions::evaluateSkirmishValueInArea(Condition *pCondition, Parame
 		return false;
 	}
 
-	PolygonTrigger *pTrig = TheScriptEngine->getQualifiedTriggerAreaByName(pTriggerParm->getString());
+	PolygonTrigger *pTrig = TheScriptEngine->getQualifiedTriggerAreaForParam(pTriggerParm);
 
 	if (!pTrig) {
 		return false;
@@ -2215,12 +2343,11 @@ Bool ScriptConditions::evaluateSkirmishPlayerIsFaction(Parameter *pSkirmishPlaye
 }
 
 //-------------------------------------------------------------------------------------------------
-/** AI_PLAYER_GX_SENSE (GeneralsX 01/11/2026 rb-sense-1): the FAIR replacement for
-	SKIRMISH_PLAYER_FACTION on an enemy, which compares the RESOLVED side and so leaks a Random slot's draw. TRUE
-	iff the skirmish AI's rule bank knows the player's faction - from the lobby when its slot was not Random, else from 3 different templates
-	of one faction it has fairly seen that player own - and it is the faction named: a BASE side (USA, China, GLA), or the lobby's own side
-	(America, ChinaTankGeneral, ...) when the lobby showed it. FALSE for a player without a rule bank (a human, a campaign AI) as the asker,
-	and FALSE for "<Local Player>" in either seat: that name is a different player on every peer, so it would split the simulation.
+/** AI_PLAYER_GX_SENSE: the fair replacement for SKIRMISH_PLAYER_FACTION on an enemy, which compares the RESOLVED side and
+	so leaks a Random slot's draw. TRUE iff the skirmish AI's rule bank knows the player's faction (from the lobby when the
+	slot was not Random, else from 3 different templates of one faction it has fairly seen that player own) and it is the
+	faction named: a base side (USA, China, GLA) or the lobby's own side. FALSE for an asker without a rule bank, and FALSE
+	for <Local Player> in either seat: that name is a different player on every peer, so it would split the simulation.
 	*/
 //-------------------------------------------------------------------------------------------------
 Bool ScriptConditions::evaluateAIPlayerGxSense(Parameter *pAiPlayerParm, Parameter *pPlayerParm, Parameter *pFactionParm)
@@ -2236,14 +2363,12 @@ Bool ScriptConditions::evaluateAIPlayerGxSense(Parameter *pAiPlayerParm, Paramet
 }
 
 //-------------------------------------------------------------------------------------------------
-/** AI_PLAYER_GX_SEEN_COUNT / AI_PLAYER_GX_SEEN_VALUE (GeneralsX 02/11/2026 rb-sense-2, SENSE.FOG_CONDITIONS;
-	): the FAIR twins of PLAYER_HAS_OBJECT_COMPARISON and SKIRMISH_VALUE_IN_AREA, which count another
-	player's objects through fog. COUNT compares how many of the player's units and buildings of the OBJECT_TYPE the
-	skirmish AI's own units and buildings see now; VALUE compares the build cost of the player's armed units (neither dozers nor
-	harvesters) they see now inside the TRIGGER_AREA (resolved as SKIRMISH_VALUE_IN_AREA resolves it, so [Skirmish]MyInnerPerimeter
-	works). Owner and template are what a human in the AI's seat sees (a disguise counts as its disguise). FALSE for a player without a
-	rule bank as the asker, for the AI asking about itself, for an unknown area, and for "<Local Player>" in either seat (it names a
-	different player on every peer). No RNG, no order, no state: every ask computes from the world at that moment (GXRuleSense::seenOf). */
+/** AI_PLAYER_GX_SEEN_COUNT / AI_PLAYER_GX_SEEN_VALUE: the fair twins of PLAYER_HAS_OBJECT_COMPARISON and
+	SKIRMISH_VALUE_IN_AREA, which count another player's objects through fog. COUNT compares how many units and buildings of the
+	OBJECT_TYPE the skirmish AI sees now; VALUE compares the build cost of the armed units (not dozers or harvesters) it sees
+	inside the TRIGGER_AREA. FALSE for an asker without a rule bank, for the AI asking about itself, for an unknown area, and
+	for <Local Player> in either seat (a different player on every peer). No RNG, order or state: computed from the world at
+	that moment (GXRuleSense::seenOf). */
 //-------------------------------------------------------------------------------------------------
 Bool ScriptConditions::evaluateAIPlayerGxSeen(Bool value, Parameter *pAiPlayerParm, Parameter *pPlayerParm, Parameter *pComparisonParm,
 	Parameter *pNumberParm, Parameter *pWhatParm)

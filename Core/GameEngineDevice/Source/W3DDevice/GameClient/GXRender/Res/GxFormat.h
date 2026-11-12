@@ -1,4 +1,22 @@
-// GeneralsX: WS-C GXRES v0: D3D8 format -> Vulkan format, per device.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GXRES: D3D8 format -> Vulkan format, per device.
 //
 // The mapping is DXVK's (references/fbraz3-dxvk src/d3d9/d3d9_format.cpp ConvertFormatUnfixed + the depth fix-ups in the
 // format table constructor), restricted to the formats D3D8 has, so the native path samples the same texels and depth-tests
@@ -25,7 +43,7 @@ struct FormatInfo
 	const char* name = "";
 };
 
-// Capability overrides that FORCE the paths a stronger GPU never takes (PLAN §1c: on the M3 the unsupported-format and
+// Capability overrides that FORCE the paths a stronger GPU never takes (on the M3 the unsupported-format and
 // reduced-capability paths are forced in tests, so its hardware cannot hide a fallback defect). Defaults = the device's own.
 struct FormatCaps
 {

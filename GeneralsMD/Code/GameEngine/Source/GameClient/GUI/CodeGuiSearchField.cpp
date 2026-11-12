@@ -62,7 +62,7 @@ void CodeGuiSearchField::reset( void )
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: See the note on the declaration: restoring a search needs
+// See the note on the declaration: restoring a search needs
 // BOTH halves moved together, or the box and the filter disagree.
 void CodeGuiSearchField::setFilter( const UnicodeString &text )
 {
@@ -111,7 +111,7 @@ Bool CodeGuiSearchField::create( GameWindow *listbox, CodeGuiSearchFieldChangedF
 
 	// A bare box with no caption reads as broken, so label it when there is room to spare.
 	//
-	// GeneralsX: Caption and typed text are BOLD by request. Note this is
+	// Caption and typed text are BOLD by request. Note this is
 	// heavier than the stock lobby labels it sits near: "GUI:Players" carries
 	// HEADERTEMPLATE = "MinorTitle", and HeaderTemplate.ini defines MinorTitle as Arial 14 Bold=No
 	// (the template overrides the window's own FONT= line in GameWindowManagerScript.cpp). Its heft

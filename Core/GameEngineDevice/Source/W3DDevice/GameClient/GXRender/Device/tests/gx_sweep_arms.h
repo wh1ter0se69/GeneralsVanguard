@@ -1,10 +1,26 @@
-// GeneralsX: A23-B merge gate item 2: the STRICT VALUE SWEEP (A23-B amendment 5 (4)).
-// TEST-ONLY. Every IDirect3DDevice8 entry point with NON-default argument values - the input list is review
-// rw3x-a23b-code-r10-oracle's "Separate checklist", taken whole - each followed by what depends on it (a draw, the whole back
-// buffer read back), and every result (HRESULT, out-parameter, pixels) handed to `obs`. Only deterministic results are observed
-// (no pointers, window handles, raster position or free memory). Self-contained on the d3d8 interface: compiled into the A23-B
-// gx_native_test (obs = --strict's digest, CS=1 must equal CS=0) AND into a base (8244ef7bd) gx_native_test (obs = nothing: the
-// A22 tap of the same call sequence carries rule (a), base == CS0).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The STRICT VALUE SWEEP. TEST-ONLY. Every IDirect3DDevice8 entry point with NON-default argument values, each followed by
+// what depends on it (a draw, the whole back buffer read back), and every result (HRESULT, out-parameter, pixels) handed to
+// `obs`. Only deterministic results are observed (no pointers, window handles, raster position or free memory).
+// Self-contained on the d3d8 interface: compiled into gx_native_test (obs = --strict's digest, CS=1 must equal CS=0) AND
+// into a base gx_native_test (obs = nothing).
 #pragma once
 
 #include "GxCustomCatalog.h"
@@ -18,28 +34,9 @@
 #include <string>
 #include <vector>
 
-// NOT SWEPT, by family and why (census of the r10/r11 checklist; each is named here, not silently absent):
-// * Combinatorial families are SAMPLED, not exhausted: render-state wrap x material-source combinations; texture-stage per-axis
-//   address / filter / argument-selector-modifier combinations; colour x depth x sample-count target pairings; texture / buffer /
-//   target / depth / image usage x size x format boundaries beyond the rows below; Reset interval x swap-effect combinations. Each
-//   family's members are forwarded by the same entry point the sampled members exercise (trin + EXEC + obs see the values).
-// * Draws whose start / count / index arithmetic reaches past their buffers: undefined in D3D8 and in Vulkan (a read out of range) -
-//   not a CS0-vs-CS1 question; DrawIndexedPrimitive / SetIndices extremes are swept without a draw that would read them.
-// * DrawPrimitiveUP with count > 0 and null data, DrawIndexedPrimitiveUP with count > 0 and null pointers or a zero stride: today's
-//   code records a draw with no vertex buffer (VUID-vkCmdDraw-None-04007, base and head) - pre-existing, named in the handback.
-// * Declaration-driven multi-stream layouts and further vertex-shader declarations: the catalogue ports one declaration per program;
-//   every catalogue program is created (res) and Trees.vso is drawn.
-// * Stream stride vs the FVF's attribute extent (a stride below it: the translator refuses by name - skipStrideCheck's own arm in
-//   gx_translate_test), CopyRects block-alignment / rectangle-arithmetic boundaries (DXT rectangles off the 4x4 grid: refused today
-//   as DXVK does; arithmetic past the surfaces: covered by the out / far / negative rectangles below), successful UpdateTexture of
-//   other formats / mip chains (one A8R8G8B8 3-level case below; the DXT1 device arms cover the block path), further vertex-buffer
-//   FVF boundaries and FVF <-> shader binding transitions (sampled: XYZB2, PSIZE, TEX4 with sizes; FVF -> VS -> FVF and stale
-//   handles below): sampled families, same entry points.
-// * Shader token-length boundaries other than the oversize S path (gx_native_test strict-shader-oversize): a stream without its END
-//   token makes funcLen read past the caller's memory in today's code as in DXVK's - not a value a caller can pass safely.
-// * GetDisplayMode(nullptr): forwarded unchanged to the IDirect3D8 (the test stub dereferences it). GetRasterStatus's output,
-//   creation-parameters' focus window and the parent's address: timing / process-dependent - only their HRESULTs and identity
-//   relationships are observed.
+// Not swept: combinatorial families (render state, texture stage, target pairings) are sampled, not exhausted.
+// Draws past their buffers are undefined in D3D8 and Vulkan; null-data UP draws record a draw with no vertex buffer.
+// Oversize shader streams and GetDisplayMode(nullptr) are unsafe to pass; timing-dependent outputs check only HRESULTs.
 namespace gxsweep {
 
 using Obs = void (*)(const void*, size_t);
@@ -47,7 +44,7 @@ struct S;
 // What a binary hands the sweep: its --strict obs sink (null in the base binary) and a device-counter observer called at every
 // read-back (the device's own draw / clear / creation accounting). Every observation also folds into a
 // file digest when GX_SWEEP_OBS=<file> is set - one line per arm - so gates2 compares the base binary's outputs with CS0's
-// (r11-oracle P2-1: a front-description error shared by CS0 and CS1 moves neither digest nor tap).
+// (a front-description error shared by CS0 and CS1 moves neither digest nor tap).
 struct Hooks
 {
 	Obs obs = nullptr;
@@ -225,7 +222,7 @@ inline void fillRows(const D3DLOCKED_RECT& lr, UINT rowBytes, UINT rows, uint32_
 			p[x] = uint8_t((x * 37 + y * 101 + seed * 53 + ((x ^ y) & 7) * 11) & 0xff);
 	}
 }
-// every field of a surface description (r11-oracle P2-2)
+// every field of a surface description
 inline void obsDesc(S& s, const D3DSURFACE_DESC& sd)
 {
 	s.o(sd.Format);
@@ -237,7 +234,7 @@ inline void obsDesc(S& s, const D3DSURFACE_DESC& sd)
 	s.o(sd.Width);
 	s.o(sd.Height);
 }
-// A creation's result: the HRESULT, and its output pointer - handed in POISONED, so a failure must clear it (r11-oracle P2-2).
+// A creation's result: the HRESULT, and its output pointer - handed in POISONED, so a failure must clear it.
 // true = a usable object in p; a failure leaves p null.
 template <class T>
 T* poison() { return reinterpret_cast<T*>(uintptr_t(0x10)); }
@@ -258,7 +255,7 @@ bool created(S& s, HRESULT h, T*& p, const char* what)
 	return p != nullptr;
 }
 // a texture with every level written (MANAGED unless asked), or null; every result observed, the requested format / usage / pool
-// asserted on each level (r11-oracle P2-1). *defined = every level was written (only such a texture may be sampled: P2-4).
+// asserted on each level. *defined = every level was written (only such a texture may be sampled).
 inline IDirect3DTexture8* makeTex(S& s, UINT w, UINT h, UINT levels, DWORD usage, D3DFORMAT f, D3DPOOL pool, uint32_t seed,
 	bool* defined = nullptr)
 {
@@ -506,7 +503,7 @@ inline bool sweepState(IDirect3DDevice8* dev, const Hooks& hk, std::string* d)
 	rsGroup(s, { { 170, F(0.5f) } });                                // TWEENFACTOR
 	rsGroup(s, { { 172, 2 }, { 173, 1 } });                          // POSITIONORDER, NORMALORDER
 	rsGroup(s, { { 6, 1 }, { 200, 7 }, { 255, 1 } });                // ids no state uses
-	// r11-oracle remainder: every comparison for depth and alpha, WRAP3-6, vertex fog EXP / EXP2, the other vertex-blend modes
+	// every comparison for depth and alpha, WRAP3-6, vertex fog EXP / EXP2, the other vertex-blend modes
 	for (DWORD f = 1; f <= 8; ++f) {
 		rsGroup(s, { { 7, 1 }, { 23, f } });
 		rsGroup(s, { { 15, 1 }, { 24, 0x60 }, { 25, f } });
@@ -569,7 +566,7 @@ inline bool sweepState(IDirect3DDevice8* dev, const Hooks& hk, std::string* d)
 		readBack(s);
 	}
 	// every stage type outside the exercised set, on stages 0, 1, 5 and 7 (all eight chained)
-	for (DWORD st = 0; st < 8; ++st) {   // every stage (r11-oracle remainder: 2/3/4/6 too)
+	for (DWORD st = 0; st < 8; ++st) {   // every stage
 		tssGroup(s, st, { { 4, D3DTOP_MODULATE }, { 5, D3DTA_TEXTURE | D3DTA_ALPHAREPLICATE }, { 6, D3DTA_DIFFUSE | D3DTA_COMPLEMENT } });
 		tssGroup(s, st, { { 1, D3DTOP_MULTIPLYADD }, { 26, D3DTA_TFACTOR }, { 2, D3DTA_TEXTURE }, { 3, D3DTA_CURRENT }, { 28, D3DTA_TEMP } });
 		tssGroup(s, st, { { 1, D3DTOP_LERP }, { 26, D3DTA_DIFFUSE | D3DTA_ALPHAREPLICATE }, { 4, D3DTOP_LERP }, { 27, D3DTA_TFACTOR } });
@@ -816,7 +813,7 @@ inline bool sweepDraw(IDirect3DDevice8* dev, const Hooks& hk, std::string* d)
 			g->Release();
 	}
 	struct SS { UINT st, stride; };
-	for (const SS& x : { SS { 1, 0 }, SS { 2, 1 }, SS { 3, 0xFFFF }, SS { 15, 0 } }) {   // stride boundaries (r11-oracle remainder)
+	for (const SS& x : { SS { 1, 0 }, SS { 2, 1 }, SS { 3, 0xFFFF }, SS { 15, 0 } }) {   // stride boundaries
 		s.o(dev->SetStreamSource(x.st, vb, x.stride));
 		IDirect3DVertexBuffer8* g = nullptr;
 		UINT gs = 0xdead;
@@ -869,7 +866,7 @@ inline bool sweepDraw(IDirect3DDevice8* dev, const Hooks& hk, std::string* d)
 		const ID id[] = { { D3DPT_TRIANGLELIST, 0, 11, 0, 4 }, { D3DPT_TRIANGLELIST, 2, 9, 6, 2 }, { D3DPT_TRIANGLESTRIP, 0, 11, 3, 5 },
 			{ D3DPT_TRIANGLEFAN, 1, 8, 0, 3 }, { D3DPT_LINELIST, 0, 11, 2, 4 }, { D3DPT_LINESTRIP, 0, 11, 1, 6 },
 			{ D3DPT_POINTLIST, 0, 11, 0, 10 }, { D3DPT_TRIANGLELIST, 0, 0, 0, 0 }, { static_cast<D3DPRIMITIVETYPE>(9), 0, 11, 0, 2 },
-			/* r11-oracle remainder: a count with a zero vertex range, extreme min / range (not read by the draw) */
+			/* a count with a zero vertex range, extreme min / range (not read by the draw) */
 			{ D3DPT_TRIANGLELIST, 0, 0, 0, 2 }, { D3DPT_TRIANGLESTRIP, 0x7fffffffu, 0xffffffffu, 0, 2 } };
 		frame([&] {
 			for (const ID& x : id)
@@ -919,7 +916,7 @@ inline bool sweepDraw(IDirect3DDevice8* dev, const Hooks& hk, std::string* d)
 		s.o(dev->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 0, verts, sizeof(CV)));
 		s.o(dev->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 0, nullptr, sizeof(CV)));
 		// not swept: DrawPrimitiveUP(count > 0, nullptr) records a draw with no vertex buffer bound in BOTH modes and in the base
-		// (VUID-vkCmdDraw-None-04007, measured 13/10) - pre-existing, named in the handback
+		// (VUID-vkCmdDraw-None-04007) - pre-existing
 		s.o(dev->DrawPrimitiveUP(static_cast<D3DPRIMITIVETYPE>(0), 2, verts, sizeof(CV)));
 		s.o(dev->DrawPrimitiveUP(static_cast<D3DPRIMITIVETYPE>(8), 2, verts, sizeof(CV)));
 		s.o(dev->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2, padded, sizeof(PV)));
@@ -948,7 +945,7 @@ inline bool sweepDraw(IDirect3DDevice8* dev, const Hooks& hk, std::string* d)
 			s.o(dev->DrawIndexedPrimitiveUP(D3DPT_LINESTRIP, 0, 8, 5, i32, D3DFMT_INDEX32, verts, sizeof(CV)));
 			s.o(dev->DrawIndexedPrimitiveUP(D3DPT_TRIANGLELIST, 0, 8, 0, i16, D3DFMT_INDEX16, verts, sizeof(CV)));
 			s.o(dev->DrawIndexedPrimitiveUP(static_cast<D3DPRIMITIVETYPE>(11), 0, 8, 2, i16, D3DFMT_INDEX16, verts, sizeof(CV)));
-			// r11-oracle remainder: LINELIST, TRIANGLEFAN, a padded stride, zero-count null pointers
+			// LINELIST, TRIANGLEFAN, a padded stride, zero-count null pointers
 			s.o(dev->DrawIndexedPrimitiveUP(D3DPT_LINELIST, 0, 8, 4, i16, D3DFMT_INDEX16, verts, sizeof(CV)));
 			s.o(dev->DrawIndexedPrimitiveUP(D3DPT_TRIANGLEFAN, 1, 7, 3, i32, D3DFMT_INDEX32, verts + 2, sizeof(CV)));
 			s.o(dev->DrawIndexedPrimitiveUP(D3DPT_TRIANGLELIST, 0, 6, 2, i16, D3DFMT_INDEX16, padded, sizeof(PV)));
@@ -1003,9 +1000,9 @@ inline bool sweepDraw(IDirect3DDevice8* dev, const Hooks& hk, std::string* d)
 	s.o(dev->SetViewport(&full));
 	// a rectangle payload over the worker's largest command (S; the arm's ring is 64 KiB: 16 KiB - 256): 1100 one-pixel rectangles
 	// (17 600 bytes). Not 20000: MoltenVK's ClearAttachments encode stack-allocates per rectangle and ~20000 overflow a 512 KiB
-	// std::thread stack (gx-vk-submit, lever 3 - measured 13/10, ___chkstk_darwin, both CS modes: pre-existing, residual R37).
+	// std::thread stack (gx-vk-submit, ___chkstk_darwin, both CS modes: pre-existing).
 	// 1100 = ~105 KB of encode stack against 512 KiB (~5x headroom). A ring-knob change that raises this count must be checked
-	// against R37 first; it is the only arm reaching Clear's oversize S path (integrator 13/10).
+	// against that stack limit first; it is the only arm reaching Clear's oversize S path.
 	{
 		std::vector<D3DRECT> many(1100);
 		for (size_t i = 0; i < many.size(); ++i) {
@@ -1052,7 +1049,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 		{ 0, 0, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED }, { 16, 0, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED },
 		{ 16, 16, 1, 0, D3DFMT_P8, D3DPOOL_MANAGED }, { 16, 16, 20, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED },
 		{ 64, 1, 0, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED }, { 16, 16, 1, D3DUSAGE_DYNAMIC | D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT },
-		/* r11-oracle remainder: */ { 0, 16, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED }, { 16, 16, 0, 0, D3DFMT_DXT2, D3DPOOL_MANAGED },
+		{ 0, 16, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED }, { 16, 16, 0, 0, D3DFMT_DXT2, D3DPOOL_MANAGED },
 		{ 16, 16, 0, 0, D3DFMT_DXT4, D3DPOOL_MANAGED }, { 16, 16, 1, D3DUSAGE_DEPTHSTENCIL, D3DFMT_D24S8, D3DPOOL_DEFAULT },
 		{ 16, 16, 1, 0, D3DFMT_A8R8G8B8, static_cast<D3DPOOL>(7) }, { 8, 8, 0xFFFFFFFFu, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED },
 		{ 4096, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED }, { 1, 4096, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED },
@@ -1066,7 +1063,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 		IDirect3DTexture8* tex = makeTex(s, t.w, t.h, t.levels, t.usage, t.f, t.pool, seed++, &defined);
 		if (!tex)
 			continue;
-		if (t.usage & D3DUSAGE_RENDERTARGET) {   // an RT texture is defined by a clear through its level-0 surface (P2-4)
+		if (t.usage & D3DUSAGE_RENDERTARGET) {   // an RT texture is defined by a clear through its level-0 surface
 			IDirect3DSurface8* lv = nullptr;
 			s.o(tex->GetSurfaceLevel(0, &lv));
 			if (lv) {
@@ -1084,7 +1081,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 				lv->Release();
 			}
 		}
-		if (!defined) {   // undefined texels are never sampled into obs (r11-oracle P2-4): the description alone is the result
+		if (!defined) {   // undefined texels are never sampled into obs: the description alone is the result
 			tex->Release();
 			continue;
 		}
@@ -1102,7 +1099,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 	const VB vbs[] = { { 0, 0, kCV, D3DPOOL_MANAGED }, { 1, 0, kCV, D3DPOOL_MANAGED }, { 100, D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, kCV, D3DPOOL_DEFAULT },
 		{ 80, 0, kCV, D3DPOOL_SYSTEMMEM }, { 96, D3DUSAGE_WRITEONLY, D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX2, D3DPOOL_MANAGED },
 		{ 81, D3DUSAGE_POINTS, 0, D3DPOOL_MANAGED }, { 120, D3DUSAGE_DYNAMIC, kCV, D3DPOOL_SYSTEMMEM },
-		/* r11-oracle remainder: */ { 64, 0, kCV, D3DPOOL_SCRATCH }, { 80, D3DUSAGE_SOFTWAREPROCESSING, kCV, D3DPOOL_MANAGED },
+		{ 64, 0, kCV, D3DPOOL_SCRATCH }, { 80, D3DUSAGE_SOFTWAREPROCESSING, kCV, D3DPOOL_MANAGED },
 		{ 80, D3DUSAGE_DONOTCLIP, kCV, D3DPOOL_MANAGED }, { 80, D3DUSAGE_RTPATCHES | D3DUSAGE_NPATCHES, kCV, D3DPOOL_MANAGED },
 		{ 128, 0, D3DFVF_XYZB2 | D3DFVF_DIFFUSE, D3DPOOL_MANAGED }, { 128, 0, D3DFVF_XYZ | D3DFVF_PSIZE | D3DFVF_SPECULAR, D3DPOOL_MANAGED },
 		{ 256, 0, D3DFVF_XYZ | D3DFVF_TEX4 | D3DFVF_TEXCOORDSIZE1(0) | D3DFVF_TEXCOORDSIZE3(1) | D3DFVF_TEXCOORDSIZE4(3), D3DPOOL_MANAGED },
@@ -1147,7 +1144,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 	const IB ibs[] = { { 24, 0, D3DFMT_INDEX32, D3DPOOL_MANAGED }, { 12, D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT },
 		{ 12, 0, D3DFMT_INDEX16, D3DPOOL_SYSTEMMEM }, { 12, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED }, { 0, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED },
 		{ 13, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED },
-		/* r11-oracle remainder: */ { 12, 0, D3DFMT_INDEX16, D3DPOOL_SCRATCH }, { 24, 0, D3DFMT_INDEX32, D3DPOOL_DEFAULT },
+		{ 12, 0, D3DFMT_INDEX16, D3DPOOL_SCRATCH }, { 24, 0, D3DFMT_INDEX32, D3DPOOL_DEFAULT },
 		{ 12, D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT }, { 12, D3DUSAGE_DYNAMIC, D3DFMT_INDEX32, D3DPOOL_SYSTEMMEM } };
 	IDirect3DVertexBuffer8* qvb = nullptr;
 	s.o(dev->CreateVertexBuffer(sizeof(quad), 0, kCV, D3DPOOL_MANAGED, &qvb));
@@ -1201,7 +1198,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 	const RT rts[] = { { 32, 16, D3DFMT_X8R8G8B8, D3DMULTISAMPLE_NONE, TRUE }, { 16, 16, D3DFMT_R5G6B5, D3DMULTISAMPLE_NONE, FALSE },
 		{ 16, 16, D3DFMT_A8R8G8B8, D3DMULTISAMPLE_2_SAMPLES, FALSE }, { 16, 16, D3DFMT_A8R8G8B8, D3DMULTISAMPLE_3_SAMPLES, FALSE },
 		{ 0, 16, D3DFMT_A8R8G8B8, D3DMULTISAMPLE_NONE, FALSE }, { 64, 64, D3DFMT_A8R8G8B8, D3DMULTISAMPLE_4_SAMPLES, TRUE },
-		/* r11-oracle remainder: */ { 16, 0, D3DFMT_A8R8G8B8, D3DMULTISAMPLE_NONE, FALSE }, { 16, 16, D3DFMT_A1R5G5B5, D3DMULTISAMPLE_NONE, FALSE },
+		{ 16, 0, D3DFMT_A8R8G8B8, D3DMULTISAMPLE_NONE, FALSE }, { 16, 16, D3DFMT_A1R5G5B5, D3DMULTISAMPLE_NONE, FALSE },
 		{ 16, 16, D3DFMT_X8R8G8B8, D3DMULTISAMPLE_8_SAMPLES, FALSE }, { 16, 16, D3DFMT_A8R8G8B8, static_cast<D3DMULTISAMPLE_TYPE>(17), FALSE } };
 	dev->SetVertexShader(kCV);
 	for (const RT& r : rts) {
@@ -1241,7 +1238,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 	const DS dss[] = { { 64, 64, D3DFMT_D16, D3DMULTISAMPLE_NONE }, { 64, 64, D3DFMT_D24X8, D3DMULTISAMPLE_NONE },
 		{ 64, 64, D3DFMT_D32, D3DMULTISAMPLE_NONE }, { 64, 64, D3DFMT_D24S8, D3DMULTISAMPLE_4_SAMPLES }, { 96, 80, D3DFMT_D24S8, D3DMULTISAMPLE_NONE },
 		{ 0, 0, D3DFMT_D24S8, D3DMULTISAMPLE_NONE }, { 64, 64, D3DFMT_D15S1, D3DMULTISAMPLE_NONE },
-		/* r11-oracle remainder: */ { 64, 64, D3DFMT_D24S8, D3DMULTISAMPLE_3_SAMPLES }, { 64, 64, D3DFMT_D16_LOCKABLE, D3DMULTISAMPLE_NONE },
+		{ 64, 64, D3DFMT_D24S8, D3DMULTISAMPLE_3_SAMPLES }, { 64, 64, D3DFMT_D16_LOCKABLE, D3DMULTISAMPLE_NONE },
 		{ 64, 64, D3DFMT_D24X4S4, D3DMULTISAMPLE_NONE }, { 0, 64, D3DFMT_D24S8, D3DMULTISAMPLE_NONE },
 		{ 32, 32, D3DFMT_D24S8, D3DMULTISAMPLE_NONE } /* smaller than the 64x64 target: refused as a pair (targetSizeRefused) */ };
 	for (const DS& x : dss) {
@@ -1288,7 +1285,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 			s.o(im->GetDesc(&sd));
 			obsDesc(s, sd);
 			s.check(sd.Format == f && sd.Width == 16 && sd.Height == 16, "the image surface describes the format / size requested");
-			D3DLOCKED_RECT lw = {};   // defined contents before any copy (r11-oracle P2-4: never observe undefined bytes)
+			D3DLOCKED_RECT lw = {};   // defined contents before any copy (never observe undefined bytes)
 			const HRESULT hw = im->LockRect(&lw, nullptr, 0);
 			s.o(hw);
 			if (SUCCEEDED(hw)) {
@@ -1356,7 +1353,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 			}
 			s.o(dev->CopyRects(im, rs, 2, s.bb, ps));   // host -> the back buffer
 			readBack(s);
-			// r11-oracle remainder: empty / inverted / negative rectangles, and a whole-surface host copy INTO THE BACK BUFFER - refused
+			// empty / inverted / negative rectangles, and a whole-surface host copy INTO THE BACK BUFFER - refused
 			// before any payload routing (a host copy needs a texture-level destination); the oversize host -> DEFAULT S path is
 			// gx_native_test's strict-copy-oversize
 			const RECT odd[3] = { { 10, 10, 10, 20 }, { 20, 20, 12, 12 }, { -4, -4, 8, 8 } };
@@ -1381,7 +1378,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 		s.o(dev->UpdateTexture(sys, fmt));   // format mismatch
 		const HRESULT hu = dev->UpdateTexture(sys, def);
 		s.o(hu);
-		if (def && SUCCEEDED(hu)) {   // only a texture the update defined is sampled (P2-4)
+		if (def && SUCCEEDED(hu)) {   // only a texture the update defined is sampled
 			dev->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
 			s.o(dev->SetTexture(0, def));
 			dev->SetVertexShader(kTV);
@@ -1478,7 +1475,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 	s.o(dev->SetPixelShaderConstant(0, k, 0));
 	s.o(dev->SetPixelShaderConstant(0, nullptr, 2));
 	s.o(dev->SetPixelShaderConstant(0xFFFFFFFEu, k, 4));
-	{   // r11-oracle remainder: every writable vertex register and pixel register, and huge counts from a valid register
+	{   // every writable vertex register and pixel register, and huge counts from a valid register
 		std::vector<float> big(96 * 4);
 		for (size_t i = 0; i < big.size(); ++i)
 			big[i] = float(i % 37) * 0.125f - 2.0f;
@@ -1546,7 +1543,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 	s.o(dev->DeleteVertexShader(vsDeclOnly));
 	s.o(dev->DeletePixelShader(ps));
 	s.o(dev->DeletePixelShader(junk));
-	s.o(dev->SetPixelShader(ps));   // r11-oracle remainder: a stale PS bound - its draw refused, the clear stays
+	s.o(dev->SetPixelShader(ps));   // a stale PS bound - its draw refused, the clear stays
 	clearAll(s, 0xff000000);
 	s.o(dev->BeginScene());
 	s.o(dev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, quad, sizeof(CV)));
@@ -1631,7 +1628,7 @@ inline bool sweepMisc(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, co
 	{
 		D3DGAMMARAMP g;
 		std::memset(&g, 0x5a, sizeof(g));
-		dev->GetGammaRamp(&g);   // after the identity ramp (r11-oracle remainder)
+		dev->GetGammaRamp(&g);   // after the identity ramp
 		s.o(g);
 		dev->SetGammaRamp(0, nullptr);
 		dev->GetGammaRamp(nullptr);
@@ -1710,7 +1707,7 @@ inline bool sweepMisc(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, co
 		uint8_t buf[64];
 		std::memset(buf, 0x5a, sizeof(buf));
 		s.o(dev->GetInfo(1, buf, 16));
-		s.o(buf);   // right away (r11-oracle: it was overwritten before being observed)
+		s.o(buf);   // right away, before anything overwrites it
 		s.o(dev->GetInfo(0, nullptr, 0));
 		PALETTEENTRY pal[256];
 		for (int i = 0; i < 256; ++i)
@@ -1801,7 +1798,7 @@ inline bool sweepMisc(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, co
 		s.o(dev->GetTexture(0, nullptr));
 		s.o(dev->GetDeviceCaps(nullptr));
 		// GetDisplayMode(nullptr): not swept - the device forwards it to its IDirect3D8 unchanged (A23-B splits nothing there) and the
-		// test's stub IDirect3D8 dereferences it (measured 13/10: SIGSEGV in StubD3D8::GetAdapterDisplayMode, both CS modes)
+		// test's stub IDirect3D8 dereferences it (SIGSEGV in StubD3D8::GetAdapterDisplayMode, both CS modes)
 		s.o(dev->GetCreationParameters(nullptr));
 		s.o(dev->GetDepthStencilSurface(nullptr));
 		s.o(dev->GetRenderTarget(nullptr));
@@ -1922,7 +1919,7 @@ inline bool sweepMisc(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, co
 		pp.BackBufferCount = 1;
 		tryReset(pp);
 		tryReset(base());
-		// r11-oracle remainder: zero (automatic) extents and count, an out-of-range count, FLIP / COPY_VSYNC, a windowed interval
+		// zero (automatic) extents and count, an out-of-range count, FLIP / COPY_VSYNC, a windowed interval
 		pp = base();
 		pp.BackBufferWidth = pp.BackBufferHeight = 0;
 		pp.BackBufferCount = 0;

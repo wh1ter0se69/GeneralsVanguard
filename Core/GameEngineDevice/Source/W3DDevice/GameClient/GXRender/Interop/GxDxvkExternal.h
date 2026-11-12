@@ -1,4 +1,22 @@
-// GeneralsX: WS-X hybrid spike: the DXVK-side interfaces GxInterop calls, mirrored.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Hybrid spike: the DXVK-side interfaces GxInterop calls, mirrored.
 //
 // The game compiles against the DirectX 8 headers only (min-dx8-sdk on Windows, DXVK's native d3d8.h elsewhere), so the
 // d3d9 interop declarations of references/fbraz3-dxvk/src/d3d9/d3d9_interfaces.h are not reachable from here. These are
@@ -15,8 +33,7 @@ static const GUID GX_IID_ID3D9VkInteropDevice =
 // {d56344f5-8d35-46fd-806d-94c351b472c1}
 static const GUID GX_IID_ID3D9VkInteropTexture =
 	{ 0xd56344f5, 0x8d35, 0x46fd, { 0x80, 0x6d, 0x94, 0xc3, 0x51, 0xb4, 0x72, 0xc1 } };
-// {703eff94-9fbc-4fce-a0aa-ed0a25773e95} (...93 until DrawRun + GetRunStats, ...92 until DxvkGxRecordInfo
-// gained initCmd + inPass: design-r10 #4)
+// Changes when the interface layout does (DrawRun + GetRunStats, initCmd + inPass in DxvkGxRecordInfo).
 static const GUID GX_IID_IDxvkGxExternal =
 	{ 0x703eff94, 0x9fbc, 0x4fce, { 0xa0, 0xaa, 0xed, 0x0a, 0x25, 0x77, 0x3e, 0x95 } };
 

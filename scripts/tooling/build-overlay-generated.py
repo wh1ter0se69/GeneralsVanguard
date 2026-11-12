@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-# GeneralsX: Build the overlay archives this project AUTHORS.
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Build the overlay archives this project AUTHORS.
 #
 #   build-overlay-generated.py --dest <dir> [--game-dir <dir>]... [--check] [--quiet]
 #   build-overlay-generated.py --resolve [--game-dir <dir>]...
@@ -72,7 +74,7 @@ GENERATED = [
         "expect": ("Window\\Menus\\PopupHostGame.wnd", 5323212, 40101),
         "what": "host-game popup with the Confirm Password field",
     },
-    # GeneralsX: The 7x16 / 10x24 occupancy pips (GXImageVariant.h). NO SOURCE ARCHIVE: the art
+    # The 7x16 / 10x24 occupancy pips (GXImageVariant.h). NO SOURCE ARCHIVE: the art
     # is drawn in the generator's own grids, so nothing is read from an install and nothing EA shipped is committed. The
     # generator writes 'members' (archive path -> file it wrote) into the directory it is given.
     {
@@ -83,7 +85,7 @@ GENERATED = [
                     ("Data\\INI\\MappedImages\\TextureSize_512\\GXUIHD.ini", "GXUIHD.ini")],
         "what": "hand-drawn 7x16 / 10x24 unit pips for 1440p and taller",
     },
-    # GeneralsX: The control bar's side buttons (Options, Worker, Chat, Beacon, the General's star button) and
+    # The control bar's side buttons (Options, Worker, Chat, Beacon, the General's star button) and
     # the General's experience ladder, redrawn in the player HUD's palette. Redefines 137 EXISTING MappedImage names from
     # Data\INI\MappedImages\HandCreated\zz..., which ImageCollection::load parses last. NO SOURCE ARCHIVE, like !GXUIHD.big.
     {
@@ -151,18 +153,9 @@ def check_source(make_big, archive, expect):
     raise SystemExit("ERROR: %s does not contain %s." % (archive, want_name))
 
 
-# GeneralsX: EVERY --game-dir IS TRIED, IN ORDER, and a miss names them all.
-#
-# This took one directory, and each packager picked it from an env chain of its own rather than
-# from the directories its archive search walks. Release 85f9a6650 stopped on "WindowZH.big not
-# found" on all three packaging hosts with the retail data on each; the plainest case was macOS,
-# whose bundler passed GX_PATCH_SRC - always set, never holding WindowZH.big - while the archive
-# search also walked the game folder that did. Taking a list lets every caller hand over the SAME
-# directories its archive search walks, so the two cannot disagree again.
-#
-# First hit wins, NOT first hit that passes check_source. A WindowZH.big that is the wrong release
-# must stop the build with check_source's message; quietly trying the next directory would build
-# the archive from whichever copy happened to pass, and say nothing about the one that did not.
+# Every --game-dir is tried in order and a miss names them all; callers pass the directories their archive search walks.
+# First hit wins, not the first that passes check_source: a WindowZH.big of the wrong release must stop the build with
+# check_source's message, not be skipped for another copy.
 def find_source(game_dirs, recipe):
     tried = []
     for game_dir in game_dirs:

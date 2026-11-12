@@ -1,23 +1,25 @@
-// GeneralsX: PREREG A36.1: DLSS SR first light on a test scene, through Streamline.
-//
-// No game and no shaders. Each frame the CPU point-samples a procedural pattern (zone plate + 1-px grid + 3-px checker) at the
-// JITTERED render-pixel centres under a constant camera pan, uploads it as the render-res colour, clears motion vectors to the
-// exact pan and depth to a constant, and asks DLSS (Performance) for the 1920x1080 output. Every 12th frame from 100 the output
-// is read back and scored (PSNR) against the pattern 4x4-supersampled at output res, next to a bilinear upscale of the same
-// frame rendered without jitter. Conventions = render/ws-motion's GxMotionFrame (see GxStreamline.h).
-//
-// Arms: C (conventions as stated), F1 (motion reported with the wrong sign), F2 (jitter reported negated), F3 (jitter reported
-// as 0 while the scene still jitters). The decision rule lives in PREREG A36.1, not here: this prints the numbers.
-// --teardown: root = no explicit slShutdown - VkCtx::shutdown's vkDestroyDevice through
-// Streamline::loaderRoot() must run it ("[GXSL] slShutdown before vkDestroyDevice"); initfail = vkCreateSemaphore fails, so VkCtx::init
-// fails AFTER vkCreateDevice and destroys the device itself (r2's path) - the root must run slShutdown there too. raw / initfail-raw =
-// the same on the interposer's own root: the FAIL arms. Each prints "devices_destroyed=N slshutdown_before_device=yes|NO" (a probe
-// in front of the root sees the device's vkDestroyDevice return) and exits 7 on NO, 9 when no device went or initfail failed before
-// its injection (UNINFORMATIVE) - without slShutdown: a use-after-free in the driver is not a test. Under GX_VK_VALIDATION=core the
-// layer also names Streamline's still-live objects at vkDestroyDevice.
-//
-//   gx_dlss_test --sl-dir C:\path\to\streamline\bin\x64 [--arm C|F1|F2|F3] [--device SEL] [--frames N] [--out DIR]
-//                [--teardown root|raw|initfail|initfail-raw]
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// DLSS SR first light on a test scene, through Streamline. No game and no shaders: a jittered procedural
+// pattern with exact motion vectors is upscaled to 1920x1080 and scored (PSNR) against a supersampled reference.
+// Arms: C (as stated), F1 (motion sign wrong), F2 (jitter negated), F3 (jitter reported 0). Prints numbers only.
+//   gx_dlss_test --sl-dir <streamline bin dir> [--arm C|F1|F2|F3] [--teardown root|raw|initfail|initfail-raw]
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -306,7 +308,7 @@ uint32_t g_semaphoresFailed = 0, g_devicesDestroyed = 0;
 bool g_slUpAfterDeviceDestroy = false;
 
 // The FAIL arms end here once the device went with Streamline alive: TerminateProcess, not _Exit. With _Exit both raw arms ended in
-// 0xC0000005 after printing their verdict (13/10 A36.2d) - MSVC's _Exit still goes through ExitProcess, i.e. every DLL's process
+// 0xC0000005 after printing their verdict - MSVC's _Exit still goes through ExitProcess, i.e. every DLL's process
 // detach, presumably Streamline's on state the destroyed device took with it (cause not isolated).
 [[noreturn]] void hardExit(int code)
 {
@@ -378,7 +380,7 @@ int run(const Options& opt)
 	Vk::VkCtx ctx;	// declared first: destroyed after sl (slShutdown before the device goes)
 	Upscale::Streamline sl;
 	std::string why;
-	GXRender::Upscale::StreamlineFeatures want;	// DLSS SR only, as before (dlss-fg-1 added the features argument)
+	GXRender::Upscale::StreamlineFeatures want;	// DLSS SR only
 	want.dlss = true;
 	if (!sl.load(widen(opt.slDir).c_str(), want, &why)) {
 		say("[GXDLSS] streamline=absent why=%s", why.c_str());
@@ -420,7 +422,7 @@ int run(const Options& opt)
 			ctx.shutdown();
 			return 9;
 		}
-		if (g_semaphoresFailed == 0) {	// failed before the injection: not the r2 path (UNINFORMATIVE), and never slShutdown after it
+		if (g_semaphoresFailed == 0) {	// failed before the injection: UNINFORMATIVE, and never slShutdown after it
 			hardExit(9);
 		}
 		return teardownVerdict(0);

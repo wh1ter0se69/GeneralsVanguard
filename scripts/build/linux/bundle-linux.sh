@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # GeneralsX: Bundle Linux GeneralsX binary + .so libs into a tarball archive
 # Packages the same files as deploy-linux.sh into GeneralsX-linux-x86_64.tar.gz
 
@@ -97,7 +99,7 @@ echo "  + GeneralsX"
 cp "${BINARY_SRC}" "${BUNDLE_DIR}/GeneralsX"
 chmod +x "${BUNDLE_DIR}/GeneralsX"
 
-# GeneralsX: The openal-soft this engine was built against, with a runpath
+# The openal-soft this engine was built against, with a runpath
 # of $ORIGIN so it is the one that loads - see the same block in bundle-linux-zh.sh.
 # shellcheck source=scripts/build/linux/lib-openal.sh
 source "${SCRIPT_DIR}/lib-openal.sh"
@@ -125,7 +127,7 @@ if [[ -f "${SAGE_PATCH_LIB}" ]]; then
     cp "${SAGE_PATCH_LIB}" "${BUNDLE_DIR}/"
 fi
 
-# GeneralsX: Copy FFmpeg runtime libs transitively so the bundle is independent of host SONAME layout.
+# Copy FFmpeg runtime libs transitively so the bundle is independent of host SONAME layout.
 echo "  + FFmpeg runtime libraries"
 shopt -s nullglob
 ffmpeg_roots=(

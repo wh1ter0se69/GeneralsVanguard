@@ -46,7 +46,7 @@ public:
 		unsigned short vertex_count);
 
 	static void Flush();
-	// GeneralsX: S7 PREREG A44/A46 (A31): nothing queued - the early cast-only flush runs only then
+	// GeneralsX: nothing queued - the early cast-only flush runs only then
 	static bool Gx_Is_Empty();
 	static void Deinit();
 

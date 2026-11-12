@@ -1,4 +1,22 @@
-// GeneralsX: F-depth+ (see GxSceneCopy.h).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// F-depth+ (see GxSceneCopy.h).
 #include "GxSceneCopy.h"
 
 #include "GxFormat.h"
@@ -396,7 +414,7 @@ void GxSceneCopy::tap(Rc::GxPacketWriter& w, const Tap& t, R::GxImage* wc, R::Gx
 		w.outsideScope([&](VkCommandBuffer cmd) { ok = recordFallback(cmd, w.tracker(), rest, t, wc, wd, wdView, &dp, &cp); }, nullptr, 0);
 		if (ok) {
 			done |= rest;
-			// S7 A1 (integrator 12:1xZ): the copies were written by this frame's MAIN commands - a shadow caster that
+			// The copies were written by this frame's MAIN commands - a shadow caster that
 			// samples one must not be replayed from INIT, which runs before them
 			if (rest & GX_SCENE_DEPTH)
 				t.depth->image().mainWrite = w.frameValue();
@@ -513,7 +531,7 @@ VkDescriptorSet GxSceneCopy::probeSet(VkImageView a, VkImageView b)
 
 // The dummy reader: one fragment, one texelFetch of each copy it asked for. Its own scope on its own 1x1 target - a real reader
 // samples inside the world's scope instead; this is the floor of what any reader adds. No GX_GPUTIME scope of its own: the timer
-// sums every named scope into present= (render-motion-2's a31 note), so its cost shows in the frame total only.
+// sums every named scope into present=, so its cost shows in the frame total only.
 void GxSceneCopy::recordProbe(Rc::GxPacketWriter& w)
 {
 	const bool d = (m_probeNeeds & GX_SCENE_DEPTH) && m_frame.depth;

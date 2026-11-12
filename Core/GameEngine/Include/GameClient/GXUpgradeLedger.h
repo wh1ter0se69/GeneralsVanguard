@@ -1,33 +1,26 @@
 /*
-**	GeneralsX: which upgrade completions have already been announced.
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
 **
-**	WHY THIS IS A HEADER OF ITS OWN, AND PURE.
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
 **
-**	The same reason as GXOnlineGate.h next door: the belief it replaces was WRONG in a way that no
-**	compile and no four-platform verify could ever see, and the only way a wrong belief does not
-**	come back silently is if it is testable without an engine. scripts/test/upgrade-dedupe-test.cpp
-**	drives this class with `c++ -std=c++17 -I Core/GameEngine/Include` - no window, no game data,
-**	no replay file.
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
 **
-**	WHAT WAS WRONG. InGameUI::announceUpgrade carried a comment asserting that "an upgrade completes
-**	once per player by construction - Player::onUpgradeCompleted is called from the single place
-**	that sets the mask bit". It is not one place and it is not once. Player::addUpgrade sets the
-**	completed mask and calls onUpgradeCompleted with NO already-complete guard, and three call sites
-**	reach it with UPGRADE_STATUS_COMPLETE: ProductionUpdate.cpp (research finished at a building)
-**	and GrantUpgradeCreate.cpp twice (an object granting an upgrade as it is built). The grant path
-**	is deduped only per MODULE INSTANCE - that is, per object - so an upgrade granted by three
-**	different buildings runs onUpgradeCompleted three times and announces three times.
-**
-**	WHY A BITMASK AND NOT A RING. The sibling m_announcedSkills is a 16-entry ring with a
-**	two-second window, and that shape is wrong here twice over. The repeats are MINUTES apart -
-**	Upgrade_Nationalism is granted by the Infantry General's barracks, war factory and command
-**	centers, which are built across a whole match - so no window short enough to be safe would
-**	catch them; and a 16-entry ring shared by up to MAX_PLAYER_COUNT players evicts the first
-**	Nationalism entry long before the third building goes up. One bit per allowlisted upgrade per
-**	player is exact, and it is smaller than the ring it replaces.
-**
-**	It takes no engine types on purpose. The caller maps its own player index and its own allowlist
-**	position onto the two ints below, and static_asserts its own bounds against the two limits.
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+**	Which upgrade completions have already been announced; pure (scripts/test/upgrade-dedupe-test.cpp).
+**	Player::addUpgrade calls onUpgradeCompleted with no already-complete guard and the grant path dedupes per module
+**	instance, so an upgrade granted by three buildings announced three times. A bitmask: repeats are MINUTES apart.
+**	No engine types: the caller maps its indices onto the two ints and static_asserts its bounds against the limits.
 */
 
 #pragma once
@@ -41,7 +34,7 @@ namespace GXUpgradeLedger
 /// Mirrors MAX_PLAYER_COUNT. Duplicated rather than included so a standalone test needs no engine;
 /// InGameUI.cpp static_asserts the two against each other, so a change to either is a COMPILE
 /// ERROR rather than a silently truncated ledger.
-enum { MAX_PLAYERS = 40 };	// GeneralsX 06/11/2026 16 -> 40 with MAX_PLAYER_COUNT
+enum { MAX_PLAYERS = 40 };	// tracks MAX_PLAYER_COUNT
 
 /// The width of the mask below, so it is a consequence rather than a free parameter. The caller
 /// static_asserts its allowlist length against it.

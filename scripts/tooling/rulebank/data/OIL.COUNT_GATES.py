@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule OIL.COUNT_GATES, CHINA PART: China's Helix teams wait until the
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule OIL.COUNT_GATES, CHINA PART: China's Helix teams wait until the
 # Capture Building research (Upgrade_InfantryCaptureBuilding) is done - research capture before the Helix, WITHOUT awaiting captures
 # (Dominator's answer, 31/10; rb-data-4 rewrote the gate from "own derricks >= oils_before_helix"). oils_before_helix is now an on/off
 # switch (0 = stock, any other value = gate on the research); the oil_wait_s clock floor still opens the gate if the research never lands. Stock Hard China builds its Helix teams from the
@@ -70,6 +72,6 @@ def activation(obs, me, params=None):
     return {'triggered': bool(triggered), 'fired': bool(fired), 'detail': 'UNOBSERVABLE: the Capture research is not in the obs stream; airfield_f=%s oils_f=%s helix_f=%s' % (fa, oils, fh)}
 
 
-# rb-data-6: no reader can tell this rule's ON from OFF - the gate waits on a research, and the research is not in the gym stream (the 31/10
-# smoke4 games never reached the situation: Helix at 264-295 s in both arms). smoke-read.py prints UNOBSERVABLE, never PASS or FAIL.
+# No reader can tell this rule's ON from OFF - the gate waits on a research, and the research is not in the gym stream (the
+# smoke games never reached the situation: Helix at 264-295 s in both arms). smoke-read.py prints UNOBSERVABLE, never PASS or FAIL.
 CONTRAST = {'unobservable': 'the Capture research the gate waits on is not in the obs stream; the smoke games never reach Helix-before-research'}

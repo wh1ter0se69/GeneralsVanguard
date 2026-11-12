@@ -1,4 +1,22 @@
-// GeneralsX: see GxStreamline.h. Built only with GX_STREAMLINE=ON on Windows x64.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// see GxStreamline.h. Built only with GX_STREAMLINE=ON on Windows x64.
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -38,7 +56,7 @@ struct Streamline::Api
 	PFun_slGetFeatureVersion* getFeatureVersion = nullptr;
 	PFun_slDLSSGetOptimalSettings* dlssGetOptimalSettings = nullptr;	// feature functions: resolved on first use
 	PFun_slDLSSSetOptions* dlssSetOptions = nullptr;
-	// dlss-fg-1: resolved after slInit, each only when its feature loaded
+	// resolved after slInit, each only when its feature loaded
 	PFun_slReflexSleep* reflexSleep = nullptr;
 	PFun_slReflexSetOptions* reflexSetOptions = nullptr;
 	PFun_slReflexGetState* reflexGetState = nullptr;
@@ -234,7 +252,7 @@ bool Streamline::load(const wchar_t* dir, const StreamlineFeatures& want, std::s
 	}
 
 	const wchar_t* paths[] = { api->dir.c_str() };
-	// dlss-fg-1: only the features this session asked for (PCL, like sl.common, loads with every Streamline).
+	// only the features this session asked for (PCL, like sl.common, loads with every Streamline).
 	sl::Feature features[3] = {};
 	uint32_t featureCount = 0;
 	if (want.dlss)
@@ -369,7 +387,7 @@ bool Streamline::dlssEvaluate(VkCommandBuffer cmd, DlssMode mode, const DlssFram
 		return false;
 	}
 	const sl::ViewportHandle viewport(0u);
-	// dlss-fg-1: the frame begun by frameBegin (one token per rendered frame, shared with Reflex and DLSS-G); a session that never
+	// the frame begun by frameBegin (one token per rendered frame, shared with Reflex and DLSS-G); a session that never
 	// begins frames (DLSS SR alone, as before) still gets its own token per evaluate.
 	sl::FrameToken* token = static_cast<sl::FrameToken*>(m_frameToken);
 	sl::Result r = sl::Result::eOk;
@@ -382,8 +400,8 @@ bool Streamline::dlssEvaluate(VkCommandBuffer cmd, DlssMode mode, const DlssFram
 		}
 	}
 
-	// TEST-ONLY GX_DLSS_JITTER_FOLD=<x>,<y> (PREREG A36.2k): a constant added to the jitter DLSS is told, in render pixels - does it
-	// take out the scaled world's D3D9 half-pixel offset (hud-seam-2: 0.5 * (1/r - 1) output px right + down)? Unset or malformed = 0,0.
+	// TEST-ONLY GX_DLSS_JITTER_FOLD=<x>,<y>: a constant added to the jitter DLSS is told, in render pixels - does it
+	// take out the scaled world's D3D9 half-pixel offset (0.5 * (1/r - 1) output px right + down)? Unset or malformed = 0,0.
 	struct JitterFold { float x = 0.f, y = 0.f; };
 	static const JitterFold fold = [] {
 		JitterFold j;
@@ -410,9 +428,8 @@ bool Streamline::dlssEvaluate(VkCommandBuffer cmd, DlssMode mode, const DlssFram
 		options.colorBuffersHDR = sl::Boolean::eFalse;	// the game's world colour is LDR (RGBA8)
 		options.useAutoExposure = sl::Boolean::eTrue;	// no exposure texture
 		// The model: E at EVERY mode, never eDefault.
-		//
-		// Streamline 2.14.1's sl_dlss.h marks ePresetE "Deprecated": it runs on today's DLSS DLLs (measured
-		// 16/10), a later DLL may drop it. eDefault = K at DLAA/Balanced/Quality. TEST-ONLY GX_DLSS_PRESET=<E..O> overrides it for every
+		// Streamline 2.14.1's sl_dlss.h marks ePresetE "Deprecated": it runs on today's DLSS DLLs, a later DLL may drop it.
+		// eDefault = K at DLAA/Balanced/Quality. TEST-ONLY GX_DLSS_PRESET=<E..O> overrides it for every
 		// mode (picture A/Bs).
 		static const char* const presetEnv = std::getenv("GX_DLSS_PRESET");
 		const bool forced = presetEnv && presetEnv[0] >= 'E' && presetEnv[0] <= 'O' && presetEnv[1] == 0;
@@ -439,7 +456,7 @@ bool Streamline::dlssEvaluate(VkCommandBuffer cmd, DlssMode mode, const DlssFram
 	c.clipToLensClip = rows(kIdentity);
 	c.clipToPrevClip = rows(f.clipToPrevClip);
 	c.prevClipToClip = rows(f.prevClipToClip);
-	// TEST-ONLY GX_DLSS_JITTER=neg|zero|negx|negy (PREREG A36.2i plant): the jitter DLSS is told - negated (both axes or one), or zeroed -
+	// TEST-ONLY GX_DLSS_JITTER=neg|zero|negx|negy: the jitter DLSS is told - negated (both axes or one), or zeroed -
 	// while the projection keeps the real one: a mismatch on purpose, to see how far the picture moves. Unset = the frame's jitter as is.
 	struct JitterPlant { float x = 1.f, y = 1.f; };
 	static const JitterPlant plant = [] {
@@ -488,7 +505,7 @@ bool Streamline::dlssEvaluate(VkCommandBuffer cmd, DlssMode mode, const DlssFram
 	// buffer, so Streamline uses the images as given. eOnlyValidNow made it CLONE them - an extra copy each, and the depth clone
 	// lost the DEPTH subresource range.
 	const sl::ResourceLifecycle life = sl::ResourceLifecycle::eValidUntilEvaluate;
-	// dlss-fg-1: with frame generation the depth and motion vectors are read again at the PRESENT (DLSS_G guide §5.2: tag them
+	// with frame generation the depth and motion vectors are read again at the PRESENT (DLSS_G guide §5.2: tag them
 	// eValidUntilPresent first). They are motion's own images, rewritten only by the next frame's world pass - which DLSS-G's blocking
 	// wait on our queue orders after its read.
 	const sl::ResourceLifecycle fgLife = m_api->dlssgSetOptions ? sl::ResourceLifecycle::eValidUntilPresent : life;

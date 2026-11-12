@@ -1,19 +1,26 @@
 /*
-**	GeneralsX: which General's Points button a purchase key fires.
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
 **
-**	Pure on purpose, like GXSkillAnnouncePolicy.h next door: the choice is testable without an engine.
-**	scripts/test/audit/bench/purchase_panel_hotkeys.cpp compiles this header with plain c++.
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
 **
-**	The panel shows one letter per power on EVERY tier - Paradrop 1, 2 and 3 all show the Paradrop key - because the
-**	letter is the key of the power's own command-bar button (ControlBar::resolvePurchaseScienceSource). A key fires one
-**	window, so each key goes to:
-**	  1. the first ENABLED button carrying it, in panel order: the next tier the player can buy right now. When two
-**	     powers share a key, the one that can be bought wins over one that cannot;
-**	  2. else the first button carrying it that the player does not own: pressing it gives the disabled click, and the
-**	     panel still owns the key while it is open;
-**	  3. else nobody: every button carrying it is bought, so the key is left to the command bar.
-**	Every other button carrying the key keeps its letter, greyed (W3DPushButton.cpp drawHotKeyLabel asks
-**	HotKeyManager::isHotKeyBoundTo), exactly as a refused command-bar letter does.
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+/*
+**	Which General's Points button a purchase key fires. The panel shows each power's command-bar key on EVERY tier.
+**	A key fires one window: (1) the first ENABLED button carrying it, in panel order; (2) else the first one the player
+**	does not own (the disabled click); (3) else nobody (all bought), leaving the key to the command bar.
+**	Pure, tested by scripts/test/audit/bench/purchase_panel_hotkeys.cpp with plain c++.
 */
 
 #pragma once

@@ -1,38 +1,25 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 /* Ed25519 verification. See GXEd25519.h for why this is written rather than called, and for the
  * accept set it is deliberately stricter about than libsodium.
- *
- * GeneralsX: moved into the engine and de-Windowsed 11/08/2026
- *
- * WHY IT MOVED. This began beside the Windows launcher, where the only document anyone needed to
- * verify was the release manifest. Identity makes the
- * ENGINE a verifier too, on four platforms, and the Windows engine has no HTTPS to fetch with and
- * no OpenSSL to verify with - so one implementation has to serve both. Copying it would give a
- * security anchor two implementations that drift, which is the worst of the available outcomes;
- * reaching into scripts/build/windows/launcher/ from the game's build would break that directory's
- * own stated invariant, "Nothing in this directory is reachable from the game's own build". So the
- * file moved out and the launcher now reaches in - the same relationship, in the direction that
- * invariant permits.
- *
- * WHAT CHANGED IN THE MOVE, AND IT IS EXACTLY ONE THING: the SHA-512 is no longer CNG.
- * BCryptCreateHash is a Windows call and three of our four platforms do not have it, so
- * gx_ed25519_verify now hashes through GXSha512.cpp everywhere, Windows included. The field and
- * group arithmetic below is untouched, and the accept set is unchanged.
- *
- * That is a change to a shipped code-signing anchor, so it is not taken on trust. The verifier is
- * checked against the RFC 8032 section 7.1 vectors and differentially against OpenSSL - positive
- * and negative cases both - by scripts/test/identity-assert-test.cpp. It gets strictly more testing
- * after the move than before it, because it can finally be run somewhere other than Windows.
- *
- * CNG SURVIVES FOR SHA-256 ONLY, behind GX_ED25519_WITH_CNG, which build-launcher.cmd defines and
- * the engine does not. gx_sha256 and gx_sha256_file are the launcher's manifest and
- * downloaded-artifact hashes; they want a streaming file read the engine has no use for, and
- * keeping them out of the engine build is what stops the engine acquiring bcrypt.lib - see
- * GXPlayerIdentity.cpp:50-56, where avoiding that exact link library was already a deliberate
- * choice made for the CSPRNG.
- *
- * DIGEST. GameClient/ is not in simsourcedigest_watcher.cmake's path list, so nothing here moves
- * sourceID.
- */
+ * One implementation serves the launcher and the engine, since the Windows engine has no OpenSSL. SHA-512 goes
+ * through GXSha512.cpp everywhere; CNG remains for SHA-256 only, behind GX_ED25519_WITH_CNG. */
 
 #if defined(GX_ED25519_WITH_CNG)
 #include <windows.h>
@@ -59,8 +46,8 @@
 /* The one hash gx_ed25519_verify needs: SHA-512 over R || A || M, as three parts so an unbounded
  * caller-supplied message never has to be concatenated into a buffer first.
  *
- * PORTABLE ON EVERY PLATFORM, including Windows. It used to be BCryptCreateHash, which made this
- * whole file Windows-only for the sake of one hash. GXSha512.cpp is checked against the five FIPS
+ * PORTABLE ON EVERY PLATFORM, including Windows: it does not use BCryptCreateHash, so this
+ * file is not Windows-only for the sake of one hash. GXSha512.cpp is checked against the five FIPS
  * 180-4 published examples and against OpenSSL over every length from 0 to 300; the return value is
  * kept so the call site below keeps its "a hash failure is a refusal" shape, but there is nothing
  * left in the path that can fail - no handle, no allocation, no provider to open. */
@@ -546,10 +533,10 @@ static void ge_init(void)
 	 * standard encoding of the base point, so this is a decompression rather than a constant.
 	 *
 	 * ge_decompress needs GE_D and GE_SQRTM1, which are set above - it does NOT need ge_ready and
-	 * deliberately no longer consults it. This used to be a re-entrant call guarded by setting
-	 * ge_ready = 1 FIRST, which published readiness while GE_BASE was still all zeroes. A caller
-	 * landing in that window multiplies by a zero point, and a zeroed ge used to compare equal to
-	 * every point - so the window was, precisely, "accept any forged signature". It is gone:
+	 * deliberately does not consult it. A re-entrant call guarded by setting
+	 * ge_ready = 1 FIRST would publish readiness while GE_BASE was still all zeroes. A caller
+	 * landing in that window would multiply by a zero point, and a zeroed ge compares equal to
+	 * every point - that window is "accept any forged signature". So
 	 * readiness is published once, last, and only on success. */
 	{
 		unsigned char enc[32];
@@ -593,14 +580,13 @@ static int fe_bytes_canonical(const unsigned char s[32])
 }
 
 /* The worker. PRECONDITION: GE_D and GE_SQRTM1 are initialised. It must NOT call ge_init - that
- * recursion is what forced readiness to be published before the base point existed. ge_init calls
+ * recursion would force readiness to be published before the base point existed. ge_init calls
  * this one directly, mid-initialisation; everybody else goes through the wrapper below, which is
  * caller-proof.
  *
- * Splitting it rather than documenting a precondition on the single function is not ceremony. The
- * first attempt at this fix did exactly that, and the differential harness broke on the same run:
- * it drives decompression directly, silently got GE_D = 0, and produced thousands of wrong points
- * that a comment did nothing to prevent. A precondition a caller can forget is a bug with a
+ * Splitting it rather than documenting a precondition on the single function is not ceremony:
+ * a harness that drives decompression directly would silently get GE_D = 0 and produce
+ * wrong points, and a comment does nothing to prevent that. A precondition a caller can forget is a bug with a
  * waiting period. */
 static int ge_decompress_raw(ge *r, const unsigned char s[32])
 {
@@ -657,24 +643,9 @@ static int ge_decompress_raw(ge *r, const unsigned char s[32])
 	return 1;
 }
 
-/* THE ONE-TIME INIT IS SYNCHRONISED, AND THE MOVE INTO THE ENGINE IS WHY.
- *
- *
- *
- * It has now gained one: the engine is threaded,
- * and identity verification will not stay on one thread forever.
- *
- * The hazard is not hypothetical and this file already documents its own version of it. ge_init
- * publishes `ge_ready` last, on purpose, because an earlier revision published it first and thereby
- * opened a window in which GE_BASE was still zero - see the comment inside ge_init, which describes
- * that window as "precisely, accept any forged signature". Two threads racing a plain flag
- * re-opens exactly that class of window from the other side: B sees ge_ready set by A and reads
- * tables A has not finished writing. A racy read of a zeroed table is the same catastrophe.
- *
- * C++11 function-local statics are initialised exactly once with a happens-before edge to every
- * other thread that observes them, which is the guarantee needed here and the reason this file is
- * compiled as C++ rather than C. MSVC has implemented it since VS2015. After the first call it is a
- * relaxed load of a guard byte, so the cost to the common path is nothing worth measuring. */
+/* The one-time init is synchronised because the engine is threaded. ge_init publishes ge_ready last: publishing it
+ * first opens a window where GE_BASE is still zero and any forged signature is accepted. A C++11 function-local
+ * static is initialised once with a happens-before edge to every observer, which is why this file is C++. */
 static void ge_init_once(void)
 {
 	struct Initialiser { Initialiser() { ge_init(); } };
@@ -746,20 +717,10 @@ int gx_ed25519_selftest_group(void)
 		return 0;
 	}
 
-	/* [L]B == identity ALONE is weaker than it reads: it holds for ANY multiple of the true order,
-	 * and a GROUP_L of k*L would let scalar_lt_L admit every S in [L, k*L) that canonical Ed25519
-	 * rejects - silently disabling the malleability guard, since [S+L]B == [S]B.
-	 *
-	 * This used to test [L/2]B and claim that "between them the constant cannot be a multiple of
-	 * the real order without being caught". That claim was FALSE and the audit measured it: the
-	 * floor-halving catches EVEN multiples only. GROUP_L = 3L and 5L were caught by neither check.
-	 *
-	 * Dividing exactly is the honest version. If a small prime divides GROUP_L, then GROUP_L is
-	 * that prime times something, and if that something is already an order of B then GROUP_L is a
-	 * multiple and must be refused.
-	 *
-	 * What this still cannot catch: k a large prime. No cheap test does, and the cross-
-	 * implementation vectors would. Say so rather than implying total coverage again. */
+	/* [L]B == identity alone holds for ANY multiple of the true order: a GROUP_L of k*L would let scalar_lt_L admit
+	 * every S in [L, k*L), disabling the malleability guard since [S+L]B == [S]B. Halving catches even multiples only,
+	 * so divide exactly: if a small prime divides GROUP_L and the quotient is an order of B, refuse.
+	 * Not caught: k a large prime. */
 	for (k = 0; k < sizeof(SMALL) / sizeof(SMALL[0]); k++) {
 		if (scalar_div_small(GROUP_L, SMALL[k], q) != 0) {
 			continue;		/* does not divide - nothing to say */
@@ -796,9 +757,6 @@ int gx_ed25519_verify(const unsigned char *pk, const unsigned char *sig,
 	 * nothing.
 	 *
 	 * It does NOT make this verifier's accept set identical to every other implementation's.
-	 *
-	 *
-	 *
 	 * The narrowing is deliberate and is the whole point of the
 	 * subgroup check below. The direction is what matters for a code-signing anchor, and the
 	 * honest statement of it lives in GXEd25519.h. */
@@ -809,23 +767,10 @@ int gx_ed25519_verify(const unsigned char *pk, const unsigned char *sig,
 		return 0;
 	}
 
-	/* A must lie in the prime-order subgroup. This is the check that MAKES the [h]A shortcut below
-	 * correct, rather than merely convenient - see the comment there. It is not decoration:
-	 * measured against OpenSSL over 2455 verification cases, a public key carrying a torsion
-	 * component was the ONE input class where this file and a real Ed25519 disagreed, and it
-	 * disagreed in both directions - 3 of 7 in the direction that matters, where this code accepted
-	 * a signature OpenSSL rejected. Every other adversarial class tested identically: small-order A,
-	 * small-order R, S = 0, L, L-1, L+1, L+8, 8L, 2^255, 2^256-1, the malleable S+L, the identity
-	 * as the key, and non-canonical encodings of both points.
-	 *
-	 * [L]A == identity says A has order dividing L; L is prime, so A is either the identity or has
-	 * order exactly L. Rejecting the identity separately leaves only order L - and then [h]A and
-	 * [h mod L]A are the same point for every h, which is the whole argument.
-	 *
-	 * Cost is one extra 253-bit scalar multiplication once per launch. Note it also subsumes the
-	 * value of gx_ed25519_selftest_group in production: a wrong GROUP_L or broken curve arithmetic
-	 * makes this check fail against the real anchor, so the launcher refuses rather than trusting
-	 * a verifier that cannot do arithmetic. */
+	/* A must lie in the prime-order subgroup; this makes the [h]A shortcut below correct. Against OpenSSL over 2455
+	 * cases, a key with a torsion component was the one class where this code disagreed, in both directions.
+	 * [L]A == identity gives order dividing L; L is prime, so rejecting the identity separately leaves order exactly L.
+	 * Costs one 253-bit scalar multiplication per launch. */
 	ge_scalarmult(&la, &a, GROUP_L, 32);
 	if (!ge_eq(&la, &id)) {
 		return 0;		/* A carries torsion - not a key any real generator produces */
@@ -841,17 +786,9 @@ int gx_ed25519_verify(const unsigned char *pk, const unsigned char *sig,
 		return 0;
 	}
 
-	/* [h]A rather than [h mod L]A, and they are the same point BECAUSE A WAS JUST CHECKED to have
-	 * order L. That check is load-bearing and used not to be here: the original text argued A has
-	 * order L because it is "a legitimately generated public key", which is a statement about how
-	 * the key was made, not about the bytes this function was handed. It happened to be true of the
-	 * compiled-in anchor and would have stopped being true the moment the key became data - a
-	 * second signer, a rotation file, a relay-supplied key - which is a plausible future in a
-	 * project whose stated design is multi-relay.
-	 *
-	 * Skipping the reduction still removes a 512-bit modular reduction, the one piece of arithmetic
-	 * in an Ed25519 verifier with no cheap way to self-check, at the cost of 256 extra doublings
-	 * nobody will notice once per launch. It is now a proven identity instead of an assumption. */
+	/* [h]A rather than [h mod L]A: the same point, because A was just checked to have order L. That check is load-bearing
+	 * once the key becomes data (a second signer, a rotation file, a relay-supplied key). Skipping the reduction avoids a
+	 * 512-bit modular reduction, which has no cheap self-check, for 256 extra doublings. */
 	ge_scalarmult(&sb, &GE_BASE, sig + 32, 32);
 	ge_scalarmult(&ha, &a, h, 64);
 	ge_add(&rhs, &ha, &rpoint);
@@ -859,7 +796,7 @@ int gx_ed25519_verify(const unsigned char *pk, const unsigned char *sig,
 }
 
 /* ============================================================================================
- * GeneralsX: SIGNING (see GXEd25519.h for who may use it and why).
+ * SIGNING (see GXEd25519.h for who may use it and why).
  *
  * RFC 8032 section 5.1.6, over the arithmetic above. The two pieces that did not exist are the point
  * encoding and arithmetic modulo L; both are written the plainest way there is - an inverse and a

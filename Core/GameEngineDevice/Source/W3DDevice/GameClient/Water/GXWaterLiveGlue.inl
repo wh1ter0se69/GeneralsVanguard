@@ -1,4 +1,22 @@
-// GeneralsX: LIVE WATER - the engine glue (the look and its arithmetic: GameClient/GXWaterLive.h).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// LIVE WATER - the engine glue (the look and its arithmetic: GameClient/GXWaterLive.h).
 //
 // Included at the end of W3DWater.cpp, below every GX-SIMID region (and below GXWaterClearGlue.inl). Called from render code
 // outside the SimID closure: WaterRenderObjClass's ReAcquireResources / ReleaseResources (device resources), load (the map's
@@ -61,7 +79,7 @@ namespace
 // The containers, made on first use and never destroyed: a file-scope std::vector has a destructor, and its registration made
 // this whole file's static initialisation run at start-up instead of being folded to constants by the compiler - which turned
 // retail's zFillAlphaShader into a runtime-initialised global that WaterRenderObjClass::init's region READS, a SimID closure
-// gap (simid-closure.py, 17/10, build f302e7220: "data from W3DWater.cpp -> zFillAlphaShader").
+// gap (simid-closure.py: "data from W3DWater.cpp -> zFillAlphaShader").
 static std::vector<GxFoamCell> &gxFoamCells() { static std::vector<GxFoamCell> *v = new std::vector<GxFoamCell>(); return *v; }
 static std::vector<Real> &gxFoamWaterLevels() { static std::vector<Real> *v = new std::vector<Real>(); return *v; }	// the water polygons' levels the cells were built for, in list order
 static std::vector<GxFoamRect> &gxFoamDirty() { static std::vector<GxFoamRect> *v = new std::vector<GxFoamRect>(); return *v; }	// ground changed here since the scan (flushTerrainHeightChanges)
@@ -89,7 +107,7 @@ static Bool gxWaterLiveWaterMoved()
 }
 
 // Foam only within this many cells (10 world units each) of dry ground: a shallow sea is "foam depth" everywhere (TournamentB:
-// 75,465 cells, the whole sea), and the shore is where foam belongs. Measured 17/10.
+// 75,465 cells, the whole sea), and the shore is where foam belongs.
 static const Int kGxFoamShoreCells = 5;
 
 // Milliseconds on the wall clock (gxRenderNowMs is the GX_SHOT capture clock under capture, which stands still here).
@@ -173,7 +191,6 @@ static void gxWaterLiveScanFoamCells(Int i0, Int j0, Int i1, Int j1)
 			// Every corner inside a water area, as BaseHeightMap::updateShorelineTile requires of its shoreline tiles: a cell
 			// the polygon only partly covers would carry the water's level past the polygon's edge, where no water is drawn
 			// And one water surface: a cell between two water areas at different levels belongs to neither
-			//
 			Real lv = INVALID_WATER_HEIGHT, lo = 1e9f;
 			Bool covered = TRUE;
 			for (Int k = 0; k < 4; ++k)
@@ -900,7 +917,7 @@ void gxWaterLiveWaveFrame(GxWaterLiveWaveFrame *out)
 	gxWaterLiveLights(amb, dif);
 	out->on = true;
 	// Ambient + the sun, clamped: white by day like retail's crest, dim at night. (EA's own unused diffuseLight takes half the
-	// sun, which on the Mini 17/10 turned the white crests grey - the wrong way for "wave water in white".)
+	// sun, which turned the white crests grey - the wrong way for "wave water in white".)
 	out->rgb = gxWaterLiveLitColor(amb, dif, 1.0f, 0.0f) & 0x00ffffff;
 	const float w = s_gxLiveTune.wave * s_gxLiveStrength;
 	out->alphaGain = (w >= 3.0f) ? 4 : ((w >= 1.5f) ? 2 : 1);

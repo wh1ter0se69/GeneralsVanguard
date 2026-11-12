@@ -47,14 +47,11 @@
 #include "GameLogic/Weapon.h"
 
 const Real DEFAULT_MASS = 1.0f;
-// GeneralsX: Twin of the Zero Hour change - see the GeneralsMD copy for the
-// full reasoning. These per-frame friction fractions HALVE at twice the tick rate: v = v * (1 - f)
-// is a decay, but it always acts against a force, and halving keeps the forced steady state
-// v = a/f (terminal speed) exactly in wall-clock terms; the free-decay exponent 1 - sqrt(1 - f)
-// would not (corrected 23/09/2026 - see the GeneralsMD copy). MIN_NON_AERO_FRICTION and
-// MAX_FRICTION are the floor and ceiling on that same fraction and would otherwise double in
-// per-second terms. Both trees are inside the digest, so this must not be edited on one side only.
-// This tree has no shock fields and no stun epsilon; those are Zero Hour only.
+// GeneralsX: Twin of the Zero Hour change; see the GeneralsMD copy for the full reasoning. These per-frame friction
+// fractions HALVE at twice the tick rate: v = v * (1 - f) always acts against a force, and halving keeps the forced
+// steady state v = a/f (terminal speed) exact in wall-clock terms; the free-decay exponent 1 - sqrt(1 - f) would not.
+// MIN_NON_AERO_FRICTION and MAX_FRICTION bound that same fraction and would otherwise double per second. Both trees
+// are inside the digest, so edit them together. This tree has no shock fields and no stun epsilon; those are Zero Hour only.
 #if GX_LOGIC_60HZ
 const Real DEFAULT_FORWARD_FRICTION = 0.075f;
 const Real DEFAULT_LATERAL_FRICTION = 0.075f;
@@ -273,19 +270,9 @@ Bool PhysicsBehavior::isIgnoringCollisionsWith(ObjectID id) const
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: Aircraft grip the air like Generals Online at 60 Hz (owner,
-// 04/10: "yes use go's ... for jets"). GO keeps the per-30-Hz-frame friction defaults and clamps
-// above at 60 Hz, i.e. twice retail's friction per second, so an aircraft's velocity swings onto its
-// nose twice as fast and it slides half as far in a turn (measured, King Raptor: 11.6 vs 24.1 deg).
-// Aircraft therefore get twice the per-frame template friction and twice the clamps. x2 is exact in
-// float, so these are GO's literals bit for bit (0.15, 0.01, 0.99), and x1 leaves every other
-// object bit-identical. The yaw/pitch/roll damping that reuses DEFAULT_LATERAL_FRICTION scales the
-// same way (GO: 1 - 0.15). m_extraFriction is NOT doubled: it is GO's already (Locomotor's EXTRA_FRIC
-// for aircraft, SlowDeath's and the OCL's per-second values scale as they do in GO). No shipped
-// aircraft authors a friction field (0 of the 25 KINDOF_AIRCRAFT templates in Generals' INI.big), so
-// doubling the template value is GO for all of them.
-// Trade-off: a mod aircraft that authors ForwardFriction/LateralFriction gets it doubled too, where GO
-// keeps it; add a "friction authored" flag to the module data if a mod ever needs GO-exact there.
+// GeneralsX: Aircraft grip the air like Generals Online at 60 Hz: twice the template friction and clamps per frame,
+// since GO keeps the 30 Hz per-frame defaults. x2 is exact in float (GO literals 0.15, 0.01, 0.99) and x1 leaves
+// every other object bit-identical. m_extraFriction is not doubled. Mod aircraft authoring friction get it doubled.
 static Real gxGripScale(const Object *obj)
 {
 #if GX_LOGIC_60HZ

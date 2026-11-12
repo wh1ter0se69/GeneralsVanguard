@@ -411,18 +411,10 @@ void RailedTransportDockUpdate::doPushOutDocking()
 				Drawable *draw = us->getDrawable();
 				if( unloaderAI && draw )
 				{
-					// GeneralsX: getPristineBonePositions() leaves the output
-					// untouched and returns 0 when the bone prefix is not found in the model, and the
-					// return value was being discarded here. On a railed transport model without a
-					// DOCKWAITING07 bone, 'finalPos' stayed uninitialized stack memory, was run through
-					// convertBonePosToWorldPos() and then fed to aiMoveToPosition() -- a GameLogic call,
-					// so the garbage coordinate entered the deterministic simulation and desynced
-					// multiplayer games and replays (each machine has different stack garbage), on top of
-					// sending the unloaded unit to a random spot on the map. Zero the position so it is
-					// never indeterminate, and only issue the move order when the bone actually resolved;
-					// a missing dock bone is an expected case everywhere else in this hierarchy (see
-					// DockUpdate::loadDockPositions), and skipping the order just leaves the unit idle at
-					// the exit point, which is where it already is.
+					// GeneralsX: getPristineBonePositions() leaves the output untouched and returns 0 when the bone prefix is not found,
+					// and the return value was discarded. finalPos stayed uninitialized stack memory and fed aiMoveToPosition(), a
+					// GameLogic call, so machines desynced. Zero it and issue the move only when the bone resolved; a missing dock bone
+					// is expected elsewhere (DockUpdate::loadDockPositions) and the unit just stays idle at the exit point.
 					Coord3D finalPos;
 					finalPos.zero();
 

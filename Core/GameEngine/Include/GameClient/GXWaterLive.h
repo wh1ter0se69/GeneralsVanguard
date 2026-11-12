@@ -1,42 +1,25 @@
-// GeneralsX: LIVE WATER, a client-only look option on top of clearer water (GXWaterClear.h).
-// "Clearer water looks nice just needs obvious animation and white glare to make it look like water and like wave water in
-// white". It is ON by default from 0.9.66 (gxWaterLiveOptionOn): Options.ini GXWaterLive = no turns it off, GXWaterLiveStrength
-// (0..1, default 1) scales it;
-// GX_WATER_LIVE=0/1, GX_WATER_LIVE_PARTS=<letters of mgfw> and GX_WATER_LIVE_TUNE=<name:value,...> override them for A/B arms.
-//
-// WHAT RETAIL ALREADY HAS, AND WHAT THIS PUSHES (today's classic renderer; DXVK on every platform):
-//   motion (m)  standing water is a 150-unit tiling of TWWater01 whose coordinates wobble by 0.02 of a tile (3 units): a
-//               slosh back and forth, its u and v swings on different periods, so its direction wanders. Live water
-//               REPLACES that slosh with one flow per map (THE FLOW below): the tile drifts steadily along it, and a long
-//               swell travels along it, surging the surface forward - never backwards (drawTrapezoidWater).
-//               the first version, which amplified the slosh over the clear water's still sea floor: "why is the water
-//               moving so randomly fix it".
-//   glare  (g)  the retail ps.1.1 water shader already ADDS WaterSurfaceBubbles x Noise0000 - white specks where the noise is
-//               bright - but at x1, sub-pixel and nearly still. Live water uses its own ps.1.1 variant (the same four
-//               textures), ADDED on top in a second draw: the specks squared and x4, riding the surface (its drift and swell),
-//               lit where a band of the noise - stretched across the flow and travelling along it a little faster than the
-//               water - passes under them, so they twinkle in bands that move with the water; plus a faint sheen from those
-//               bands; both tinted by the sun (setupFlatWaterShader).
-//   foam   (f)  retail has no shoreline foam. Live water draws one more pass over the cells within a few units of the water
-//               line: a 64x64 table (water depth x lapping phase) of white foam that surges up the beach fast and slips back
-//               slowly - a swash line at the water's edge, not a second wave (EA's own crests are the waves; an incoming
-//               foam line of its own drew pale stripes across the shallows between them - Mini 18/10); broken up by Noise0000
-//               and the bubble specks, which
-//               are carried up the beach with each surge and back with its retreat; the lapping follows the same swell, so a
-//               beach surges when the swell reaches it; lit by the map's light, under the shroud like the water
-//               (W3DWater.cpp Render, after the water surface).
-//   waves  (w)  EA's own breaking waves (the map's .wak file, wave256.tga - 25 stock maps, TournamentB among them) are drawn
-//               pure white at the texture's thin alpha: faint lines. Live water lights them like EA's own unused code meant to
-//               (W3DWaterTracks.cpp flush computes diffuseLight and never uses it) and doubles their alpha. And it grows them in
-//               retail breaks the whole coast in one frame as a full-white line;
-//               live, each crest breaks when the swell reaches it, riding in from offshore and building smoothly (EA'S CRESTS).
-//
-// RENDER-ONLY. Every value here feeds texture coordinates, pixel-shader constants or vertex colours of render passes; nothing
-// the simulation reads is written, and there is no random number anywhere (a GameLogicRandomValue call from render code would
-// desync). This header is pure logic with no engine include and sits in Core/GameEngine/Include/GameClient, outside the SimID
-// digest; never include it from Common/, GameLogic/ or GameNetwork/. The engine glue is
-// W3DDevice/GameClient/Water/GXWaterLiveGlue.inl, outside every GX-SIMID region. scripts/test/look-water-live-test.sh checks
-// the functions below, with mutant arms.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// LIVE WATER, client-only, on top of clearer water (GXWaterClear.h), ON by default: GXWaterLive = no turns it off.
+// GXWaterLiveStrength (0..1) scales it; GX_WATER_LIVE=0/1, _PARTS=<letters of mgfw>, _TUNE=<name:value,...> override.
+// RENDER-ONLY, no random number (GameLogicRandomValue from render code would desync); outside the SimID digest.
+// Parts: motion, glare, foam, waves. Tested by scripts/test/look-water-live-test.sh.
 
 #pragma once
 
@@ -86,7 +69,7 @@ struct GxWaterLiveTune
 
 // constexpr: the glue's file-scope copy must be CONSTANT-initialised. A dynamic initialiser in W3DWater.cpp's file scope
 // keeps the whole file's static initialisation at run time, and retail's zFillAlphaShader with it - a global that
-// WaterRenderObjClass::init's GX-SIMID region reads, which simid-closure.py then reports as a gap (17/10).
+// WaterRenderObjClass::init's GX-SIMID region reads, which simid-closure.py then reports as a gap.
 constexpr GxWaterLiveTune gxWaterLiveDefaultTune()
 {
 	return GxWaterLiveTune{ 3.6f, 225.0f, 2.0f, 9.0f, 0.85f, 0.10f, 1.0f, 7.0f, 2.0f, kGxFoamBankGentle, kGxFoamBankSteep, kGxFoamSurfNear,
@@ -125,8 +108,7 @@ inline float gxWaterLiveClamp(float v, float lo, float hi)
 	return v < lo ? lo : (v > hi ? hi : v);
 }
 
-// The Options.ini key. GeneralsX: ON BY DEFAULT from 0.9.66 (for wh1ter0se, who chose this water
-// from the look-water-3 pictures, clearer and live water on together): an Options.ini without GXWaterLive draws live water, and
+// The Options.ini key. ON BY DEFAULT: an Options.ini without GXWaterLive draws live water, and
 // GXWaterLive = no turns it off.
 static const bool kGxWaterLiveDefaultOn = true;
 
@@ -265,7 +247,7 @@ inline double gxWaterLiveClockStep(double clock, float logicFrames, float logicF
 // counts a fraction of a tick while the game still runs a whole one, and in a network stall it keeps counting while the game
 // waits. So after each step the clock is pulled toward the game's own time (logic frame / logic rate): left
 // alone within half a tick (normal pacing - smooth), eased in by a tenth of the gap beyond that, held within three ticks - and
-// never moved backwards (water that waits is still water; water that runs back is what wh1ter0se saw). A zero step (paused,
+// never moved backwards (water that waits is still water; water that runs back looks wrong). A zero step (paused,
 // frozen) holds the clock: only a jump past the three-tick window (a loaded save) moves it then.
 inline double gxWaterLiveClockFollow(double prev, double stepped, double gameSeconds, double tickSeconds)
 {
@@ -327,7 +309,7 @@ inline GxWaterLiveFlow gxWaterLiveFlowDir(float degrees)
 // ---------------------------------------------------------------------------------------------------------------------------
 // MOTION + GLARE coordinates for one standing-water draw, from the time and the knobs. Retail's own values when off.
 static constexpr float kGxWaterTileUnits = 150.0f;		// drawTrapezoidWater's waterFactor: one TWWater01 tile, world units
-static constexpr float kGxWaterGlintUnits = 110.0f;		// one WaterSurfaceBubbles tile for the glints (Mini 17/10: 190 made soft blobs)
+static constexpr float kGxWaterGlintUnits = 110.0f;		// one WaterSurfaceBubbles tile for the glints (190 made soft blobs)
 static constexpr float kGxWaterGateAlong = 44.0f;		// the twinkle bands: one Noise0000 tile along the flow (retail: 16 square)
 static constexpr float kGxWaterGateAcross = 132.0f;		// ...and across it: the noise's blobs drawn out into bands across the flow
 static constexpr float kGxSwellLength = 420.0f;			// the swell's wavelength along the flow, world units (period = lap)
@@ -488,14 +470,12 @@ inline unsigned gxWaterLiveLitColor(const float ambient[3], const float diffuse[
 // FOAM. Water depth d (world units of height: the water level minus the ground; negative on the beach) and the lapping
 // phase (cycles, any real; the fraction is used) -> foam opacity in [0, 1]. One cycle: the surge runs up the beach in the
 // first kGxFoamRise of it (ease-out: fast), then slips back over the rest (ease-in-out: slow), a band of foam behind its front
-// that never reaches deeper than ~0.7 height units: a swash line at the water's edge. (Until 18/10 the table also sent an
-// incoming foam line in from 3.5 deep each cycle and trailed the band to 2.2 deep: on a gentle beach under the clear water
-// those drew wide pale stripes across the shallows between EA's own crests - a second wave rhythm that read as random.)
+// that never reaches deeper than ~0.7 height units: a swash line at the water's edge.
 static constexpr float kGxFoamDepthLo = -0.6f;	// table u = 0: 0.6 units up the beach (above the highest surge)
 static constexpr float kGxFoamDepthHi = 1.5f;	// table u = 1: deeper than the band ever reaches
 static constexpr float kGxFoamRise = 0.22f;		// fraction of a cycle the surge takes to run up
-static constexpr float kGxFoamClimb = 0.3f;		// how far up the beach (height units) the surge front reaches (Mini 17/10:
-												// 1.2 ran far up a gentle beach and read as bleached sand, not foam)
+static constexpr float kGxFoamClimb = 0.3f;		// how far up the beach (height units) the surge front reaches (1.2 ran far up a
+												// gentle beach and read as bleached sand, not foam)
 static constexpr int kGxFoamTableSize = 64;
 
 inline float gxWaterLiveSmooth(float e0, float e1, float x)
@@ -581,24 +561,10 @@ inline void gxWaterLiveUphill(float dhx, float spanX, float dhy, float spanY, fl
 	*uy = gy / m * fade;
 }
 
-// ---------------------------------------------------------------------------------------------------------------------------
-// THE BANK. GeneralsX:
-// - a thin cream outline drawn along every shore, stair-stepped in close-up. The foam's band is a
-// band of DEPTH (about -0.4 to 0.7 height units at full surge, gxWaterLiveFoamAlpha), so on the ground it is that depth over
-// the bank's slope wide. On TournamentB's beaches (median slope 0.35 at the water line) that is a few world units of swash; on
-// the cut banks of ponds and rivers (median 0.7 to 0.9: Mountain Guns, Killing Fields, Winding River, Tournament Lake) it is
-// about one unit - a hairline, lit cream by a warm sun, that traces the water line triangle by triangle, so the terrain grid's
-// steps show in it. A swash zone needs a beach: the foam fades out where the ground climbs out of the water faster than
-// `gentle`, and is gone at `steep`, per vertex and smoothly (the factor is the foam vertex's alpha, interpolated over the
-// triangle). A degenerate pair (steep <= gentle) is a hard step at `gentle`; NaN reads as steep (no foam where the ground is
-// unknown).
-//
-// The slope at a vertex is the steepest terrain triangle around it: of the (up to four) cells that share the vertex, each
-// cell's steepest triangle under EITHER diagonal (gxWaterLiveCellSlope). Not the central difference gxWaterLiveUphill reads
-// for the carry's direction: over two cells it halves a one-cell cliff (a bank that jumps 7.5 between neighbours reads 0.375,
-// not 0.75) and cancels to flat at a pit, so a stepped bank kept its line. The steepest face is what
-// sets the narrowest band the vertex's alpha reaches; either diagonal, so the measure needs no flip state and a map tool can
-// reproduce it from the heights alone.
+// THE BANK: the foam band is a band of DEPTH, so its ground width is depth over bank slope: wide on beaches, a hairline
+// on steep pond and river banks. So the foam fades out where the ground climbs faster than `gentle`, gone at `steep`.
+// Per vertex (factor = vertex alpha); steep <= gentle is a hard step at `gentle`; NaN reads as steep.
+// The slope is the steepest terrain triangle around a vertex under EITHER diagonal (gxWaterLiveCellSlope).
 inline float gxWaterLiveCellSlope(float h00, float h10, float h11, float h01, float cell)
 {
 	if (!(cell > 0.0f))
@@ -623,20 +589,10 @@ inline float gxWaterLiveFoamBank(float slope, float gentle, float steep)
 	return 1.0f - gxWaterLiveSmooth(gentle, steep, slope);
 }
 
-// ---------------------------------------------------------------------------------------------------------------------------
-// THE SURF. GeneralsX: The bank alone leaves the line on a moderate grass
-// bank (Mini 22/10, Mountain Guns: the stretch at slope under 0.5 kept a continuous cream line at every limit swept): the band
-// is narrow by design - a swash line, about 0.5 to 0.85 height units of depth - and on dark grass a narrow pale band IS a drawn
-// outline, while on TournamentB's pale sand it reads as the swash wh1ter0se approved. Swash comes from waves breaking: the foam is
-// drawn only where the map's own breaking waves are - EA's crests, the map's .wak (W3DWaterTracks loadTracks hands each
-// record to the glue) - full within `nearR` world units of a crest's footprint, none beyond `farR`. The footprint is where the
-// crest breaks on the beach: its record's start point (WaterTracksObj::init: the start is the wave's furthest reach), across
-// the wave's travel by the type's final width, centred (render: the front's origin minus half the width along m_perpDir). The
-// record's end point is only a DIRECTION - init normalises end - start - so a long one is the same wave as a unit one and must
-// give the same footprint (the raw start-end pair as a shoreline segment gated foam far from the breaker). A pond or a river with no surf
-// (every stock map without a .wak, and the ponds and rivers of most with one) shows retail's soft water edge again. TournamentB
-// (921 crests, ~20 units apart round the coast): 87% of its foam cells lie within 30 units of a crest, 91% within 60 (measured
-// 22/10 from the map and its .wak). A degenerate pair is a hard step at `nearR`; NaN reads as far.
+// THE SURF: foam is drawn only near the map's breaking waves (the .wak crests): full within
+// `nearR` of a crest's footprint, none beyond `farR`; ponds and rivers with no surf show retail's soft edge.
+// Footprint: the start point (the wave's furthest reach), across its travel by the type's final width.
+// The end point is only a DIRECTION (init normalises end - start). Degenerate pair: hard step; NaN reads as far.
 inline float gxWaterLiveSegmentDistance(float px, float py, float ax, float ay, float bx, float by)
 {
 	const float vx = bx - ax, vy = by - ay;
@@ -739,21 +695,10 @@ inline int gxWaterLiveSplitTriangle(const GxFoamPt in[3], GxFoamPt out[9], int *
 	return tris;
 }
 
-// ---------------------------------------------------------------------------------------------------------------------------
-// EA'S CRESTS, GROWN IN. GeneralsX:
-// Retail (W3DWaterTracks.cpp) gives every crest of a map ONE
-// clock (SYNC_WAVES: each bindTrack resets them all) and rides a crest in as a sliver: a Pond crest (TournamentB's 921 are all
-// Pond) is 28 x 0.01 wide and 0.18 of that deep - 0.05 world units - while it approaches, and its alpha is already 1 the moment
-// it reaches the beach and starts to stretch. So the whole coast drew a sharp full-white line out of nothing in one frame
-// (Mini 22/10, frame 855: nothing at 850, the line at 855). With live water's waves part each crest instead
-//   - keeps the swell's time: it breaks when the live swell reaches its break point - the lapping foam's own phase there
-//     (gxWaterLiveCoastPhase), shifted by a gentle irregularity so a coast square to the flow, which the swell reaches all at
-//     once, still breaks in sections - once per lap at each place (whole laps when its life is longer than one);
-//   - forms OFFSHORE: it rides in at its retail speed for at least kGxCrestApproachMs as a crest with body, from nothing,
-//     building with a smoothstep to kGxCrestBreakAlpha at the break, and whitens to full only through the first part of its
-//     surge - no step anywhere;
-//   - then surges, stops and fades on retail's own kinematics (the look wh1ter0se chose), its fade eased instead of linear.
-// All of it in milliseconds of the live clock (game seconds, a double: gxWaterLiveClockStep), not retail's integer per-draw sum.
+// EA'S CRESTS, GROWN IN: retail rides all crests in on one clock as slivers, so a white line appeared from nothing.
+// Live water breaks each crest when the swell reaches it (gxWaterLiveCoastPhase plus irregularity), forming it
+// OFFSHORE for at least kGxCrestApproachMs building to kGxCrestBreakAlpha, then surges and fades as in retail.
+// All in milliseconds of the live clock (game seconds, a double: gxWaterLiveClockStep).
 
 static constexpr float kGxCrestApproachMs = 1500.0f;	// the shortest ride in from offshore (retail Pond: 389 ms, 7 units)
 static constexpr float kGxCrestBody = 0.2f;				// the crest's depth while riding in, a share of its surge (retail Pond: 0.003)
@@ -882,19 +827,10 @@ inline GxCrestShape gxWaterLiveCrestAt(const GxCrestRetail &r, double seconds, f
 //   source       0x80000000 | type << 28 (0 r, 1 input v, 2 const c, 3 t) | swizzle << 16 (0xe4 rgba, 0xaa bbbb) | n
 // The source text is beside each array; scripts/test/look-water-live-test.cpp decodes the tokens back to that text.
 
-// Standing water's glints, a SECOND draw of the same mesh ADDED on top (blend ONE, ONE) after retail's own pass (stages as
-// setupFlatWaterShader leaves them: t1 WaterSurfaceBubbles, t2 Noise0000, t3 shroud or white; c1 glint colour, c2 sheen).
-// Added, not mixed into retail's pass: that pass is blended by the clear-water opacity (destination alpha), which faded the
-// glints with the water's clarity - on the Mini 17/10 they ended up FAINTER than retail's own sparkles. A glint is a
-// reflection on the surface; it does not care how clear the water under it is.
-//   ps.1.1
-//   tex t1 / tex t2 / tex t3
-//   mul r1, t1, t2            ; specks where the noise is bright (retail adds this, x1, into its own pass)
-//   mul_x4 r1, r1, r1         ; squared then x4: narrow bright peaks - sparkle, not soft blobs (Mini 17/10)
-//   mad r1.rgb, t2, c2, r1    ; + the noise's own moving sheen
-//   mul r1.rgb, r1, c1        ; x the sun's colour x strength
-//   mul r0.rgb, r1, t3        ; under the shroud
-//   +mov r0.a, c1             ; (alpha unused by ONE, ONE)
+// Standing water's glints: a SECOND draw of the same mesh ADDED on top (blend ONE, ONE) after retail's pass.
+// Stages from setupFlatWaterShader: t1 WaterSurfaceBubbles, t2 Noise0000, t3 shroud/white; c1 glint, c2 sheen.
+// Added, not mixed into retail's pass: that pass is blended by clear-water opacity, which faded the glints.
+// ps.1.1: r1 = (t1*t2)^2 x4 + t2*c2; x c1; x t3 (shroud); alpha unused.
 static const unsigned kGxWaterGlareShader[] = {
 	0xffff0101,
 	0x00000042, 0xb00f0001, 0x00000042, 0xb00f0002, 0x00000042, 0xb00f0003,

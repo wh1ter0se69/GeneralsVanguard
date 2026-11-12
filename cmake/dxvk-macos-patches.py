@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 """
 Deprecated legacy helper for macOS DXVK patching.
 

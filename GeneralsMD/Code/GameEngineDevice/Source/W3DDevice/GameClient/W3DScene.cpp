@@ -59,11 +59,11 @@
 #include "GameClient/ParticleSys.h"
 #include "GameClient/Color.h"
 #include "GameClient/View.h"
-#include "GameClient/GXGfxProbe.h"	// [GXSHADOW], [GXGFXF] (graphics P2)
+#include "GameClient/GXGfxProbe.h"	// [GXSHADOW], [GXGFXF]
 #include "W3DDevice/GameClient/GXParallel.h"	// R-CPU pose pre-pass
-#include "W3DDevice/GameClient/GXRender/Scene/GxScene.h"	// WS-G L2 (census today)
+#include "W3DDevice/GameClient/GXRender/Scene/GxScene.h"	// L2 (census today)
 #include "W3DDevice/GameClient/GXRender/Scene/GxL2Dry.h"
-#include "W3DDevice/GameClient/GxInterop.h"	// WS-X hybrid spike
+#include "W3DDevice/GameClient/GxInterop.h"	// hybrid renderer interop
 #include "W3DDevice/GameClient/GxDrawRun.h"	// WS-X2 DrawRun
 #include "WW3D2/hlod.h"
 #include "WW3D2/hcanim.h"
@@ -126,8 +126,8 @@ static ShaderClass PlayerColorShader(SC_PLAYER_COLOR);
 RTS3DScene::RTS3DScene()
 {
 	setName("RTS3DScene");
-	GxScene_Install();	// GeneralsX: WS-G: installs nothing unless a GX_L2_* switch is set
-	GxInterop::Install();	// GeneralsX: WS-X: nothing unless GX_RENDER_HYBRID is set (GxInterop.h)
+	GxScene_Install();	// GeneralsX: installs nothing unless a GX_L2_* switch is set
+	GxInterop::Install();	// GeneralsX: nothing unless GX_RENDER_HYBRID is set (GxInterop.h)
 	GxDrawRun::Install();	// GeneralsX: WS-X2: nothing unless GX_HYBRID_DRAWRUN_TEST is set (GxDrawRun.h)
 	m_drawTerrainOnly = false;
 	m_numGlobalLights=0;
@@ -428,35 +428,10 @@ Bool RTS3DScene::castRay(RayCollisionTestClass & raytest, Bool testAll, Int coll
 	return hit;
 }
 
-//=============================================================================
-// GeneralsX: [GXDRAWCHECK] (GO). On 14/10 wh1ter0se saw two
-// destroyed oil derricks drawn standing in a live 0.9.64 game. The game had them dead, and no replay or live test of ours
-// reproduced it. So the client now watches for the two ways a building can be drawn in a state the game does not have,
-// and says so once in the log:
-//   ghost-clear: a fog-of-war ghost clone (a render object with a ghost and no drawable, W3DGhostObject's snapshot) is
-//                in the scene while its object is CLEAR to the viewed player. That is fogged memory drawn over a
-//                building he can see.
-//   rubble-model: a DESTROYED structure (RUBBLE) has a draw module holding the render object of another
-//                model than the one its condition flags select (W3DModelDrawModuleData::findBestInfo): a dead building
-//                drawn standing. Only destroyed ones: a living structure legitimately holds other models (build-up
-//                scaffolds, GLA construction models, door animations - 32 such holds in the first test run).
-// Both are checked where the culling loop of Visibility_Check meets them, right after the dirty lock has flushed every
-// drawable: ghost-clear for every ghost clone in the scene, rubble-model only for a model the loop has just found VISIBLE
-// (drawn this frame). W3DModelDraw finishes a pending transition only while it draws, so an off-screen structure may
-// legitimately still hold its old model; and a dead building drawn standing matters where it is drawn.
-// A report needs the same finding on consecutive passes, with its first and latest sightings GXDC_HOLD_FRAMES apart (5 s
-// at 60 Hz) and frames rendered in between, so a transition, an allow-to-finish animation or a flush still pending never
-// reports; a real leak stays for good.
-// COST (the first version cost up to 0.99 ms on one frame every 2 s): a pass starts every GXDC_INTERVAL logic
-// frames and is spread over 8-64 rendered frames; each frame checks one slice (a hash of the ghost object or the drawable
-// id, so an item is in the same slice on every pass) and adds no walk of its own - the culling loop walks the scene
-// anyway. The slice count follows the last pass's item count, about GXDC_ITEMS_PER_SLICE items per frame. Nothing but ids
-// and values is kept across frames. The checks only read: no game, drawable or scene state is written.
-// CLIENT ONLY: this file is not in the SimID digest, and nothing in the simulation reads anything here. -headless never
-// renders, so it never runs there.
-// GX_DRAWCHECK=0 turns it off. GX_DRAWCHECK_STATS=1 prints the cost per frame and per pass. GX_TEST_DRAWCHECK_PLANT plants
-// each case (test only, see gxDrawCheckPlant).
-//=============================================================================
+// [GXDRAWCHECK]: a client-side watch for two ways a building is drawn wrongly, logged once each. ghost-clear:
+// a fog-of-war ghost clone is in the scene while its object is CLEAR to the viewer. rubble-model: a DESTROYED
+// structure drawn with a model its condition flags do not select. Needs the same finding on consecutive passes.
+// CLIENT ONLY. GX_DRAWCHECK=0 turns it off; GX_DRAWCHECK_STATS=1 prints cost.
 static const UnsignedInt GXDC_INTERVAL = 120;	// logic frames from one pass start to the next: 2 s at 60 Hz
 static const Int GXDC_MIN_SLICES = 8;			// a pass takes at least 8 rendered frames...
 static const Int GXDC_MAX_SLICES = 64;			// ...and at most 64
@@ -909,11 +884,11 @@ static Int gxDrawCheckFrame()
 //=============================================================================
 void RTS3DScene::Visibility_Check(CameraClass * camera)
 {
-	gxDrawCheckPlant();	// GeneralsX @diagnostic [GXDRAWCHECK] test plants: before the lock, they reach getDrawModules
+	gxDrawCheckPlant();	// GeneralsX: [GXDRAWCHECK] test plants: before the lock, they reach getDrawModules
 #ifdef DIRTY_CONDITION_FLAGS
 	StDrawableDirtyStuffLocker lockDirtyStuff;
 #endif
-	const Int gxDcSlice = gxDrawCheckFrame();	// GeneralsX @diagnostic [GXDRAWCHECK]: every drawable is flushed here
+	const Int gxDcSlice = gxDrawCheckFrame();	// GeneralsX: [GXDRAWCHECK]: every drawable is flushed here
 
 	RefRenderObjListIterator it(&RenderList);
 	DrawableInfo *drawInfo = nullptr;
@@ -973,7 +948,7 @@ void RTS3DScene::Visibility_Check(CameraClass * camera)
 
 			robj = it.Peek_Obj();
 
-			if (gxDcSlice >= 0)	// GeneralsX @diagnostic [GXDRAWCHECK]: this frame's slice of the ghost clones, read only
+			if (gxDcSlice >= 0)	// GeneralsX: [GXDRAWCHECK]: this frame's slice of the ghost clones, read only
 			{
 				const DrawableInfo *gxDcInfo = (const DrawableInfo *)robj->Get_User_Data();
 				if (gxDcInfo != nullptr && gxDcInfo->m_drawable == nullptr && gxDcInfo->m_ghostObject != nullptr)
@@ -1005,7 +980,7 @@ void RTS3DScene::Visibility_Check(CameraClass * camera)
             if ( ! isVisible )
               continue;
 
-						if (gxDcSlice >= 0)	// GeneralsX @diagnostic [GXDRAWCHECK]: a visible model of this frame's slice, read only
+						if (gxDcSlice >= 0)	// GeneralsX: [GXDRAWCHECK]: a visible model of this frame's slice, read only
 							gxDrawCheckModel(robj, draw, gxDcSlice);
 
 						if (draw->getEffectiveOpacity() != 1.0f && m_translucentObjectsCount < TheGlobalData->m_maxVisibleTranslucentObjects)
@@ -1116,7 +1091,7 @@ static void gxCensusObject(RenderInfoClass &rinfo, RenderObjClass *robj, Bool sh
 	const float t = tanf(0.5f * rinfo.Camera.Get_Vertical_FOV());
 	const float px = (d > 1.0e-3f && t > 1.0e-6f) ? sph.Radius / d * halfH / t : 1.0e9f;
 	// the meshes HLodClass::Render would draw: current LOD and additional models, minus hidden ones (upgrades,
-	// muzzle flashes) and OBBOX helpers (rcpu r3)
+	// muzzle flashes) and OBBOX helpers
 	int meshes = 0;
 	if (robj->Class_ID() == RenderObjClass::CLASSID_HLOD) {
 		HLodClass *h = (HLodClass *)robj;
@@ -1260,13 +1235,12 @@ Bool RTS3DScene::prepareOneObject(RenderObjClass *robj, Int localPlayerIndex, Gx
 	// GeneralsX: Only a CLEAR that came from an object's shroud query. A drawable with no object -
 	// such as the building ghost that follows the cursor while placing (InGameUI's m_placeIcon, newDrawable with no object) -
 	// is CLEAR by assumption above and retail never gives it the shroud pass, fogged ground or not; the fade had it turn
-	// darker only while vision was changing near it (tester report 21/10, ghost at the edge of vision).
+	// darker only while vision was changing near it.
 	W3DShroud *fadeShroud = TheTerrainRenderObject ? TheTerrainRenderObject->getShroud() : nullptr;
 	if (ss == OBJECTSHROUD_CLEAR && ssFromObject && fadeShroud && fadeShroud->isFading())
 	{
 		// A mesh's cached sphere keeps its unscaled radius while W3DModelDraw scales its render transform, so scale the radius by
 		// the transform's largest axis (and the object scale) - conservative for objects whose sphere already includes it
-		//
 		const Matrix3D &tm = robj->Get_Transform();
 		Real scale = tm.Get_X_Vector().Length();
 		const Real sy = tm.Get_Y_Vector().Length();
@@ -1468,7 +1442,7 @@ void RTS3DScene::renderPreparedObject(RenderInfoClass &rinfo, RenderObjClass *ro
 			//Must be ghost object because we don't fog normal things.  Fogged objects always have a predefined
 			//lighting environment applied which emulates the look of fog.
 			rinfo.light_environment = &m_foggedLightEnv;
-			gxCensusObject(rinfo, robj, FALSE, TRUE);	// a fog ghost: counted, not a shroud material pass (rcpu r2)
+			gxCensusObject(rinfo, robj, FALSE, TRUE);	// a fog ghost: counted, not a shroud material pass
 			robj->Render(rinfo);
 			rinfo.light_environment = nullptr;
 			return;
@@ -1574,7 +1548,7 @@ void RTS3DScene::renderPreparedObject(RenderInfoClass &rinfo, RenderObjClass *ro
 			{
 				rinfo.Push_Material_Pass(m_maskMaterialPass);
 				rinfo.Push_Override_Flags(RenderInfoClass::RINFO_OVERRIDE_ADDITIONAL_PASSES_ONLY);
-				gxCensusObject(rinfo, robj, FALSE);	// the alpha-mask pass renders too (rcpu r3)
+				gxCensusObject(rinfo, robj, FALSE);	// the alpha-mask pass renders too
 				robj->Render(rinfo);
 				rinfo.Pop_Override_Flags();
 				rinfo.Pop_Material_Pass();
@@ -1600,7 +1574,7 @@ void RTS3DScene::renderPreparedObject(RenderInfoClass &rinfo, RenderObjClass *ro
 void RTS3DScene::Flush(RenderInfoClass & rinfo)
 {
 	gxGfxSubStart();	// [GXGFXF]: Flush can run without Customized_Render before it
-	// GeneralsX: WS-G: the L2 contract's pass context - the same test as DoShadows' below
+	// GeneralsX: the L2 pass context - the same test as DoShadows' below
 	GxL2Dry_SetPass(m_customPassMode == SCENE_PASS_DEFAULT && Get_Extra_Pass_Polygon_Mode() == EXTRA_PASS_DISABLE);
 	// TheSuperHackers @bugfix Now always prepares shadows to guarantee correct state before doing any
 	// shadow draw calls. Originally just drawing shadows for trees would not properly prepare shadows.
@@ -1615,7 +1589,7 @@ void RTS3DScene::Flush(RenderInfoClass & rinfo)
 	// recorded and replayed by the render thread while this thread collects the next player's objects; End_Record
 	// returns once all of it has reached the device. A no-op when GX_D3D8RING is unset.
 	DX8Ring::Begin_Record();
-	GxFlushSiteNext = GXFS_MAIN_OPAQUE;	// GeneralsX: WS-G flush sites (dx8renderer.h GxFlushSite)
+	GxFlushSiteNext = GXFS_MAIN_OPAQUE;	// GeneralsX: flush sites (dx8renderer.h GxFlushSite)
 	GxFlushProf::InBracket = GxFlushProf::On;
 	const long long gxProfT0 = GxFlushProf::On ? GxFlushProf::Now() : 0;
 	TheDX8MeshRenderer.Flush();	//draw all non-translucent objects.
@@ -1670,7 +1644,7 @@ void RTS3DScene::Flush(RenderInfoClass & rinfo)
 		gxGfxSubMark(GXSUB_SORT);
 	}
 	TheDX8MeshRenderer.Clear_Pending_Delete_Lists();
-	GxL2Dry_SetPass(false);	// WS-G: a flush outside RTS3DScene::Flush is not the plain scene pass
+	GxL2Dry_SetPass(false);	// a flush outside RTS3DScene::Flush is not the plain scene pass
 	m_enabledDynamicLightsValid = FALSE;	// see Customized_Render
 }
 
@@ -1886,18 +1860,11 @@ void RTS3DScene::Render(RenderInfoClass & rinfo)
 //=============================================================================
 /** Custom render method for the RTS3DScene, custom render properties for our
   * particular game go here */
-//=============================================================================
-// GeneralsX: R-CPU pose pre-pass (modernize/render-split). Rebuilding
-// skeletal poses was ~8% of the main thread in a running 6v6 (Mini profile, HLodClass::Update_Sub_Object_Transforms
-// inclusive), one object at a time inside Render. Here, after visibility and every On_Frame_Update and before anything
-// renders, each visible ROOT HLOD whose pose Render would rebuild now (Animatable3DObjClass::Pose_Needs_Build: the same
-// tests; HLodClass::Render calls Animatable3DObjClass::Render unconditionally - keep the two in step) is rebuilt on the
-// GXParallel workers instead; Render then finds the pose current and keeps it (pose cache,
-// Keep_Current_Pose). Exact: the same function on the same object at the same WW3D clock reading, which only steps in
-// W3DDisplay::draw before the views draw; a job poses one root tree (its LODs, additional models and their own
-// sub-objects) and nothing else. Trees with a compressed motion, embedded sounds or a sub-object class outside the
-// whitelist (HLodClass::Sub_Object_Is_Worker_Safe) stay with Render on the main thread (Pose_Is_Worker_Safe).
-// GX_POSEPAR=0 turns it off; GX_POSECACHE=2 checks every pre-built pose against a rebuild.
+// R-CPU pose pre-pass: after visibility and every On_Frame_Update, before anything renders, each visible
+// ROOT HLOD whose pose Render would rebuild (Pose_Needs_Build; keep the two in step) is rebuilt on the workers.
+// Exact: same function, same WW3D clock reading. Trees with a compressed motion, embedded sounds or a sub-object
+// class outside the whitelist stay on the main thread (Pose_Is_Worker_Safe).
+// GX_POSEPAR=0 turns it off; GX_POSECACHE=2 checks each pose against a rebuild.
 static int gxPosePrepassMode()
 {
 	static const int s_mode = [] {
@@ -1907,7 +1874,7 @@ static int gxPosePrepassMode()
 	return s_mode;
 }
 
-// The checks run in the jobs too (review of the first cut: on the main thread they cost about half of what the workers
+// The checks run in the jobs too (on the main thread they cost about half of what the workers
 // saved). Both only read the job's own tree. Counts go through two atomics, one add per chunk.
 static std::atomic<unsigned> s_posePrebuilt{ 0 };
 static std::atomic<unsigned> s_poseMainOnly{ 0 };
@@ -1959,16 +1926,10 @@ static void gxPrebuildPoses(RefRenderObjListClass &renderList)
 	st.prepassRunNs += (unsigned long long)std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
 }
 
-// GeneralsX: A depth-only floor under the whole world, drawn right after the
-// terrain: nothing below FLOOR_Z can show. The 2003 animations hide parts by parking their bones kilometres under the ground -
-// the GLA Worker's gun and supply sack sit at z -1261..-8197 (UIWRKR_IDA/RNA/TRA2...), and 70+ skeletons do the same
-// (Rebels, angry mobs, hackers, tunnel defenders, Black Lotus...). Inside the map the terrain hides them from any camera; but a
-// camera far enough out to see past the map's near edge (Debug camera heights, the whole-map spectator view) looks under the
-// map, and they showed there as small specks moving in the black void as the workers walked.
-// Depth only (colour writes off), so the void keeps its clear colour, fog never touches it, and nothing above FLOOR_Z changes:
-// terrain heights are unsigned bytes * MAP_HEIGHT_SCALE, so no ground is ever below 0. Client-only, render-only.
-// GX_FLOOR_Z (TEST-ONLY, read once, for picture A/Bs): "off" = no floor, a number = that height (a fail arm sets one above the
-// ground to prove a comparison sees a change); unset = -100.
+// A depth-only floor under the whole world, drawn right after the terrain: nothing below FLOOR_Z can show.
+// 2003 animations park bones kilometres underground, which showed as specks in the void to a far-out camera.
+// Depth only, so nothing above FLOOR_Z changes (no ground is below 0).
+// GX_FLOOR_Z (TEST-ONLY): "off" = no floor, a number = that height; unset = -100.
 static void gxDrawUnderworldFloor( RenderInfoClass &rinfo )
 {
 	static Bool s_read = FALSE;
@@ -2082,12 +2043,8 @@ void RTS3DScene::Customized_Render( RenderInfoClass &rinfo )
 			it.Peek_Obj()->On_Frame_Update();
 		}
 	}
-	// GeneralsX: renderOneObject walked the whole dynamic light pool for every object it
-	// lights, and the pool keeps every light pulse ever made (a spent one is only disabled, for reuse), so a battle
-	// paid objects x pool_size list steps and isEnabled() loads - the hottest lines of renderOneObject in the Mini
-	// profile. A light's enabled state changes in the On_Frame_Update calls just above (W3DDynamicLight's decay) and
-	// outside rendering (getADynamicLight: light pulses, police-car draw modules, which run before the scene renders),
-	// so from here to the end of this pass's Flush the enabled lights, in list order, are exactly these.
+	// Cache the enabled dynamic lights: renderOneObject would otherwise walk the whole pool for every object it lights, and the pool keeps every light pulse ever made (a spent one is only disabled, for reuse), so a battle paid objects x pool_size list steps and isEnabled() loads.
+	// A light's enabled state changes only in the On_Frame_Update calls just above (W3DDynamicLight's decay) and outside rendering (getADynamicLight: light pulses, police-car draw modules, which run before the scene renders), so from here to the end of this pass's Flush the enabled lights, in list order, are exactly these.
 	m_enabledDynamicLights.clear();
 	{
 		RefRenderObjListIterator dynaLightIt(&m_dynamicLightList);
@@ -2101,7 +2058,7 @@ void RTS3DScene::Customized_Render( RenderInfoClass &rinfo )
 	m_enabledDynamicLightsValid = TRUE;
 	gxGfxSubMark(GXSUB_FUPD);
 
-	// GeneralsX: S7 PREREG A49/A50: the shadow map's frame starts here - after every On_Frame_Update,
+	// GeneralsX: the shadow map's frame starts here - after every On_Frame_Update,
 	// before gxPrebuildPoses and any object - under gxPrebuildPoses' own guard (the plain scene pass: never the wireframe / extra / mirrored
 	// passes) and only for the camera W3DView armed. A null test unless armed. Its time is charged to [GXGFXF] TERR (census line says so).
 	if (m_customPassMode == SCENE_PASS_DEFAULT && Get_Extra_Pass_Polygon_Mode() == EXTRA_PASS_DISABLE
@@ -2324,16 +2281,13 @@ void renderStenciledPlayerColor( UnsignedInt color, UnsignedInt stencilRef, Bool
 
 }
 
-// GeneralsX: GX_OCCLSTATS=1: where flushOccludedObjectsIntoStencil's time goes (render-split G0 found the
-// "occl" span at 4.7 ms of a 12.9 ms late-game scene on wh1ter0se's PC). One "[GXOCCL]" line per second: calls, then per-call means
-// of what it sees (occluders, occludees and the translucent ones among them, other objects, player colours, mesh flushes) and
-// the wall ms of its phases - occludees by player (plus the bucket sort), other objects, occluders, the colour quads and the
-// stencil clear - with the mesh-renderer flushes' share of those phases separated out ("flush"). Off: one branch per call.
+// GX_OCCLSTATS=1: where flushOccludedObjectsIntoStencil's time goes. One "[GXOCCL]" line per second: calls, then per-call means of what it sees (occluders, occludees and the translucent ones among them, other objects, player colours, mesh flushes)
+// and the wall ms of its phases - occludees by player (plus the bucket sort), other objects, occluders, the colour quads and the stencil clear - with the mesh-renderer flushes' share of those phases separated out ("flush"). Off: one branch per call.
 struct GxOcclStats
 {
 	unsigned long calls, occluders, occludees, transl, others, colors, flushes, plain;
 	int64_t tOccludees, tOthers, tOccluders, tColors, tFlush, tFlushTransl, tFlushBucket, tEmpty;
-	int64_t tPlainFlush;	// the no-occlusion path's flush, kept out of the stencil calls' per-call means (rcpu r1)
+	int64_t tPlainFlush;	// the no-occlusion path's flush, kept out of the stencil calls' per-call means
 	int64_t nextPrint;
 };
 static GxOcclStats s_gxOccl;
@@ -2385,25 +2339,10 @@ static void gxOcclFlush( int64_t *also = nullptr, bool plain = false )
 	++s_gxOccl.flushes;
 }
 
-// GeneralsX: R-CPU 1f parallel object collection (
-// §1.1). flushOccludedObjectsIntoStencil renders nearly every object when building
-// occlusion is on, each one lit and linked into the mesh renderer's shared lists by renderOneObject on the main thread.
-// Here those objects are first prepared on the main thread in the order the function renders them (prepareOneObject:
-// the drawable reads and the shroud query, which writes simulation caches), then the plain ones - drawable, no tint,
-// selection or heat vision, unshrouded, every pose current, every tree class a mesh/null/HLOD (gxTreeWorkerSafe) - are
-// lit and walked on the GXParallel workers. A worker's mesh renders write only that mesh's own state; the adds that
-// would link it into a shared list are recorded (GxCollectSink, dx8renderer.cpp), and so is each pose keep. The
-// function then replays each object's records at the object's own place in its loops, between the same flushes, so
-// every list is exactly what the serial walk would have built; any other object renders there as before.
-// GX_COLLECTPAR: 0 off; 1 on; 2 on + check - each worker-collected object is also collected serially on the
-// main thread, the two record lists and every linked mesh's lighting state are compared ([GXCOLL] chk= bad=), and the
-// serial records are the ones replayed; 3 = 2 with the workers perturbed on purpose (the check's negative control);
-// 4 = 1 plus a deliberate data race in the jobs (the ThreadSanitizer lane's mutant). GX_COLLECTSTATS=1: [GXCOLL] lines.
-// Unset or empty = GX_COLLECTPAR_DEFAULT.
-// GeneralsX: On by default where it gains: macOS - the Mini, G2 R1 frame time
-// -0.758 ms (n=6+6, fully separated, 0.9.62 round 36). Windows stays OFF: wh1ter0se's PC overlapped on 0.9.61 (+0.248 ms) and was not
-// re-timed on 0.9.62. iOS and Linux were never measured. GX_COLLECTPAR=0 turns it off, =1 on.
-// scripts/test/collectpar-default-test.sh compiles this per platform.
+// Parallel object collection. Objects are prepared on the main thread in render order (prepareOneObject: the shroud
+// query writes simulation caches), then the plain ones are lit and walked on the GXParallel workers; shared-list
+// adds are recorded and replayed in serial order. GX_COLLECTPAR: 0 off, 1 on, 2 on + check, 3-4 test-only
+// negative controls. On by default on macOS only.
 #if defined(__APPLE__) && !TARGET_OS_IPHONE
 static constexpr int GX_COLLECTPAR_DEFAULT = 1;	// macOS
 #else
@@ -2526,18 +2465,10 @@ static int gxMeshWorkerSafe(MeshClass *mesh)
 		return GXC_R_MESHSORT;
 	return 0;
 }
-// GeneralsX: hcanim-ceiling option B: the motions a collected tree may carry - Pose_Is_Worker_Safe's
-// set (no motion, the base pose, a raw single motion without sounds) plus a single TIMECODED compressed motion without sounds. Such a
-// pose is still built only on the main thread (the pose pre-pass keeps Pose_Is_Worker_Safe, and a dirty or stale pose stays serial in
-// gxTreeWorkerSafe), so a worker meets it only clean and clock-current, where Render keeps it (Keep_Current_Pose) without decoding.
-// What changes is the order of the main thread's decodes (the in-order prepare may pose the tree before its serial place), and a
-// timecoded channel's values do not depend on that order: TimeCodedMotionChannelClass::get_index returns the packet
-// binary_search_index would, CachedIdx only skips the search (motchan.cpp). Adaptive-delta channels do depend on it
-// (CacheFrame/CacheData), so they stay out, as do blends, combos, morphs and embedded sounds. The order-independence holds for a
-// query at or above the first key (below it binary_search_index never ends, either path); every shipped channel starts at key 0.
-// Not under GX_POSECACHE=3, the pose cache's negative control: Is_Clock_Pose_Current drops its frame test there, so a stale
-// compressed child of a clean static root would pass Pose_Needs_Build and a worker would cull its meshes with the old transform
-// before the main thread's POSE replay moves them (hcanim-ceiling-q1 C3).
+// The motions a collected tree may carry: Pose_Is_Worker_Safe's set plus a single TIMECODED compressed motion
+// without sounds. The pose is still built on the main thread only, so a worker meets it clean and clock-current.
+// A timecoded channel's values do not depend on decode order; adaptive-delta channels do, so they stay out.
+// Not under GX_POSECACHE=3, whose negative control drops Is_Clock_Pose_Current's frame test.
 static bool gxMotionWorkerSafe(HLodClass *h)
 {
 	if (h->Animatable3DObjClass::Pose_Is_Worker_Safe())
@@ -2606,7 +2537,7 @@ static int gxTreeWorkerSafe(RenderObjClass *robj, int &cls)
 
 // A light below a container with dirty sub-object transforms: its Get_Position (Add_Light) or bounding sphere would
 // rebuild that container's pose (RenderObjClass::Validate_Transform); in serial order the first object lit with it does,
-// on the main thread, so every object lit with such a dynamic light stays there (adv1 P1).
+// on the main thread, so every object lit with such a dynamic light stays there.
 static bool gxLightContainerDirty(RenderObjClass *light)
 {
 	for (RenderObjClass *c = light->Get_Container(); c != nullptr; c = c->Get_Container())

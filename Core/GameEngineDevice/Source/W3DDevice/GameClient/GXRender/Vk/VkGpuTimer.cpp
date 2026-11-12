@@ -1,4 +1,22 @@
-// GeneralsX: WS-B VkCtx v0 - see VkGpuTimer.h.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// See VkGpuTimer.h.
 #include "VkGpuTimer.h"
 
 #include "vk_mem_alloc.h"
@@ -109,7 +127,7 @@ bool VkGpuTimer::readPair(uint32_t first, uint64_t* a, uint64_t* b, bool forceLa
 	static_assert((kFlags & VK_QUERY_RESULT_WAIT_BIT) == 0, "R26: the timer's reads must never wait on a query");
 	const VkResult r = vkGetQueryPoolResults(m_ctx->device(), m_pool, first, 2, sizeof(v), v, 2 * sizeof(uint64_t), kFlags);
 	if (forceLate)
-		v[1] = v[3] = 0;   // TEST (R26): the driver's answer, with its availability words as MoltenVK's late stamps leave them
+		v[1] = v[3] = 0;   // TEST: the driver's answer, with its availability words as MoltenVK's late stamps leave them
 	if (r != VK_SUCCESS || !v[1] || !v[3])
 		return false;
 	*a = v[0];
@@ -118,7 +136,7 @@ bool VkGpuTimer::readPair(uint32_t first, uint64_t* a, uint64_t* b, bool forceLa
 }
 
 // A probe reads its stamps only after its submission has COMPLETED (a timeline wait), yet MoltenVK can still report them
-// unavailable for a moment after that: OBSERVED at 33d36f1cc, 1 gputime run in 10 REJECTED "timestamps unavailable" (R26). So a
+// unavailable for a moment after that: OBSERVED, 1 gputime run in 10 REJECTED "timestamps unavailable". So a
 // probe read retries for up to 50 ms of WALL time, then reports them unavailable as before (the probe fails: fail closed). Never
 // VK_QUERY_RESULT_WAIT_BIT: on a conformant driver a stamp that was never written would block that forever (MoltenVK 1.4.2 does
 // not - see readPair, whose static_assert is the guard). Per-frame reads (readFrame) keep one read: an unavailable scope is
@@ -127,17 +145,17 @@ bool VkGpuTimer::readPairSettled(uint32_t first, uint64_t* a, uint64_t* b, uint6
 {
 	const auto start = std::chrono::steady_clock::now();
 	auto read = [&]() {
-		const double lateMs = g_testMutants.gpuTimerLateMs;   // TEST: unavailable until then (R26's arms), faked inside readPair
+		const double lateMs = g_testMutants.gpuTimerLateMs;   // TEST: unavailable until then, faked inside readPair
 		return readPair(first, a, b,
 			lateMs > 0 && std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count() < lateMs);
 	};
 	const auto end = start + std::chrono::milliseconds(50);
-	// a read counts only if it FINISHED inside the window: neither a late wake nor a slow query call can stretch it (r26-r1 #1, r2 #1)
+	// a read counts only if it FINISHED inside the window: neither a late wake nor a slow query call can stretch it
 	auto inTime = [&]() { return read() && std::chrono::steady_clock::now() < end; };
 	if (inTime())
 		return true;
 	if (g_testMutants.gpuTimerNoSettle)
-		return false;   // the plant: one read, as before R26
+		return false;   // the plant: one read, no settle window
 	for (;;) {
 		std::this_thread::sleep_for(std::chrono::microseconds(250));
 		if (std::chrono::steady_clock::now() >= end)
@@ -159,11 +177,11 @@ bool VkGpuTimer::probeGap(double gapMs, double* gpuMs, double* lowerMs, double* 
 
 	vkBeginCommandBuffer(m_probeCmd[0], &bi);
 	vkCmdResetQueryPool(m_probeCmd[0], m_pool, q, 2);
-	if (!g_testMutants.gpuTimerNoStamps)   // TEST (R26): the query stays unwritten
+	if (!g_testMutants.gpuTimerNoStamps)   // TEST: the query stays unwritten
 		vkCmdWriteTimestamp2(m_probeCmd[0], VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, m_pool, q);
 	vkEndCommandBuffer(m_probeCmd[0]);
 	vkBeginCommandBuffer(m_probeCmd[1], &bi);
-	if (!g_testMutants.gpuTimerNoStamps)   // TEST (R26): the query stays unwritten
+	if (!g_testMutants.gpuTimerNoStamps)   // TEST: the query stays unwritten
 		vkCmdWriteTimestamp2(m_probeCmd[1], VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, m_pool, q + 1);
 	vkEndCommandBuffer(m_probeCmd[1]);
 
@@ -212,19 +230,19 @@ bool VkGpuTimer::probeScale(VkBuffer src, VkBuffer dst, VkDeviceSize bytes, doub
 	const bool mutant = g_testMutants.timestampBeforeWork;
 	vkBeginCommandBuffer(m_probeCmd[0], &bi);
 	vkCmdResetQueryPool(m_probeCmd[0], m_pool, q, 2);
-	if (!g_testMutants.gpuTimerNoStamps)   // TEST (R26): the query stays unwritten
+	if (!g_testMutants.gpuTimerNoStamps)   // TEST: the query stays unwritten
 		vkCmdWriteTimestamp2(m_probeCmd[0], VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, m_pool, q);
 	if (mutant) {
 		// The defect: the stamps bracket a 256-byte copy, the real workload runs in a LATER submission. (Inside one command
 		// buffer this mutant is not expressible on MoltenVK: a stamp between two copies of one blit encoder is sampled at
-		// the encoder boundary and still measured the big copy - OBSERVED 4 of 5 runs VALIDATED, 10/10/2026. And two
-		// stamps with nothing between them came back unavailable in 4 of ~12 runs.)
+		// the encoder boundary and still measured the big copy. Two stamps with nothing between them also came back
+		// unavailable in some runs.)
 		const VkBufferCopy tiny = { 0, 0, 256 };
 		vkCmdCopyBuffer(m_probeCmd[0], src, dst, 1, &tiny);
 	} else {
 		vkCmdCopyBuffer(m_probeCmd[0], src, dst, 1, &region);
 	}
-	if (!g_testMutants.gpuTimerNoStamps)   // TEST (R26): the query stays unwritten
+	if (!g_testMutants.gpuTimerNoStamps)   // TEST: the query stays unwritten
 		vkCmdWriteTimestamp2(m_probeCmd[0], VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, m_pool, q + 1);
 	vkEndCommandBuffer(m_probeCmd[0]);
 	SubmitDesc s;
@@ -404,9 +422,9 @@ bool VkGpuTimer::readFrame(uint32_t slot, std::vector<std::pair<const char*, dou
 		uint64_t a = 0, b = 0;
 		if (!readPair((slot * m_maxScopes + s) * 2, &a, &b))
 			continue;
-		// S7 A92 (the integrator's ruling after 03:2xZ 19/10): a pair whose modular delta exceeds half the valid range ran BACKWARDS (its
+		// A pair whose modular delta exceeds half the valid range ran BACKWARDS (its
 		// begin stamp written before the set's reset: MoltenVK still reports such a query available, with a stale value) - MISSING, never
-		// a number, and counted as itself (X-gputime-init: 18446744027136 ms before this guard)
+		// a number, and counted as itself (18446744027136 ms before this guard)
 		const uint64_t mask = m_validBits >= 64 ? ~0ull : ((1ull << m_validBits) - 1);
 		const uint64_t dt = delta(a, b);
 		if (dt > (mask >> 1)) {

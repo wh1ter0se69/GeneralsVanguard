@@ -1,4 +1,22 @@
-// GeneralsX: WS-C week 2: the decode fallback.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The decode fallback.
 //
 // A device without BC (Apple7/8 iPads may lack it; M3 = Apple9 has it, so the tests FORCE this path there) cannot sample the
 // game's DXT art. GxTexture then keeps the D3D8 contract - LockRect still hands out 4x4 blocks - and decodes each uploaded

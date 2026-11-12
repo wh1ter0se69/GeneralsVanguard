@@ -44,7 +44,7 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 #include "Common/GameAudio.h"
-#include "Common/FramePacer.h"	// GeneralsX @feature fast forward thins one-shot sounds (addAudioEvent)
+#include "Common/FramePacer.h"	// GeneralsX: fast forward thins one-shot sounds (addAudioEvent)
 
 #include "Common/AudioAffect.h"
 #include "Common/AudioEventInfo.h"
@@ -188,7 +188,7 @@ AudioManager::AudioManager() :
 //-------------------------------------------------------------------------------------------------
 AudioManager::~AudioManager()
 {
-	// GeneralsX @bugfix - Nothing drained the request list on the way down: no device destructor
+	// GeneralsX: Nothing drained the request list on the way down: no device destructor
 	// touches it, so every request still queued when the manager dies (and, for AR_Play, the
 	// AudioEventRTS it owns) was leaked. removeAllAudioRequests() releases both, and it is safe here
 	// because the requests reference neither m_music nor m_sound, which are deleted below.
@@ -320,7 +320,7 @@ void AudioManager::undoOverrideLoads()
 	for (size_t i = 0; i < m_overrideAdded.size(); ++i)
 	{
 		// A music track too: the score screen, which plays the map's ScoreScreenMusic AFTER this reset, plays it from a copy
-		// ScoreScreenInit took before it (r7 P2s), not by name.
+		// ScoreScreenInit took before it, not by name.
 		// By the entry, not by m_audioName: the table's key is the block's name, which the parser copies in only after the
 		// Default* event's (a block that failed before that line still left its entry).
 		for (AudioEventInfoHashIt it = m_allAudioEventInfo.begin(); it != m_allAudioEventInfo.end(); ++it)
@@ -474,41 +474,10 @@ void AudioManager::update()
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX: Shell map world-SFX attenuation.
-  *
-  * The shell map (Maps/ShellMap1) is a real running game behind the main menu, so its ambients and
-  * unit sounds play at full gameplay volume while the player is only trying to read a menu. This
-  * returns an extra multiplier applied ONLY to world sound effects while the shell game is active.
-  *
-  * Deliberately narrow: only AT_SoundEffect qualifies, so AT_Music and AT_Streaming - menu music and
-  * streamed dialog - are untouched. ST_WORLD is then required, so only audio the INI author marked as
-  * belonging to the world is attenuated. ST_WORLD is NOT sufficient on its own: these are combinable
-  * bits, so ST_GLOBAL and ST_VOICE are rejected explicitly below - ST_VOICE events are
-  * AT_SoundEffect, so unit and EVA speech would otherwise be caught. ST_UI is excluded too.
-  * Not isPositionalAudio(): that additionally demands an owning drawable or object, which an unowned
-  * map ambient does not have - and those ambients are what this feature exists to quieten.
-  *
-  * NO EDGE-DETECT IS NEEDED IN THIS TREE, and deliberately none was added. The scale reaches audio
-  * by three independent routes, all of which already run:
-  *   - audio started in the shell: the first gain ever written already carries the scale, because
-  *     every start-of-play path computes it through getEffectiveVolume() - adjustPlayingVolume()
-  *     before alSourcePlay() in OpenAL, the filter and AIL setup paths in Miles;
-  *   - audio already playing when the shell game is entered: applyVolumes() ends in an
-  *     unconditional m_volumeHasChanged = true and AudioManager::update() calls
-  *     set3DVolumeAdjustment() every frame, so processPlayingList() re-gains all three playing
-  *     lists on every frame the suppression below does not clear the flag. If a 3D-sensitive
-  *     stream is in the list at the moment the shell game is entered, an already-playing eligible
-  *     sound keeps its old gain until that stream ends - a bounded window, deliberately accepted,
-  *     because closing it means overriding the anti-hang suppression;
-  *   - fading audio: processFadingList() is not gated on the flag at all and recomputes from
-  *     getEffectiveVolume() every frame.
-  * Forcing m_volumeHasChanged on the shell-game transition would additionally have to be written
-  * after set3DVolumeAdjustment(), which would override its deliberate
-  * has3DSensitiveStreamsPlaying() suppression - the anti-hang hack this tree keeps on purpose.
-  *
-  * It never writes m_system*Volume or m_script*Volume, so the user's saved audio options and any
-  * map script volume stay authoritative; this composes multiplicatively on top of them.
-  */
+/** Extra multiplier for world sound effects while the shell map game is active. Only AT_SoundEffect with
+  * ST_WORLD qualifies; ST_GLOBAL, ST_VOICE and ST_UI are rejected (combinable bits). Not isPositionalAudio():
+  * unowned ambients count. Never writes m_system*Volume or m_script*Volume. Playing audio is re-gained via
+  * m_volumeHasChanged, which set3DVolumeAdjustment() may suppress while a 3D-sensitive stream plays. */
 //-------------------------------------------------------------------------------------------------
 Real AudioManager::getShellMapSoundVolumeScale( const AudioEventRTS *event ) const
 {
@@ -654,16 +623,9 @@ AudioHandle AudioManager::addAudioEvent(const AudioEventRTS *eventToAdd)
 		return AHSV_Muted;
 	}
 
-	// GeneralsX: Fast forward (FramePacer::setFastForward) thins one-shot world sound effects to
-	// one in k, so k times the gunfire per second does not become k times the voices, the playing list and its lookups
-	// (FiringTracker's isCurrentlyPlaying) - the audio stays at its 1x load. HERE, after the cull above, because everything
-	// before it can draw on the logical random seed for a logical event (RETAIL_COMPATIBLE_CRC: generateFilename,
-	// generatePlayInfo). What a caller gets back - no handle - is what it already gets on any peer with sound effects
-	// switched off (isOn, above) or for a sound not for the local player, and peers differing in both hold lockstep: no
-	// simulation state depends on it (FiringTracker keeps its handle out of crc/xfer).
-	// Only ordinary world one-shots, the class getShellMapSoundVolumeScale also singles out: ST_WORLD and not ST_GLOBAL,
-	// ST_VOICE or ST_UI, not a loop (a dropped loop stays silent until its owner re-adds it), not AP_CRITICAL. A global or
-	// critical cue is unique, not the k-th copy of a volley. The counter is wall-side state only.
+	// Fast forward thins one-shot world sound effects to one in k. After the cull above, since earlier code may draw the
+	// logical random seed (RETAIL_COMPATIBLE_CRC); no simulation state depends on the dropped handle. Only ST_WORLD
+	// one-shots (not ST_GLOBAL/ST_VOICE/ST_UI, loops or AP_CRITICAL). The counter is wall-side state only.
 	if (soundType == AT_SoundEffect && TheFramePacer != nullptr && TheFramePacer->isFastForwardActive())
 	{
 		const AudioEventInfo *info = audioEvent->getAudioEventInfo();
@@ -953,29 +915,8 @@ void AudioManager::setVolume( Real volume, AudioAffect whichToAffect )
 
 /// Recompute the four live volumes from the values that actually own them.
 ///
-/// GeneralsX: THE MUTE USED TO DESTROY THE VOLUMES IT MUTED, and restore
-/// them from a snapshot. That is the whole bug behind "I turn it down and it's still very loud",
-/// "it doesn't save", and the missing EVA announcer.
-///
-/// muteAudio zeroed m_system*Volume and stashed the old values in m_savedValues; unmuteAudio wrote
-/// the stash back. Both are driven by WINDOW FOCUS (WinMain.cpp:496-501, SDL3GameEngine.cpp:1255-
-/// 1273), so every alt-tab ran a full destroy/restore cycle. Two ways that loses the player's
-/// settings, both measured in one Windows match:
-///
-///   * anything that changed a volume WHILE muted was silently reverted on unmute - the snapshot
-///     is older than the change, and it wins;
-///   * a snapshot taken while the volumes were already zero restored ZEROS, permanently.
-///
-/// Measured over a single match with Options.ini at music=0.080 sound=0.060 sound3d=0.070
-/// speech=0.300, the restores walked away from the player's own settings:
-///     restore 1: 0.080 0.060 0.070 0.300   (correct, once)
-///     restore 2: 0.080 0.063 0.070 0.130
-///     restore 4: 0.010 0.045 0.050 0.020
-/// Speech ended 15x below what the player chose, which is why EVA went inaudible while effects
-/// stayed comparatively loud - the mix, not the master, is what people hear as "too loud".
-///
-/// So mute is now a FACTOR, not an edit. Nothing is destroyed, so nothing has to be restored, and
-/// a volume changed while muted simply takes effect when the window comes back.
+/// Mute is a factor, not an edit: it never overwrites m_system*Volume. Mute is driven by window focus, so the old
+/// zero-and-restore snapshot ran on every alt-tab, reverted changes made while muted, and could restore zeros.
 void AudioManager::applyVolumes( void )
 {
 	const Real mute = (m_muteReasonBits != 0) ? 0.0f : 1.0f;
@@ -1075,7 +1016,7 @@ void AudioManager::removeAllAudioRequests()
       continue;
     }
 
-    // GeneralsX @bugfix - An AR_Play request is the sole owner of the AudioEventRTS that
+    // GeneralsX: An AR_Play request is the sole owner of the AudioEventRTS that
     // SoundManager/MusicManager handed to it: ~AudioRequest is empty and releaseAudioRequest() only
     // frees the pool object, so throwing the queue away here leaked one AudioEventRTS per unprocessed
     // play request. reset() calls this on every map load, restart and return to the shell, so the
@@ -1404,7 +1345,7 @@ void AudioManager::unmuteAudio( MuteAudioReason reason )
 void INI::parseAudioSettingsDefinition( INI *ini )
 {
 	if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)
-		TheAudio->keepAudioSettingsForOverrideLoad();	// GeneralsX @bugfix: AudioManager::undoOverrideLoads puts them back
+		TheAudio->keepAudioSettingsForOverrideLoad();	// GeneralsX: AudioManager::undoOverrideLoads puts them back
 	ini->initFromINI(TheAudio->friend_getAudioSettings(), TheAudio->getFieldParseTable());
 
 	// time to override the volume settings, default 3-D provider, and speaker setup with the
@@ -1423,15 +1364,15 @@ void INI::parseAudioSettingsDefinition( INI *ini )
 	TheAudio->friend_getAudioSettings()->m_preferredMusicVolume		= prefs.getMusicVolume() / 100.0f;
 	TheAudio->friend_getAudioSettings()->m_preferredMoneyTransactionVolume = prefs.getMoneyTransactionVolume() / 100.0f;
 
-	// GeneralsX @note /08/2026 DO NOT "APPLY" THESE HERE. It is the obvious-looking fix and
+	// GeneralsX: DO NOT "APPLY" THESE HERE. It is the obvious-looking fix and
 	// it is wrong, measured: this parse runs BEFORE AudioManager::init(), while m_script*Volume is
 	// still zero, so setVolume() here computes m_musicVolume = 0 * preferred = 0 and the game goes
 	// silent. init() runs afterwards and copies m_preferred* into the live volumes itself
 	// (GameAudio.cpp:245-257), which is the correct and sufficient path.
 	//
 	// Evidence, macOS with Options.ini MusicVolume=1:
-	//     [GXVOL] the prefs music volume is set, the live music volume is still zero   <- here, too early
-	//     [GXVOL] after init() runs, the live music volume equals the prefs one (script volume at full)
+	//     [GXVOL] prefs music=0.010 ... live music=0.000      <- here, too early
+	//     [GXVOL] init() ran: prefs music=0.010 -> live music=0.010 (script=1.000)
 
 }
 

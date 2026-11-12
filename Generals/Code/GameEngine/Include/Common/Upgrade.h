@@ -279,20 +279,9 @@ protected:
 	Bool buttonImagesCached;
 
 	// GeneralsX: TheSuperHackers/GeneralsGameCode#1749, adapted
-	//
-	// parseUpgradeDefinition parses a map.ini's Upgrade block INTO the existing template, and reset()
-	// restored nothing, so a custom map's upgrade edits - and the upgrades it invented, with their
-	// mask bits - outlived the map and reached every later game in the process. A peer that had
-	// played that map then mismatched against one that had not.
-	//
-	// Upstream's PR deletes every template in reset() and re-reads the INI. That frees objects that
-	// live raw pointers still name - every startup CommandButton::m_upgradeTemplate, and what were
-	// function-local static pointers in AIUpdate / ChinookAIUpdate / WorkerAIUpdate / CommandXlat (now
-	// UpgradeTemplateRef) - and stays correct only while the memory pool happens to hand the same
-	// addresses back. Snapshot-and-restore instead, the same
-	// shape as the PlayerTemplate and OCL stores (TheSuperHackers #1972/#1974): the template OBJECTS
-	// never move, a map.ini's edits keep applying for the match exactly as before, and reset() copies
-	// the pristine values back. These lists stay empty unless a map actually overrides something.
+	// A map.ini Upgrade block is parsed into the existing template, so its edits and new upgrades must not outlive the map.
+	// Snapshot and restore, not upstream delete-and-reparse, which frees objects that raw pointers still name.
+	// Template objects never move. These lists stay empty unless a map overrides something.
 	std::vector< std::pair<UpgradeTemplate*, UpgradeTemplate*> > m_overrideBackups;	///< (live template, pristine copy) for each template an override load overwrote
 	std::vector<UpgradeTemplate*> m_overrideAdded;		///< templates an override load created this match (still linked)
 	std::vector<UpgradeTemplate*> m_overrideRetired;	///< created templates reset() unlinked; freed only in the destructor

@@ -207,7 +207,7 @@ UpdateSleepTime SpawnBehavior::update()
 		Bool runtimeProduced = getObject()->getProducerID()!=INVALID_ID; //this was produced by a production module, rather than a script or worldbuilder
 		Int now = TheGameLogic->getFrame();
 		Int burstInitCount = m_initialBurstCountdown;
-		UnsignedInt lastBurstFrame = now;	// GeneralsX @bugfix: when the last staggered barracks member is due (see below)
+		UnsignedInt lastBurstFrame = now;	// GeneralsX: when the last staggered barracks member is due (see below)
 		for( int listIndex = 0; listIndex < md->m_spawnNumberData; listIndex++ )
 		{
 			if ( md->m_initialBurst > 0 )
@@ -595,20 +595,10 @@ Object *SpawnBehavior::reclaimOrphanSpawn()
 			tempName != md->m_spawnTemplateNameData.end();
 			++tempName)
 	{
-		// GeneralsX @bugfix compare() is strcmp, so it returns 0 when the strings are
-		// EQUAL and the test was inverted: it skipped every entry that DIFFERED from the
-		// previous one. prevName starts empty and was only assigned on the non-skipped
-		// path, so nothing ever got past the continue: iterateObjects below was never
-		// called and this function returned nullptr on every call. CanReclaimOrphans was
-		// therefore dead in every build — spawners built duplicates while their orphaned
-		// slaves lingered, and reclaimedOrphan in createSpawn() was stuck FALSE, which
-		// also pinned the exit-door path there.
-		//
-		// Gated because repairing it changes the sim: reclaiming an orphan skips an object
-		// creation, so logic-frame state (and the CRC) diverges from retail replays and from
-		// peers that do not carry this fix. RETAIL_COMPATIBLE_CRC defaults to 1, so the
-		// default build keeps the retail behaviour; same convention as the other gameplay
-		// divergences in this tree. Build with -DRETAIL_COMPATIBLE_CRC=0 to take the fix.
+		// GeneralsX: compare() is strcmp (0 means equal), so the test was inverted and this always returned nullptr:
+		// CanReclaimOrphans was dead and reclaimedOrphan in createSpawn() stuck FALSE.
+		// Gated: reclaiming skips an object creation, so the CRC diverges from retail peers. RETAIL_COMPATIBLE_CRC
+		// defaults to 1 (retail behaviour); -DRETAIL_COMPATIBLE_CRC=0 takes the fix.
 #if RETAIL_COMPATIBLE_CRC
 		if (prevName.compare(*tempName) != 0) // retail behaviour: this loop never gets past here
 			continue;
@@ -1020,21 +1010,9 @@ void SpawnBehavior::computeAggregateStates()
 
 	// HEALTH BOX POSITION *****************************
 	// pick a centered, average spot to draw the health box
-	// GeneralsX @bugfix spawnCount is zero on the first update of every AggregateHealth
-	// spawner -- the spawns are not created until further down in this same update -- and
-	// again any frame in which every entry of m_spawnIDs has gone stale. 1.0f/0 is +inf and
-	// avgSpawnPos is still exactly (0,0,0) at that point, so the scale evaluated 0*inf = NaN
-	// and the NaN went straight into m_healthBoxOffset, which is read back by
-	// Object::getHealthBoxPosition, written to the save file, and folded into the per-frame
-	// logic CRC by Object::xfer. The quiet NaN that 0*inf yields differs in sign between
-	// arm64 (0x7FC00000) and x86 SSE/x87 (0xFFC00000), so an Apple Silicon peer CRC-desynced
-	// against an Intel one. The HEALTH STATE block below already guards this same divisor;
-	// only this one was missed. With no live spawns the correct offset is zero -- draw the
-	// box on the nexus itself, which is what Object's constructor initializes it to.
-	// Note this is deliberately not gated behind RETAIL_COMPATIBLE_CRC: m_healthBoxOffset is
-	// a draw-only quantity that merely happens to sit in the CRC walk, and the retail value
-	// here is an unreproducible NaN rather than a number, so gating would leave the NaN in
-	// the shipping iOS/macOS builds while preserving no compatibility on arm64 at all.
+	// GeneralsX: spawnCount is 0 on the first update, so 1.0f/0 is +inf and 0*inf is NaN. That NaN reached
+	// m_healthBoxOffset, the save file and the logic CRC; its sign differs on arm64 and x86, desyncing peers.
+	// With no live spawns the offset is zero. Not gated by RETAIL_COMPATIBLE_CRC: retail yields a NaN.
 	if ( spawnCount )
 	{
 		avgSpawnPos.scale(1.0f / spawnCount);
@@ -1095,6 +1073,16 @@ void SpawnBehavior::revealSlaves()
 {
 	Object *currentSpawn;
 
+	// GeneralsX: each slave's markAsDetected walked every object of every enemy player to
+	// wake the idle ones in range - once PER SLAVE, every frame the slaves cannot all stealth (a Stinger Site's three soldiers
+	// while one fires). The per-slave part runs exactly as before, in order; the wakes of consecutive slaves of one player are
+	// done in ONE walk (StealthUpdate::wakeIdleEnemiesOfVictims). Exact: a wake is an idempotent set operation that none of
+	// the per-slave parts or the other walks read (see gxWakeFromRecords), so grouping them changes nothing.
+	enum { MAX_BATCH = 16 };
+	const Object *victims[MAX_BATCH];
+	Int numVictims = 0;
+	const Player *victimPlayer = nullptr;
+
 	for( objectIDListIterator iter = m_spawnIDs.begin(); iter != m_spawnIDs.end(); iter++)
 	{
 		currentSpawn = TheGameLogic->findObjectByID( (*iter) );
@@ -1103,9 +1091,23 @@ void SpawnBehavior::revealSlaves()
 			StealthUpdate *stealthUpdate = currentSpawn->getStealth();
 			if( stealthUpdate )
 			{
-				stealthUpdate->markAsDetected();
+				const Player *wakePlayer = stealthUpdate->markAsDetectedDeferWake();
+				if( wakePlayer )
+				{
+					if( numVictims > 0 && ( wakePlayer != victimPlayer || numVictims == MAX_BATCH ) )
+					{
+						StealthUpdate::wakeIdleEnemiesOfVictims( victimPlayer, victims, numVictims );
+						numVictims = 0;
+					}
+					victimPlayer = wakePlayer;
+					victims[numVictims++] = currentSpawn;
+				}
 			}
 		}
+	}
+	if( numVictims > 0 )
+	{
+		StealthUpdate::wakeIdleEnemiesOfVictims( victimPlayer, victims, numVictims );
 	}
 }
 
@@ -1207,11 +1209,10 @@ void SpawnBehavior::xfer( Xfer *xfer )
 	// self tasking spawn count
 	xfer->xferUnsignedInt( &m_selfTaskingSpawnCount );
 
-	// GeneralsX: The spawn-template cursor. createSpawn takes the next template from it and the
-	// constructor resets it to the first, so a load used to restart the composition (Pistol, Rock, ...). That never mattered
-	// while a spawner made all its members in one frame; with the staggered initial burst (B1) a save can fall between two
-	// births, and the reload would make the wrong member next (batch-0958 r4-round2). Saved as an index; an index past
-	// the template list (data changed since the save) starts over at the first, as EA's constructor does.
+	// GeneralsX: the spawn-template cursor. createSpawn takes the next template from it and the constructor resets it
+	// to the first. With a staggered initial burst a save can fall between two births, so the cursor is saved or the
+	// reload would make the wrong member next. Saved as an index; an index past the template list (data changed since
+	// the save) starts over at the first, as EA's constructor does.
 	if( version >= 4 )
 	{
 		const SpawnBehaviorModuleData *md = getSpawnBehaviorModuleData();

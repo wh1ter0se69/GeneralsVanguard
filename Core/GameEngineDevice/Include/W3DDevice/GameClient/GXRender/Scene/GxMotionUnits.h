@@ -1,15 +1,25 @@
-// GeneralsX: The object-velocity bridge (A35, modernize/render-dlss/
-// ): per-object motion vectors for moved rigid meshes and CPU-skinned meshes, until the MRT path replaces it
-// after A22 + A25 (then this file is DELETED, not kept as a second path). Native renderer only.
-//
-// The world pass's one ordered sequence (ruling 01:08Z), all in W3DWorldSeam::push/pop:
-//   IGxWorldPass::Begin -> GxMotionUnits::Begin -> the world draws -> GxMotionUnits::End -> IGxWorldPass::End (velocity resolve)
-// Between Begin and End the bridge records the draws of meshes that moved since the previous world pass (GxMotionHistory.h) and of
-// every skinned mesh; End re-draws only those into the object-velocity image O (GXRA, .xy = current -> previous in render pixels,
-// .a = written) with the gx:vel-* programs, depth-tested against this frame's world depth, and registers O with the device.
-//
-// Key: GX_MOTION_UNITS=1 (the device creates the programs from the same variable) and a temporal (1-sample) world pass. Key off:
-// both calls return at the first test; no hook is installed, nothing is created. Render-only: nothing here is read by the simulation.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Object-velocity bridge: motion vectors for moved rigid meshes and CPU-skinned meshes. Native renderer only.
+// Order in W3DWorldSeam::push/pop: IGxWorldPass::Begin, GxMotionUnits::Begin, world draws, GxMotionUnits::End,
+// IGxWorldPass::End. End re-draws only those meshes into the velocity image with the gx:vel-* programs.
+// On with GX_MOTION_UNITS=1 and a temporal world pass; off, both calls return at the first test. Render-only.
 #pragma once
 
 #include <cstdint>

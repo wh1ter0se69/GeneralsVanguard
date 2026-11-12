@@ -1,16 +1,25 @@
-// GeneralsX: S7 GPU sun shadow map: the native device's private shadow-map interface
-// (Task 4).
-//
-// Game code asks the device for it once per device with QueryInterface(IID_GxShadowMap). DXVK, the GXCAP proxy, and the native device
-// with the key OFF (GXShadowMap = off, read once at device init: PREREG A18) answer E_NOINTERFACE - and then the game draws today's
-// stencil volumes and blobs exactly as before. With the key ON the device answers it, and the game:
-//   * once per tactical frame, before any world draw: BeginShadowFrame (the map's sun, fit, colour and step);
-//   * around draws: SetShadowTags (only on change) - CAST on a caster's draws, CAST_ONLY around the early off-screen caster flush
-//     (PREREG A23/A31), RECEIVE from the scene start to the 2003 stencil-shadow boundary (A29: never on the team-colour overlays).
-//
-// Front-end contract (rw3-X, A23-B): every method is an async device command with owned arguments, stream-ordered with the draws
-// around it, executed in the device worker's exec half - S7 never records from the caller, so the A23-B worker stays on (PREREG 1.4).
-// Render-only: nothing here is read by the simulation, and no value comes back to the game.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// The native device's private shadow-map interface, taken with QueryInterface(IID_GxShadowMap). DXVK, the GXCAP
+// proxy and the device with GXShadowMap = off answer E_NOINTERFACE; the game then draws stencil volumes and blobs.
+// Key on: BeginShadowFrame per tactical frame, SetShadowTags (CAST, CAST_ONLY, RECEIVE) around draws.
+// Every method is an async, stream-ordered device command. Render-only.
 #pragma once
 
 #include <d3d8.h>
@@ -23,7 +32,7 @@ static const GUID IID_GxShadowMap = { 0x3f9a6c21, 0x7b4e, 0x4d58, { 0x9e, 0x13, 
 enum GxShadowTag : uint32_t
 {
 	GX_SHADOW_TAG_NONE = 0,
-	GX_SHADOW_TAG_RECEIVE = 1,		// the draws that follow sample the map (P2)
+	GX_SHADOW_TAG_RECEIVE = 1,		// the draws that follow sample the map
 	GX_SHADOW_TAG_CAST = 2,			// ... and are captured as casters
 	GX_SHADOW_TAG_CAST_ONLY = 4,	// ... are never drawn; with CAST (and z test + z write, the drawn path's rule) captured, else dropped (A44)
 	GX_SHADOW_TAG_SOLID = 8,		// A61: with CAST_ONLY + CAST, captured without the camera's z write (a sorted CAST_SHADOW caster - a rotor
@@ -39,7 +48,7 @@ struct GxShadowFrame
 	uint32_t shadowColor;			// ARGB, the map's (WorldHeightMap's lighting chunk; W3DShadowManager::getShadowColor)
 	uint32_t step;					// 0..3 (3 = off: no capture, no pass; the game draws the stencil volumes)
 	uint32_t cascades;				// 0, 1 or 2
-	// P2: what the receivers need beyond the replay (the device packs them into set 2's frame UBO)
+	// what the receivers need beyond the replay (the device packs them into set 2's frame UBO)
 	float depthRangeWU[2];			// per cascade: the light depth range in world units (the fit's zFar - zNear)
 	float texelWU[2];				// per cascade: one texel in world units (extent / res; at the axis centre since A39)
 	uint32_t guard;					// the step's guard band, texels per side

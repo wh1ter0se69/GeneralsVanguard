@@ -1,5 +1,22 @@
-// GeneralsX: WS-X hybrid spike - see W3DDevice/GameClient/GxInterop.h and
-// (§1 protocol, §4 measurement, §8 gates).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Hybrid spike - see W3DDevice/GameClient/GxInterop.h.
 //
 // Threads: Begin_Site / the flush boundaries run on the main thread and only queue work; DX8Wrapper::Device_Call runs the d3d8 part on the
 // thread that owns the device at that point of the stream (the d3d8 ring's consumer inside the object-flush bracket, the
@@ -157,7 +174,7 @@ struct QSlot	// P-Q: one external submission
 	VkFence fence;
 	bool busy;
 	IUnknown *hold[4];	// the surfaces and their interop views, released once the fence signalled
-	VkImageView views[2];	// colour + depth views made for THIS submission, destroyed with it (code-r3 #1)
+	VkImageView views[2];	// colour + depth views made for THIS submission, destroyed with it
 };
 
 std::atomic<int> s_state(STATE_IDLE);
@@ -220,8 +237,7 @@ bool s_clearTest = false;
 bool s_inPassAsked = false;
 int s_split = 1;	// GX_RENDER_HYBRID_SPLIT (1..1024; PACKETS covers 1024/frame x DXVK's frames in flight)
 // GX_RENDER_HYBRID_SITES=<bit mask of Site> (default all): insert only at these sites - the census still counts every site. Bit 7 =
-// PROJ_SHADOW, the flush on the MAIN thread outside the ring's bracket, where Device_Call runs the insertion inline (render-integration
-// 10/10: its own per-switch number).
+// PROJ_SHADOW, the flush on the MAIN thread outside the ring's bracket, where Device_Call runs the insertion inline (its own per-switch number).
 unsigned s_siteMask = ~0u;
 // GX_RENDER_HYBRID_INTERLEAVE=1 (P-L toggle runs): after every insertion, on the device thread, one
 // classic draw re-issues the device's CURRENT state - one triangle of the vertex buffer the segment's last classic draw bound, no
@@ -229,17 +245,9 @@ unsigned s_siteMask = ~0u;
 // OFF periods issue the same classic draws at the same points without the insertions, so ON - OFF = the insertions + DXVK's
 // re-binds. Each triangle is drawn twice: a timing arm, never a picture.
 bool s_interleave = false;
-// GX_HYBRID_UPLOADTEST=1 (in-pass rule: an in-pass draw's data is uploaded BEFORE the pass): the cube instances come from a
-// device-local buffer region per packet, written by vkCmdUpdateBuffer into DXVK's init buffer (in-pass) or inline before
-// our rendering instance (break path), each followed by a TRANSFER -> VERTEX_ATTRIBUTE barrier. Fail arm
-// GX_HYBRID_MUTANT=noupbarrier drops that barrier: synchronization validation must report the read-after-write.
-// OBSERVED (farm val3): in-pass, that arm does not fire - DXVK finalises its own uploads' TRANSFER -> vertex-input barrier at
-// the end of the same init buffer, which covers ours. =2 uploads the DRAW ARGUMENTS instead (vkCmdDrawIndirect, barrier
-// TRANSFER -> DRAW_INDIRECT): a D3D9 front end never reads a buffer at DRAW_INDIRECT, so no barrier of DXVK's covers that read
-// and noupbarrier must fire there. Fail arm inpassupload: the upload and its barrier recorded INSIDE DXVK's open pass (the
-// forbidden-inside rule) - core validation must reject it. =3 uploads the cube's VERTICES (a per-vertex
-// binding) instead of the instances: INFERRED from val3 (WUPX, the break-path noupbarrier arm, did not fire either) that
-// synchronization validation does not check instance-rate vertex reads - =3 against =1 under noupbarrier tests that.
+// GX_HYBRID_UPLOADTEST=1 uploads the cube instances before the pass, then a TRANSFER -> VERTEX_ATTRIBUTE barrier;
+// =2 uploads draw arguments, =3 vertices. GX_HYBRID_MUTANT=noupbarrier drops the barrier. In-pass it does not fire:
+// DXVK's own upload barrier covers it. Sync validation does not check instance-rate vertex reads (inferred).
 int s_uploadTest = 0;
 float s_cubeData[36 * 3];
 VkBuffer s_upBuffer = VK_NULL_HANDLE, s_indBuffer = VK_NULL_HANDLE;
@@ -255,9 +263,9 @@ uint64_t s_nextRetire = 0;
 
 // counters: main thread (insertions, frames), any thread (the atomics)
 uint64_t s_bySite[SITE_COUNT];
-uint64_t s_byBoundary[2], s_censusSegments[SITE_COUNT][2], s_censusDraws[SITE_COUNT][2];	// per site x boundary (design-r3 #5)
-uint64_t s_censusNonEmpty[SITE_COUNT][2];	// ... segments that drew something: the exact per-site insertion lower bound (design-r4 #3)
-uint64_t s_onRequested = 0;	// ON-period boundaries that drew something - before any capacity skip (design-r3 #3)
+uint64_t s_byBoundary[2], s_censusSegments[SITE_COUNT][2], s_censusDraws[SITE_COUNT][2];	// per site x boundary
+uint64_t s_censusNonEmpty[SITE_COUNT][2];	// ... segments that drew something: the exact per-site insertion lower bound
+uint64_t s_onRequested = 0;	// ON-period boundaries that drew something - before any capacity skip
 uint64_t s_ringSkips = 0;
 int s_site = -1;	// the L2 producer flush running now (Site_Of(GxFlushSite) at its boundary), -1 = not an insertion site
 uint64_t s_frames = 0, s_insertions = 0, s_frameIns = 0, s_frameMin = ~0ull, s_frameMax = 0, s_packetWaits = 0;
@@ -265,12 +273,12 @@ unsigned s_lastFrame = ~0u;
 std::atomic<uint64_t> s_refused(0), s_recorded(0), s_pipelinesMade(0), s_pipelineUs(0), s_fenceWaits(0), s_noPipeline(0);
 std::atomic<uint64_t> s_devNs(0), s_recNs(0);	// CPU time per insertion: device thread (capture + hand-off/submit), recorder
 // per toggle window (reset at each [GXHYBT] row): attempts the producer queued, accepted by RecordExternal (or submitted, P-Q),
-// recordings completed, refusals; a window whose recorded != attempts did not run the ON workload it claims. Design-r4 #2:
+// recordings completed, refusals; a window whose recorded != attempts did not run the ON workload it claims. Also
 // recordings that should have drawn (draws_wanted) and did (draws_done: every pipeline present), and failed P-Q submits.
 std::atomic<uint64_t> s_winAccepted(0), s_winRecorded(0), s_winRefused(0), s_winDrawWant(0), s_winDrawn(0), s_winSubmitFail(0);
 std::atomic<uint64_t> s_winInPass(0), s_winFallback(0), s_inPassTotal(0), s_fallbackTotal(0);
 std::atomic<uint64_t> s_winRedrawOn(0), s_winRedrawOff(0), s_winRedrawSkip(0);	// INTERLEAVE's classic draws after an insertion / in OFF periods / not drawable
-std::atomic<uint64_t> s_classicEqualDraws(0);	// our classic draws (EQUALTEST=1, INTERLEAVE), issued on the device (ring) thread (code-r6 #1)	// in-pass mode: recordings inside DXVK's pass / on the break path
+std::atomic<uint64_t> s_classicEqualDraws(0);	// our classic draws (EQUALTEST=1, INTERLEAVE), issued on the device (ring) thread	// in-pass mode: recordings inside DXVK's pass / on the break path
 
 uint64_t Now_Ns()
 {
@@ -284,9 +292,9 @@ uint64_t Now_Ns()
 // shows in the CPU frame period only ~2 frames later. GX_RENDER_HYBRID_TOGGLE_NULL=1 keeps the toggle bookkeeping with
 // BOTH states off - the fail arm: its ON-minus-OFF must be ~0 within its spread, or the alternation itself is the artefact.
 int s_toggleK = 0, s_toggleDrop = 3;
-// GX_RENDER_HYBRID_THREADS=1 (macOS toggle runs; render-integration's criterion-4 (b), 10/10): the CPU time of every thread of
+// GX_RENDER_HYBRID_THREADS=1 (macOS toggle runs): the CPU time of every thread of
 // the process per toggle state, counted from frame `drop` of a period to the period's end - DXVK's frame latency (<= drop) keeps
-// each span's work its own state's. Printed per published row as [GXHYBTH] (rw1x/hybth.py): which thread pays the ON work, and
+// each span's work its own state's. Printed per published row as [GXHYBTH]: which thread pays the ON work, and
 // how busy each thread is against the frame period (a thread with slack hides its share; one on the critical path does not).
 bool s_threads = false;
 struct ThreadAcc { char name[32]; uint64_t onNs, offNs; };
@@ -301,7 +309,7 @@ Moments s_period, s_on, s_off, s_diff;
 double s_lastOffMean = -1.0;
 uint64_t s_lastOffPeriod = ~0ull, s_periods = 0, s_dropped = 0, s_onFrames = 0, s_onIns = 0, s_lastTsNs = 0;
 unsigned s_winLogic0 = 0, s_winFrame0 = 0;
-// a row whose statistics closed on an ON period, published when the following OFF period closes (design-r5 #1)
+// a row whose statistics closed on an ON period, published when the following OFF period closes
 char s_rowHead[640];
 bool s_rowPending = false;
 double s_rowOnFrames = 1.0;
@@ -444,7 +452,7 @@ bool Make_Test_Mesh()
 		float *p = &inst[i * 8];
 		p[0] = (gx - 1.5f) * 40.0f;
 		p[1] = (gy - 1.5f) * 40.0f;
-		p[2] = -250.0f;	// W3D camera space looks down -Z (measured 10/10: +Z placed the cubes behind the camera)
+		p[2] = -250.0f;	// W3D camera space looks down -Z (+Z placed the cubes behind the camera)
 		p[3] = 12.0f;
 		p[4] = (float)(gx + 1) / 4.0f;
 		p[5] = (float)(gy + 1) / 4.0f;
@@ -683,7 +691,7 @@ void Record_Test(const DxvkGxRecordInfo *info, void *user)
 	const bool textured = pk->textured != 0;
 	const VkFormat df = hasDepth ? d.format : VK_FORMAT_UNDEFINED;
 	const bool drawing = s_draw && !pk->noDraw && !(s_texTest && pk->indexInFrame >= 8)
-		&& !(s_clearTest && pk->indexInFrame != 0);	// design-r3 #2: in CLEARTEST only the cleared insertion draws
+		&& !(s_clearTest && pk->indexInFrame != 0);	// in CLEARTEST only the cleared insertion draws
 	const VkPipeline pipeline = !drawing ? VK_NULL_HANDLE : Pipeline_For(c.format, df, c.samples,
 		(textured ? VARIANT_TEXTURED : 0) | (s_equalTest ? VARIANT_DEPTHWRITE : 0)
 		| (s_equalTest && s_mutant == MUTANT_DEPTHBIAS ? VARIANT_DEPTHBIAS : 0));
@@ -806,7 +814,7 @@ void Record_Test(const DxvkGxRecordInfo *info, void *user)
 		s_vk.cmdBeginRendering(info->cmd, &ri);
 
 	// The boundary alone (DRAW=0, a no-draw call, CLEARTEST's other insertions, a missing pipeline) records nothing inside the
-	// instance: no viewport, pipeline, buffers or push constants (design-r3 #4).
+	// instance: no viewport, pipeline, buffers or push constants.
 	if (pipeline != VK_NULL_HANDLE)
 	{
 		// D3D's viewport exactly as DXVK maps it (D3D9DeviceEx::BindViewportAndScissor, d3d9_device.cpp:6826-6860 at 954c5c692): y flipped
@@ -962,7 +970,7 @@ void Device_Init(IDirect3DDevice8 *dev, void *)
 		s_state = STATE_FAILED;
 		return;
 	}
-	// the fork's own switches, read from the same environment the fork read at device creation (design-r9 #1)
+	// the fork's own switches, read from the same environment the fork read at device creation
 	const bool forkEpoch = getenv("DXVK_GX_NEW_EPOCH") != nullptr && strcmp(getenv("DXVK_GX_NEW_EPOCH"), "1") == 0;
 	const bool forkSuspend = getenv("DXVK_GX_SUSPEND") != nullptr && strcmp(getenv("DXVK_GX_SUSPEND"), "1") == 0;
 	fprintf(stderr, "[GXHYB] init mode=%d (%s) visible=%d mutant=%s draw=%d textest=%d equaltest=%d inpass=%d uploadtest=%d"
@@ -1057,11 +1065,11 @@ void Device_Insert_PL(IDirect3DDevice8 *dev, void *ctx)
 	Capture_State(dev, pk);
 	if (s_clearTest && pk->indexInFrame == 0)
 	{
-		// A Clear issued while DXVK's pass is bound is an immediate vkCmdClearAttachments (code-r2 #1). So: end the pass with a
+		// A Clear issued while DXVK's pass is bound is an immediate vkCmdClearAttachments. So: end the pass with a
 		// boundary-only recording (no retire signal), clear with no pass bound - DXVK defers that clear into its next pass -
 		// and only then record the cubes, with no classic draw in between.
 		// The boundary-only packet is written ONCE and never again: DXVK's CS thread may still be running an earlier frame's
-		// recorder on it (code-r3 #2). A no-draw recording reads none of the per-frame fields (projection, viewport, offsets).
+		// recorder on it. A no-draw recording reads none of the per-frame fields (projection, viewport, offsets).
 		static Packet s_prep;
 		static bool s_prepMade = false;
 		if (!s_prepMade)
@@ -1100,7 +1108,7 @@ void Device_Insert_PL(IDirect3DDevice8 *dev, void *ctx)
 		}
 		// Insertion 3 reads nothing: it is the unrelated external work between the last read of the texture (2) and its refill
 		// (4) under which the stock new-epoch insertion (DXVK_GX_NEW_EPOCH=1) leaves the texture untracked in the epoch the
-		// upload sees - so only there can DXVK move the upload into its init buffer, ahead of insertions 0-2 (design-r2 #2).
+		// upload sees - so only there can DXVK move the upload into its init buffer, ahead of insertions 0-2.
 		pk->textured = pk->indexInFrame == 3 ? 0 : 1;
 		if (!pk->textured)
 			;
@@ -1134,7 +1142,7 @@ void Device_Insert_PL(IDirect3DDevice8 *dev, void *ctx)
 	{
 		++s_refused;	// e.g. the water reflection's 1x target over the MSAA depth (DESIGN §1.4)
 		++s_winRefused;
-		pk->done.store(1, std::memory_order_release);	// never in a command list: its slot is free now (code-r1 #1)
+		pk->done.store(1, std::memory_order_release);	// never in a command list: its slot is free now
 	}
 	else
 	{
@@ -1149,7 +1157,7 @@ void Device_Insert_PL(IDirect3DDevice8 *dev, void *ctx)
 }
 
 // P-Q: a view per submission, never cached by raw VkImage handle - DXVK may relocate an image at endRecording and
-// Vulkan may then hand the old handle to a new image (code-r2 #2, code-r3 #1). Retire_Slot destroys it after the fence.
+// Vulkan may then hand the old handle to a new image. Retire_Slot destroys it after the fence.
 VkImageView QView(VkImage image, VkFormat format, VkImageAspectFlags aspects)
 {
 	VkImageViewCreateInfo vi = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
@@ -1189,7 +1197,7 @@ bool Describe_Q(GxIDxvkInteropTexture *tex, bool depth, DxvkGxImage &out, VkImag
 
 void Device_Insert_PQ_Body(IDirect3DDevice8 *dev, void *ctx);
 
-// P-Q: the stock interop protocol of DESIGN §1.3, on the device thread. The packet is done when it returns (code-r1 #5).
+// P-Q: the stock interop protocol, on the device thread. The packet is done when it returns.
 void Device_Insert_PQ(IDirect3DDevice8 *dev, void *ctx)
 {
 	Device_Insert_PQ_Body(dev, ctx);
@@ -1221,7 +1229,7 @@ void Retire_Slot(QSlot &slot)
 }
 
 // P-Q: drop everything the submissions still hold before a Reset, which DXVK refuses while default-pool surfaces are
-// alive (code-r1 #2).
+// alive.
 void Pre_Reset()
 {
 	for (int i = 0; i < QSLOTS; ++i)
@@ -1337,7 +1345,7 @@ void Toggle_Account(unsigned prev, unsigned frame, double periodMs)
 			s_diff.add(mean - s_lastOffMean);
 	}
 	s_period = Moments();
-	// A row in two steps (design-r4 #2, r5 #1). Its STATISTICS close on an ON period after >= 20 periods, so every ON period
+	// A row in two steps. Its STATISTICS close on an ON period after >= 20 periods, so every ON period
 	// in it pairs with an OFF period inside the same row's logic and render-frame range. It is PUBLISHED when the following
 	// OFF period closes: by then that window's ON work - queued on this thread, accepted on the ring/device thread, recorded
 	// on DXVK's CS thread - has drained, and an OFF period does none of its own, so the counters read then are the row's alone.
@@ -1484,17 +1492,17 @@ void Frame_Stats(unsigned frame)
 	if (s_toggleK > 0 && s_lastFrame != ~0u && s_lastTsNs != 0)
 	{
 		if ((s_lastFrame / (unsigned)s_toggleK) & 1)
-			++s_onFrames;	// before the account: a row that closes on this frame counts it (design-r6 #7)
+			++s_onFrames;	// before the account: a row that closes on this frame counts it
 		Toggle_Account(s_lastFrame, frame, (double)(now - s_lastTsNs) / 1e6);
 	}
 	else if (s_lastFrame == ~0u)
 	{
-		s_winFrame0 = frame;	// the first row starts at the first observed frame, not at 0 (design-r6 #7)
+		s_winFrame0 = frame;	// the first row starts at the first observed frame, not at 0
 		s_winLogic0 = TheGameLogic != nullptr ? TheGameLogic->getFrame() : 0;
 	}
 	s_lastTsNs = now;
 	for (uint64_t n = s_classicEqualDraws.exchange(0); n > 0; --n)
-		DX8Wrapper::Record_Direct_Draw();	// the EQUALTEST classic draws counted where the draw census lives (code-r6 #1)
+		DX8Wrapper::Record_Direct_Draw();	// the EQUALTEST classic draws counted where the draw census lives
 	if (s_lastFrame != ~0u)
 	{
 		++s_frames;
@@ -1523,8 +1531,8 @@ void Frame_Stats(unsigned frame)
 		(unsigned long long)s_packetWaits, (unsigned long long)s_ringSkips, (unsigned long long)s_fenceWaits.load(),
 		(unsigned long long)s_inPassTotal.load(), (unsigned long long)s_fallbackTotal.load());
 	// per site, rigid then delayed boundary: segments / segments that drew (the insertion lower bound) / classic draws (the
-	// upper bound) - cumulative, so a window's counts are the difference of two rows (design-r3 #5, r4 #3; rw1x/hybt.py)
-	// one fprintf per row (design-r8 #3): a line built in pieces can be split by another thread's diagnostic
+	// upper bound) - cumulative, so a window's counts are the difference of two rows
+	// one fprintf per row: a line built in pieces can be split by another thread's diagnostic
 	char census[1024];
 	int n = snprintf(census, sizeof(census), "[GXHYBC] f=%u frames=%llu", frame, (unsigned long long)s_frames);
 	for (int i = 0; i < SITE_COUNT && n > 0 && n < (int)sizeof(census); ++i)
@@ -1616,7 +1624,7 @@ void Insert_One(int boundary, unsigned frame)
 	DX8Wrapper::Device_Call(Mode() == 1 ? &Device_Insert_PL : &Device_Insert_PQ, pk);
 }
 
-// WS-G's flush-site tag (dx8renderer.h GxFlushSite: DX8MeshRendererClass::Flush moves GxFlushSiteNext there) -> this spike's
+// The L2 flush-site tag (dx8renderer.h GxFlushSite: DX8MeshRendererClass::Flush moves GxFlushSiteNext there) -> this spike's
 // site. -1 = no insertion: UNSET (an untagged flush), OCCL_EMPTY (the stats-only flush that draws nothing) and STATIC_SORT (the
 // static sort lists after the translucent flush) - none was an insertion site before the tags either.
 int Site_Of(int fs)
@@ -1684,7 +1692,7 @@ void Boundary(int boundary, unsigned long long classicDraws)
 	if (off && !s_interleave)
 		return;
 	// GX_RENDER_HYBRID_SPLIT=n: n insertions at this boundary - the density sweep that tests whether the cost per insertion stays
-	// constant from ~28 to Mode A's ~1,700 per frame (design-r9 #2); back to back, or each followed by a classic draw (INTERLEAVE)
+	// constant from ~28 to Mode A's ~1,700 per frame; back to back, or each followed by a classic draw (INTERLEAVE)
 	for (int i = 0; i < s_split; ++i)
 		if (off)
 			DX8Wrapper::Device_Call(&Device_Redraw_Off, nullptr);
@@ -1692,7 +1700,7 @@ void Boundary(int boundary, unsigned long long classicDraws)
 			Insert_One(boundary, frame);
 }
 
-// DX8Wrapper::Pre_Release_Hook (code-r4 #1): main thread, inside DX8Wrapper::Shutdown after DX8Ring::Drain() - the device is
+// DX8Wrapper::Pre_Release_Hook: main thread, inside DX8Wrapper::Shutdown after DX8Ring::Drain() - the device is
 // idle on the d3d8 side and about to be released. Without this our COM references kept DXVK's device (and its CS thread) alive
 // past the C++ runtime's destruction of the globals a pending recorder reads. Order: no insertion from here on; DXVK's CS thread
 // runs every pending recorder and submits (FlushRenderingCommands); the GPU retires our accepted work; our Vulkan objects go;
@@ -1700,7 +1708,7 @@ void Boundary(int boundary, unsigned long long classicDraws)
 void Shutdown()
 {
 	const int state = s_state.exchange(STATE_FAILED);
-	// Only Device_Init sets FAILED: an init that failed part-way (code-r5 #1) submitted nothing, so whatever it made goes at once
+	// Only Device_Init sets FAILED: an init that failed part-way submitted nothing, so whatever it made goes at once
 	bool idle = state != STATE_READY;
 	if (state == STATE_READY && s_dev8 != nullptr)
 	{

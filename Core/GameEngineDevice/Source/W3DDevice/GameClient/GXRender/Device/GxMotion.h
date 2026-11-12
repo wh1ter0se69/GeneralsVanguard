@@ -1,14 +1,25 @@
-// GeneralsX: depth, camera motion vectors and jitter for the temporal upscalers
-// (rev 2).
-//
-// Between IGxWorldPass::Begin and End (the world pass of a frame) the device:
-//  * jitters the projection on the FRONT side: SetTransform(PROJECTION, M) hands the translator M + wcol(M) * jitterNdc, so
-//    clip.xy moves by jitterNdc * clip.w; GetTransform answers the clean copy (it is kept from the first motion frame on);
-//  * at End records ONE velocity resolve pass (gx_motion_resolve.frag) reading the world depth and writing the mv image:
-//    camera motion for every pixel, current -> previous in render pixels (GxMotionFrame.h), and optionally a GX_MOTION_DEBUG view
-//    over the world colour - both inside the same outside-scope region as the seam's End work;
-//  * publishes the frame's GxMotionFrame for the upscaler backends.
-// Off (no Begin seen, or the depth not sampleable) = no transform touched, no pass, nothing allocated. Render-only.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Depth, camera motion vectors and jitter for the temporal upscalers. Between IGxWorldPass::Begin and End the
+// device jitters the projection on the FRONT side (GetTransform answers the clean copy), at End records ONE velocity
+// resolve pass (camera motion, current -> previous, render pixels) and publishes the GxMotionFrame.
+// Off (no Begin, or depth not sampleable): nothing touched or allocated. Render-only.
 #pragma once
 
 #include "GxMotionFrame.h"
@@ -53,7 +64,7 @@ struct GxMotionResolve
 	VkImageView depthView = VK_NULL_HANDLE;
 	Res::GxImage* mv = nullptr;
 	VkImageView mvView = VK_NULL_HANDLE;
-	Res::GxImage* object = nullptr;        // render-motion-units-1's vectors, or null
+	Res::GxImage* object = nullptr;        // the object-velocity vectors, or null
 	VkImageView objectView = VK_NULL_HANDLE;
 	Res::GxImage* colour = nullptr;        // the world colour, for a GX_MOTION_DEBUG view (null = none)
 	VkImageView colourView = VK_NULL_HANDLE;
@@ -98,7 +109,7 @@ public:
 	const float* projection(const float* m);
 	// GetTransform(PROJECTION): the clean copy, or null when the motion state never saw one (the caller answers as before).
 	const float* cleanProjection() const { return m_haveClean ? m_cleanProj : nullptr; }
-	// IGxWorldPass::SetObjectVelocity: render-motion-units-1's object vectors for THIS world pass (RGBA16F, a > 0.5 = written,
+	// IGxWorldPass::SetObjectVelocity: the object vectors for THIS world pass (RGBA16F, a > 0.5 = written,
 	// last written as a colour attachment); read by End's resolve, then forgotten. Outside an active pass: ignored.
 	void setObject(Res::GxImage* image, VkImageView view);
 	// End of the world pass: the clean projection to re-send (null = none); *record = *cmd must be recorded now (cmd filled with

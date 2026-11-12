@@ -1,4 +1,22 @@
-// GeneralsX: WS-C GXRES v0: the resource hub (see GxResources.h).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GXRES: the resource hub (see GxResources.h).
 #include "GxResources.h"
 #include "GxBuffer.h"
 #include <algorithm>
@@ -352,7 +370,7 @@ void GxResources::recordBatch(VkCommandBuffer cmd, bool front)
 		VkBufferCopy c = {p.src.offset, p.dstOffset, p.bytes};
 		vkCmdCopyBuffer(cmd, p.src.buffer, p.dst, 1, &c);
 		m_stats.bufferCopies++;
-		// a copy in the frame's own command stream touches its buffer: a later front copy would run before it (rw3-T-4)
+		// a copy in the frame's own command stream touches its buffer: a later front copy would run before it
 		if (!front && p.touch && *p.touch < now && !m_debug.mainCopyNoTouch)
 			*p.touch = now;
 	}
@@ -442,7 +460,7 @@ bool GxResources::submitPending(bool wait)
 	VkDevice dev = m_ctx->device();
 	VkCommandPool pool = m_pool;
 	m_ctx->retire(QueueKind::Graphics, v, [dev, pool, cmd]() { vkFreeCommandBuffers(dev, pool, 1, &cmd); });
-	// R19: a refusal reaches this caller too - wait for the op's EXECUTION (CPU side), not the GPU
+	// A refusal reaches this caller too - wait for the op's EXECUTION (CPU side), not the GPU
 	return v != 0 && (m_debug.pendingIgnoresRefusal || m_ctx->waitExecuted(QueueKind::Graphics, v));
 }
 

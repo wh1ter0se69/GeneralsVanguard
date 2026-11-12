@@ -50,7 +50,7 @@
 #include "GameLogic/GameLogic.h"
 #include "GameNetwork/FileTransfer.h"
 #include "GameNetwork/LANAPICallbacks.h"
-#include "GameClient/GXAdminKey.h"	// GeneralsX @security the match signing key, promoted at a real start
+#include "GameClient/GXAdminKey.h"	// GeneralsX: the match signing key, promoted at a real start
 #include "GameNetwork/networkutil.h"
 
 LANAPI *TheLAN = nullptr;
@@ -138,20 +138,9 @@ UnicodeString LANAPIInterface::getErrorStringFromReturnType( ReturnType ret )
 
 // TheSuperHackers @feature arcticdolphin 08/08/2026 Adds /me emotes to LAN player chat, consistent with WOL
 //
-// GeneralsX: The emote body must NOT be re-parsed as a lobby command.
-//
-// Upstream calls RequestChat with the peeled text, and in THIS fork RequestChat is also the
-// interception point for lobby commands - it hands its argument to applyLobbyCommand before
-// anything is built or sent (LANAPI.cpp, RequestChat). So "/me /password hunter2" would peel to
-// "/password hunter2", be recognised by applyLobbyCommand, and BIND THE HOST PASSWORD instead of
-// saying the words - a side effect the player never asked for and a disclosure of the password to
-// whoever is watching the screen.
-//
-// Refused rather than escaped, and refused on the leading slash alone rather than against a copy
-// of applyLobbyCommand's verb list. Two copies of that list already exist (LANAPI.cpp, and the
-// slash-escape guard in GXLobbyCommands.cpp whose own comment warns that a third would drift); a
-// body beginning with a slash is the entire shape that can be re-read as a command, so the one
-// condition can never fall out of sync.
+// The emote body must not be re-parsed as a lobby command: RequestChat hands its argument to applyLobbyCommand,
+// so /me /password x would bind the host password instead of saying it. Refused on a leading slash alone, so
+// no copy of the verb list (LANAPI.cpp, GXLobbyCommands.cpp) can drift.
 void LANAPI::RequestPlayerChat( UnicodeString message )
 {
 	if (message.startsWithNoCase(L"/me "))
@@ -215,18 +204,10 @@ void LANAPI::OnAccept( UnsignedInt playerIP, Bool status )
 
 void LANAPI::OnHasMap( UnsignedInt playerIP, Bool status )
 {
-	// GeneralsX: (cross-model review) The whole body was gated on
-	// AmIHost(), so a non-host peer never learned OTHER peers' availability. That kept every
-	// joiner's map icon frozen on other players' rows, and after a transfer-only first start it
-	// split lobbies of three or more humans: a peer whose slot list still said another recipient
-	// lacked the map recomputed needTransfer=TRUE on the second start and sat waiting for a
-	// transfer nobody was running, while the host - whose list was current - started the match.
-	// Every peer keeps its slot list current now; only the "player has no map" chat announcement
-	// stays host-side, exactly as before.
-	// GeneralsX: (cross-model review) Availability now arrives repeatedly -
-	// a reassert burst after every announce plus a 10 s keepalive piggyback (LANAPI::update) - so
-	// the chat announcement below must fire on the TRANSITION, not on every datagram, or the host
-	// chat fills with one "player has no map" line per reassert.
+	// Every peer keeps its slot list current from availability messages, not only the host. Otherwise joiners show
+	// stale map icons and, after a transfer-only first start, recompute needTransfer=TRUE and wait for a transfer
+	// nobody runs. Only the player-has-no-map chat line stays host-side, and it fires on the transition because
+	// availability now arrives repeatedly (reassert burst plus a 10 s keepalive piggyback).
 	Bool wasAvailable = TRUE;
 	Int i = 0;
 	for (; i < MAX_SLOTS; i++)
@@ -289,21 +270,10 @@ void LANAPI::OnGameStart()
 	//DEBUG_LOG(("Map is '%s', preview is '%s'", m_currentGame->getMap().str(), GetPreviewFromMap(m_currentGame->getMap()).str()));
 	//DEBUG_LOG(("Map is '%s', INI is '%s'", m_currentGame->getMap().str(), GetINIFromMap(m_currentGame->getMap()).str()));
 
-	// GeneralsX: A HOST MAY NOT MAKE ANYBODY AN ADMIN, NOR UNMAKE ONE, NOR SWAP A KEY. The
-	// slots and keys adopted from MSG_GAME_START (handleGameStart) say who may cheat in a match with more than one
-	// human and what their orders must be signed under, and every simulation must run on that one answer, so a single
-	// peer cannot correct it - it can only refuse to play on it. It refuses unless the stamp is EXACTLY what a fresh
-	// answer from its own relay says, asked now and tied to the question by a nonce:
-	//   * a slot or key the relay does not back - a host granting admin, or keeping a revoked one - is refused, and so
-	//     is ANY stamp this peer cannot confirm with a fresh answer: a privilege fails closed;
-	//   * an admin the relay names but the host left out - a host stripping an admin - is refused too. With no fresh
-	//     answer and nothing stamped the match starts: nothing is granted, and a relay that did not answer must not
-	//     cost an ordinary match its start.
-	// Refusing takes this peer out before any network exists, exactly as a peer without the map does below.
-	//
-	// GeneralsX: ...EXCEPT a start the host stamped "unconfirmed": the host's
-	// own relay query failed, so it grants no admin and every peer runs on exactly that - no admin, no keys. Nothing to
-	// confirm, so nothing is asked; refusing it would end an honest match over the host's timeout.
+	// A host may not grant, strip or swap admin slots or keys: the MSG_GAME_START stamp must equal a fresh relay
+	// answer asked now and tied by a nonce. An unbacked or unconfirmable stamp is refused (fails closed), as is a
+	// named admin the host left out. Nothing stamped and no answer: the match starts. A start stamped unconfirmed
+	// (the host relay query failed) carries no admin and no keys, so there is nothing to confirm and it is accepted.
 	if (m_currentGame && !m_currentGame->amIHost() && m_gxStartAdminUnconfirmed)
 	{
 		fprintf(stderr, "[GXADMIN] start: admin mask 0x%llX unconfirmed by the host - the match runs with no admin\n",
@@ -416,7 +386,7 @@ void LANAPI::OnGameStart()
 		Bool filesOk = DoAnyMapTransfers(m_currentGame, needTransfer);
 
 		// see if we really have the map.  if not, back out.
-		// GeneralsX @debug /08/2026 GX_MAPDBG: A1 measurement probe on the ACTUAL bounce
+		// GeneralsX: GX_MAPDBG: measurement probe on the ACTUAL bounce
 		// gate - filesOk and findMap() are the only two things that can send a peer back to the
 		// lobby here. findMap is a pure lowercase+find, so the extra call under the gate is safe.
 		static const Bool s_mapDbg = (getenv("GX_MAPDBG") != NULL);
@@ -456,16 +426,9 @@ void LANAPI::OnGameStart()
 
 		if (needTransfer)
 		{
-			// GeneralsX: DRAIN BEFORE TEARDOWN. Measured live on the
-			// Windows-host + macOS-joiner topology: the joiner finished its legs in 777 ms,
-			// deleted TheNetwork and restored its lobby while the HOST was still collecting the
-			// joiner's reliable progress reports - reports only the joiner's retransmit
-			// machinery could guarantee delivery of. With the sender gone, the host's view
-			// crawled and timed out its whole transfer. areAllQueuesEmpty() is the receipt:
-			// every reliable command this peer sent (including its 100% progress reports) has
-			// been ACKNOWLEDGED by its recipients, so tearing down after it cannot strand
-			// anybody mid-loop. Bounded so a vanished peer cannot wedge us here - on timeout we
-			// tear down anyway, which is exactly the pre-drain behaviour.
+			// Drain before teardown: areAllQueuesEmpty() means every reliable command this peer sent (including
+			// 100% progress reports) was acknowledged, so deleting TheNetwork cannot strand the host mid-transfer.
+			// Bounded so a vanished peer cannot wedge us; on timeout we tear down anyway.
 			{
 				const UnsignedInt drainStart = timeGetTime();
 				while (!TheNetwork->areAllQueuesEmpty()
@@ -503,19 +466,10 @@ void LANAPI::OnGameStart()
 			m_currentGame->setMapSize( m_currentGame->getMapSize() );
 			RequestHasMap();
 
-			// Reconverge every peer from the LIVE room state rather than trusting whatever
-			// snapshot each held through the transfer: the host re-broadcasts its game options
-			// - which is the one authoritative slot list - with accepts reset, so the room
-			// comes back exactly as a normal lobby: everyone present, everyone un-readied,
-			// ready up and start. (Measured live 2026-08-10: without this, three peers came
-			// back holding three different room snapshots.)
-			//
-			// The options string serializes each slot's hasMap (GameInfo.cpp:937), and the
-			// recipients' own RequestHasMap updates have NOT arrived yet - the host would
-			// serialize the pre-transfer FALSE and stamp it back onto everyone (cross-model
-			// review catch). The host holds better evidence than any message: its transfer
-			// loop just saw 100% from every recipient, so mark the delivered slots before
-			// serializing. Their own has-map announcements confirm moments later.
+			// Reconverge every peer from live room state: the host re-broadcasts its game options (the authoritative
+			// slot list) with accepts reset. The options string serializes each slot hasMap and the recipients own
+			// updates have not arrived yet, so the host first marks delivered slots from its transfer loop, which just
+			// saw 100% from each recipient. Their own has-map announcements confirm moments later.
 			if (m_currentGame->amIHost())
 			{
 				for (Int slotIdx = 1; slotIdx < MAX_SLOTS; ++slotIdx)
@@ -538,9 +492,9 @@ void LANAPI::OnGameStart()
 		}
 
 		// GeneralsX: Clear the game data only once the start is known to
-		// be a real launch. This used to run BEFORE the transfer - and the animated shell-map
-		// background IS a game (GAME_SHELL), so a delivery-run start unloaded it and the restored
-		// room sat on a dead backdrop (owner report). During the transfer the shell game is merely
+		// be a real launch, not before the transfer - the animated shell-map
+		// background IS a game (GAME_SHELL), so unloading it on a delivery-run start would leave the
+		// restored room on a dead backdrop. During the transfer the shell game is merely
 		// frozen behind the transfer screen (the blocking loop pumps no logic), and it resumes
 		// untouched when the room comes back.
 		if (TheGameLogic->isInGame())
@@ -573,32 +527,10 @@ void LANAPI::OnGameStart()
 		GameMessage *msg = TheMessageStream->appendMessage( GameMessage::MSG_NEW_GAME );
 		msg->appendIntegerArgument(GAME_LAN);
 
-		// GeneralsX: Do NOT force the render limiter off for the match.
-		//
-		// This used to set m_useFpsLimit = false. Nothing turns it back on until clearGameData(),
-		// so FramePacer::isActualFramesPerSecondLimitEnabled() was false for the WHOLE match and
-		// getActualFramesPerSecondLimit() returned UncappedFpsValue - the render loop ran unbounded
-		// from the first frame to the last. Measured at ~540 iterations/second against a 30 Hz
-		// logic rate, 18x, on a sample where the logic frame was still ADVANCING at 29/s, so this
-		// was never limited to the blocked case.
-		//
-		// The stated reason was that peers agree the logic rate between themselves and a local cap
-		// must not fight it. That conflates the render rate with the logic rate. The negotiated
-		// rate is hard-capped at 30 before it is broadcast (ConnectionManager.cpp, newMinFps > 30),
-		// and canUpdateNetworkGameLogic() gates purely on isFrameDataReady() and never reads the
-		// render limit at all - so the render cap cannot fight it.
-		//
-		// Removing the assignment restores the player's OWN preference rather than imposing one.
-		// That matters because rendering above the logic rate is not waste here: W3DDisplay hands
-		// getLogicTimeStepMilliseconds() to WW3D::Update_Logic_Frame_Time per rendered frame, and
-		// sway, water, trees, camera shake and drawable animation all scale off it. Someone who
-		// selected Uncapped keeps uncapped; someone on the default keeps 30.
-		//
-		// Safe against dragging the lobby down: FramePacer::getActualFramesPerSecondLimit never
-		// runs the loop below the tick rate, whatever the cap says (27/09/2026: the cap is the
-		// player's one max-FPS setting, 0 = unlimited, and the old 8x network floor is gone), so the
-		// cap can never pull TheDisplay->getAverageFPS() - which FrameMetrics feeds to the packet
-		// router - below the logic rate.
+		// Do not force the render limiter off for the match: it would stay off until clearGameData(), leaving the
+		// render loop unbounded. The player max-FPS setting is kept. The render cap cannot fight the negotiated
+		// logic rate: canUpdateNetworkGameLogic() gates only on isFrameDataReady(), and
+		// FramePacer::getActualFramesPerSecondLimit never runs the loop below the tick rate.
 
 		// Set the seeds
 		InitRandom( m_currentGame->getSeed() );
@@ -900,22 +832,10 @@ static UnicodeString simIdBuiltWhen( UnsignedInt unixTime )
 	return out;
 }
 
-// GeneralsX: One identity field, marked agreeing or differing.
-//
-// The dialog used to print the verdict as prose and leave the reader to diff two 8-digit hex
-// strings by eye. In the case that actually happens most - engine, data and ordinal all match
-// and only `source` moved - that eyeballing IS the diagnosis, and it was being asked of the
-// player rather than done for them.
-//
-// Marked with BOTH a glyph column and a word, never colour. Measured, not assumed: a static
-// text gadget renders through one call to DisplayString::draw with a single `textColor`
-// (W3DStaticText.cpp:139), so this engine cannot colour part of one control - per-field colour
-// would need one gadget per field, and there is no shipped layout with them. A glyph plus a
-// word also survives the two ways this text is actually consumed: a screenshot read by somebody
-// who cannot separate red from green, and a paste into a chat window as plain text.
-//
-// The raw hex stays on every row, agreeing rows included. It is what people paste at each
-// other, and a row that shows only a verdict cannot be cross-checked against the [SIMID] trace.
+// One identity field, marked agreeing or differing with both a glyph column and a word, never colour: a static
+// text gadget draws with a single textColor (W3DStaticText.cpp:139), so part of one control cannot be coloured,
+// and glyph plus word survives screenshots and plain-text pastes. The raw hex stays on every row so it can be
+// cross-checked against the [SIMID] trace.
 enum SimIdRowMark
 {
 	SIMID_ROW_AGREES = 0,
@@ -1024,24 +944,9 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 			case SIMID_DATA_DIFFERS:
 			case SIMID_ORDINAL_DIFFERS:
 			{
-				// PRESENTATION ONLY. Nothing in this block decides anything: the refusal was
-				// taken upstream by SimIdCompare and is already final by the time OnGameJoin is
-				// called with RET_CRC_MISMATCH. Every value read here is read to be *printed*.
-				//
-				// GeneralsX: The build time used to be GitRevision, a
-				// commit count, printed as "build %d". Both halves were wrong: the value could
-				// name the WRONG machine (see SimulationId.h for the three measured ways a commit
-				// count fails to order two builds), and a bare number was never useful to a
-				// player. Every CSF label in this block is NEW rather than reworded in place -
-				// fetchOrSubstituteFormatVA formats the FETCHED string when a label exists, so a
-				// translation written against an older format string would read the new arguments
-				// through the old specifiers. No CSF in this tree defines any LAN:SimId* label
-				// today, so new names cost nothing and close that off permanently.
-				//
-				// GeneralsX: 0 is the "built without git" sentinel, not a
-				// time. Feeding it to simIdBuiltWhen renders "1970-01-01 00:00:00 UTC", which reads
-				// as a real - and absurd - build date rather than as missing information, and the
-				// row directly above already says the age is unknown.
+				// PRESENTATION ONLY: the refusal was decided upstream by SimIdCompare; every value here is read to be printed.
+				// Build time 0 is the built-without-git sentinel; it would render as a 1970 date, so print unknown instead.
+				// Every CSF label here is new (LAN:SimId*) so no older translation is read through new format arguments.
 				const UnicodeString mineWhen   = ( me.buildTime != 0 )
 					? simIdBuiltWhen( me.buildTime )
 					: TheGameText->FETCH_OR_SUBSTITUTE("LAN:SimIdBuiltNoGit", L"unknown (built without git)");
@@ -1049,20 +954,9 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 					? simIdBuiltWhen( m_remoteSim.buildTime )
 					: TheGameText->FETCH_OR_SUBSTITUTE("LAN:SimIdBuiltNoGit", L"unknown (built without git)");
 
-				// GeneralsX: Report every identity field, not just the
-				// first one that tripped.
-				//
-				// The old text quoted the verdict's own field and nothing else, so the reader was
-				// handed one pair of hex strings and no way to tell whether the rest of the build
-				// agreed. The screenshot that prompted this had engine, data AND ordinal all
-				// matching and only `source` moved - which is the "just rebuild, the data is
-				// fine" case - and none of that was on screen.
-				//
-				// This reads the SAME fields SimIdCompare reads and in the SAME precedence order,
-				// but it does not decide anything: the refusal already happened, upstream, on the
-				// verdict. Comparing all four here rather than trusting the verdict alone is
-				// strictly more information - SimIdCompare returns the FIRST field that differs
-				// and stops, so later fields may differ too and the verdict cannot say.
+				// Report every identity field, not just the first to trip: SimIdCompare returns the first differing
+				// field and stops, so later fields may differ too. This reads the same fields in the same precedence
+				// order but decides nothing; the refusal already happened upstream.
 				const Bool engineDiffers  = (me.engineID  != m_remoteSim.engineID);
 				const Bool dataDiffers    = (me.dataID    != m_remoteSim.dataID);
 				const Bool ordinalDiffers = (me.ordinalID != m_remoteSim.ordinalID);
@@ -1095,19 +989,10 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 					ordinalDiffers ? SIMID_ROW_DIFFERS : SIMID_ROW_AGREES,
 					me.ordinalID, m_remoteSim.ordinalID );
 
-				// The build time gets a NEUTRAL marker, never the DIFFERS glyph. It is not a
-				// compatibility field - SimulationId.h is explicit that it is never compared for
-				// accept/deny - and marking it like one would tell a reader that two builds made
-				// at different moments cannot play, which is false.
-				//
-				// A COMMIT DATE IS NOT A RELEASE ORDINAL, and the wording stays weaker than
-				// "must update" because of it. A newer commit on an older branch, a rollback or a
-				// backdated commit all make the later timestamp the wrong answer - this
-				// repository has three coexisting lineages, so that is a live case, not a
-				// theoretical one. State the fact and show both dates so the reader can judge.
-				//
-				// 0 is the real "no git" sentinel on both sides - git_watcher.cmake emits 0 for
-				// GIT_COMMIT_TSTAMP exactly as it did for GIT_REV_LIST_COUNT.
+				// Build time gets a neutral marker, never the DIFFERS glyph: SimulationId.h says it is never compared
+				// for accept/deny. A commit date is not a release ordinal (a newer commit on an older branch, a rollback
+				// or a backdated commit), so the wording stays weaker than must update. 0 is the no-git sentinel on
+				// both sides (git_watcher.cmake emits 0 for GIT_COMMIT_TSTAMP).
 				const Bool ageUnknown = (m_remoteSim.buildTime == 0 || me.buildTime == 0);
 				const Bool theyAreOlder = (!ageUnknown && me.buildTime > m_remoteSim.buildTime);
 				const Bool weAreOlder   = (!ageUnknown && me.buildTime < m_remoteSim.buildTime);
@@ -1180,33 +1065,10 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 				}
 				body.concat(summary);
 
-				// What differs, and what to do about THAT.
-				//
-				// GeneralsX: Two things were wrong here, and both sent
-				// the player to work on the wrong thing.
-				//
-				// The FIELD: this used to switch on m_remoteSimVerdict, which is only the FIRST
-				// mismatch - SimIdCompare stops at it. A source-plus-data mismatch arrives as
-				// SIMID_SOURCE_DIFFERS, so the reader was told to rebuild and nothing more; they
-				// rebuild, the data mismatch survives, and the next join fails identically. The
-				// remediation is now composed from the booleans, so every differing field gets
-				// its own instruction.
-				//
-				// The CLOCK: "rebuild the older machine" used to be appended to every verdict. It
-				// answers the question for exactly one field:
-				//
-				//   * sourceID IS the source tree, so "the older one moved" is the diagnosis.
-				//   * dataID mixes m_iniCRC with the loose simulation-file digest. A mod or an
-				//     edited INI on the NEWER machine trips it just as readily, and rebuilding
-				//     the older one changes neither side's data.
-				//   * engineID is the build CONFIGURATION. Two builds off the same commit with
-				//     different cmake options differ here, so "the older one" may not exist at
-				//     all - and rebuilding it with the options it already had is a no-op.
-				//   * ordinalID is fnv1a over TheNameKeyGenerator's counter either side of the
-				//     science-store init (SimulationId.cpp:638). It counts the NAMES registered
-				//     at startup, so a difference here while engine, source and data all agree
-				//     means one machine loaded content the data digest does not cover - a
-				//     different set of archives. Age says nothing about that.
+				// Compose advice per differing field (SimIdCompare reports only the first). Age applies to one field only:
+				// sourceID is the source tree, so the older machine moved; dataID also mixes m_iniCRC, so a mod or INI edit
+				// trips it; engineID is the build configuration, so there may be no older build; ordinalID counts names
+				// registered at startup, so a difference with the rest equal means different archives.
 				UnicodeString ageAdvice;
 				if (theyAreOlder)
 					ageAdvice = TheGameText->FETCH_OR_SUBSTITUTE("LAN:SimIdFixTheirs",
@@ -1482,7 +1344,7 @@ void LANAPI::OnInActive(UnsignedInt IP) {
 
 }
 
-// GeneralsX @feature Chat text drawn in a player's own lobby colour is unreadable for the
+// GeneralsX: Chat text drawn in a player's own lobby colour is unreadable for the
 // darker half of the multiplayer palette (red, blue, purple) on the near-black chat listbox.
 // Lift anything below a luma floor by blending it toward white: luma is linear in the
 // components, so the exact blend factor can be solved for instead of iterating, and blending
@@ -1507,7 +1369,7 @@ static Color MakeChatColorReadable( Color color )
 	return GameMakeColor(red, green, blue, alpha);
 }
 
-// GeneralsX @feature Resolve the lobby colour a chat line should be drawn in. Anyone who holds
+// GeneralsX: Resolve the lobby colour a chat line should be drawn in. Anyone who holds
 // no slot (system lines, players still in the LAN lobby), anyone still set to a random colour
 // and observers keep the caller's classic chat colour, matching the "???" / "None" swatch the
 // slot list shows for them.
@@ -1550,7 +1412,7 @@ void LANAPI::OnChat( UnicodeString player, UnsignedInt ip, UnicodeString message
 	if (chatWindow == nullptr)
 		return;
 
-	// GeneralsX @feature Slot colours only exist once we are in a game setup; chat in the LAN
+	// GeneralsX: Slot colours only exist once we are in a game setup; chat in the LAN
 	// lobby itself keeps the classic local/remote colouring.
 	LANGameInfo *slotColorGame = (m_inLobby) ? nullptr : m_currentGame;
 

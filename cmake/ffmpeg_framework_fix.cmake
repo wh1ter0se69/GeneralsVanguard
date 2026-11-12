@@ -1,3 +1,5 @@
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # pkg-config splits "-framework CoreFoundation" into two separate list items.
 # On the PkgConfig::FFMPEG imported target this poisons both INTERFACE_LINK_LIBRARIES
 # and INTERFACE_LINK_OPTIONS; CMake additionally de-duplicates interface link

@@ -18,27 +18,10 @@
 #include "PreRTS.h"
 #include "GameClient/ClientInstance.h"
 
-// GeneralsX: GeneralsX owns its own single-instance mutex name.
-//
-// 685EAFF2-3216-4265-B047-251C5F4B82F3 is retail Generals' GUID, and the Generals Online client
-// uses the identical value (references/generals-online-client/.../ClientInstance.cpp:21). Sharing
-// it means retail, Generals Online and GeneralsX all contend for one mutex, so a GeneralsX build
-// launched while Generals Online is running gets ERROR_ALREADY_EXISTS, initialize() returns FALSE
-// and the process refuses to start. On the Windows test box that is the normal state, not an edge
-// case - the operator plays Generals Online there.
-//
-// Do NOT "fix" that by turning on multi-instance for the headless LAN roles. isMultiInstance()
-// also gates IPEnumeration::getAddresses injecting a synthetic 127.<instance> address
-// (IPEnumeration.cpp:118-127); ipSortClass only deprioritises 169.254, so 127.x sorts ahead of the
-// real NIC and the peer advertises itself on loopback where no other machine can reach it. See the
-// note above setUpHeadlessLanRole in CommandLine.cpp. Instance naming and address synthesis are
-// separate concerns and only the first one is wanted here.
-//
-// A private GUID keeps the guard doing its real job - one GeneralsX at a time - while making it
-// structurally impossible to collide with a product we do not control. This file is not in the
-// SimID digest path list (simsourcedigest_watcher.cmake digests Core/GameEngine/{Include,Source}/
-// {Common,GameLogic,GameNetwork} only), so changing it does not move sourceID and does not force a
-// lockstep rebuild of every peer.
+// GeneralsX uses a private single-instance GUID: retail and Generals Online share one, so a GeneralsX launch
+// while Generals Online runs would fail with ERROR_ALREADY_EXISTS.
+// Do NOT fix that with multi-instance for the headless LAN roles: isMultiInstance() also makes IPEnumeration add a
+// synthetic 127.<instance> address that outranks the real NIC, so the peer would advertise itself on loopback.
 #define GENERALS_GUID "BA1205E2-B5D5-47B2-BF0A-FEF0B970EAA9"
 
 namespace rts

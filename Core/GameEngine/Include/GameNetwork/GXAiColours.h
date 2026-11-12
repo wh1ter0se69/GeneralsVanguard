@@ -1,18 +1,25 @@
-// GeneralsX: AI IN THREE COLOURS, the launcher's choice for a game against Hard AI.
-// With
-// 31 AI on one screen, 31 shades read as noise; three colours read as three enemy groups.
-//
-// WHEN IT APPLIES. At most one human, observers counted, because a second person means multiplayer, which always keeps every colour;
-// every AI Hard; more than three AI, because three or fewer have nothing to share and a colour picked for them in the lobby stands.
-//
-// WHO SHARES. By lobby team, so a colour never lands on both sides of a fight: three or more AI teams take a colour each (a fourth
-// team has to reuse one), two teams give the bigger one two colours and the smaller one the third, and one team or none is a
-// round-robin by seat. It replaces whatever an AI seat held, a lobby pick included. A human's colour is never used.
-//
-// WHERE IT RUNS. GameLogic, after populateRandomSideAndColor has drawn every seat's colour as usual, so the random numbers, and with
-// them the whole match, are the same in both modes: only colours differ. The host's choice reaches the logic as a flag on the game
-// (GameInfo::stampAiColours), and a replay or a save carries that flag, never the viewer's own setting. This header is engine-free
-// so scripts/test/ai-colours-test.cpp can drive it.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// AI in three colours: at most one human (observers counted), every AI Hard, more than three AI.
+// By lobby team: three or more AI teams take a colour each, two teams give the bigger one two colours, one team or
+// none is round-robin by seat. A human colour is never used. Runs in GameLogic after populateRandomSideAndColor,
+// so the match is unchanged; the host choice arrives as GameInfo::stampAiColours.
 #pragma once
 
 #include <vector>

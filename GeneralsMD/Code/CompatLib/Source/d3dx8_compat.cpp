@@ -1,3 +1,21 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 // GLM_ENABLE_EXPERIMENTAL is passed via target_compile_definitions in CMakeLists.txt.
 // Do NOT redefine it here -- that causes -Wmacro-redefined with Clang.
 
@@ -82,7 +100,7 @@ D3DXLoadSurfaceFromSurface(
 		return D3DERR_INVALIDCALL;
 	}
 
-	// GeneralsX: A failed lock leaves pBits unset, and both paths below write through it:
+	// A failed lock leaves pBits unset, and both paths below write through it:
 	// refuse instead, releasing only the lock that was taken.
 	D3DLOCKED_RECT srcRect;
 	if (FAILED(pSrcSurface->LockRect(&srcRect, NULL, 0)))
@@ -107,7 +125,7 @@ D3DXLoadSurfaceFromSurface(
 		return D3D_OK;
 	}
 
-	// GeneralsX: The same 2:1 box on every platform (d3dx8_boxfilter.h). Windows and
+	// The same 2:1 box on every platform (d3dx8_boxfilter.h). Windows and
 	// Linux used gli::generate_mipmaps(FILTER_LINEAR), which point-sampled half of every level; Apple already ran this box.
 	// It honours both pitches (GLI read the source as if tight and only compared the destination's byte count, so it also
 	// accepted a same-size but differently shaped destination). Anything else is refused, and every refusal now unlocks both
@@ -191,7 +209,7 @@ D3DXFilterTexture(
 				return hr;
 			}
 
-			// GeneralsX: Stop at the first level that could not be built and return why:
+			// Stop at the first level that could not be built and return why:
 			// the loop used to build every later level from it and report D3D_OK. Each surface reference is now
 			// released once - the old loop released the last level twice and never the top one.
 			while (tex->GetSurfaceLevel(Level, &mipsurf) == D3D_OK)

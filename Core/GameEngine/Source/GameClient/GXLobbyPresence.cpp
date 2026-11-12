@@ -18,7 +18,7 @@
 
 // FILE: GXLobbyPresence.cpp /////////////////////////////////////////////////////////////////////
 //
-// GeneralsX: See GXLobbyPresence.h for why this owns a socket instead of
+// See GXLobbyPresence.h for why this owns a socket instead of
 // sharing the game's.
 
 #include "PreRTS.h"
@@ -34,6 +34,19 @@
 #include "GameNetwork/udp.h"
 #include "WWLib/strtok_r.h"				// MSVC has no strtok_r; this is the portability shim
 
+// The device layer's hardware facts (GXHwReport.h), registered by Zero Hour's replay diagnostics. None: no report is sent.
+static GXHwFactsFn s_hwFacts = NULL;
+static GXHwFacts *s_hwInto = NULL;
+static void hwCollect( const char *key, const char *value )
+{
+	if (s_hwInto != NULL)
+		gxHwPut(*s_hwInto, key, value);
+}
+void gxHwSetFactsProvider( GXHwFactsFn fn )
+{
+	s_hwFacts = fn;
+}
+
 #if defined(__APPLE__)
 #include <TargetConditionals.h>	// TARGET_OS_IPHONE exists only after this, and only inside __APPLE__
 #endif
@@ -45,7 +58,7 @@ namespace
 {
 	// The relay's lobby port. Same port the game socket talks control to; a DIFFERENT source port
 	// here is exactly what makes us a separate member (the relay keys members by address:port).
-	// GeneralsX: S1-3: only the DEFAULT now. The relay's real lobby port comes with its
+	// S1-3: only the DEFAULT now. The relay's real lobby port comes with its
 	// address (OptionPreferences::getRelayPort: the signed list's home, or a host:port pin) into m_relayPort.
 	const UnsignedShort GX_RELAY_LOBBY_PORT = 8086;
 
@@ -55,35 +68,20 @@ namespace
 	const char GX_TAG_PLAT[]  = "GXPLAT";
 	const char GX_TAG_ROOM[]  = "GXROOM";
 	const char GX_TAG_MEMB[]  = "GXMEMB";
-	// GeneralsX: The goodbye. See sendLeave() and relay.js BYE_TAG.
+	// The goodbye. See sendLeave() and relay.js BYE_TAG.
 	const char GX_TAG_BYE[]   = "GXBYE";
 	const char GX_TAG_CHT[]   = "GXCHT";
 	const char GX_TAG_SAY[]   = "GXSAY";
-	// GeneralsX: The signed identity - see GXLobbyPresence::setIdentity.
-	//
+	// The signed identity. Its absence from this list was the
+	// moderation bypass - see GXLobbyPresence::setIdentity.
 	const char GX_TAG_IDN[]   = "GXIDN";
-	// GeneralsX: The relay's registration secret - see GXRelayAuth.h.
+	// The relay's registration secret - see GXRelayAuth.h.
 	const char GX_TAG_AUTH[]  = "GXAUTH";
 
-	/// GeneralsX: The unicast framing for a private line in THIS room.
-	///
-	/// The SIZE is the shared one (NetworkDefs.h GX_RELAY_HEADER_SIZE) - deliberately not a local
-	/// copy, because two constants that must agree and can drift are worse than a header dependency
-	/// this file already has. Only the writer and the tag are local, and that much is a considered
-	/// duplication of Transport.cpp:824 rather than an oversight, because the obvious review comment
-	/// is "call the one in Transport".
-	///
-	/// Transport.h and Transport.cpp are inside the sourceID digest
-	/// (resources/gitinfo/simsourcedigest_watcher.cmake lists Source/GameNetwork; it does not list
-	/// Source/GameClient). Exposing a helper from there to be reused here would move the digest, and a
-	/// moved digest is a HARD WIRE BREAK - computeEngineID hashes it, so every peer on the previous
-	/// build refuses every peer on this one. Paying that for a lobby fix, when nothing about the
-	/// simulation changed, would strand players who cannot update on the three platforms that still
-	/// have no launcher. Nine lines of duplication is the cheaper half of that trade by a long way.
-	///
-	/// The format is not this file's invention to drift from either - it is the relay's, documented at
-	/// tools/relay/relay.js:995, and both readers are that same relay. Big-endian on the wire so a
-	/// JavaScript readUInt32BE and four C++ platforms cannot disagree about byte order.
+	/// Unicast framing for a private line in THIS room. The size is the shared GX_RELAY_HEADER_SIZE (NetworkDefs.h).
+	/// The writer and tag copy Transport.cpp's on purpose: Transport.h/.cpp are in the sourceID digest, so exporting
+	/// a helper would move it, and a moved digest is a hard wire break (computeEngineID hashes it).
+	/// The format is the relay's (tools/relay/relay.js), big-endian so JavaScript and C++ agree on byte order.
 	const char GX_PEER_TAG[] = "GXPEER ";
 
 	/// Write the routing header. `src` must be OUR OWN registered address: the relay compares it
@@ -112,7 +110,7 @@ namespace
 
 	const UnsignedInt GX_WHO_RETRY_MS      = 400;
 	const Int         GX_WHO_ATTEMPTS      = 3;		// per shard, then move to the next
-	// GeneralsX: resume()'s secret-bearing reclaim, sent this many times GX_WHO_RETRY_MS
+	// resume()'s secret-bearing reclaim, sent this many times GX_WHO_RETRY_MS
 	// apart before the GXWHO: the relay answers a proven reclaim with silence, so a lost one cannot be seen -
 	// only made unlikely - and a GXWHO answered before the claim lands hands out a different id.
 	const Int         GX_RECLAIM_TRIES     = 3;
@@ -120,7 +118,7 @@ namespace
 	const UnsignedInt GX_TAGS_MS           = 30000;
 	const UnsignedInt GX_ROSTER_MS         = 4000;
 	const UnsignedInt GX_GAVEUP_RETRY_MS   = 30000;
-	// GeneralsX: Fenced keepalives the relay may leave unanswered before we ask for
+	// Fenced keepalives the relay may leave unanswered before we ask for
 	// an id again - see GXLobbyPresence::update. GX_FENCED_UNACKED_MAX now lives in GXRelayIdentityWire.h,
 	// because the lobby transport follows the same policy (Transport::isRelayIdentityStranded).
 
@@ -133,10 +131,8 @@ namespace
 		return (Int)(now - deadline) >= 0;
 	}
 
-	/// "10.42.0.7" -> 0x0A2A0007, host order. The REGISTRATION has to carry the full address: the
-	/// relay's address space is 10.42.0.x and a registration claiming 0.0.0.7 is a different id
-	/// entirely. Measured 14/08/2026 - the roster showed the client as 0.0.0.4 because only the
-	/// octet had been kept, and it looked correct because the slot is derived from that same octet.
+	/// "10.42.0.7" -> 0x0A2A0007, host order. The REGISTRATION has to carry the full address: the relay's address space is
+	/// 10.42.0.x and a registration claiming 0.0.0.7 is a different id entirely (keeping only the octet showed 0.0.0.4).
 	UnsignedInt gxParseDottedQuad( const char *dotted )
 	{
 		if (dotted == NULL)
@@ -180,19 +176,20 @@ GXLobbyPresence::GXLobbyPresence()
 	m_fencedUnacked = 0;
 	m_relayRecordsMatch = FALSE;
 	clearRelaySeats34();
+	clearRelayHw();
 	m_reclaimLeft = 0;
 }
 
 //-------------------------------------------------------------------------------------------------
 GXLobbyPresence::~GXLobbyPresence()
 {
-	// GeneralsX: AND HERE, which is the path that actually runs on
+	// AND HERE, which is the path that actually runs on
 	// quit. leaveLobby() has no caller in the tree - WOLLobbyMenuShutdown deliberately does not pair
 	// with it, because moving between the Online screens is not leaving - so the engine's teardown
 	// (SDL3GameEngine/Win32GameEngine delete this object) is where a closing player is retracted.
 	sendLeave();
 	closeSocket();
-	// GeneralsX: Torn down: no copy of the sign-in outlives the object
+	// Torn down: no copy of the sign-in outlives the object
 	// that held it. GXLobbyIdentity's own destructor clears too; this says so where it is read.
 	m_identity.clear();
 }
@@ -224,19 +221,10 @@ const char *GXLobbyPresence::shardRoom( Int index ) const
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX: A direct match launch never learned where the relay was.
-  *
-  * The address this object resolves is what GXPerfReport files its telemetry against, and the only
-  * thing that ever set it was openSocket(), reached from enterLobby(). A `-lanhost`/`-lanjoin` peer
-  * has no Online screen, so it stayed 0 and that peer reported nothing all match - which, because
-  * the panel will not name a player unless the whole room is reporting, turned attribution off for
-  * the room. The standing lobby host is a `-lanhost`, so that was production.
-  *
-  * The SAME lookup openSocket does, with no socket and no state change, so it is safe to call from
-  * a launch that will never be in the lobby. The address is not taken from Transport, which also
-  * has it: Core/GameEngine/Include/GameNetwork is digested and a getter there moved the ZH digest
-  * once already - see getRelayAddr's note in the header.
-  */
+/** Resolve the relay address for a direct match launch. GXPerfReport files telemetry against it, and only openSocket()
+  * set it, so a `-lanhost`/`-lanjoin` peer with no Online screen reported nothing. Same lookup as openSocket, with no
+  * socket and no state change. Not taken from Transport: Core/GameEngine/Include/GameNetwork is digested
+  * (see getRelayAddr's note in the header). */
 Bool GXLobbyPresence::acquireRelayAddr( void )
 {
 	if (m_relayAddr != 0)
@@ -248,21 +236,10 @@ Bool GXLobbyPresence::acquireRelayAddr( void )
 		return FALSE;			// relay play is not configured; not an error
 
 #ifdef _WIN32
-	/* GeneralsX: WINSOCK IS NOT UP YET ON WINDOWS, AND THIS IS THE WHOLE
-	 * POINT OF THE FIX ABOVE FAILING ON THE ONE PLATFORM THAT MATTERED MOST.
-	 *
-	 * ResolveIP reaches gethostbyname, which returns WSANOTINITIALISED until something has called
-	 * WSAStartup. This runs from the device engine's init() - deliberately, so it is off the frame
-	 * path - which is BEFORE Transport::init() does its own WSAStartup. So on Windows a hostname
-	 * RelayAddress resolved to nothing here, m_relayAddr stayed 0, and that peer reported for the
-	 * entire match: exactly the defect this function was written to close, reintroduced on the one
-	 * platform this Mac cannot compile and a four-platform verify would not catch, because a verify
-	 * only proves that four compilers agree.
-	 *
-	 * Reference counted, so this costs nothing anywhere else - the same argument GXLoopback::open
-	 * states for its own copy, and for the same reason: a module must not depend on the order in
-	 * which subsystems happen to initialise. A failure is not fatal either; ResolveIP below is what
-	 * decides, and a dotted-quad RelayAddress does not need winsock at all. */
+	/* WINSOCK IS NOT UP YET ON WINDOWS: gethostbyname (via ResolveIP) returns WSANOTINITIALISED until WSAStartup runs,
+	 * and this runs from the device engine's init(), before Transport::init() calls WSAStartup. A hostname RelayAddress
+	 * would resolve to nothing and the peer would report nothing all match. Reference counted, so free elsewhere;
+	 * failure is not fatal, as a dotted-quad RelayAddress needs no winsock. */
 	{
 		WSADATA wsa;
 		WSAStartup(MAKEWORD(1, 1), &wsa);
@@ -277,6 +254,7 @@ Bool GXLobbyPresence::acquireRelayAddr( void )
 	m_relayAddr = addr;
 	m_relayPort = prefs.getRelayPort();
 	clearRelaySeats34();	// a relay endpoint that may have changed has said nothing yet (relaySaidSeats34)
+	clearRelayHw();
 	return TRUE;
 }
 
@@ -298,6 +276,7 @@ void GXLobbyPresence::openSocket( void )
 	m_relayAddr = ResolveIP(relayHost);
 	m_relayPort = prefs.getRelayPort();
 	clearRelaySeats34();
+	clearRelayHw();
 	if (m_relayAddr == 0 || m_relayAddr == INADDR_NONE)
 	{
 		giveUp(timeGetTime());
@@ -331,8 +310,8 @@ void GXLobbyPresence::openSocket( void )
 // NOT where the sign-in copy is cleared, deliberately. update() closes and reopens the socket to retry
 // an acquire that gave up (STATE_GAVE_UP), and that is the same presence asking again, not a teardown:
 // the identity is declared on entry to the Online screen, usually while we are still acquiring, and
-// clearing it here would leave a player who met an unreachable relay at that moment admitted without
-// the identity setIdentity declares. Teardown is leaveLobby() and the destructor.
+// clearing it here would leave a player who met a relay outage at that moment admitted UNIDENTIFIED -
+// which is the moderation bypass setIdentity closes. Teardown is leaveLobby() and the destructor.
 void GXLobbyPresence::closeSocket( void )
 {
 	if (m_sock != NULL)
@@ -352,18 +331,20 @@ void GXLobbyPresence::closeSocket( void )
 	// Issued for the membership this socket held. The WHOLE buffer, with a clear the optimiser may not drop:
 	// within the relay's reclaim grace these bytes reclaim the member and its verified account.
 	gxSecureClear(m_relayAuth);
-	// GeneralsX: ...and what that relay said with it. The word is per (room, id)
+	// ...and what that relay said with it. The word is per (room, id)
 	// like the secret; kept past the socket, a GAVE_UP retry's new socket read TRUE from a relay it had not yet heard,
 	// and a match started before its first GXAUTH asked gxMatchRecordEnabled against that stale word.
 	m_relayRecordsMatch = FALSE;
-	// GeneralsX: (STEP 0) ...and the seats34 word, for the same reason: see relaySaidSeats34.
+	// (STEP 0) ...and the seats34 word, for the same reason: see relaySaidSeats34.
 	clearRelaySeats34();
+	// ...and the hardware words and what this socket sent: the next membership is asked again.
+	clearRelayHw();
 }
 
 //-------------------------------------------------------------------------------------------------
 void GXLobbyPresence::enterLobby( void )
 {
-	// GeneralsX: S1-3: refresh the signed relay list in the background, once per process -
+	// S1-3: refresh the signed relay list in the background, once per process -
 	// GXUPD to the compiled-in bootstrap plus the held home and standbys. Never blocks, and the answer is cached for
 	// the NEXT launch: this session's relay is already latched (GXRelayList.h). Not when relay play is off or
 	// RelayAddress pins somebody else's relay. Here rather than in the Online screen so a headless GX_LOBBY_TEST peer
@@ -386,12 +367,12 @@ void GXLobbyPresence::enterLobby( void )
 //-------------------------------------------------------------------------------------------------
 void GXLobbyPresence::leaveLobby( void )
 {
-	// GeneralsX: BEFORE closeSocket(), which is the only order that
+	// BEFORE closeSocket(), which is the only order that
 	// works: it destroys the socket and clears m_room, so a goodbye sent after it has neither a way out
 	// nor a room to name.
 	sendLeave();
 	closeSocket();
-	// GeneralsX: Every byte of the sign-in copy, with a clear the optimiser
+	// Every byte of the sign-in copy, with a clear the optimiser
 	// may not drop. The membership is now retracted on the wire (sendLeave above); the relay's timeout
 	// remains the backstop for the exits that cannot send. A later enterLobby() is declared afresh by
 	// the lobby screen.
@@ -401,17 +382,10 @@ void GXLobbyPresence::leaveLobby( void )
 //-------------------------------------------------------------------------------------------------
 void GXLobbyPresence::suspend( void )
 {
-	// GeneralsX: ONE RULE FOR EVERY STATE, not a branch per state - see the
-	// table in the header, rows "suspend". The per-state branches this replaces were how r9, r10 and r12 each found
-	// a state that held something the branch for it did not retract: ACQUIRING's lease (r9), GAVE_UP's retry (r10),
-	// and a GAVE_UP that a fenced re-ask entered with its membership still live (r12).
-	//
-	// IDLE holds nothing and SUSPENDED already said goodbye - and the gate calls this every frame of a match, so
-	// those two must be no-ops. Everything else says GXBYE for whatever it may hold (sendLeave: the membership,
-	// and while ACQUIRING the lease its GXWHO may have taken) and drops the slot-addressed state with it. The
-	// socket, the (room, id) and its secret stay: that is what resume() presents to reclaim the SAME id (a GXBYE
-	// retires the binding the way a timeout does, relay.js leaveRoom), and the 'gxm1' word stays with them - the
-	// match is exactly when it is read (gxMatchRecordEnabled).
+	// ONE RULE FOR EVERY STATE (header table, rows "suspend"). IDLE holds nothing and SUSPENDED already said goodbye, and
+	// the gate calls this every frame of a match, so those are no-ops. Every other state says GXBYE (sendLeave) and drops
+	// the slot-addressed state. The socket, (room, id), its secret and the 'gxm1' word stay so resume() can reclaim the
+	// SAME id (GXBYE retires the binding like a timeout, relay.js leaveRoom).
 	if (m_state == STATE_IDLE || m_state == STATE_SUSPENDED)
 		return;
 	sendLeave();
@@ -433,7 +407,7 @@ void GXLobbyPresence::resume( void )
 	// The relay has almost certainly timed the membership out during the match, so re-acquire
 	// rather than assume.
 	fprintf(stderr, "[GXLOBBY] presence resumed after the match - rejoining the lobby\n");
-	// GeneralsX: FIRST, DROP WHAT QUEUED WHILE SUSPENDED. SUSPENDED reads
+	// FIRST, DROP WHAT QUEUED WHILE SUSPENDED. SUSPENDED reads
 	// nothing, so a GXYOU answering a GXWHO sent just before the match sat in the socket for the whole of it.
 	// Read now, in ACQUIRING, it admitted us to an address whose lease the relay had long since freed - and
 	// if another player held it, every keepalive was refused while this socket sat ADMITTED and never asked
@@ -443,22 +417,12 @@ void GXLobbyPresence::resume( void )
 	m_state       = STATE_ACQUIRING;
 	m_whoAttempts = 0;
 	m_nextWhoMs   = timeGetTime();
-	// GeneralsX: RECLAIM THE ID WE LEFT, THEN ASK. Our GXBYE retired the
-	// membership and released this endpoint's lease, and the relay skips a retired id when it assigns one
-	// (assignIdentity), so a bare GXWHO handed back a different id - or "-" when the shard was full, sending
-	// the player to another lobby. Presenting the kept secret is what wins the retired binding back
-	// (register()'s proven reclaim, account and all, whatever our public port became during the match);
-	// the GXWHO sent after it then finds us a member and answers our own id (relay.js, same date), so
-	// the GXYOU handler keeps the secret and admits us where we were. If the binding has lapsed or the id
-	// went to somebody else the registration changes nothing and GXWHO assigns afresh, as before. Only
-	// with a secret in hand: a signed-out (fenced) id holds none, and a bare claim proves nothing.
-	//
-	// GeneralsX: GX_RECLAIM_TRIES times, not once: the relay answers a proven
-	// reclaim with silence, so one lost datagram would have sent us to GXWHO with the seat still ours. update()
-	// sends them GX_WHO_RETRY_MS apart and only then asks (a repeat after a reclaim that landed is an ordinary
-	// proven keepalive).
+	// RECLAIM THE ID WE LEFT, THEN ASK. Our GXBYE retired the membership and the relay skips a retired id when assigning,
+	// so a bare GXWHO would get a different id or "-". Presenting the kept secret wins the binding back, and the GXWHO
+	// after it then finds us a member. Only with a secret in hand. The relay answers a proven reclaim with silence,
+	// so it is sent GX_RECLAIM_TRIES times, GX_WHO_RETRY_MS apart, before asking.
 	m_reclaimLeft = (m_myAddress != 0 && !m_room.isEmpty() && m_relayAuth[0] != '\0') ? GX_RECLAIM_TRIES : 0;
-	// GeneralsX: ...and the GXWHO after it asks THAT room. m_shard is where the last
+	// ...and the GXWHO after it asks THAT room. m_shard is where the last
 	// acquisition stood, which is not m_room after a re-ask moved on or a give-up reset it - and a GXWHO in another shard
 	// is answered with another id while the reclaim holds this one.
 	if (m_reclaimLeft > 0)
@@ -474,26 +438,10 @@ void GXLobbyPresence::resume( void )
 	}
 }
 
-//-------------------------------------------------------------------------------------------------
-// GeneralsX: Filter here TOO, because this is the raw path.
-//
-// sendTags() below writes m_nick straight into the GXNICK datagram (:348) with no filter anywhere
-// in between - this class is the half of the nickname path that never had one, which is why a name
-// with a space reached the relay intact and was refused at relay.js:1400 while the LAN half's
-// already-filtered copy of the same name was accepted. Both were seen 8 seconds apart in one
-// session (spec S13): `is named "ayrebnabe"` from the filtered path and `listed as "ayre bnabe"`
-// from this one.
-//
-// This is defence in depth and not the fix: gxLobbySetNickname (WOLLobbyMenu.cpp:185) already
-// normalises, and it is the only caller that carries a player-chosen name. The other caller in the
-// tree is SDL3GameEngine.cpp:984, which passes the literal "GXHeadless" - already inside the
-// charset and already under the cap, so it is unaffected. What this catches is the THIRD caller
-// somebody adds later; scripts/test/nickname-wire-invariant.sh fails when one appears, and this
-// makes that failure harmless rather than another year of "P3".
-//
-// A name that survives nothing leaves m_nick ALONE rather than clearing it. Replacing a name the
-// relay accepted with one it will not is strictly worse than ignoring the request, and sendTags()
-// only emits when m_nick is non-empty anyway.
+// Filter here TOO, because this is the raw path: sendTags() writes m_nick straight into the GXNICK datagram, so a name
+// with a space reached the relay and was refused there.
+// Defence in depth, not the fix: gxLobbySetNickname (WOLLobbyMenu.cpp) already normalises; this catches a later caller
+// (scripts/test/nickname-wire-invariant.sh fails when one appears). A name that survives nothing leaves m_nick ALONE.
 void GXLobbyPresence::setNickname( const AsciiString &nick )
 {
 	char clean[GX_RELAY_NICK_MAX + 1];
@@ -506,7 +454,7 @@ void GXLobbyPresence::setNickname( const AsciiString &nick )
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: The identity this socket never had. See GXLobbyPresence.h.
+// The identity this socket never had. See GXLobbyPresence.h.
 //
 // Remembered even when it cannot be sent yet. The lobby screen declares on entry, which is the same
 // moment this class opens its socket, so the first declaration lands while we are still ACQUIRING -
@@ -519,7 +467,7 @@ void GXLobbyPresence::setIdentity( const char *assertion )
 		clearIdentity();
 		return;
 	}
-	// GeneralsX: An account SWITCH leaves the old account's secret - see
+	// An account SWITCH leaves the old account's secret - see
 	// clearIdentity. Only a switch: the lobby re-declares the account it already holds on every entry, and
 	// wiping then would drop the secret at the post-match re-acquire that needs it.
 	const bool leaving = !m_identity.isEmpty() && !m_identity.sameAccount(assertion);
@@ -536,7 +484,7 @@ void GXLobbyPresence::setIdentity( const char *assertion )
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: Sign-out. See GXLobbyPresence.h.
+// Sign-out. See GXLobbyPresence.h.
 //
 // The clear first and unconditionally, the wire second: whatever state the socket is in, no copy of
 // the token survives this call. While we are in the room the relay is told at once; either way the
@@ -544,31 +492,10 @@ void GXLobbyPresence::setIdentity( const char *assertion )
 // GXLobbyIdentity.h).
 void GXLobbyPresence::clearIdentity( void )
 {
-	// GeneralsX: LEAVING AN ACCOUNT LEAVES ITS SECRET. The relay carries the account
-	// across a reclaim (register() inherits the binding's sub, then enforceModeration). So a member the relay
-	// dropped for a banned account that keeps presenting the secret brings the ban back on every keepalive,
-	// and the "GXIDN <room> -" after it lands on an endpoint the relay no longer knows - refused every 5 s,
-	// forever, signed out or not (gate on 90ebb74e8; tools/relay/test-moderation.js [P-OUT]). Without
-	// it the next keepalive is a fresh claim from the same address: no account inherited, the clear applies,
-	// and a kick still holds (it is on the binding and the endpoint - test-kick.js). Only when an account
-	// was held: a guest is "cleared" on every lobby entry, and must keep its secret.
-	// FENCED: a GXAUTH replying to a keepalive sent before this could
-	// arrive after it and put the old secret straight back, and nothing in a GXAUTH ties it to the keepalive
-	// it answers - so lifting the fence when the next registration was SENT let a lost registration plus a
-	// late reply restore it. It lifts only when the relay assigns a DIFFERENT (room, id) - see GXYOU - which
-	// no reply about this id can name. Until then this id is kept bare, which is safe and is what keeps a kick
-	// (keyed on this endpoint) and the room slot where they are; update() re-asks if the relay stops
-	// accepting it, so a sign-out during an outage followed by a new public address is not a lockout.
-	// GeneralsX: ...AND NO SECRET FOR THAT (room, id) IS TAKEN AT
-	// ALL. r6 kept a DIFFERENT secret once GXYOU had handed the same id back, on the theory that only the secret held
-	// at sign-out could restore the account. It is not the only one: a relay that restarts while we hold A mints the
-	// live, signed-in membership a new secret B, and if that GXAUTH is lost we sign out still holding A. B, arriving
-	// after the sign-out, differs from A - and a reclaim with it brings the account and its sanctions back. A same-id
-	// GXYOU is the sticky answer for that live membership exactly as for a fresh one, and nothing in a GXAUTH says
-	// which, so the fence refuses every secret for the signed-out (room, id) until GXYOU names a different one. The
-	// price is r6's liveness case, and it is the trade Transport's fence already makes: a fresh membership that got
-	// the same number (after a long match) stays bare, so a public-address change costs the id - update()'s re-ask
-	// is handed a different one, which lifts the fence. lobby-presence-fsm-test.cpp rule F.
+	// LEAVING AN ACCOUNT LEAVES ITS SECRET: the relay carries the account across a reclaim, so a banned account that keeps
+	// presenting its secret brings the ban back every keepalive. Only when an account was held (a guest keeps its secret).
+	// FENCED: a late GXAUTH could put the old secret back, and nothing ties it to its keepalive, so no secret for that
+	// (room, id) is taken until GXYOU names a different one (lobby-presence-fsm-test.cpp rule F).
 	if (!m_identity.isEmpty())
 	{
 		gxSecureClear(m_relayAuth);
@@ -579,27 +506,10 @@ void GXLobbyPresence::clearIdentity( void )
 		sendIdentity();
 }
 
-//-------------------------------------------------------------------------------------------------
-// GeneralsX: "GXIDN <room> <assertion>", or the wire clear, or nothing.
-//
-// Rides the 5 s REGISTRATION keepalive, directly after each GXRLY - not the 30 s tag tick; update()
-// says why. (The game socket's GXIDN moved off that tick too, for the same reason - see
-// Transport::sendRelayRegistration.) The relay re-applies moderation on every
-// presentation (its GXIDN handler calls enforceModeration), so a mute or ban that lands while a player
-// sits in the lobby takes effect within 5 s rather than at their next login.
-//
-// ORDER IS THE POINT: the relay silently discards an identity from an endpoint it has not yet filed as
-// a member (relay.js byEndpoint - no log, no refusal), so it goes out after the registration, never
-// before and never on a clock of its own.
-//
-// WHY 5 s IS AFFORDABLE: the 30 s tag tick protects a room from a relay too old to know a tag, which
-// broadcasts an unknown control line instead of dropping it. This socket carries no lockstep traffic,
-// and every relay it can reach already has GXIDN. The cost is one ~300-byte datagram per 5 s while
-// signed in, one Ed25519 verify on the relay.
-//
-// NOT logged, at any level - the rule Transport states for this tag. The assertion is a bearer token
-// carrying an account identifier, and a log of it would land in a file players paste into chat when
-// asking for help. And the stack copy is wiped after the send, so the line is not a second copy.
+// "GXIDN <room> <assertion>", sent after each 5 s registration keepalive (GXRLY), or the wire clear, or nothing.
+// ORDER IS THE POINT: the relay silently discards an identity from an endpoint not yet filed as a member.
+// The relay re-applies moderation on every presentation, so a mute or ban lands within 5 s.
+// NOT logged at any level: the assertion is a bearer token carrying an account identifier; the stack copy is wiped.
 void GXLobbyPresence::sendIdentity( void )
 {
 	if (m_sock == NULL || m_myAddress == 0 || m_room.isEmpty())
@@ -631,10 +541,9 @@ void GXLobbyPresence::sendRegistration( void )
 {
 	if (m_sock == NULL || m_myAddress == 0)
 		return;
-	// GeneralsX: WITH THE SECRET once the relay has issued one. Without it a
-	// keepalive from a changed public address is a stranger claiming a held id, refused silently, and
-	// every refusal extends the binding it is refused on - so the player vanished from the lobby for as
-	// long as the client kept asking (measured: 1,355 refusals in two hours, 18/09/2026).
+	// WITH THE SECRET once the relay has issued one. Without it a keepalive from a changed public address is a stranger
+	// claiming a held id, refused silently, and every refusal extends the binding it is refused on - so the player vanished
+	// from the lobby for as long as the client kept asking.
 	char line[96];
 	GXScopedWipe wipeLine(line, sizeof(line));		// it carries the secret - every path, incl. the refusal
 	const Int len = gxRelayRegistrationLine(line, sizeof(line), m_room.str(), m_myAddress, m_relayAuth);
@@ -660,7 +569,7 @@ void GXLobbyPresence::sendTags( void )
 	// The platform tag is what paints the OS column beside each name.
 #if defined(_WIN32)
 	const char *plat = "W";
-// GeneralsX: TARGET_OS_IPHONE, not GX_PLATFORM_IOS: nothing ever defined that, so an iPad
+// TARGET_OS_IPHONE, not GX_PLATFORM_IOS: nothing ever defined that, so an iPad
 // sent "M" here while its match transport (Transport::localPlatformTag) already sent "iP".
 #elif defined(__APPLE__) && TARGET_OS_IPHONE
 	const char *plat = "iP";
@@ -675,41 +584,10 @@ void GXLobbyPresence::sendTags( void )
 		m_sock->Write((const unsigned char *)line, len, m_relayAddr, m_relayPort);
 }
 
-//-------------------------------------------------------------------------------------------------
-// GeneralsX: SAY WE ARE GOING, rather than being missed into silence.
-//
-// THE DEFECT. The relay forgets a member only by silence - MEMBER_TIMEOUT_MS plus a sweep - and until
-// now nothing on this socket ever said otherwise, which the relay's own source states outright. Measured
-// against production on 20/09/2026: 61.1 s from a quitter's last datagram to "timed out", 70 s worst
-// case, and the human had quit up to one keepalive before that. So for the better part of a minute the
-// admin console still listed somebody who had closed the game. That is the owner's report.
-//
-// AN OPTIMISATION OF THE CLEAN EXIT, NEVER A REPLACEMENT FOR THE TIMEOUT. A client that crashes, is
-// force-quit or loses its link sends nothing, and the timeout is the only thing that can collect it.
-// This makes the tidy case tidy; it removes no failure handling.
-//
-// SENT TWICE, because UDP loses datagrams and there is no acknowledgement to wait for. The relay treats
-// the second copy as silence rather than as a refusal - deliberately, see leaveRoom() - so the only cost
-// of the retransmission is one datagram.
-//
-// NOT IN closeSocket(), although that is where the socket actually dies. update() closes and reopens the
-// socket to retry an acquire that gave up (STATE_GAVE_UP), and that is the same presence asking again,
-// not a teardown - exactly the distinction the comment above closeSocket() already draws for the sign-in
-// copy. Saying goodbye there would announce a departure that is not happening.
-//
-// THE GUARD IS sendIdentity()'s. Nothing to retract without a socket, an assigned address and a room:
-// before admission the relay has no membership of ours to forget.
-//
-// GeneralsX: ...BUT IT MAY HOLD A LEASE. Still ACQUIRING, the relay may already
-// have leased us an id in the shard our GXWHO asked in - one of that room's twelve seats for PENDING_LEASE_MS - and
-// both callers stop the reads that would finish the acquisition (suspend() for a match, leaveLobby() for good), so the
-// seat sat taken with nobody in it. A goodbye from an endpoint that only asked releases its lease (relay.js
-// leaveRoom, test-leave.js); with no lease it is silence. Here rather than in suspend() so leaveLobby() gets it too.
-//
-// GeneralsX: AND THE SLOT-ADDRESSED STATE GOES WITH THE GOODBYE (rule S in the
-// header's table). Every caller is ending the membership it names, and the roster and both queues are addressed in
-// that membership's slot space - which the relay reassigns once we are gone. Here, so no caller can say goodbye and
-// forget them: suspend() used to clear them itself, and the GAVE_UP branch beside it did not.
+// SAY WE ARE GOING: otherwise the relay forgets a member only after MEMBER_TIMEOUT_MS plus a sweep.
+// A clean-exit optimisation, never a replacement for the timeout (a crash sends nothing). Sent twice: UDP, no ack.
+// Not in closeSocket(): retrying a gave-up acquire reopens the socket and is not a departure.
+// While ACQUIRING it releases a GXWHO lease; the slot-addressed state (header rule S) is cleared with it.
 void GXLobbyPresence::sendLeave( void )
 {
 	if (m_myAddress != 0 && !m_room.isEmpty())
@@ -733,7 +611,7 @@ void GXLobbyPresence::sendBye( const char *room )
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: Rule S: the roster and both line queues belong to ONE membership's slot
+// Rule S: the roster and both line queues belong to ONE membership's slot
 // space. Filled only while ADMITTED (handleDatagram) and emptied on every way out of ADMITTED - sendLeave, the fenced
 // re-ask, closeSocket - so nothing is ever carried into the next admission, where a slot names whoever holds it then.
 void GXLobbyPresence::clearSlotSpace( void )
@@ -745,21 +623,10 @@ void GXLobbyPresence::clearSlotSpace( void )
 	m_peerTail    = 0;
 }
 
-//-------------------------------------------------------------------------------------------------
-// GeneralsX: THE ONE WAY INTO STATE_GAVE_UP - see the header's table, rows "-> GAVE_UP".
-//
-// GAVE_UP means the relay stopped answering us, and it used to be entered with whatever the state before it held: a
-// fenced presence that stopped hearing GXAUTH re-asks from ADMITTED (update()), and when every shard then went
-// unanswered it landed here with its membership still live on the relay and its roster and queues full - listed in the
-// lobby until the relay's timeout, and the old slot space carried into the next admission. So entering it
-// ENDS the membership exactly as suspend() does: sendLeave - GXBYE for the membership (m_room) and, still ACQUIRING,
-// for the lease the last GXWHO may hold - and the slot-addressed state with it (rule S). Without a socket (openSocket's
-// failures) it only clears.
-//
-// And like suspend() it KEEPS the (room, id), its secret and the 'gxm1' word that came with it: a match started from
-// here parks this socket (suspend) and resume() presents the secret to win the retired binding back, which a relay
-// answers with silence - so the word could not be relearned then. GXYOU also compares against the (room, id) to decide
-// whether the account-leave fence lifts. The retry below replaces the socket, and closeSocket() forgets all of it there.
+// THE ONE WAY INTO STATE_GAVE_UP (header table, rows "-> GAVE_UP"). It ENDS the membership as suspend() does:
+// sendLeave and the slot-addressed state (rule S); without a socket it only clears.
+// It KEEPS the (room, id), its secret and the 'gxm1' word: resume() needs the secret to win the binding back, and the
+// relay answers that with silence, so the word could not be relearned. closeSocket() forgets all of it.
 void GXLobbyPresence::giveUp( UnsignedInt now )
 {
 	sendLeave();
@@ -949,7 +816,7 @@ void GXLobbyPresence::parseMembers( const char *body )
 	if (body == NULL)
 		return;
 
-	// GeneralsX: scale32: 1024 -> 2560 with GX_LOBBY_MAX_MEMBERS 14 -> 34 (GXMEMB worst case 2044 B).
+	// scale32: 1024 -> 2560 with GX_LOBBY_MAX_MEMBERS 14 -> 34 (GXMEMB worst case 2044 B).
 	char work[2560];
 	strncpy(work, body, sizeof(work) - 1);
 	work[sizeof(work) - 1] = '\0';
@@ -1016,19 +883,10 @@ Bool GXLobbyPresence::handleDatagram( const char *buf, Int len, UnsignedInt from
 	if (fromAddr != m_relayAddr || fromPort != m_relayPort)
 		return FALSE;
 
-	// GeneralsX: A routed unicast, handled BEFORE the tag parser.
-	//
-	// Order matters and is not stylistic. The parser below does strchr(line, ' ') on a NUL-terminated
-	// copy; a binary header's four address bytes can be any value at all, including 0x00 and 0x20, so
-	// letting one reach that code would have it split on a byte of somebody's IP address and compare
-	// the result against tag names. It would not crash - it would simply never match, and the line
-	// would be dropped as unrecognised. Silent, and it looks exactly like the relay not forwarding.
-	//
-	// The source gate above is load-bearing here, not merely inherited: a peer line is accepted only
-	// because it arrived FROM THE RELAY. The relay refuses a header whose src is not the id it filed
-	// the sending endpoint under, so "who sent this" is answered by the routing header and cannot be
-	// restated by anything inside the payload. Skip the gate and a forger reaches this socket
-	// directly and the relay's check defends nothing - the same pairing Transport::doRecv documents.
+	// A routed unicast, handled BEFORE the tag parser: header address bytes can be 0x00 or 0x20, so its strchr(line, ' ')
+	// would split on a byte of an IP address and silently drop the line.
+	// The source gate above is load-bearing: a peer line is accepted only because it came FROM THE RELAY, which refuses a
+	// header whose src is not its filed id; without the gate a forger could reach this socket directly.
 	if (len >= GX_RELAY_HEADER_SIZE && memcmp(buf, "GXR1", 4) == 0)
 	{
 		const UnsignedByte *raw = (const UnsignedByte *)buf;
@@ -1040,7 +898,7 @@ Bool GXLobbyPresence::handleDatagram( const char *buf, Int len, UnsignedInt from
 		// relay bug cannot put another player's private mail in this player's chat box. The
 		// m_myAddress == 0 half also stops a line received mid-acquire sitting in the queue until we
 		// are admitted, by which point its sender slot names somebody in a room we had not joined.
-		// GeneralsX: ...and ONLY WHILE ADMITTED - rule S in the header's table. A
+		// ...and ONLY WHILE ADMITTED - rule S in the header's table. A
 		// re-ask or a post-match re-acquire still has an address, and a line taken then waited for an admission that may
 		// be to a different (room, id), or to the same number after the relay reassigned the slots around it.
 		if (m_state != STATE_ADMITTED || m_myAddress == 0 || dst != m_myAddress)
@@ -1049,7 +907,7 @@ Bool GXLobbyPresence::handleDatagram( const char *buf, Int len, UnsignedInt from
 		return capturePeerLine(raw + GX_RELAY_HEADER_SIZE, len - GX_RELAY_HEADER_SIZE, src & 0xffu);
 	}
 
-	// GeneralsX: scale32: 1200 -> 2560, a 34-member GXMEMB is up to 2044 B (pumpReceive reads the same size).
+	// scale32: 1200 -> 2560, a 34-member GXMEMB is up to 2044 B (pumpReceive reads the same size).
 	char line[2560];
 	Int copy = len;
 	if (copy > (Int)sizeof(line) - 1)
@@ -1063,7 +921,7 @@ Bool GXLobbyPresence::handleDatagram( const char *buf, Int len, UnsignedInt from
 	*sp++ = '\0';
 	const char *tag = line;
 
-	// GeneralsX: "GXCAPS <flags> <a.b.c.d:port>" - the relay's answer to every
+	// "GXCAPS <flags> <a.b.c.d:port>" - the relay's answer to every
 	// registration it accepted from this socket, so a heartbeat. Whether it reads stats lines past the 0.9.69 ceilings
 	// (GX_RELAY_SEATS_WORD in the comma-separated flags, a whole token) is re-read from each one and kept with the
 	// endpoint it came from - the source gate above makes that the relay's - so a rollback or a failover is followed on
@@ -1076,6 +934,11 @@ Bool GXLobbyPresence::handleDatagram( const char *buf, Int len, UnsignedInt from
 		m_relaySeats34 = gxRelayFlagsHave(sp, GX_RELAY_SEATS_WORD) ? TRUE : FALSE;
 		m_relaySeats34Addr = fromAddr;
 		m_relaySeats34Port = fromPort;
+		// The hardware words, only from the relay this socket sends to (the report goes to m_relayAddr:m_relayPort).
+		const Bool ours = fromAddr == m_relayAddr && fromPort == m_relayPort;
+		m_relayHw = ours && gxRelayFlagsHave(sp, GX_HW_WORD) ? TRUE : FALSE;
+		m_relayHwAsk = ours && gxRelayFlagsHave(sp, GX_HW_ASK) ? TRUE : FALSE;
+		maybeSendHw(timeGetTime());
 		return TRUE;
 	}
 
@@ -1088,7 +951,7 @@ Bool GXLobbyPresence::handleDatagram( const char *buf, Int len, UnsignedInt from
 		*addr++ = '\0';
 		if (strcmp(sp, shardRoom(m_shard)) != 0)
 			return TRUE;			// an answer for a shard we have moved on from
-		// GeneralsX: ONLY THE ANSWER TO A GXWHO OF OURS. GXWHO goes
+		// ONLY THE ANSWER TO A GXWHO OF OURS. GXWHO goes
 		// out while ACQUIRING and is retried every 400 ms, so the relay can answer it twice, and the second copy
 		// lands ADMITTED. An answer nobody is waiting for changes nothing: not the fence, not the unanswered
 		// count, not the keepalive clock.
@@ -1100,7 +963,7 @@ Bool GXLobbyPresence::handleDatagram( const char *buf, Int len, UnsignedInt from
 		if (full == 0 || slot == 0)
 			return TRUE;
 
-		// GeneralsX: A secret is for one (room, id). Kept when the same id comes
+		// A secret is for one (room, id). Kept when the same id comes
 		// back in the same room - a re-acquire after a match - because presenting it is what wins the
 		// retired binding back, even from a changed address.
 		// And the ONLY place the account-leave fence lifts: a GXAUTH naming the old id - however late - is
@@ -1109,7 +972,7 @@ Bool GXLobbyPresence::handleDatagram( const char *buf, Int len, UnsignedInt from
 		{
 			gxSecureClear(m_relayAuth);
 			m_authFenced = FALSE;
-			// GeneralsX: With the secret, and NOT on every admission: a
+			// With the secret, and NOT on every admission: a
 			// re-acquire that presents the kept secret is a proof, and the relay answers a proof with
 			// no GXAUTH at all - so clearing this on every admission would lose it after each match.
 			// A relay that restarted (a rollback included) no longer knows the secret, so it answers
@@ -1136,7 +999,7 @@ Bool GXLobbyPresence::handleDatagram( const char *buf, Int len, UnsignedInt from
 	{
 		if (m_myAddress == 0)
 			return TRUE;
-		// GeneralsX: Whether this relay records the GXM1 envelope, re-read from
+		// Whether this relay records the GXM1 envelope, re-read from
 		// EVERY GXAUTH that names our (room, id) - checked with the same parser that takes the secret,
 		// on a scratch buffer, so a stranger's line cannot set it - fenced or not.
 		{
@@ -1211,7 +1074,7 @@ void GXLobbyPresence::pumpReceive( void )
 	// socket carries nothing the simulation waits on.
 	for (Int i = 0; i < 16; ++i)
 	{
-		unsigned char buf[2560];	// GeneralsX scale32 06/11/2026: was 1200, which would cut a 34-member GXMEMB datagram
+		unsigned char buf[2560];	// 1200 would cut a 34-member GXMEMB datagram
 		sockaddr_in from;
 		memset(&from, 0, sizeof(from));
 		const Int len = m_sock->Read(buf, sizeof(buf) - 1, &from);
@@ -1224,7 +1087,7 @@ void GXLobbyPresence::pumpReceive( void )
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: Read and throw away everything queued on the socket - see resume(). Bounded
+// Read and throw away everything queued on the socket - see resume(). Bounded
 // like pumpReceive, but by a whole backlog rather than one tick's worth: it runs once per match, and a stale
 // datagram left behind is exactly what it exists to remove.
 void GXLobbyPresence::discardPending( void )
@@ -1239,6 +1102,31 @@ void GXLobbyPresence::discardPending( void )
 		if (m_sock->Read(buf, sizeof(buf), &from) <= 0)
 			break;
 	}
+}
+
+//-------------------------------------------------------------------------------------------------
+// The hardware report (GXHwReport.h), from a GXCAPS: only to a relay that reads it, only signed in (the relay keeps it under the
+// account it arrived with), on the relay's ask or on a change at most once a minute - gxHwWantSend. The facts are re-read at most
+// once a minute, and only here, so a relay that never asks costs nothing.
+void GXLobbyPresence::maybeSendHw( UnsignedInt now )
+{
+	if (s_hwFacts == NULL || m_sock == NULL || m_state != STATE_ADMITTED || !m_relayHw || m_identity.isEmpty() || m_room.isEmpty())
+		return;
+	if (!m_hwHaveFacts || now - m_hwFactsMs >= (UnsignedInt)GX_HW_CHANGE_GAP_MS)
+	{
+		gxHwClear(m_hwFacts);
+		s_hwInto = &m_hwFacts;
+		s_hwFacts(hwCollect);
+		s_hwInto = NULL;
+		m_hwFactsMs = now;
+		m_hwHaveFacts = TRUE;
+	}
+	char line[GX_HW_LINE_MAX + 1];
+	const Int len = gxHwBuildLine(line, sizeof(line), m_room.str(), m_hwFacts);
+	if (len <= 0 || !gxHwWantSend(m_hwGate, m_relayHw != FALSE, m_relayHwAsk != FALSE, !m_identity.isEmpty(), line, now))
+		return;
+	m_sock->Write((const unsigned char *)line, len, m_relayAddr, m_relayPort);
+	gxHwSent(m_hwGate, line, now);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1270,12 +1158,12 @@ void GXLobbyPresence::update( void )
 				return;					// admitted inside pumpReceive
 			if (gxDue(now, m_nextWhoMs))
 			{
-				// GeneralsX: resume()'s reclaim first - see GX_RECLAIM_TRIES.
+				// resume()'s reclaim first - see GX_RECLAIM_TRIES.
 				if (m_reclaimLeft > 0)
 				{
 					--m_reclaimLeft;
 					sendRegistration();
-					// GeneralsX: AND THE IDENTITY, directly after it - the rule the
+					// AND THE IDENTITY, directly after it - the rule the
 					// ADMITTED keepalive below states. After a long match or a relay restart this registration CREATES
 					// the membership rather than reclaiming one, and without GXIDN it sat unidentified (no account, no
 					// ban applied) until GXWHO admitted us and the first keepalive declared it.
@@ -1288,7 +1176,7 @@ void GXLobbyPresence::update( void )
 					// This shard is not answering, or is full. Try the next one before giving up:
 					// a full lobby must not look like a broken one.
 					m_whoAttempts = 0;
-					// GeneralsX: The last shard gives up through giveUp(), while
+					// The last shard gives up through giveUp(), while
 					// m_shard still names it - its goodbye has to reach the shard that was actually asked.
 					if (m_shard + 1 >= GX_LOBBY_SHARDS)
 					{
@@ -1313,7 +1201,7 @@ void GXLobbyPresence::update( void )
 			pumpReceive();
 			if (gxDue(now, m_nextKeepaliveMs))
 			{
-				// GeneralsX: FENCED AND UNANSWERED: ASK FOR AN ID AGAIN. A fenced id
+				// FENCED AND UNANSWERED: ASK FOR AN ID AGAIN. A fenced id
 				// is registered bare, and a bare registration from a changed public address is refused for as
 				// long as the old membership or its retired binding holds the id - silently, and each refusal
 				// extends the binding (a sign-out during an outage, then a new address). GXWHO from the new
@@ -1322,7 +1210,7 @@ void GXLobbyPresence::update( void )
 				if (m_authFenced && m_fencedUnacked >= GX_FENCED_UNACKED_MAX)
 				{
 					m_fencedUnacked = 0;
-					// GeneralsX: Leaving ADMITTED empties the slot space (rule S):
+					// Leaving ADMITTED empties the slot space (rule S):
 					// the answer may be a different (room, id), and nothing is taken again until one is admitted.
 					clearSlotSpace();
 					m_state         = STATE_ACQUIRING;
@@ -1334,22 +1222,10 @@ void GXLobbyPresence::update( void )
 				// Fenced means bare - nothing is taken while fenced (clearIdentity) - so every one waits on a GXAUTH.
 				if (m_authFenced)
 					++m_fencedUnacked;
-				// GeneralsX: WITH EVERY REGISTRATION, directly after it - not
-				// on the 30 s tag tick with the name and the platform. Found by cross-model review and
-				// then measured against relay.js.
-				//
-				// Any registration can CREATE the membership rather than refresh it (after a relay
-				// restart, after the membership lapsed, or after the relay dropped it), and the client
-				// never learns which. Following every registration means the relay files the member
-				// with its account in the same breath, instead of up to 25 s of every 30 later.
-				//
-				//
-				//
-				//
-				//
-				//
-				// AFTER the registration, never before: the relay discards an identity from an endpoint
-				// it has not filed as a member, silently. And a no-op for anyone who never signed in.
+				// WITH EVERY REGISTRATION, directly after it, not on the 30 s tag tick: any registration can CREATE the membership
+				// (relay restart, a lapse, the relay dropping a banned account) and the client never learns which. On the tag tick
+				// that member stayed unidentified up to 25 s of every 30, so a banned account's line could reach the room.
+				// AFTER the registration: the relay silently discards an identity from an endpoint it has not filed as a member.
 				sendIdentity();
 				m_nextKeepaliveMs = now + GX_KEEPALIVE_MS;
 			}

@@ -1,6 +1,24 @@
-// GeneralsX: S7 GPU sun shadow map P2: the look frame UBO (set 2 binding 2).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GPU sun shadow map: the look frame UBO (set 2 binding 2).
 //
-// A10/A14/A20/A36, PLAN "P2 implementation" P2-B. Mirrors gx_ff.frag.glsl's `GxLookFrame` block (std140) byte for
+// Mirrors gx_ff.frag.glsl's `GxLookFrame` block (std140) byte for
 // byte; the writer fills one per frame slot at endFrame from the frame's FINAL shadow pass (the same fit, rects and step that frame's INIT
 // replay draws), so every receiver of a frame samples the map that frame drew. Readers of set 2 (F-depth+) append their own bindings, not
 // fields here.

@@ -1,5 +1,7 @@
-# GeneralsX: rule bank, DATA half: the tier marks, the compiler's LAST step (
-# 2.8; format agreed with 30/10). Hard, Brutal and Sentient share one script list, and wh1ter0se keeps
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank, DATA half: the tier marks, the compiler's LAST step (
+# 2.8). Hard, Brutal and Sentient share one script list, and the project keeps
 # Hard as it is, so a ruleset's changes never sit in a stock entry:
 #   * every stock script and team stays byte-identical;
 #   * a changed stock script / team gets a copy named GXT.<T>.<name> right AFTER it, <T> = SENTIENT, BRUTAL or SENTIENT+BRUTAL;

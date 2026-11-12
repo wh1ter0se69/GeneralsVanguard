@@ -70,22 +70,12 @@ MetaMap *TheMetaMap = nullptr;
 
 #include "Common/UserPreferences.h"
 
-// GeneralsX: THE GENERAL KEYS - the launcher's Keybinds > GENERAL tab.
-//
-//
-// Four chords live in CommandButtonHotKeys.ini beside GXFriendsKey - user data, never in dataID - each written
-// "<MODIFIER>+<KEY>" in the CommandMap vocabulary (a ModifierNames and a KeyNames token, e.g. CTRL+KEY_I):
-//   GXSelectInfantryKey   select every infantry unit   default CTRL+KEY_I        onKeyEvent, in front of the map
-//   GXSelectAllKey        select every unit (Q's pick)  default ALT+KEY_I         onKeyEvent, in front of the map
-//   GXIdleWorkerKey       select the next idle worker   default SHIFT_CTRL+KEY_I  the SELECT_NEXT_IDLE_WORKER record
-//   GXRemasteredKey       Remastered graphics on/off    default SHIFT_CTRL+KEY_R  onKeyEvent, in front of the map
-//   GXCameraResetKey      reset the camera (retail KP5) default KEY_HOME          onKeyEvent, in front of the map; a BARE key
-//                          is allowed for this row only: Home is no command-bar letter, and a player without a numpad has no KP5
-// NOT CommandMap records: the select and Remastered chords have no GameMessage type, and a new one would live in
-// MessageStream.h, inside the sourceID digest. A MODIFIER IS REQUIRED: a bare key caught in front of the map would
-// take a command-bar letter, and its key-up would reach HotKeyTranslator. An entry that does not parse keeps its
-// default and says so. Read once, at startup (generateMetaMap), as the Friends key is. The launcher refuses a chord
-// another in-match binding already holds (gxio keybinds.rs general_refusal); nothing here checks that.
+// The General keys (launcher Keybinds > GENERAL): chords in CommandButtonHotKeys.ini (user data, never dataID).
+// Defaults: select infantry CTRL+KEY_I, select all ALT+KEY_I, idle worker SHIFT_CTRL+KEY_I, Remastered
+// SHIFT_CTRL+KEY_R, camera reset KEY_HOME (the only bare key allowed). Not CommandMap records: a new GameMessage
+// type is in MessageStream.h, inside the sourceID digest. A modifier is required: a bare key caught in front of the
+// map would take a command-bar letter and its key-up would reach HotKeyTranslator. An entry that does not parse
+// keeps its default. Read once at startup.
 struct GXChord
 {
 	Int key;		///< a MappableKeyType
@@ -222,24 +212,10 @@ static Bool gxLoadGeneralKeys(GXChord *idle)
 
 #if RTS_ZEROHOUR
 
-// GeneralsX: THE FRIENDS KEY. F5 unless the player chose another.
-//
-// Owner decision 25/09/2026 (superseding 24/09): "F5 = Friends ONLINE only; offline (skirmish/campaign) keeps
-// camera view 5." So F5 opens the Friends overlay (GXBuddyOverlayToggle) in the relay lobby, a relay game room
-// and a relay match - there, and only there, it REPLACES the retail bare-F5 "View 5" camera bookmark. Anywhere
-// else GXFriendsKeyHere() says no and the key falls through to the meta map untouched (GXFriendsKey.h has the
-// rule). Ctrl+F5 (save view 5) is never caught. The launcher's Keys page picks the key, and refuses any other
-// key a camera binding uses (gxio keybinds.rs friends_refusal).
-//
-// NOT A META COMMAND, DELIBERATELY. A CommandMap record needs a GameMessage type, a new one lives in
-// MessageStream.h, and that header is inside the sourceID digest - every peer on the shipped build would
-// then refuse every join. So the key is caught here, in front of the meta map, which is GameClient code.
-// Being in front is also what makes it REPLACE: the matcher below stops at the first record and destroys
-// the raw key, so a record on the same key would otherwise always win.
-//
-// The choice lives in CommandButtonHotKeys.ini (user data, never in dataID) as `GXFriendsKey = KEY_F9`,
-// any KeyNames[] token. HotKeyManager ignores the entry (not a single character); the launcher writes it
-// (scripts/launcher-rs/gxio/src/keybinds.rs). Unknown or absent means F5. Read once, at startup.
+// The Friends key: F5 unless the player chose another. It opens the Friends overlay (GXBuddyOverlayToggle) in the
+// relay lobby, game room and match, REPLACING the retail bare-F5 "View 5" bookmark there only (GXFriendsKey.h).
+// Caught in front of the meta map: a new GameMessage type is in MessageStream.h, inside the sourceID digest.
+// Set as `GXFriendsKey = KEY_F9` in CommandButtonHotKeys.ini; absent means F5. Read once at startup.
 static MappableKeyType s_gxFriendsKey = MK_F5;
 
 static void gxLoadFriendsKey()
@@ -782,10 +758,6 @@ static void gxToggleRemastered()
 // "ignore order of modifier release" fix in #2577) because that fix is not
 // part of GeneralsX's behavior, and the bit-array member is not declared
 // in MetaEvent.h.
-//
-// GeneralsX @note The temporary key-path probe that traced this match link by link (arrival,
-// stale modifier bits, the AUTOREPEAT arm, isMessageUsable) was removed for release; recover it
-// from af881e0bd if a key binding ever appears to be silently missed again.
 void MetaEventTranslator::onKeyEvent(const GameMessage *msg, GameMessageDisposition &disp)
 {
 	const Int systemKey = msg->getArgument(0)->integer;
@@ -826,28 +798,10 @@ void MetaEventTranslator::onKeyEvent(const GameMessage *msg, GameMessageDisposit
 	}
 #endif
 
-	// GeneralsX: SELECT EVERY INFANTRY UNIT (default Ctrl+I), SELECT EVERY UNIT (default Alt+I)
-	// - on screen, and a second press across the map. Owner, 25/09/2026, for "select every infantry, then waypoint them
-	// into several transports"; rebindable from the launcher's Keybinds > GENERAL tab since 26/09/2026 (gxLoadGeneralKeys).
-	//
-	// Both become the retail SELECT_ALL message, the one Q sends, so CommandXlat does what it does for Q: select on
-	// screen, and when nothing new is on screen, across the map (InGameUI::selectAllUnitsByType). The infantry chord
-	// adds GX_SELECT_ALL_INFANTRY as its argument. The selection reaches the simulation as the MSG_CREATE_SELECTED_GROUP
-	// every peer already receives - no new network message, no new GameMessage type. A new meta command would need
-	// one, in MessageStream.h, inside the sourceID digest; this is caught in front of the meta map for the Friends
-	// key's reason, and wins over any CommandMap record on the same chord.
-	//
-	// Both edges are eaten, and the UP is eaten even when the modifier was released first: a bare key-up reaches
-	// HotKeyTranslator, which fires command buttons on the UP, and would press whatever is bound to that key - the Demo
-	// general's worker has "Su&icide" on I. The idle-worker chord (the GENERAL tab's third row) is the meta map's to
-	// fire, but its key-up is guarded the same way. One bit PER KEY, so two chords held on two
-	// keys at once each keep their own guard.
-	//
-	// A key-UP is the chord's only when that key went DOWN as the chord (the held bit): an Up arrow held to scroll and
-	// released after Ctrl went down must still reach LookAtTranslator, or the camera scrolls on.
-	//
-	// The Remastered chord (gxToggleRemastered) rides the same block and the same held bit, for the same key-up reason:
-	// Ctrl or Shift released before R would otherwise hand a bare R-up to the command bar. It appends nothing.
+	// Select every infantry unit (default Ctrl+I) / every unit (default Alt+I): both become the retail SELECT_ALL (Q's),
+	// the infantry chord adding GX_SELECT_ALL_INFANTRY. No new GameMessage type (it would be in the sourceID digest).
+	// Both edges are eaten, the UP even if the modifier was released first, or a bare key-up reaches HotKeyTranslator.
+	// A key-UP is the chord's only if that key went DOWN as the chord (one held bit per key).
 	{
 		const Bool usable = isMessageUsable(COMMANDUSABLE_GAME);
 		const Bool isDown = (systemKeyState & KEY_STATE_DOWN) != 0;
@@ -1253,9 +1207,8 @@ void MetaMap::generateMetaMap()
 		if (map->m_key == MK_NONE) {
 			map->m_key = MK_I;
 			map->m_transition = DOWN;
-			// GeneralsX: Upstream's Ctrl+I is now "select all infantry" (MetaEventTranslator::
-			// onKeyEvent, owner request 25/09/2026), which is caught before this map and would leave the idle-worker key
-			// unreachable. Shift+Ctrl+I keeps it one modifier away; the control bar's idle-worker button is unchanged.
+			// Upstream's Ctrl+I is now "select all infantry" (MetaEventTranslator::onKeyEvent), caught before this map, which would
+			// leave the idle-worker key unreachable. Shift+Ctrl+I keeps it one modifier away; the idle-worker button is unchanged.
 			map->m_modState = SHIFT_CTRL;
 			map->m_usableIn = COMMANDUSABLE_GAME;
 			map->m_category = CATEGORY_SELECTION;

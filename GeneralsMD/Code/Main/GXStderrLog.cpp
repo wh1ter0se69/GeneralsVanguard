@@ -16,35 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// FILE: GXStderrLog.cpp //////////////////////////////////////////////////////
-//
-// GeneralsX: See GXStderrLog.h for why this exists.
-//
-// Two platform mechanisms, one shared policy:
-//
-//   Darwin (macOS + iOS)  funopen() installs a write callback on the stderr
-//                         FILE. fd 2 itself is left alone, so everything still
-//                         reaches wherever stderr already pointed. The callback
-//                         only queues; a pump thread writes (02/10/2026).
-//
-//   Windows               MSVC has no funopen()/fopencookie() - there is no
-//                         supported way to hand the CRT a write callback for a
-//                         FILE. The interception point that DOES exist is the
-//                         descriptor: an anonymous pipe is dup2'd onto stderr's
-//                         fd and a helper thread drains it, applying the same
-//                         policy. This is strictly better than a plain
-//                         freopen(): it keeps the filter and the cap, and
-//                         because it replaces the DESCRIPTOR (and the
-//                         STD_ERROR_HANDLE), it also captures writes made
-//                         directly to the handle by code that never touches the
-//                         CRT's stderr - DXVK's logger among them.
-//
-//   Linux                 funopen() is Darwin-only and fopencookie() is glibc-
-//                         only; the Linux peer is the one platform whose stderr
-//                         the harnesses already capture to a file, so it needs
-//                         no sink and gets none.
-//
-///////////////////////////////////////////////////////////////////////////////
+// See GXStderrLog.h for why this exists. Two platform mechanisms, one shared policy:
+//   Darwin  funopen() installs a write callback on stderr's FILE; it only queues, a pump thread writes.
+//   Windows an anonymous pipe is dup2'd onto stderr's fd and a helper thread drains it, which also captures
+//           direct handle writes such as DXVK's logger. Linux gets no sink: harnesses already capture stderr.
 
 #include "GXStderrLog.h"
 
@@ -74,8 +49,7 @@
 // Policy - shared by every platform, and the part that must not be got wrong.
 // ---------------------------------------------------------------------------
 
-// A marathon session must not eat the disk. 8 MB matches what the iOS sink has
-// shipped with since 07/08/2026.
+// A marathon session must not eat the disk. 8 MB matches the iOS sink.
 static const size_t kLogCap = 8u * 1024u * 1024u;
 
 // Dropped while under the cap: known per-frame / per-launch spam that would
@@ -101,7 +75,7 @@ static const char *const kKeepPastCapPrefixes[] = {
 	"FATAL",   // includes Debug.cpp's "FATAL: release crash:" and the crash handlers
 	"[GXRELAY]", // relay mode ON/OFF, once per socket init: the LAST one is the relay state, so a
 	             // re-init late in a long session must not be dropped
-	// GeneralsX: INI.cpp's real errors ("[INI] ERROR: No files read from
+	// INI.cpp's real errors ("[INI] ERROR: No files read from
 	// directory ..." - the first-install symptom StdBIGFileSystem.cpp cites) share the dropped
 	// "[INI] " prefix. A line on this list is never dropped, under the cap or past it.
 	"[INI] ERROR",
@@ -182,7 +156,7 @@ void GXStderrLog_Consume(const char *buf, int len)
 		{
 			s_keepPastCap = gxMatchesAny(buf + i, len - i, kKeepPastCapPrefixes,
 				sizeof(kKeepPastCapPrefixes) / sizeof(kKeepPastCapPrefixes[0]));
-			// GeneralsX: A keep-listed line beats a drop prefix ("[INI] ERROR").
+			// A keep-listed line beats a drop prefix ("[INI] ERROR").
 			s_dropLine = !s_keepPastCap && gxMatchesAny(buf + i, len - i, kDropPrefixes,
 				sizeof(kDropPrefixes) / sizeof(kDropPrefixes[0]));
 			s_atLineStart = false;
@@ -284,14 +258,14 @@ static bool gxOpenLogFile(const char *dir)
 
 #if defined(_WIN32)
 
-// GeneralsX: The tee is bounded (render-seam residual R24).
-// The pump used to WriteFile() the tee itself. A tee whose reader never drains - an ssh channel nobody reads, a
-// stalled console, a parent that stopped reading its pipe - blocked the pump in that WriteFile; the 64 KB stderr pipe
-// then filled and every fprintf(stderr) in the process blocked with it: the main thread, DXVK's logger, the native
-// renderer's threads. Now the pump only copies into this ring and a tee thread of its own does the blocking write. A
+// The tee is bounded.
+// The pump does not WriteFile() the tee itself. A tee whose reader never drains - an ssh channel nobody reads, a
+// stalled console, a parent that stopped reading its pipe - would block the pump in that WriteFile; the 64 KB stderr pipe
+// would then fill and every fprintf(stderr) in the process would block with it: the main thread, DXVK's logger, the native
+// renderer's threads. So the pump only copies into this ring and a tee thread of its own does the blocking write. A
 // full ring drops the newest bytes and counts them (the macOS sink's rule: never block a printer on a reader that does
 // not read); the pump writes "[gx] stderr tee dropped N bytes" into the log file when the count grows. The log file and
-// the filter are unchanged; a draining tee gets every byte as before.
+// the filter are unchanged; a draining tee gets every byte.
 static const size_t kTeeRing = 1u << 20;
 static char s_teeRing[kTeeRing];
 static size_t s_teeHead = 0, s_teeTail = 0;          // monotonic byte counts under s_teeLock (tail - head = queued)
@@ -597,23 +571,10 @@ static void gxDeliver(const char *buf, int len)
 	GXStderrLog_Consume(buf, len);
 }
 
-// GeneralsX: The write(2) calls above used to run on whichever thread
-// printed - in practice the main thread, so a slow disk stalled a frame and, in a match, every peer
-// waiting on it (ROADMAP_2027 M2 A1; HITCHES H21). Now the printer copies its bytes into a ring and
-// one helper thread, the pump, does both writes, as Windows' pipe pump already does. The order of
-// the bytes is unchanged: one ring, one reader.
-//
-// What must still reach the disk before the process ends, does:
-//   * a line starting "FATAL" waits (at most 1 s) until the pump has written it - Debug.cpp's
-//     release-crash paths print one and then _exit(1), with no hook of ours in between;
-//   * GXStderrLog_Settle() waits for everything queued so far - the crash handlers and the end of
-//     main() call it before their own writes and _exit, and exit() runs it from atexit;
-//   * a full ring makes the printer wait up to 200 ms for room, then drop and count; until the pump
-//     moves again, later printers drop at once instead of each waiting. The pump writes a
-//     "[gx] stderr pump dropped" line where it next catches up. 1 MiB at a normal line rate is
-//     minutes of a stuck disk or of an undrained stderr pipe, which used to hang the game outright.
-// A SIGKILL can lose what is still queued: the last microseconds of output.
-// GX_STDERR_PUMP=0 restores the old inline writes.
+// The printer copies its bytes into a ring and one pump thread does the writes, so a slow disk no longer stalls
+// a frame and, in a match, every peer. One ring, one reader: byte order is unchanged.
+// A line starting "FATAL" waits (at most 1 s) until written; GXStderrLog_Settle() waits for all queued output.
+// A full ring makes the printer wait up to 200 ms, then drop and count. GX_STDERR_PUMP=0 restores inline writes.
 static const size_t kRingSize = 1u << 20;
 static char s_ring[kRingSize];
 static std::atomic<uint64_t> s_head(0);  // bytes ever queued; written under s_ringLock
@@ -626,7 +587,7 @@ static bool s_pumpOn = false;
 static uint64_t s_dropBytes = 0;  // under s_ringLock
 static bool s_stuck = false;       // under s_ringLock: a printer gave up waiting and the pump has not moved since
 
-// GeneralsX: GX_STDERR_STATS=<s>: every <s> seconds a [GXLOGSTAT] line says what
+// GX_STDERR_STATS=<s>: every <s> seconds a [GXLOGSTAT] line says what
 // printing cost the thread that printed - calls, bytes, and the main thread's total, worst and
 // slow-call counts - so a real run shows its line rate and its write tail (ROADMAP_2027 M2 A1).
 // The printer-side counters are touched only inside this FILE's write callback, which stdio
@@ -826,7 +787,7 @@ static void gxStatAccount(uint64_t t0, int len)
 }
 
 // The line the printers are in the middle of, across callbacks: stdio hands a line longer than its buffer over in
-// several pieces, and every piece of a FATAL line must wait, not only the first (review of a1a4ba276, P2: a 3000-byte
+// several pieces, and every piece of a FATAL line must wait, not only the first (a 3000-byte
 // release-crash message kept 995 bytes in the log before _exit). Touched only in the callback, which stdio serialises.
 static bool s_sinkAtLineStart = true;
 static bool s_sinkFatalLine = false;

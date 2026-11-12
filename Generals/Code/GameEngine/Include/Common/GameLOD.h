@@ -235,48 +235,9 @@ Bool GameLODManager::isParticleSkipped()
 	return (++m_numParticleGenerations & m_dynamicParticleSkipMask) != m_dynamicParticleSkipMask;
 }
 
-// GeneralsX: The two dynamic-LOD fields the SIMULATION reads are pinned to
-// their neutral values whenever the simulation is shared, because the LOD level that selects them is
-// chosen per-machine and no join gate can ever make two peers agree on it. Same change as the Zero
-// Hour twin in GeneralsMD/Code/GameEngine/Include/Common/GameLOD.h; cites below are this tree's.
-//
-// applyDynamicLODLevel (GameLOD.cpp) copies m_dynamicDebrisSkipMask and m_slowDeathScale out of the
-// row named by m_currentDynamicLOD. Every input that picks that row is local to one machine:
-//   W3DDisplay.cpp:2071          findDynamicLODLevel(m_averageFPS) - that machine's own render rate,
-//                                re-evaluated every drawn frame.
-//   TheGlobalData->m_enableDynamicLOD  read from Options.ini via OptionPreferences (GameLOD.cpp:406)
-//                                and written by the options checkbox (OptionsMenu.cpp:422-423). That
-//                                is per-device tuning and is deliberately outside the fingerprint.
-//   CommandLine.cpp:560          clears the same flag, which sends W3DDisplay down its else branch
-//                                and pins VERY_HIGH instead.
-//   CommandXlat.cpp:4441         MSG_META_DEMO_CYCLE_LOD_LEVEL sets the level straight from a keypress.
-//
-// So a data digest can only ever gate the TABLE; the INDEX into it is a property of the machine, its
-// render rate and its local settings file. Two peers with byte-identical GameLOD.ini still pick
-// different rows. That is why this is a code guard and not an entry in SimulationId.cpp's loose-data
-// allow-list - see the GameLOD paragraph there, which records the same conclusion from the other side.
-//
-// The reads being protected are all inside GameLogic, and each one diverges the simulation:
-//   ObjectCreationList.cpp:1263  isDebrisSkipped() skips a TheThingFactory->newObject, so the
-//                                object-ID stream itself diverges.
-//   SlowDeathBehavior.cpp:234    getSlowDeathScale() == 0 destroys the dying object outright.
-//   SlowDeathBehavior.cpp:385    getSlowDeathScale() rescales the death timer mid-death.
-// Those are the only readers of either accessor in the tree, so pinning them here costs the client
-// nothing: isParticleSkipped() and the static level, which the renderer does use, are untouched.
-// Unlike the Zero Hour tree this one has no GameLogic read of getStaticLODLevel() at all, so the
-// static half needs nothing here either.
-//
-// This is EA's own resolution applied to the two reads they missed. GameLogic.cpp:1787 already forces
-// useTrees TRUE under the identical TheRecorder->isMultiplayer() test, with their own comment "cause
-// we want it to sync properly".
-//
-// No behaviour change on any shipped data, so this cannot move a CRC on a stock install: grepped
-// across every .big the deployed game mounts, each of the two that carry these blocks - INIZH.big
-// and 500_900_CommunityPatch_CoreINI.big - sets DebrisSkipMask=0 and SlowDeathScale=1.0 at every
-// DynamicGameLOD level, precisely the values pinned below, with EA's working values left commented
-// out beside them, ";DebrisSkipMask=1;  ;commented out to prevent desyncs.". They neutralised this in
-// the data file rather than in the engine, so until now any edit, mod or third-party patch that
-// restored those values brought the desync straight back.
+// GeneralsX: with a shared simulation, the dynamic-LOD debris mask and slow-death scale are pinned to neutral values.
+// The LOD row is chosen per machine (render fps, Options.ini, hotkey), so no join gate can make peers agree on it.
+// Debris skipping changes the object-ID stream and slow-death scale changes death timing, so both would diverge.
 Bool GameLODManager::isDebrisSkipped()
 {
 	if (isSharedSimulation())

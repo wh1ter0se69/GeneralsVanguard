@@ -16,17 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: A render-side fork-join pool (modernize/render-split,
-// smooth/MT_DESIGN's "fixed-partition fork-join on std::thread"). gxParallelFor(count, chunk, fn, ctx) runs
-// fn(ctx, begin, end) over [0, count) in chunks of `chunk`, on persistent workers plus the calling thread, and returns
-// once every chunk has run; everything the jobs wrote is then visible to the caller (each finished chunk is counted
-// with a release add, the caller waits for the count with acquire loads). The caller does not wait for a worker that
-// woke too late to find a chunk: the NEXT dispatch waits for every worker to check in before it hands out new chunks,
-// so a late worker can never run old work on new indices. One dispatch at a time (one calling thread); a dispatch from
-// inside a job runs inline on that thread.
-// RENDER SIDE ONLY: a job must never touch simulation state, and the order the chunks run in is not fixed.
-// Workers: min(hardware threads - 1, 7), or GX_PARALLEL_WORKERS (0-15); 0 runs everything on the caller.
-// Test: scripts/test/gx-parallel-test.sh.
+// Render-side fork-join pool: gxParallelFor(count, chunk, fn, ctx) runs fn(ctx, begin, end) over [0, count)
+// on persistent workers plus the caller and returns once every chunk has run. One dispatch at a time;
+// a nested dispatch runs inline. RENDER SIDE ONLY: jobs never touch simulation state; chunk order is not fixed.
+// Workers: min(hardware threads - 1, 7), or GX_PARALLEL_WORKERS (0-15); 0 runs on the caller.
 #pragma once
 
 #include <algorithm>

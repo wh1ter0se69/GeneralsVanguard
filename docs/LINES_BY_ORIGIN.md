@@ -1,6 +1,6 @@
 # Lines of code by origin
 
-Measured on `v0.9.72` with [`scripts/tooling/line-origin.py`](../scripts/tooling/line-origin.py). Each line counts
+Measured on `v0.9.73` with [`scripts/tooling/line-origin.py`](../scripts/tooling/line-origin.py). Each line counts
 toward the earliest of these that already has it (whitespace-only edits keep the older owner, as `git blame -w`
 does): EA's release, TheSuperHackers' mainline (merge base `f51b2804`, or `3fcbbb4d` for fixes ported later), the
 Fighter19 → fbraz3 → ammaarreshi line (`c5c8c4d3`), and otherwise this fork. Engine C/C++ is every `.c .cc .cpp .h
@@ -8,15 +8,15 @@ Fighter19 → fbraz3 → ammaarreshi line (`c5c8c4d3`), and otherwise this fork.
 
 | Engine C/C++ | Lines | Share |
 |---|---:|---:|
-| EA's 2003 release | 1,408,502 | 71.0% |
-| TheSuperHackers | 216,136 | 10.9% |
-| Fighter19 / fbraz3 / ammaarreshi, not in upstream | 27,209 | 1.4% |
-| This fork | 332,937 | 16.8% |
-| **Total** | **1,984,784** | |
+| EA's 2003 release | 1,408,246 | 71.3% |
+| TheSuperHackers | 216,230 | 10.9% |
+| Fighter19 / fbraz3 / ammaarreshi, not in upstream | 27,044 | 1.4% |
+| This fork | 323,492 | 16.4% |
+| **Total** | **1,975,012** | |
 
-Of this fork's 332,937 engine lines, 45,529 are vendored third-party code (Vulkan Memory Allocator, volk, AMD
-FidelityFX FSR 1, dr_wav/dr_mp3), 29,676 are SPIR-V shader bytecode generated into headers, 34,839 are tests, and
-222,893 are hand-written engine code. Outside the engine C/C++, most lines are this fork's: the build and packaging
+Of this fork's 323,492 engine lines, 45,529 are vendored third-party code (Vulkan Memory Allocator, volk, AMD
+FidelityFX FSR 1, dr_wav/dr_mp3), 30,576 are SPIR-V shader bytecode generated into headers, 34,867 are tests, and
+212,520 are hand-written engine code. Outside the engine C/C++, most lines are this fork's: the build and packaging
 scripts, the data generators, and the generated [`THIRD_PARTY_NOTICES.txt`](../THIRD_PARTY_NOTICES.txt).
 
 To reproduce, fetch the base commits (all public) and run the script:
@@ -24,7 +24,7 @@ To reproduce, fetch the base commits (all public) and run the script:
 ```sh
 git fetch https://github.com/TheSuperHackers/GeneralsGameCode 3fcbbb4dcaabb59db23cbdecd2cd7ee93d599248
 git fetch https://github.com/ammaarreshi/Generals-Mac-iOS-iPad c5c8c4d3e757033d9ab464f6bd6e15e91e0e742f
-python3 scripts/tooling/line-origin.py v0.9.72 \
+python3 scripts/tooling/line-origin.py v0.9.73 \
     EA=0a05454d8574207440a5fb15241b98ad0b435590 \
     TheSuperHackers=f51b28047a8f6f1e3e6f227c32aa96e52d360fef,3fcbbb4dcaabb59db23cbdecd2cd7ee93d599248 \
     lineage=c5c8c4d3e757033d9ab464f6bd6e15e91e0e742f

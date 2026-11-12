@@ -630,7 +630,7 @@ UpdateSleepTime SpectreGunshipUpdate::update()
             Real dist = delta.length();
             // GeneralsX: GENERALS ONLINE PARITY: StrafingIncrement is distance per frame and GO keeps it
             // whole at 60 Hz, so the gattling's aim point sweeps twice retail's speed and the howitzer's follow counter (it may fire
-            // once the aim point has caught up for HowitzerFollowLag frames) ticks on GO's frames. Was halved for retail speed (23/09).
+            // once the aim point has caught up for HowitzerFollowLag frames) ticks on GO's frames.
             if ( dist < data->m_strafingIncrement )
             {
               m_gattlingTargetPosition = m_positionToShootAt;

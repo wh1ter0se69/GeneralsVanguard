@@ -16,20 +16,8 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: The asset-marker scan, extracted so it can be RUN.
-//
-// WHY THIS IS A HEADER. The refusal in StdBIGFileSystem.cpp decides whether the game starts at
-// all, and it was written with no way to execute it: the logic was a file-static inside a
-// translation unit that pulls in most of the engine, so proving it works meant building the whole
-// thing. It was committed tagged EXPECTED for exactly that reason.
-//
-// Header-only and dependency-free, so scripts/test/asset-marker-test.cpp can drive it against real
-// directories with a plain `c++ -std=c++17 -I Core/GameEngineDevice/Include` and no cmake, no
-// engine and no network - the same shape as ChatRateLimit.h and its test.
-//
-// Core/GameEngineDevice/Include is in NO sim-digest path (checked: "GameEngineDevice" appears
-// nowhere in resources/gitinfo/simsourcedigest_watcher.cmake), so moving this here cannot cost an
-// atomic four-platform rebuild.
+// Asset-marker scan, header-only and dependency-free so scripts/test/asset-marker-test.cpp can run it against real
+// directories without building the engine. Used by the refusal in StdBIGFileSystem.cpp.
 
 #pragma once
 

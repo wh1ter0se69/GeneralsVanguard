@@ -1,4 +1,22 @@
-// GeneralsX: WS-F1: D3D8 device calls -> GxPacketWriter packets (see GxD3D8Translate.h).
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// WS-F1: D3D8 device calls -> GxPacketWriter packets (see GxD3D8Translate.h).
 // Every mapping cites the DXVK fork code it reproduces (references/fbraz3-dxvk src/d3d9, src/d3d8), the CLASSIC reference.
 #include "GxD3D8Translate.h"
 #include "GxShadowCasters.h"
@@ -310,7 +328,6 @@ void GxD3D8Translate::vertexShader(uint32_t handle, bool programmable)
 		// d3d8_device.cpp:1915-1927: with d3d8's current handle already 0 (none set, or the bound shader deleted) nothing changes
 		// an FVF stays in effect (d3d9 SetFVF(0) is a no-op); a LIVE programmable shader is unbound
 		// and its declaration kept - fixed function on a shader declaration, not modelled: its draws are refused by name
-		//
 		if (m_vsProgrammable && m_vsDeleted != m_vs && !m_debug.vsZeroKeepsProgram)
 			m_vsDeclOnly = true;
 		return;
@@ -515,7 +532,7 @@ void GxD3D8Translate::clear(uint32_t n, const int32_t* rects, uint32_t flags, ui
 	if (!m_color.image || (rects && n == 0))
 		return;
 	++m_stats.clears;
-	// D3D8 clips a clear to the viewport (the vk replayer's Do_Clear rule, WS-I)
+	// D3D8 clips a clear to the viewport (the vk replayer's Do_Clear rule)
 	const GxD3D8Viewport& vp = m_ff.viewport;
 	const int32_t W = int32_t(m_color.image->width), H = int32_t(m_color.image->height);
 	std::vector<VkRect2D> cr;
@@ -682,12 +699,12 @@ bool GxD3D8Translate::drawIndexedUP(uint32_t t, uint32_t minIndex, uint32_t numV
 	return ok;
 }
 
-// S7 A44 (integrator T5 (a)): a DRAWN caster is captured only when it tests and writes depth (p.depthTest &&
+// A DRAWN caster is captured only when it tests and writes depth (p.depthTest &&
 // p.depthWrite -> GxPacketWriter.cpp captureCaster's caller); a CAST-ONLY draw is captured under the SAME two expressions on the same
 // render-state block, plus the CAST tag the visible path carries - so the off-screen caster set equals the on-screen one by construction.
 static bool casterZTest(const uint32_t* rs) { return rs[d3d8::RS_ZENABLE] != 0; }
 static bool casterZWrite(const uint32_t* rs) { return rs[RS_ZWRITEENABLE] != 0; }
-// S7 A61/A62 (the integrator's A61 ruling (1)): SOLID is read HERE only, and only under CAST_ONLY (emit's sole
+// SOLID is read HERE only, and only under CAST_ONLY (emit's sole
 // caller of this test): a sorted CAST_SHADOW caster - blended, no z write - is captured solid like 2003's volume. The drawn path's rule
 // (p.depthTest && p.depthWrite at GxPacketWriter.cpp:1148) never sees SOLID.
 bool GxD3D8Translate::castOnlyCaptures() const
@@ -794,12 +811,12 @@ bool GxD3D8Translate::emit(Kind kind, uint32_t t, uint32_t n, uint32_t first, in
 		p.vertexOffset = vertexOffset;
 		++m_stats.castOnly;
 		if (m_shadowTags & kShadowTagSolid)
-			++m_stats.castOnlySolid;   // A61 (integrator (1)): counted with castOnly, after every refusal - castonly_solid <= castOnly
+			++m_stats.castOnlySolid;   // counted with castOnly, after every refusal - castonly_solid <= castOnly
 		return m_w->draw(p);
 	}
 
-	// --- the FF blocks (rw2-D): GxPackFF refuses what the ubershader does not draw
-	m_ff.pixelShader = csPs != nullptr;   // WS-E: a bound ps reads its own stages (GxPackFF keys all eight)
+	// --- the FF blocks: GxPackFF refuses what the ubershader does not draw
+	m_ff.pixelShader = csPs != nullptr;   // a bound ps reads its own stages (GxPackFF keys all eight)
 	m_ff.fvf = csVs ? 0u : m_vs;   // a custom vertex shader has no FVF; its FF key words are unread
 	m_ff.pointList = t == PT_POINTLIST;
 	for (uint32_t i = 0; i < 8; ++i)
@@ -838,7 +855,7 @@ bool GxD3D8Translate::emit(Kind kind, uint32_t t, uint32_t n, uint32_t first, in
 			GxFFSpecBlock cs;
 			++m_stats.packChecks;
 			const bool fresh = GxPackFF(m_ff, &cv, &cp, &cs, nullptr);
-			if (m_receivers) {   // S7 P2 (A36 item 6) / A41 (A40 T1): the per-draw words are not packed - compared only while the mask is off
+			if (m_receivers) {   // the per-draw words are not packed - compared only while the mask is off
 				cp.DrawBits = m_pack.ps.DrawBits;   // (then they must be 0)
 				cp.OwnScale = m_pack.ps.OwnScale;
 				cp.OwnZ0 = m_pack.ps.OwnZ0;
@@ -849,7 +866,7 @@ bool GxD3D8Translate::emit(Kind kind, uint32_t t, uint32_t n, uint32_t first, in
 				++m_stats.packCheckMismatches;
 				g_recTest.packCheckMismatches.fetch_add(1, std::memory_order_relaxed);   // TEST-ONLY tally (check mode only)
 				// TEST-ONLY: the TextureFactor word is the ONLY difference (packTableShort's own symptom). Only a
-				// successful fresh pack is read (vsSame implies it: a refusal may leave cp unwritten - r6)
+				// successful fresh pack is read (vsSame implies it: a refusal may leave cp unwritten)
 				if (vsSame && specSame) {
 					GxFFPsBlock tf = cp;
 					tf.TextureFactor = m_pack.ps.TextureFactor;
@@ -963,7 +980,7 @@ bool GxD3D8Translate::emit(Kind kind, uint32_t t, uint32_t n, uint32_t first, in
 		} else
 			++m_stats.a2cOff[why];
 	}
-	if (csVs || csPs) {   // WS-E: a custom pipeline (no generic stand-in; the FF stage left is the generic one)
+	if (csVs || csPs) {   // a custom pipeline (no generic stand-in; the FF stage left is the generic one)
 		key.shader.kind = GxShaderCustom;
 		key.shader.reserved[0] = csVs ? csVs->program : 0;
 		key.shader.reserved[1] = csPs ? csPs->program : 0;
@@ -1049,7 +1066,7 @@ bool GxD3D8Translate::emit(Kind kind, uint32_t t, uint32_t n, uint32_t first, in
 	p.vertexOffset = vertexOffset;
 	(void)fvfStride;   // the stride is the stream's (SetStreamSource / the UP call): DXVK binds that, not the FVF's size
 
-	// --- S7 P2 (PREREG A2/A3/A29, A36 item 6): the receiver's DrawBits, written into the cached PS block only on change (a psGen bump:
+	// --- the receiver's DrawBits, written into the cached PS block only on change (a psGen bump:
 	// the writer streams the block again exactly as for any other PS-block change). Key off (no receiver family) never gets here.
 	if (m_receivers) {
 		uint32_t bits = 0;

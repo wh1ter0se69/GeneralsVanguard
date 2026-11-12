@@ -177,7 +177,7 @@ static std::vector<SortingNodeStruct*> unsorted_list;
 static std::vector<SortingNodeStruct*> clean_list;
 static unsigned total_sorting_vertices;
 
-// GeneralsX: S7 PREREG A44/A46 (A31; integrator T7: read-only): both queues Flush() drains are empty
+// GeneralsX: read-only: both queues Flush() drains are empty
 bool SortingRendererClass::Gx_Is_Empty()
 {
 	return sorted_list.empty() && unsorted_list.empty();
@@ -241,7 +241,7 @@ void SortingRendererClass::Insert_Triangles(
 	SortingNodeStruct* state=Get_Sorting_Struct();
 
 	DX8Wrapper::Get_Render_State(state->sorting_state);
-	if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log_Render_State(gxlog::SORTQ, DX8Wrapper::GxLogEntry, state->sorting_state);	// GeneralsX: WS-G Task 5
+	if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log_Render_State(gxlog::SORTQ, DX8Wrapper::GxLogEntry, state->sorting_state);
 
  	WWASSERT(
 		((state->sorting_state.index_buffer_type==BUFFER_TYPE_SORTING || state->sorting_state.index_buffer_type==BUFFER_TYPE_DYNAMIC_SORTING) &&
@@ -584,7 +584,7 @@ void SortingRendererClass::Flush_Sorting_Pool()
 			vertex_array_offset+=state->vertex_count;
 		}
 		if (cenOn)
-			cenT1 = DX8Wrapper::Census_Now_Ns();	// before the lock's destructor unlocks the VB (rcpu r1)
+			cenT1 = DX8Wrapper::Census_Now_Ns();	// before the lock's destructor unlocks the VB
 	}
 
 	const long long cenT2s = cenOn ? DX8Wrapper::Census_Now_Ns() : 0;

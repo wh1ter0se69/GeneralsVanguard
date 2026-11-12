@@ -1,25 +1,25 @@
-// GeneralsX: WS-C GXRES v0: the hub every texture, buffer and render target is created against.
-//
-// Owns the per-device format table, the staging ring (VkUploadRing: host-visible, retired on the graphics timeline), the list
-// of GPU copies queued by Unlock/CopyRects-style calls, and a command pool for one-off submits (read-backs, restores).
-//
-// The contract with whoever records frames (WS-F1, the gxcap replayer, the tests):
-//  * Staging is tagged with the graphics timeline's pending() value - the NEXT submission. That submission must carry the
-//    copies: call recordPending(cmd) in it, before any draw that reads a resource with pending uploads. recordPending aborts
-//    if a submission went out in between (the ring could already have reclaimed those bytes) - a programming error, never
-//    data corruption.
-//  * recordPending records the copies outside any render pass, between two global barriers: everything before them ->
-//    copy writes, and copy writes -> every later read (vertex/index input, sampling, transfer). Image layouts are tracked
-//    per image (whole image: v0 uploads leave every level in SHADER_READ_ONLY_OPTIMAL).
-//  * Anything recorded for submission V that reads a resource calls markUsed(V) on it (GxBuffer::bind / GxTexture::view do);
-//    a resource is freed through VkCtx::retire() at its last use, and a dynamic buffer slice is reused only once its last
-//    use has completed.
-//  * recordPendingFront: the same copies and barriers into a command buffer the submission runs BEFORE everything
-//    else (the writer's init buffer), for the destinations nothing of the frame has touched yet - a static buffer that is not
-//    bound and not copied into by a recordPending since the frame's value came up (its touch stamp), an image whose lastUse is
-//    below it. Moving such a copy ahead of the frame's commands changes no order anyone sees: none of them reads or writes it.
-//
-// Threading v0: one thread (the device thread) owns a GxResources and everything created against it.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GXRES: the hub every texture, buffer and render target is created against (format table, staging ring,
+// queued GPU copies). Staging is tagged with the next submission, which must carry the copies: call
+// recordPending(cmd) before any draw that reads them; it aborts if a submission went out in between. Anything
+// recorded for submission V that reads a resource calls markUsed(V). One thread (the device thread) owns a GxResources.
 #pragma once
 #include "GxFormat.h"
 #include "VkCtx.h"
@@ -39,7 +39,7 @@ struct GxDebug
 	bool skipUploadBarrier = false;    // recordPending omits the copy -> reader barrier (sync validation must report)
 	bool reuseSlicesEarly = false;     // dynamic DISCARD reuses a slice still in flight (the delayed consumer must see it)
 	bool skipRestoreOnLock = false;    // a dropped MANAGED texture is not read back before a lock (partial writes corrupt)
-	// rw3-X-3 (A23-B): lockFront / unlockFront's normalisation, one plant each
+	// lockFront / unlockFront's normalisation, one plant each
 	bool readonlyUploads = false;      // a static READONLY unlock uploads (READONLY suppression lost)
 	bool lockSizeWhole = false;        // lockFront expands size 0 to the whole buffer, not the bytes after the offset
 	bool keepDiscardWithNoOverwrite = false; // lockFront keeps DISCARD when NOOVERWRITE is also set (an append renames)
@@ -48,23 +48,23 @@ struct GxDebug
 	bool wrapRectCheck = false;        // validRect adds in 32 bits (x + width wraps past the level edge)
 	bool keepLastUseOnInit = false;    // GxBuffer::init keeps the previous life's timeline tag
 	bool restoreWaitsOnAnyPending = false; // restoreLevel reads back when ANY upload is queued, not only this image's
-	bool decodeDefect = false;         // the DXTn decode fallback swaps its two interpolated colours (rw2-C)
-	bool sampledIgnoresLimit = false;  // a sampled MSAA colour target is created whatever the device / caps can sample (rw3-L-2)
+	bool decodeDefect = false;         // the DXTn decode fallback swaps its two interpolated colours
+	bool sampledIgnoresLimit = false;  // a sampled MSAA colour target is created whatever the device / caps can sample
 	bool sliceCapWaitsUnsubmitted = false; // a dynamic buffer at its slice cap waits for a slice only the open frame reads (the lock fails)
 	bool mainWriteNoStamp = false;     // S7 plant (X-sm-dep-*): a MAIN copy leaves the destination's mainWrite stamp alone
-	bool frontIgnoresTouch = false;    // recordPendingFront takes every queued copy, touched or not (rw3-T-4: a drawn buffer changes under its draw)
+	bool frontIgnoresTouch = false;    // recordPendingFront takes every queued copy, touched or not (a drawn buffer changes under its draw)
 	bool sliceWorkerStale = false;     // A23-B X-cs-no-reconcile: a lock on the producer moves the front's slice only - the worker's stays stale
 	bool discardIgnoresCompleted = false; // A23-B X-cs-discard-gpu: a front DISCARD reuses a slice the GPU may still read
-	bool mainCopyNoTouch = false;      // recordPending does not stamp the buffers it copies into (rw3-T-4: a later front copy runs first)
-	bool bindNoTouch = false;          // GxBuffer::bind does not stamp (rw3-T-4: a copy FROM the buffer reads a later front copy's bytes)
+	bool mainCopyNoTouch = false;      // recordPending does not stamp the buffers it copies into (a later front copy runs first)
+	bool bindNoTouch = false;          // GxBuffer::bind does not stamp (a copy FROM the buffer reads a later front copy's bytes)
 	bool bindNoStamp = false;          // GxBuffer::bind of a DYNAMIC slice skips its lastUse stamp (S7 A63: a later DISCARD may reuse the slice a
 	                                   // cast-only capture still replays - X-sm-solid-retain)
 	bool bindNoStampIndex = false;     // ... for dynamic INDEX buffers only (S7 A64, an IB-only loss - X-sm-solid-retain-ib)
-	bool preBarrierCopyOnly = false;   // the pre-copy barrier waits for earlier COPIES only (rw3-T-4: a hoisted copy races frame N-1's reads)
+	bool preBarrierCopyOnly = false;   // the pre-copy barrier waits for earlier COPIES only (a hoisted copy races frame N-1's reads)
 	bool dropKeepsBytes = false;       // dropPendingFor keeps the dropped copies' bytes in pendingBytes() (A26: the pre-fix arithmetic)
 	bool emptyRecordKeepsTotal = false; // an empty main recordPending leaves pendingBytes() as it was (A26: the pre-fix reset)
 	bool pressureIsPending = false;    // stagingPressure() returns pendingBytes() (A26 v1's idle-flush trigger: dropped staging unseen)
-	bool pendingIgnoresRefusal = false;    // R19: submitPending(false) answers true without waiting for its op to run (a refusal is missed)
+	bool pendingIgnoresRefusal = false;    // submitPending(false) answers true without waiting for its op to run (a refusal is missed)
 	bool failRtViewOnce = false;       // TEST knob (A23-B arm 19): the next render target's attachment view fails (one-shot)
 	bool unpublishedRetire = false;    // A23-B X-cs-unpublished-retire: that failure's cleanup takes the old path - drop pending + retire
 	bool reclaimByIndex = false;       // A23-B X-cs-reclaim-index: after reclaimIdle compacts, the current slice and every open lock's

@@ -50,7 +50,7 @@ static char          s_latestTag[128] = {0};
 // ---------------------------------------------------------------------------
 const char* UpdateChecker::getReleasesUrl()
 {
-    // GeneralsX: This pointed at fbraz3/GeneralsX - the UPSTREAM fork this
+    // This pointed at fbraz3/GeneralsX - the UPSTREAM fork this
     // one was branched from - so the check could never see a release of THIS project and every
     // "you are up to date" was meaningless. It is also the wrong thing to tell a player to install.
     //
@@ -176,7 +176,7 @@ static int SDLCALL threadFunc(void* /*userData*/)
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseBody);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 8L);         // total timeout (s)
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);  // connect timeout (s)
-    // GeneralsX: Redirect and protocol policy.
+    // Redirect and protocol policy.
     //
     // FOLLOWLOCATION was on with no redirect cap and no protocol restriction, so a redirect chain
     // could walk this fetch to http://, to file://, or in a loop until the 8 s timeout. That is
@@ -206,7 +206,7 @@ static int SDLCALL threadFunc(void* /*userData*/)
 
     CURLcode res = curl_easy_perform(curl);
 
-    // GeneralsX: Inspect the HTTP status. Nothing did, and the
+    // Inspect the HTTP status. Nothing did, and the
     // unauthenticated GitHub API is 60 requests/hour per IP - so a 403 returned a body with no
     // tag_name, extractTagName failed, and the thread returned exactly as it does for "you are up
     // to date". Rate-limited and current were indistinguishable, which is the failure mode most
@@ -292,7 +292,7 @@ void UpdateChecker::start()
     if (s_thread != nullptr)
         return;
 
-    // GeneralsX: Accept clean release builds that
+    // Accept clean release builds that
     // provide either an exact tag OR a valid commit timestamp (tag may be empty in
     // some packaged CI contexts even when the binary is a real release artifact).
     // Set env var GENERALS_FORCE_UPDATE_CHECK=1 to bypass release guards (for testing).

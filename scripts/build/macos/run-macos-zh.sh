@@ -37,7 +37,7 @@ if [[ ! -f "${GAME_DIR}/libSDL3.0.dylib" ]]; then
     exit 1
 fi
 
-# GeneralsX: Community-patch overlay - see scripts/build/lib-overlay.sh.
+# Community-patch overlay - see scripts/build/lib-overlay.sh.
 #
 # This script launches the binary directly instead of going through the deployed run.sh, so it
 # has to carry the same environment. A launch path that forgets this does not fail visibly: it

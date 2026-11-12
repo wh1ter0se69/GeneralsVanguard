@@ -16,53 +16,11 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: GX_MASSORDER - one player's mass order, scripted and timed (ROADMAP_2027 H03).
-//
-// WHY. H03 spreads the path work of a big group order over several ticks. Its gate needs the same order, at the same
-// frame, with the same army, in both arms: "on matched 100- and 400-unit mass orders, the first and the LAST unit's
-// order-to-movement delay" (ROADMAP_2027 M2), plus the cost of the tick that executes it. Nothing in a normal match
-// gives that: AI orders are per team, and GX_STRESS orders each unit on its own (aiAttackMoveToPosition), never as a
-// selected group through AIGroup.
-//
-// WHAT. At GX_MASSORDER_SPAWN the local player gets <n> units of one template through the sandbox's own spawn cheat
-// (MSG_GX_CHEAT_SPAWN_UNIT, at most 50 per message - GameLogicDispatch.cpp GX_CHEAT_MAX_SPAWN_COUNT - so 400 is eight
-// messages), around the centroid of its structures. From GX_MASSORDER_AT on, every GX_MASSORDER_EVERY frames, it
-// selects every live unit of that template it owns (ascending ObjectID, at most <n>) and sends ONE group order - the
-// MSG_CREATE_SELECTED_GROUP + MSG_DO_MOVETO (or MSG_DO_ATTACKMOVETO) pair a box-select and a right-click send - to a
-// point GX_MASSORDER_DIST away: towards the map centre on even orders, back to the first centroid on odd ones.
-// Then it watches each unit's logic position and prints, once every unit moved (or 600 frames passed):
-//   [GXMASS] order=<k> n=<units> kind=<move|attack> f_issue=<frame> ra=<run-ahead> moved=<m> first=<+f> p50=<+f>
-//            p90=<+f> last=<+f>
-// the frames from the logic frame the order was issued at to each unit's first displacement (> 1 world unit). The
-// tick that executed the order is f_issue + ra; its cost is the [GXTICK] line of that frame (GX_TICKMS=1).
-//
-//   GX_MASSORDER=<n>[:<template>]   1..5000 units; default template AmericaTankCrusader. Unset or 0 = off and inert.
-//   GX_MASSORDER_SPAWN=<f>|none     default 300        GX_MASSORDER_AT=<f>     default SPAWN + 300 (none: 600)
-//                                   none: no spawn - the army is already there (GX_STRESS / GX_STRESS_UNIT, which a
-//                                   two-human match can have and the one-human spawn cheat cannot)
-//   GX_MASSORDER_EVERY=<f>          default 1200       GX_MASSORDER_COUNT=<k>  default 6
-//   GX_MASSORDER_DIST=<d>           default 600        GX_MASSORDER_KIND=move|attack  default move
-//   GX_MASSORDER_SELECT=chunks|ui|team   default chunks: ids in messages of <= 254 (see issue()). ui: ONE message
-//                                   holding every id, exactly what a box-select (SelectionXlat) or a select-across-map
-//                                   (InGameUI) sends - the shape a player's own order has. team: ONE MSG_CREATE_TEAM1
-//                                   with every id (Ctrl+1, SelectionTranslator::onMetaCreateTeam), then MSG_SELECT_TEAM1
-//                                   (pressing 1), then the order.
-//   GX_MASSORDER_WATCH=<f>          default 600: frames each order is watched (EVERY must be >= it)
-//   GX_MASSORDER_TL=<f>             default 0 = off: every <f> frames of the watch, one "[GXMASS] tl" timeline line
-//
-// GeneralsX: (mass-order-breaks) Besides the delay line, each order now ends with
-//   [GXMASS] end order=<k> n=<units> recv=<r> moved=<m> idle=<i> wait=<w> stuck=<s> d0=<p50 start distance>
-//            d50=<p50> d90=<p90> dmax=<max end distance> near=<units within 300 of the target>
-//            away=<units that ended further from the target than they started, by more than 50>
-// recv = units that took the order (their AI goal changed, or they were idle and no longer are, two frames after the
-// order executed), wait = units still waiting for a path at the end. Reads only: AIUpdateInterface::isIdle/isMoving/
-// isWaitingForPath/isBlockedAndStuck/getGoalPosition, all plain field reads with no lazy state.
-//
-// HONEST. Every order is a message the UI or the Debug menu sends, crossing the network like a human's; nothing here
-// calls into GameLogic to act. The only reads are object positions, templates and owners - never
-// Object::getShroudedStatus or any lazy cache the simulation reads back (GXOrderDriver.cpp isVisibleTo). No random
-// numbers. GameClient/ is outside the SimID digest. It runs only in a command-line harness match (-lanhost/-lanjoin) and
-// the spawn cheat only in a one-human sandbox (GameLogic::gxCheatsAllowed); anywhere else one "[GXMASS] refused" line.
+// GX_MASSORDER: one player's scripted, timed mass order, to measure spreading a big group order's path work.
+// Both arms need the same order at the same frame with the same army, which nothing in a normal match gives.
+// It spawns <n> units via the sandbox spawn cheat, then sends one group order every GX_MASSORDER_EVERY frames
+// and prints [GXMASS] per-unit order-to-movement delays. Harness one-human sandbox only.
+// GX_MASSORDER=<n>[:<template>] (1..5000); knobs: _SPAWN, _AT, _EVERY, _COUNT, _DIST, _KIND, _SELECT, _WATCH, _TL.
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 

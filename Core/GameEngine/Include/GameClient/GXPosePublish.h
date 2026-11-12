@@ -1,21 +1,25 @@
-// GeneralsX: render-split step 4 (S7): the render
-// interpolation snapshot is published in the sync phase (R1) instead of being refreshed by the draw.
-//
-// A drawable's snapshot (Drawable::m_interpPrev/Cur, the turret angles, m_interpFrame) is the pose at the last two logic
-// frames. It used to be refreshed lazily, on the first draw-time read of each frame, and WHEN it was read is part of the
-// meaning: a frame continues the blend only if the snapshot was read on the frame before, which is what makes a drawable
-// that was not drawn for a while (culled, shrouded, in a transport) snap instead of sliding from where it was last seen.
-// So the snapshot keeps a CONSUMED bit: the frame of m_interpCur is in the low 31 bits of m_interpFrame, bit 31 says a
-// draw-time read used it (Drawable.h is digested whole, so no member can be added; a frame never reaches 2^31).
-//
-// refresh() is the one rule, today's: a new frame takes the snapshot, continuing from the old one only if that one was
-// CONSUMED at the frame before (and moved at most 200 units); the same frame snaps when the pose moved without a tick (a
-// script in frozen time). Called at every read and consumed at once, it is exactly the old draw-time refresh. Called by
-// the R1 walk for every drawable, it builds the same snapshot before the draw, and the draw only reads it - falling back
-// to refresh() itself for a drawable the walk did not cover (needsFallback).
-//
-// RENDER-ONLY: no simulation code includes it. No engine includes, so scripts/test/audit/bench/pose_publish.cpp checks
-// this exact code against a verbatim copy of the old refresh.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Render interpolation snapshot (m_interpPrev/Cur, turret angles): the pose at the last two logic frames.
+// Published in the sync phase, not refreshed lazily by the draw. Bit 31 of m_interpFrame marks it consumed by a draw
+// read, so a drawable not drawn for a while snaps instead of sliding (Drawable.h is digested: no new member).
+// RENDER-ONLY, no engine includes; scripts/test/audit/bench/pose_publish.cpp tests this code.
 #pragma once
 
 #include <cstring>

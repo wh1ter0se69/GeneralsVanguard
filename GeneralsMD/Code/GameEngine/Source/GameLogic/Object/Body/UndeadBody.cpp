@@ -91,15 +91,10 @@ void UndeadBody::attemptDamage( DamageInfo *damageInfo )
 	}
 #else
 	// TheSuperHackers @bugfix Stubbjax 20/09/2025 Battle Buses now correctly apply damage modifiers when calculating lethal damage
-	// GeneralsX: ...all of them: judge the damage ActiveBody::attemptDamage will actually DEAL - the
-	// raw amount times armor (estimateDamage) times the body's damage scalar (a battle plan's armor bonus), which it multiplies
-	// in after armor. Judging without the scalar burned the first life on a hit a bus under Hold the Line would survive. And
-	// the clamp of the RAW amount to health - 1 is kept, but where armor or a scalar above 1 would still multiply it to the
-	// whole remaining health the bus died before its second life began, so only then is it scaled down further. Never for a hit that deals no scalable damage to this body: healing
-	// (ActiveBody heals and returns), an m_kill hit (it removes all health whatever the amount), an indestructible or an
-	// already-dead body (it returns before any damage) (sweep c037-01).
-	// What TheSuperHackers' arm (before this fix) leaves in the DamageInfo. A caller may hand it on to further victims
-	// (FirestormDynamicGeometryInfoUpdate reuses it), so they get exactly this back after the hit, whatever this bus decides.
+	// GeneralsX: judge the damage attemptDamage will deal: raw amount times armor (estimateDamage) times the damage scalar.
+	// The raw amount stays clamped to health - 1; scaled down further only if armor or a scalar would still kill the bus.
+	// Not for hits with no scalable damage: healing, m_kill, an indestructible or already-dead body.
+	// DamageInfo is left as the original arm leaves it; callers may reuse it (FirestormDynamicGeometryInfoUpdate).
 	const Real handOn = ( damageInfo->in.m_damageType != DAMAGE_UNRESISTABLE
 			&& !m_isSecondLife
 			&& estimateDamage(damageInfo->in) >= getHealth()

@@ -1,3 +1,5 @@
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Build a self-contained zip a friend can run, from an already-staged run folder.
 # GeneralsX:
 #
@@ -34,25 +36,12 @@
 # the bundle's name has to agree with the BUILD.txt inside it or every launch re-downloads the whole
 # payload. See "THE BUNDLE'S NAME" near the end.
 
-# GeneralsX: THE COMMUNITY PATCH NOW RIDES IN THE ZIP, and it is the
-# reason a friend can join at all.
-#
-# dataID covers the mounted archives and every peer must agree or the join is refused with
-# DATA_DIFFERS. Our peers carry the Community Patch, so a friend on retail data alone was refused
-# by all four of us - measured: retail only is 38744C41, this fleet is FA018128. Handing them the
-# .big to drop into their Zero Hour folder was the obvious fix and is the one thing this project
-# will not do: an engine loads every *.big in the game directory, so a community archive in a
-# Steam install is also loaded by GENERALS ONLINE, which validates those INIs and would desync
-# the owner against every GO player. That already broke somebody's game once.
-#
-# So the archives ship in a GeneralsX-owned subfolder of OUR install directory. The engine mounts
-# <exe dir>\GeneralsXPatch at the precedence each filename earns among the archives already
-# mounted, which reproduces the in-folder layout exactly - measured identical, FA018128 both ways
-# - while the friend's Zero Hour folder is never written to. tar.exe recreates the subdirectory on
-# extract and the launcher's place_tree recurses into it, so update and first install agree.
+# The Community Patch rides in the zip: dataID covers mounted archives, so a retail-only peer gets DATA_DIFFERS.
+# The .big files are not put in the Zero Hour folder: the engine loads every *.big there, and Generals Online would too.
+# They ship in <exe dir>\GeneralsXPatch, which the engine mounts at the precedence each filename earns.
 param(
     [string]$Run       = "C:\dev\GeneralsX-run",
-    # GeneralsX: EMPTY BY DEFAULT, AND THE NAME IS DERIVED. See "THE
+    # EMPTY BY DEFAULT, AND THE NAME IS DERIVED. See "THE
     # BUNDLE'S NAME" below - a bundle name that disagrees with the BUILD.txt inside it makes every
     # launch re-download the whole payload, forever. Pass this only to put the zip somewhere else;
     # a name that contradicts the binary is refused rather than shipped.
@@ -61,7 +50,7 @@ param(
     # dev peer and the friend payload are wired identically and a broken overlay is visible here
     # before it ships.
     [string]$Patch     = "",
-    # GeneralsX: Where the SPLIT artifacts land. See "THE SPLIT" below.
+    # Where the SPLIT artifacts land. See "THE SPLIT" below.
     #
     # THIS DIRECTORY IS MEANT TO PERSIST BETWEEN RUNS and that is a correctness property, not
     # housekeeping. An artifact whose content is unchanged keeps its name, and reusing the zip
@@ -107,23 +96,9 @@ $payload += @(
 
 if ($Patch -eq "") { $Patch = Join-Path $Run "GeneralsXPatch" }
 
-# GeneralsX: Build the overlay archives GeneralsX AUTHORS, before the
-# staging loops below go looking for them in $Patch.
-#
-# WHY A BUILD STEP APPEARS IN A PACKAGER. Every archive on either list used to be third-party
-# content somebody had downloaded once, so "it is in $Patch" was a safe assumption. !GXUI.big is
-# this project's own .wnd layout overrides and there was no way to get it here: it existed on the
-# developer's Mac and nowhere else, which is why no .wnd change in this repository had ever
-# reached a player. It is derived from Window\Menus\PopupHostGame.wnd inside the retail
-# WindowZH.big, so the box that packages the game can simply rebuild it from data it already has.
-#
-# FATAL. The optional staging below throws on a missing archive anyway - by design, because an
-# absent optional archive can never be switched on later - so failing here only moves the same
-# refusal to where the cause is still legible.
-#
-# python and not python3 first: this leg runs on the Windows box, where the launcher's own test
-# harness already invokes the bare name (launcher\test-launcher.ps1). py -3 is the fallback for a
-# machine carrying only the Python launcher.
+# Build the overlay archives GeneralsX authors (!GXUI.big) before the staging loops look for them in $Patch;
+# it is derived from Window\Menus\PopupHostGame.wnd inside the retail WindowZH.big. Fatal, so the cause stays legible.
+# python before python3: on Windows the launcher test harness uses the bare name; py -3 is the fallback.
 $genScript = Join-Path $PSScriptRoot "..\..\tooling\build-overlay-generated.py"
 if (-not (Test-Path $genScript)) {
     throw "overlay generator not found at $genScript - this script must run from a checkout."
@@ -153,32 +128,10 @@ if (-not $pyExe) {
            "overlay-optional.txt and is generated rather than downloaded, so packaging cannot " +
            "produce a complete payload without it.")
 }
-# --game-dir is the RUN folder WHEN THE RUN FOLDER HAS THE RETAIL ARCHIVES: that is the install this
-# payload is being cut from, so the archive it reads is the one this build's players will have.
-#
-# GeneralsX: But a run folder is not required to be a full install, and on
-# the machine that actually cuts releases it is not one - the engine there prints
-# "[ASSET_ROOT] WARNING: no base Generals assets found next to C:\dev\GeneralsX-run" on every launch,
-# because the retail data lives in a separate directory and is reached through CNC_GENERALS_ZH_PATH.
-# Passing $Run unconditionally therefore made packaging fail outright on the release box, and it
-# overrode GX_GAME_DATA - the very escape hatch the generator's own error message tells you to use.
-#
-# Prefer $Run so the default keeps its intended meaning, and fall back only when the source archive
-# is genuinely absent there. Failing with the generator's own message is still the outcome when
-# neither location has it, which is correct: a payload without !GXUI.big is incomplete.
-#
-# GeneralsX: AND THEN EVERY OTHER PLACE IT COULD BE, all handed to the
-# generator, which takes the first that holds WindowZH.big and names every one it tried on a miss.
-# This probed $Run and GX_GAME_DATA only, so release 85f9a6650 still stopped on "WindowZH.big not
-# found" on the release box until GX_GAME_DATA was set by hand. Added: CNC_GENERALS_ZH_PATH, the
-# variable the engine itself reads the retail data through (and run.cmd sets), and $Patch, the one
-# directory the archive staging below searches - so the generator tries at least what staging does.
-# Still not hardcoded: C:\dev\gxdata. It is this box's layout, recorded in
-# docs\WORKDIR\, not a default for anyone else's.
-#
-# Resolved up here, before anything is staged, so GX_OVERLAY_RESOLVE_ONLY=1 can answer "which
-# WindowZH.big would this read" without a run folder. scripts\test\overlay-gamedir-test.ps1 is the
-# check that fails if one of these stops being tried.
+# --game-dir is the RUN folder when it holds the retail archives; otherwise retail data is reached through
+# CNC_GENERALS_ZH_PATH, and passing $Run unconditionally would override GX_GAME_DATA.
+# So every possible source is handed to the generator, which takes the first holding WindowZH.big.
+# scripts\test\overlay-gamedir-test.ps1 fails if one of them stops being tried.
 $genDirArgs = @()
 foreach ($d in @($Run, $env:GX_GAME_DATA, $env:CNC_GENERALS_ZH_PATH, $Patch)) {
     # An unset variable is $null, and a $null splatted into a native command's arguments vanishes,
@@ -205,7 +158,7 @@ if ($missing.Count -gt 0) {
     throw "run folder is incomplete, refusing to ship a broken zip. Missing: $($missing -join ', ')"
 }
 
-# GeneralsX: Presence is not identity: refuse a C# loader under the Tauri
+# Presence is not identity: refuse a C# loader under the Tauri
 # launcher's name. See launcher-kind.ps1.
 . (Join-Path $PSScriptRoot "launcher-kind.ps1")
 try { Assert-TauriLauncher (Join-Path $stage "GeneralsXLauncher.exe") }
@@ -216,7 +169,7 @@ $gxHead = (& git -C $gxRepo rev-parse HEAD).Trim()
 try { Assert-GxUpdater (Join-Path $stage "GeneralsXUpdate.exe") $gxRepo $gxHead }
 catch { Remove-Item -Recurse -Force $stage; throw }
 Write-Host "  launcher        : GeneralsXLauncher.exe (Tauri) + GeneralsXUpdate.exe"
-# GeneralsX: Presence is not identity for the DXVK pair either: both DLLs must be ONE pinned
+# Presence is not identity for the DXVK pair either: both DLLs must be ONE pinned
 # pair (dxvk\dxvk-win64.pins) - ours (gx) or the official 2.6 release - never a stray, a meas/oracle build, or a d3d8
 # from one build beside a d3d9 from another. setup-run-win64.ps1 -DxvkPair picks which.
 . (Join-Path $PSScriptRoot "dxvk\dxvk-pair.ps1")
@@ -224,25 +177,9 @@ try { $dxvkPair = Get-DxvkPairName $stage }
 catch { Remove-Item -Recurse -Force $stage; throw }
 Write-Host "  DXVK pair       : $dxvkPair (d3d9.dll $((Get-FileHash -Algorithm SHA256 (Join-Path $stage 'd3d9.dll')).Hash.Substring(0, 16)))"
 
-# GeneralsX: THE SIXTEEN-COLOUR PAIR, WHICH ONLY macOS AND iOS SHIPPED.
-#
-# deploy-macos-zh.sh:188-199 and the iOS bundler both copy Data\INI\Multiplayer.ini and
-# Data\English\Generals.csf out of the checkout. This packager never did. Multiplayer.ini goes
-# through the INI parser, so it is CRC'd into iniCRC -> dataID, and dataID is a REFUSAL field
-# (SimIdCompare reads engineID, sourceID, dataID, ordinalID). The result measured tonight:
-#
-#     macOS  data=8A40A36B     iPad  data=8A40A36B     Windows  data=FA018128
-#
-# i.e. the Windows peer could not join the Mac or the iPad at all, and because it also lacked the
-# colour definitions its lobby rendered every player's colour as "???". Both symptoms, one cause.
-# Shipping the pair here CONVERGES the fleet onto one dataID rather than splitting it further -
-# the two platforms that already carry it do not move.
-#
-# Refuse rather than ship half, exactly as the macOS script does and for the same reason: the CSF
-# is NOT part of iniCRC (TheGameText is initialised with a null Xfer, GameEngine.cpp:589), so a
-# peer that got the INI but not the CSF still joins everyone and merely renders
-# MISSING: 'Color:Crimson' in the lobby - which reads as a font or localisation fault instead of
-# as a package that stopped halfway.
+# The sixteen-colour pair (Data\INI\Multiplayer.ini, Data\English\Generals.csf) ships on every platform.
+# Multiplayer.ini is CRC'd into iniCRC and so dataID, a refusal field: without it a peer cannot join.
+# Refuse rather than ship half: the CSF is not in iniCRC, so a peer missing it joins but shows MISSING: 'Color:Crimson'.
 $repoRoot     = Resolve-Path (Join-Path $PSScriptRoot "..\..\..")
 $mpIniSrc     = Join-Path $repoRoot "GeneralsZH\Data\INI\Multiplayer.ini"
 $colorCsfSrc  = Join-Path $repoRoot "GeneralsZH\Data\English\Generals.csf"
@@ -324,12 +261,12 @@ if ($missingPatch.Count -gt 0) {
     throw ("community-patch overlay incomplete in ${Patch}: " + ($missingPatch -join ', ') +
            ". A friend on this payload would be refused by every peer with DATA_DIFFERS.")
 }
-# GeneralsX: Data\INI\Weapon.ini, the Toxin Tractor balance change, cut from
+# Data\INI\Weapon.ini, the Toxin Tractor balance change, cut from
 # the CoreINI archive just staged by scripts\tooling\make-weapon-ini.py (never committed: it is the
 # Community Patch's file). It is in iniCRC, so it moves dataID and rides the REQUIRED tier with the
 # colour pair. FATAL: every other platform ships it, so a payload without it joins nobody.
 # $genDirArgs is the same "--game-dir <retail folder>" list the overlay generator gets: the recipe cuts
-# Data\Scripts\SkirmishScripts.scb (AI script edits, 29/09/2026) from the retail loose copy in one of them.
+# Data\Scripts\SkirmishScripts.scb (AI script edits) from the retail loose copy in one of them.
 $weaponArgs = $pyArgs + @((Join-Path $PSScriptRoot "..\..\tooling\make-weapon-ini.py"),
                           "--search", $patchStage) + $genDirArgs + @("--out", (Join-Path $stage "Data\INI\Weapon.ini"))
 & $pyExe @weaponArgs
@@ -337,7 +274,7 @@ if ($LASTEXITCODE -ne 0) {
     Remove-Item -Recurse -Force $stage
     throw "generating Data\INI\Weapon.ini from $patchStage failed (exit $LASTEXITCODE)."
 }
-# Weapon.ini and the Alpha Aurora fix files beside it (26/09/2026): the recipe names them all.
+# Weapon.ini and the Alpha Aurora fix files beside it: the recipe names them all.
 $listArgs = $pyArgs + @((Join-Path $PSScriptRoot "..\..\tooling\make-weapon-ini.py"), "--list")
 $recipeFiles = @(& $pyExe @listArgs | ForEach-Object { $_.Trim() -replace '/', '\' } | Where-Object { $_ })
 if ($LASTEXITCODE -ne 0 -or $recipeFiles.Count -lt 1) {
@@ -345,18 +282,9 @@ if ($LASTEXITCODE -ne 0 -or $recipeFiles.Count -lt 1) {
     throw "make-weapon-ini.py --list failed (exit $LASTEXITCODE)."
 }
 Write-Host "  balance data    : $($recipeFiles -join ', ') (generated, moves dataID)"
-# Optional overlay content: ships in the payload either way, and the DEFAULT decides only what
-# the file is called on arrival - <name>.big is mounted, <name>.big.off is not.
-#
-# SHIPPING IT SWITCHED OFF RATHER THAN NOT SHIPPING IT is the whole point. The launcher's toggle
-# is then a rename, which is instant and works offline; the alternative - fetching the archive
-# when somebody ticks the box - turns a checkbox into a download that can fail, and a failed
-# download would leave the box ticked and the content absent.
-#
-# NOTHING HERE MAY AFFECT dataID. Every entry has been measured to contain zero files the SimID
-# fingerprint reads (see overlay-optional.txt), so a player who turns one off still joins one who
-# leaves it on. An entry that moved dataID would make this checkbox a way to silently lose your
-# friends, which is why the list is separate from the mandatory one rather than a flag on it.
+# Optional overlay content ships either way; the default only decides the name on arrival:
+# <name>.big is mounted, <name>.big.off is not. That makes the launcher's toggle an instant offline rename.
+# Nothing here may affect dataID: no entry contains a file the SimID fingerprint reads (see overlay-optional.txt).
 $optListPath = Join-Path $PSScriptRoot "..\overlay-optional.txt"
 if (-not (Test-Path $optListPath)) {
     Remove-Item -Recurse -Force $stage
@@ -384,19 +312,9 @@ foreach ($o in $optional) {
     if (-not $item -or $item.PSIsContainer -or $item.Length -le 0) { $missingOpt += $o.Name; continue }
     $dstName = if ($o.Default -eq 'off') { $o.Name + '.off' } else { $o.Name }
     Copy-Item -LiteralPath $src -Destination (Join-Path $patchStage $dstName) -Force
-    # GeneralsX: THE DEFAULT IS CARRIED THROUGH AS A THIRD FIELD, so the
-    # launcher can tell a player what shipped as standard and whether they have changed it. It had
-    # no way to know before: the payload said which archives exist and what to call them, and the
-    # only other thing on disk is the CURRENT state, which is not the default and stops being it the
-    # moment somebody ticks a box.
-    #
-    # APPENDED, NEVER PREPENDED, even though overlay-optional.txt puts the default first. A launcher
-    # updates on its own tier, so an OLD launcher will meet this new payload, and its Split('|', 2)
-    # must still find the archive filename in field 0 - it then merely renders "ControlBar Pro|on"
-    # as the label, which is ugly and harmless. Leading with the default would make field 0 the word
-    # "on": the old launcher would look for a file called "on", find neither spelling, and silently
-    # drop every toggle. verify-bundle-overlay.sh reads the same first field with "${_l%%|*}" and is
-    # unaffected for the same reason.
+    # The default is a third field so the launcher can show what shipped as standard.
+    # APPENDED, NEVER PREPENDED: an old launcher's Split('|', 2) must still find the archive filename in field 0, and
+    # verify-bundle-overlay.sh reads the same first field.
     $manifest += ($o.Name + '|' + $o.Label + '|' + $o.Default)
     $optionalStaged += $dstName
 }
@@ -412,7 +330,7 @@ if ($missingOpt.Count -gt 0) {
 # at runtime. A .txt in GeneralsXPatch is inert to the engine: the overlay scan matches "*.big".
 $manifest | Set-Content -Encoding UTF8 (Join-Path $patchStage "optional.txt")
 
-# GeneralsX: THE SHIPPED MAPS (scripts/build/overlay-maps.txt): loose files in
+# THE SHIPPED MAPS (scripts/build/overlay-maps.txt): loose files in
 # GeneralsXPatch\ShippedMaps\<Name>\, carried by the OPTIONAL tier (never required - maps are outside
 # dataID). The engine's overlay scan matches "*.big" only, so they are inert here; the launcher copies them
 # into <userdata>\Maps (gxio shippedmaps.rs). Refuses a .map that does not hash to the listed value.
@@ -437,19 +355,9 @@ foreach ($line in (Get-Content -LiteralPath $mapsList)) {
 }
 if ($shippedMaps.Count -eq 0) { Remove-Item -Recurse -Force $stage; throw "overlay-maps.txt lists no map" }
 
-# GeneralsX: The MANDATORY set, beside the optional one and for the
-# mirror-image reason. optional.txt tells the launcher what it may switch off; required.txt tells
-# it what must be present for a join to be legal at all, so the network test can name the archive
-# that is missing instead of reporting a generic "something is wrong with your data".
-#
-# READ AT RUNTIME, NOT COMPILED IN, exactly as the optional list is. A launcher carrying its own
-# copy of overlay-archives.txt would drift from the payload the first time the set changed, and the
-# drift is silent in both directions: it would report a complete install that is missing an archive,
-# or blame the player for one that no longer ships.
-#
-# BARE FILENAMES. The optional list needs a label per line because a person ticks those boxes; these
-# are not offered as a choice, so there is nothing to label. The reader tolerates a trailing
-# "|label" so the file can grow that shape later without breaking installs in the field.
+# The mandatory set, beside the optional one: required.txt tells the launcher what must be present for a legal join.
+# Read at runtime, not compiled in: a launcher with its own copy of overlay-archives.txt would drift from the payload.
+# Bare filenames; the reader tolerates a trailing "|label".
 $overlay | Set-Content -Encoding UTF8 (Join-Path $patchStage "required.txt")
 
 $patchBytes = (Get-ChildItem -LiteralPath $patchStage -Filter *.big* | Measure-Object -Property Length -Sum).Sum
@@ -462,32 +370,9 @@ foreach ($o in $optional) { Write-Host ("                    [{0}] {1}" -f $o.De
 $b = [IO.File]::ReadAllBytes((Join-Path $Run "generalszh.exe"))
 $s = [Text.Encoding]::ASCII.GetString($b)
 $sha = "unknown"
-# GeneralsX: THIS USED TO BE `$s -match '([0-9a-f]{40})'` AND IT PICKED THE
-# WRONG STRING ON 13/08/2026, out of a binary that contained the correct one.
-#
-# Two independent faults, and either alone is enough to name a release after a data pattern:
-#
-#   1. PowerShell's -match is CASE-INSENSITIVE by default. A run of 0x41 bytes ('A') is 40 valid hex
-#      digits under that rule, so a 59-byte 'A' run at 0x2244b6 - ordinary padding, hundreds of KB
-#      before the real sha - matched first and the packager reported the commit as
-#      "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA". Every artifact name derives from this variable,
-#      so that would have shipped as GeneralsX-win64-AAAAAAAAA.zip and poisoned the cache key for
-#      that name permanently - the exact failure the "unknown" guard below exists to prevent, walked
-#      around by a string that IS 40 hex characters.
-#   2. First-match-wins over the whole file. The same binary also carries a 40-digit '6' run AFTER
-#      the sha, which is lowercase-clean and would win the moment anything reorders the sections.
-#
-# So the rule is now three conditions, and a candidate must satisfy all of them:
-#   (?-i)          lowercase only - git emits lowercase, padding runs are typically not
-#   (?<!..)(?!..)  a STANDALONE token, non-hex on both sides, which rejects any run LONGER than 40
-#                  (the 'A' run is 59, the '6' run is 40 inside a longer field)
-#   corroboration  the engine embeds the short sha a few bytes after the full one, so the candidate
-#                  must be followed within 64 bytes by its own 7..12 character prefix. A padding run
-#                  cannot satisfy this against itself once the standalone rule has bounded it.
-#
-# Verified BOTH directions against the real 13/08/2026 binary: the old rule returns the 'A' run, the
-# new rule returns 51f5cecdc4ebd327c7c2e3328a68dfbb1ac106d3, and a binary with no embedded sha still
-# falls through to the refusal below rather than inventing one.
+# Find the embedded commit sha: a lowercase standalone 40-hex token followed within 64 bytes by its 7..12 char prefix.
+# PowerShell's -match is case-insensitive, so a padding run of 'A' bytes would match; lowercase-only rejects it.
+# A binary with no embedded sha falls through to the refusal below.
 foreach ($m in [regex]::Matches($s, '(?-i)(?<![0-9a-f])[0-9a-f]{40}(?![0-9a-f])')) {
     $cand = $m.Value
     $tail = $s.Substring($m.Index + 40, [Math]::Min(64, $s.Length - $m.Index - 40))
@@ -496,12 +381,9 @@ foreach ($m in [regex]::Matches($s, '(?-i)(?<![0-9a-f])[0-9a-f]{40}(?![0-9a-f])'
         break
     }
 }
-# GeneralsX: REFUSED RATHER THAN SHIPPED AS "unknown", and this is not
-# pedantry about a nice-to-have field. Every published name below is derived from $sha, so a build
-# that cannot state its commit produces "GeneralsX-win64-unknown.zip" - a key that TWO DIFFERENT
-# BUILDS would share. The second upload then sits behind the first one's edge entry - permanently,
-# because no later build can ever pick a different name either.
-#
+# Refused rather than shipped as "unknown": every published name below is derived from $sha, so
+# "GeneralsX-win64-unknown.zip" would be a key TWO DIFFERENT BUILDS share, and the second upload would sit behind the
+# first one's edge entry permanently (see publish-bootstrap.sh:441-445), as no later build could pick another name.
 if ($sha -eq "unknown") {
     Remove-Item -Recurse -Force $stage
     throw ("no 40-character commit sha is embedded in $Run\generalszh.exe. Every artifact name and " +
@@ -590,60 +472,10 @@ because this build is not code-signed, not because anything is wrong with it.
 # it needs Get-GxContentId - which is defined below with the other artifact machinery, because the
 # bundle and the four artifacts must be named by ONE implementation. See "THE BUNDLE'S NAME".
 
-# ==================================================================================================
-# THE SPLIT
-#
-# GeneralsX:
-#
-# WHY. The manifest named ONE artifact, so every update was all-or-nothing: the owner downloaded
-# 112 MB to receive a 3.4 MB engine change. Measured on the published afa9a64b2 payload - 117.4 MB
-# zipped, of which GeneralsXLauncher.exe is 60.7 MB (52%) and the engine is 3.4 MB (3%).
-#
-# So the payload is cut by HOW OFTEN EACH PART CHANGES, and the launcher skips any artifact it
-# already has. state_hash_of (gxlaunch.c:1701-1710) looks an artifact up by (platform, name) and
-# then compares hashes, so an unchanged part that keeps its name is skipped for free. That
-# mechanism is not new - it has been in gxlaunch.c since its first commit; only the PUBLISHER
-# never used it.
-#
-#     engine      3.6 MB   every release        generalszh.exe + the updater + BUILD.txt
-#     runtime    63.5 MB   rarely               the launcher and the DLLs beside it
-#     required   29.2 MB   almost never         the archives dataID depends on
-#     optional   21.1 MB   never                ControlBar Pro and friends
-#
-# Routine engine update: 117.4 MB -> 3.6 MB.
-#
-# THE BUNDLE IS STILL BUILT AND IT IS STILL THE THING THE INSTALLER FETCHES. Splitting the
-# installer's payload the way the manifest is split would be catastrophic and unrecoverable:
-# GeneralsX.iss:458-514 takes the FIRST win32 row of gxsetup.txt as the whole payload, so four rows
-# would hand every already-downloaded installer an engine with no launcher and no updater - and no
-# way to self-repair, because the updater is the missing piece. See publish-bootstrap.sh's
-# gxsetup.txt section, which enforces the one-row rule.
-#
-# THE BUNDLE IS NO LONGER CALLED "GeneralsX-win64-<commit>.zip", and that rename is what unblocks
-# all of this. It was the engine tier's name exactly - two different byte-streams competing for one
-# R2 key - which is why the split below has existed since 12/08 and has never been published. The
-# bundle is now "GeneralsX-bundle-<content8>-<commit9>.zip"; nothing parses it but gxsetup.txt, and
-# the reasoning for every part of that name is at "THE BUNDLE'S NAME" further down.
-#
-# NAMING, and each rule here is load-bearing:
-#
-#   engine   GeneralsX-win64-<commit>.zip  - unchanged shape, and the COMMIT MUST BE THE LAST
-#            DASH-SEPARATED TOKEN. Two things read it: LauncherForm.cs:460 (the retired C# loader,
-#            still run by legacy installs) matches
-#            -win64-([0-9a-f]{7,40})(?:-|\.) for the "Available" line and can only print
-#            "up to date" when that capture is non-empty; and state_load (gxlaunch.c:1609-1620)
-#            takes the text after the LAST '-' and compares its first 7 chars to BUILD.txt's
-#            commit, discarding the whole install record when nothing agrees. Appending a content
-#            hash - "GeneralsX-win64-<commit>-<content>.zip", which a stale comment in
-#            LauncherForm.cs:318 describes - would make that guard fire on EVERY launch and force a
-#            full re-download forever. Do not do it.
-#
-#   the rest gxrt_<content8>.zip etc, named by their OWN content and with NO DASH. Content, so an
-#            unchanged part keeps its URL and is skipped (the entire saving) while changed bytes
-#            always get a fresh URL and never need a cache purge. No dash, so strrchr(name,'-') in
-#            that same guard returns NULL for them and the ENGINE artifact is the only thing
-#            driving it - which is what it was written to read.
-# ==================================================================================================
+# The payload is split by how often each part changes; the launcher skips artifacts it already has (platform + name).
+# Tiers: engine (each release), runtime (launcher, DLLs), required (dataID archives), optional.
+# Engine artifact GeneralsX-win64-<commit>.zip: the commit must be the LAST dash-separated token (state_load).
+# Other tiers are named by content with no dash (gxrt_<content8>.zip): an unchanged part keeps its URL.
 
 # The tiers, as paths relative to $stage. Every staged file must appear in exactly one.
 $tierEngine = @(
@@ -671,17 +503,10 @@ $tierRuntime = @(
     "THIRD_PARTY_NOTICES.txt",
     "dxvk.conf", "alsoft.ini", "READ ME FIRST.txt"
 )
-# The sixteen-colour pair rides the REQUIRED tier, and platform "any" is right for it: it is data,
-# byte-identical on every platform, and it moves dataID - so a peer that misses it cannot join one
-# that has it. Same tier as the overlay archives, for exactly the same reason. Guarded by Test-Path
-# because the staging block above ships the pair only when the checkout carries it.
-# GeneralsX: THE MODEL PACK RIDES AN ARTIFACT OF ITS OWN. Every shipped Windows updater
-# abandons ANY single download over MAX_DOWNLOAD_BYTES (512 MiB, gxlaunch.c:184 and :1168) - the cap is per download, a local
-# total - and the one required zip holding !!GXModelsHD.big (~399 MB deflated) beside the HD textures (~183 MB) would cross it, so
-# every existing install would abandon the whole update before applying anything. A new updater in the same release cannot help
-# clients that already have the old one. The shipped updaters download every platform-"any" row (gxlaunch.c:2208, up to 16 rows)
-# into one stage, each under its own cap, so a separate gxmdl_ row reaches them with no client change. The archive stays on
-# required.txt (the mandatory set above): only its transport moves. Archives named here leave the required zip for their own.
+# The sixteen-colour pair rides the REQUIRED tier, platform "any": it moves dataID, so a peer missing it cannot join.
+# The model pack gets its own artifact: shipped updaters abandon any single download over 512 MiB (gxlaunch.c), and
+# !!GXModelsHD.big (~399 MB) plus the HD textures (~183 MB) would cross it. Updaters fetch every platform-"any" row.
+# The archive stays on required.txt; only its transport moves.
 $ownArtifact = @('!!GXModelsHD.big')
 $tierModels   = @($overlay | Where-Object { $ownArtifact -contains $_ } | ForEach-Object { "GeneralsXPatch\$_" })
 $tierRequired = @($overlay | Where-Object { $ownArtifact -notcontains $_ } | ForEach-Object { "GeneralsXPatch\$_" }) +
@@ -746,32 +571,10 @@ function New-GxArtifact {
     }
 
     $dest = Join-Path $ArtifactDir $Name
-    # THE REUSE BRANCH USED TO TRUST THE FILENAME ALONE, and its comment justified that with "same
-    # content id means same content". True for the three CONTENT-ADDRESSED tiers - gxrt_, gxreq_,
-    # gxopt_ carry their own id in the name - and FALSE for the engine tier, whose name is
-    # GeneralsX-win64-<engineTag>.zip where $engineTag is read out of generalszh.exe's embedded
-    # commit and therefore says nothing about the tier's OTHER members: GeneralsXUpdate.exe,
-    # BUILD.txt, LICENSE.md, GeneralsXPatch\optional.txt and GeneralsXPatch\required.txt.
-    #
-    # Any of those changes while the engine exe is correctly NOT rebuilt - a launcher-only fix
-    # in gxlaunch.c is the documented, deliberate workflow (publish-bootstrap.sh:400-403, and it
-    # has happened three times in this repo's history), and a new overlay-optional.txt entry is
-    # another. The packager then found the old zip, printed "(unchanged, reused)" and wrote the OLD
-    # sha256 and size into gxartifacts.txt. Nothing downstream could catch it: the commit-tag gate
-    # sees one consistent tag, and artifact verification re-hashes the reused zip and agrees with
-    # itself. Every EXISTING install skips that artifact on platform+name+hash and never receives
-    # the fix; only a fresh bundle carries it - the "it works on a fresh install" divergence the
-    # tier-partition gate at the top of this section exists to prevent, arriving by another door.
-    #
-    # So the caller passes the tier's real content id and the reuse branch is taken only when a
-    # sidecar beside the zip agrees with it. The sidecar is never published - it is not in any
-    # tier and lives in $ArtifactDir, not $stage.
-    #
-    # An artifact packed BEFORE this change has no sidecar, so it is repacked once. Measured on
-    # Windows PowerShell 5.1, 2026-09-22: that repack did NOT move its sha256 - Compress-Archive
-    # stores the SOURCE files' mtimes rather than the pack time, so unchanged staged files give
-    # byte-identical bytes. Expect one repack and, normally, no re-download. Do not lean on it:
-    # restage the tier and the timestamps move with it.
+    # The reuse branch must not trust the filename alone. Content-addressed tiers carry their id in the name, but the engine
+    # tier's name comes only from generalszh.exe's commit, so a launcher-only change would reuse a stale zip and sha.
+    # The caller passes the tier's content id; reuse needs a sidecar beside the zip that agrees (never published).
+    # An artifact packed before the sidecar existed is repacked once.
     $stamp = "$dest.contentid"
     $reuse = Test-Path -LiteralPath $dest
     if ($reuse -and $ContentId -ne "") {
@@ -798,19 +601,9 @@ function New-GxArtifact {
             New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dst) | Out-Null
             Copy-Item -LiteralPath (Join-Path $stage $r) -Destination $dst -Force
         }
-        # PACKED UNDER A TEMPORARY NAME AND RENAMED, never written straight to $dest, and that is
-        # not tidiness. The reuse branch above trusts any file bearing the right name - so a run
-        # interrupted mid-Compress-Archive would leave a TRUNCATED zip under the final name, the
-        # next run would reuse it, and publish-bootstrap.sh could not catch it: we would sign the
-        # hash OF THE CORRUPT FILE, so the document would be perfectly self-consistent and every
-        # client would install a broken payload. A rename on one filesystem has no such window.
-        #
-        # ".partial.zip", NOT ".zip.partial", and that ordering is not style. Windows PowerShell
-        # 5.1's Compress-Archive insists the destination carry a .zip extension - it appends one
-        # when it is missing rather than writing what it was asked to - so a ".zip.partial" target
-        # produces "....zip.partial.zip" and the Move-Item below then fails on a path that was
-        # never written. Caught by cross-model review; it could not be caught by running this,
-        # because it is only reachable on Windows. Keep the extension last.
+        # Pack under a temporary name, then rename: the reuse branch trusts any file with the right name, so an interrupted
+        # Compress-Archive would leave a truncated zip that is reused and signed.
+        # ".partial.zip", not ".zip.partial": Windows PowerShell 5.1's Compress-Archive appends .zip when it is missing.
         $partial = Join-Path $ArtifactDir ($Name -replace '\.zip$', '.partial.zip')
         if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial -Force }
         Compress-Archive -Path (Join-Path $sub "*") -DestinationPath $partial -CompressionLevel Optimal
@@ -877,43 +670,10 @@ if ($overCap.Count) {
         " - split the tier (see `$ownArtifact) instead of publishing a release every existing install would abandon")
 }
 
-# ==================================================================================================
-# THE INSTALL RECORD RIDES INSIDE THE BUNDLE
-#
-# GeneralsX: This is the fix for "setup downloads 113 MB, then the
-# launcher immediately downloads the same 118 MB again", measured on a clean install this session:
-#
-#   gxlaunch.log  state: installed ordinal 0, 1 known artifact(s)
-#                 update: 4 artifact(s) to fetch, 118754724 bytes
-#
-# The installer's own record was correct when the payload was ONE zip whose name was in the
-# manifest. THE SPLIT made the payload four tiers and made the bundle a CONTAINER, and a container's
-# name appears in no manifest by construction. state_hash_of (gxlaunch.c:1701-1710) matches on
-# platform AND name with strcmp, so the bundle row matches nothing, every tier reads as missing, and
-# the launcher refetches the lot. Recording an unmatchable name is not better than recording
-# nothing - it is exactly the "DELETING IT cost a download instead" failure GeneralsX.iss:668-673
-# already describes, arriving by a different route.
-#
-# WHY THE RECORD IS WRITTEN HERE AND NOT BY THE INSTALLER. Setup cannot name the four tiers: it
-# downloads one opaque zip and never sees the manifest. It could FETCH the manifest, but then a
-# publish landing between its gxsetup.txt read and its manifest read would have it record artifacts
-# it does not have - a STRANDED install, which GeneralsX.iss:664-669 measured and which is strictly
-# worse than a redundant download. The packager, by contrast, knows all four hashes because it just
-# computed them, so a record written here describes exactly the bytes in this bundle and cannot
-# disagree with them.
-#
-# ordinal 0 is deliberate and unchanged: state_hash_of ignores the ordinal entirely, and the
-# launcher's only ordinal comparison is manifest-vs-cached-manifest. Claiming a real ordinal here
-# would be a guess about a manifest that has not been signed yet.
-#
-# The hash encoding is the launcher's, not the packager's: base64url of the FIRST 16 BYTES of the
-# sha256, unpadded (gxlaunch.c:595, hash_matches at :972). Verified against all four live artifacts
-# before this was written. GeneralsX.iss carries the same conversion in Pascal for its own row; if
-# either moves, both move.
-#
-# This file is added AFTER the tier partition gate above, on purpose. It ships in the bundle and in
-# no tier, which is precisely right: a fresh install needs it, and an update must never lay a stale
-# copy over the record the launcher has been maintaining since.
+# The install record rides inside the bundle: its name is in no manifest, so otherwise every tier reads as missing
+# and the launcher refetches everything. The packager knows every hash. Ordinal 0 is deliberate.
+# Hash: base64url of the first 16 bytes of the sha256, unpadded (gxlaunch.c).
+# Added after the tier partition gate: it is in the bundle and no tier, so an update never overwrites it.
 function Get-GxManifestHash {
     param([Parameter(Mandatory=$true)][string]$Sha256Hex)
     $bytes = [byte[]]::new(16)
@@ -942,48 +702,10 @@ Write-Host ""
 Write-Host "  install record (ships inside the bundle, so first launch fetches nothing):"
 foreach ($l in $recordLines | Where-Object { $_ -like 'item *' }) { Write-Host ("    " + $l) }
 
-# ==================================================================================================
-# THE BUNDLE'S NAME
-#
-# GeneralsX: This is the fix for "every launch re-downloads 117 MB,
-# forever", observed on the owner's install and reproducible from the published release.
-#
-# WHAT WENT WRONG. The bundle was named at PUBLISH time, from `git rev-parse HEAD` on the box doing
-# the publishing, while BUILD.txt inside it carried the commit read out of generalszh.exe. Those two
-# are only equal when the last commit touched engine source. `d549762d3` changed nothing but this
-# very script, so the exe was correctly NOT rebuilt and still carried `30848e4ce` - and the release
-# went out as GeneralsX-win64-d549762d3.zip wrapping a BUILD.txt that said 30848e4ce.
-#
-# state_load (gxlaunch.c:1596-1631) takes the text after the LAST '-' in each recorded artifact name
-# and compares seven characters against BUILD.txt's commit. The installer records the bundle's own
-# basename as that artifact (GeneralsX.iss:688-694). So: 'd549762' != '30848e4' -> positive
-# contradiction -> the install record is memset -> every artifact looks missing -> the whole payload
-# is fetched again. Re-applying it restores the same BUILD.txt, so the contradiction never clears.
-# Verbatim from the owner's log:
-#
-#   state: gxinstalled.txt says 'GeneralsX-win64-d549762d3.zip' but BUILD.txt was built from
-#   30848e4ce - the files were replaced behind the launcher. Discarding the record so this launch
-#   re-checks the manifest.
-#
-# THE FIX IS STRUCTURAL, not a corrected string. Both halves now come from $engineTag, which is read
-# out of the binary a few dozen lines above BUILD.txt is written from the same variable. There is no
-# longer a second source that could disagree, so the guard cannot be made to fire by a commit that
-# did not rebuild the engine.
-#
-# THE NAME ALSO STOPS COLLIDING WITH THE ENGINE TIER. "GeneralsX-win64-<commit>.zip" is exactly what
-# the engine artifact is called, and the two are DIFFERENT byte-streams - 3.6 MB against 117.4 MB.
-# Publishing both would put two objects on one R2 key, and whichever landed second would be served
-# to clients expecting the other, failing its signed hash. That collision is the reason the split
-# has been implemented since 12/08 and never published.
-#
-#   <content8>  the first 4 bytes of a SHA-256 over this staging tree's paths and file hashes.
-#               Different bytes always get a different URL, so a re-pack never lands on an existing
-#               edge entry - the trap publish-bootstrap.sh:441-445 records - and identical bytes
-#               keep their URL and their sha256, so nothing has to be re-uploaded at all.
-#   <commit9>   LAST, and that position is load-bearing: strrchr(name, '-') must find this token for
-#               state_load to check it against BUILD.txt. Putting the content id last instead would
-#               make the guard compare a content hash against a commit and fire on every launch,
-#               which is the bug this comment exists about, reintroduced from the other side.
+# The bundle's name and BUILD.txt's commit both come from $engineTag, read out of the binary, so they cannot disagree
+# (state_load compares 7 chars after the LAST '-' of each artifact name with BUILD.txt).
+# It must not collide with the engine tier's GeneralsX-win64-<commit>.zip name.
+# <content8>: first 4 bytes of a SHA-256 over staging paths and hashes; <commit9> comes LAST, which is load-bearing.
 $bundleContent = Get-GxContentId -Root $stage -Rel $staged
 $bundleName    = "GeneralsX-bundle-{0}-{1}.zip" -f $bundleContent, $engineTag
 

@@ -979,21 +979,9 @@ namespace
 	constexpr const Int kHudGapPx = 6;
 	inline Bool isAtHudAnchorPos(const Coord2D &p) { return p.x == kHudAnchorX && p.y == kHudAnchorY; }
 
-	// GeneralsX: Latency HUD, ported from the Zero Hour twin.
-	//
-	// This twin had been left behind: it printed TheNetwork->getRunAhead(), a bare FRAME COUNT with
-	// no unit and no bands, which is not a latency a player can act on - run-ahead is a scheduling
-	// depth, and it moves for reasons that have nothing to do with anyone's connection. Worse, it
-	// dereferenced TheNetwork with no null check while the Zero Hour twin already guards that exact
-	// pointer, with a comment explaining why: the caller gates on isInMultiplayerGame(), which
-	// stays true through match teardown after TheNetwork is already gone. Same call site, same
-	// lifetime, one guard - so this was a live crash on leaving any multiplayer game, and
-	// RTS_BUILD_GENERALS defaults ON so the affected binary ships.
-	//
-	// The bands are deliberately generous rather than esports-tight, because this is LOCKSTEP: the
-	// lobby already runs at the slowest peer by construction, so a link in the yellow band is a
-	// perfectly playable game. Colouring an ordinary connection alarming just trains players to
-	// ignore the colour, which costs us the one case it exists for.
+	// GeneralsX: latency HUD. isInMultiplayerGame() stays true through match teardown after TheNetwork is gone.
+	// Bands are generous because this is LOCKSTEP and the lobby runs at the slowest peer: yellow is playable, and an
+	// alarming colour on an ordinary connection trains players to ignore it.
 	constexpr const UnsignedInt kLatencyMsGood = 80;	///< at or under this, green
 	constexpr const UnsignedInt kLatencyMsFair = 180;	///< at or under this, yellow; above it, red
 
@@ -1027,17 +1015,9 @@ namespace
 	// the shortest window that keeps integer-frame quantisation (+-1 frame) below the colour bands.
 	constexpr const UnsignedInt kLogicRateWindowMs = 1000;
 
-	// Colour bands for tps, as a percentage of LOGICFRAMES_PER_SECOND - the rate the simulation is
-	// AUTHORED for, not the rate currently negotiated. Banding against the negotiated rate was the
-	// obvious alternative and is wrong: under lockstep the negotiated rate is dragged down to the
-	// slowest peer, so a lobby crawling at 12 tps would paint itself green for successfully hitting
-	// 12. Green here means "the game is running at the speed it is meant to run at", which is the
-	// only reading a player can act on.
-	//
-	// Generous, for the reason the latency bands are generous. A healthy 60 Hz network match was
-	// measured at 58.1 mean / 53 p10,
-	// so 90% keeps a good match green; the bad configuration in that same A/B, 52.0 mean / 24 p10,
-	// lands in yellow and red where it belongs.
+	// Colour bands for tps, as a percentage of LOGICFRAMES_PER_SECOND, the rate the simulation is authored for, not the
+	// negotiated one: under lockstep that drops to the slowest peer, so a crawling lobby would read green.
+	// Generous like the latency bands: a healthy 60 Hz network match runs about 58 tps (p10 53), so 90% keeps it green.
 	constexpr const UnsignedInt kLogicRatePctGood = 90;	///< at or over this share of nominal, green
 	constexpr const UnsignedInt kLogicRatePctFair = 60;	///< at or over this share, yellow; below, red
 
@@ -2077,10 +2057,10 @@ void InGameUI::update()
 				// if that letter is a return, add a new line
 				if(tempWChar == L'\n')
 				{
-					// GeneralsX: Check for a free line BEFORE moving to it. The count used to be
-					// bumped first, so a caption with a 4th newline left currentDisplayString == MAX_SUBTITLE_LINES and the
-					// draw and removal loops then used displayStrings[4] - the count field itself read as a pointer - and
-					// crashed. Caption text comes from the map's own map.str, which arrives with the map from the host.
+					// GeneralsX: Check for a free line BEFORE moving to it. Bumping the count first would let a
+					// caption with a 4th newline leave currentDisplayString == MAX_SUBTITLE_LINES, and the
+					// draw and removal loops would then use displayStrings[4] - the count field itself read as a pointer - and
+					// crash. Caption text comes from the map's own map.str, which arrives with the map from the host.
 					if( m_militarySubtitle->currentDisplayString + 1 < MAX_SUBTITLE_LINES )
 					{
 						// increment the Block position's Y value to draw it on the next line
@@ -2279,7 +2259,7 @@ void InGameUI::unregisterWindowLayout( WindowLayout *layout )
 //-------------------------------------------------------------------------------------------------
 void InGameUI::reset()
 {
-	if( s_maxSelectCountKept )	// GeneralsX @bugfix: the map.ini's MaxSelectionSize ends with the map (see parseInGameUIDefinition)
+	if( s_maxSelectCountKept )	// GeneralsX: the map.ini's MaxSelectionSize ends with the map (see parseInGameUIDefinition)
 	{
 		m_maxSelectCount = s_maxSelectCountBeforeMap;
 		s_maxSelectCountKept = FALSE;
@@ -3877,19 +3857,10 @@ void InGameUI::postWindowDraw()
 	Int hudOffsetX = 0;
 	Int hudOffsetY = 0;
 
-	// GeneralsX: Two readouts joined the row, each gated by the EXISTING
-	// preference of the number it is twinned with rather than by a new one - a new key would live in
-	// Core/GameEngine/{Include,Source}/Common, inside the SimID digest, and no HUD readout may be
-	// able to make a peer refuse a join.
-	//
-	// Resends are multiplayer-only, with latency, because the counter they read is meaningless
-	// without a network game - it would sit frozen at whatever the last match left it and present a
-	// confident "no loss" for a mode that has no wire.
-	//
-	// tps is NOT multiplayer-only, because the logic rate is a local measurement and singleplayer is
-	// where separating it from fps matters most. It is excluded from the shell for the same reason
-	// the game clock is: the shell map advances logic frames, and a rate readout over the main menu
-	// is noise.
+	// GeneralsX: each readout is gated by the existing preference of the number it is twinned with: a new key would
+	// live in Core Common, inside the SimID digest, and no HUD readout may make a peer refuse a join.
+	// Resends are multiplayer-only (the counter is meaningless without a network game). tps is local, so it is shown
+	// in singleplayer too, but not in the shell, which advances logic frames.
 	if (m_networkLatencyPointSize > 0 && TheGameLogic->isInMultiplayerGame())
 	{
 		drawNetworkLatency(hudOffsetX, hudOffsetY);
@@ -5821,14 +5792,8 @@ void InGameUI::updateAndDrawWorldAnimations()
 
 			// scale the width and height given the camera zoom level
 			// TheSuperHackers @todo Rework this with sane values. scaler=1.3 originally came from TheTacticalView::getMaxZoom()
-			// GeneralsX: THE ZOOM RETAIL WOULD REPORT, AND THE GENTLE SHRINK ABOVE ITS CEILING
-			// This divided by
-			// plain getZoom(), which is height / the EFFECTIVE max camera height: with the camera allowed higher than retail's
-			// MaxCameraHeight the same view reports a smaller zoom, so every world animation (promotion, heal, crate cash) grew
-			// by effectiveMax / retailMax - about 3x at Extras' 1000, 10x at the Debug menu's 3000 - the bug the health bar,
-			// pips and veterancy icon were fixed for on 25/09 (W3DView::getRetailReferenceZoom), missed here. Up to the stock
-			// ceiling this is now exactly retail's size; above it the size the animation has AT the ceiling, scaled by
-			// gxWorldLabelScale (GXWorldLabelScale.h) rather than shrinking with the units all the way down.
+			// GeneralsX: use the zoom retail would report; above its camera ceiling shrink gently by gxWorldLabelScale.
+			// Plain getZoom() uses the effective max height and would grow animations by effectiveMax / retailMax.
 			constexpr Real scaler = 1.3f;
 			Real iconScale = 1.0f;
 			const Real zoomAtCeiling = TheTacticalView->getRetailReferenceZoom( &iconScale ) * iconScale;
@@ -6300,41 +6265,10 @@ void InGameUI::drawNetworkLatency(Int &x, Int &y)
 			}
 			else
 			{
-				// GeneralsX: THIS READOUT IS "MY PING", IN BOTH ROLES.
-				//
-				// One semantic, stated once so the two branches below cannot drift apart: THE
-				// NUMBER IS ALWAYS THE LOCAL PLAYER'S OWN ROUND TRIP. What differs per role is
-				// only how many legs the local player has, and therefore whether naming the far
-				// end tells the reader anything.
-				//
-				//   * NON-ROUTER. sendLocalCommand's else branch puts the per-frame FRAMEINFO on
-				//     the packet router's connection ALONE, so exactly one ring is ever written
-				//     and getWorstPeerLatency's "worst" is a maximum over a single element: d(me,
-				//     router). The far end is the host every single time, so printing its name
-				//     spends HUD width to say something constant. Bare number.
-				//
-				//   * PACKET ROUTER. The router's FRAMEINFO is fanned out to every connection and
-				//     every peer acks it, so several legs exist; the worst is the one that binds
-				//     a lockstep match. It is still the router's OWN round trip - to that peer -
-				//     so it is "mine" in exactly the same sense, and the name is what makes it
-				//     actionable rather than mysterious.
-				//
-				// The presence of a name is therefore itself the role signal, and neither reading
-				// overstates what the peer measured. Deliberately NOT a bare number on the host:
-				// the host's round trip TO ITSELF does not exist, and this readout has already
-				// been fixed four times for printing a number that was not what its label implied
-				// (see FrameMetrics::getWorstPeerLatency). A bare figure on the centre of the star
-				// would be the fifth.
-				//
-				// Truncated because a player name is up to g_maxNameLength wide and this draws
-				// inline on the HUD anchor row, advancing x by its own width - an untruncated name
-				// would shove every readout to its right around whenever the worst peer changed.
-				//
-				// isPacketRouter() is read through the existing NetworkInterface accessor on
-				// purpose: this whole change stays inside GameClient/, which the sim-source digest
-				// does not cover (resources/gitinfo/simsourcedigest_watcher.cmake lists Common,
-				// GameLogic and GameNetwork only), so it ships to one platform without forcing the
-				// atomic four-platform rebuild that a sourceID move requires.
+				// GeneralsX: this readout is the local player own round trip in both roles. A non-router has one leg
+				// (the host), so a bare number suffices. The router fans FRAMEINFO out to every peer and the worst leg
+				// binds a lockstep match, so it names that peer. The name is truncated to g_maxNameLength so a long one
+				// does not shove the rest of the HUD around. Stays inside GameClient/, outside the sim-source digest.
 				const UnicodeString peerName = TheNetwork->isPacketRouter()
 					? TheNetwork->getPlayerName(latencySlot)
 					: UnicodeString::TheEmptyString;
@@ -6382,28 +6316,10 @@ void InGameUI::drawNetworkLatency(Int &x, Int &y)
 	}
 }
 
-// GeneralsX: Packet loss on the HUD, as retransmissions over a trailing
-// window.
-//
-// WHAT THIS NUMBER IS. TheGxNetRetries (GameNetwork/networkutil.h) is incremented at exactly one
-// site: Connection.cpp, where an ack-requiring command is re-offered because m_retryTime - a
-// hard-coded 2000 ms - elapsed with no ack. So one unit here means one command, very often the
-// FRAMEINFO that FrameData::allCommandsReady is blocked on, went missing and cost every peer about
-// two seconds of lockstep. It is the closest thing the engine measures to wire loss, and it is the
-// counter whose value decides the standing stutter diagnosis.
-//
-// WHAT IT IS NOT, and none of this may be implied by the label:
-//   * It is not a loss PERCENTAGE. Nothing exports a denominator of packets sent, so a percentage
-//     would have to be invented. This is a count of events in the last few seconds, nothing else.
-//   * It is not the whole lobby's loss. The counter increments on the SENDER, so a peer whose
-//     DOWNLINK is dropping packets sees zero here while the sender sees the retry. On the packet
-//     router it additionally folds in traffic being relayed on behalf of others.
-//   * It is not every packet this machine lost. The other three [GXNET] counters - sendfail,
-//     senddrop, recvdrop - are deliberately NOT folded in. They are local socket and buffer
-//     failures rather than wire loss, and senddrop in particular fires on Darwin for every limited
-//     broadcast to 255.255.255.255, i.e. routine LAN discovery. Summing them would put a permanent
-//     non-zero "loss" reading on every mac on a LAN, which is the exact failure mode - a confident
-//     number that is not measuring what its label claims - this readout exists to avoid.
+// GeneralsX: packet loss as retransmissions over a trailing window. TheGxNetRetries (networkutil.h) counts commands
+// re-offered after m_retryTime (2000 ms) with no ack, often the FRAMEINFO allCommandsReady waits on.
+// An event count, not a percentage, and counted on the sender: a peer with a dropping downlink reads zero.
+// sendfail, senddrop and recvdrop are local socket failures, not wire loss, and are left out.
 //
 void InGameUI::drawNetworkResends(Int &x, Int &y)
 {
@@ -6562,25 +6478,9 @@ void InGameUI::drawRenderFps(Int &x, Int &y)
 	}
 }
 
-// GeneralsX: The observed LOGIC rate, next to the render rate.
-//
-// WHY IT IS WORTH A SLOT. fps and tps are the two halves of "the game feels bad" and they have
-// completely different fixes: fps is local and is a GPU/driver/shader-cache problem, tps is the
-// simulation and in a network game is shared with every peer by construction. A player - and an
-// operator reading a screenshot - currently cannot tell them apart, and two shipped "stutter fixes"
-// were aimed at the render loop precisely because the render loop was the only observable half.
-// This was already computed by the [GXPACE] probe (GameClient/GameClient.cpp) and thrown at stderr
-// behind an env var; nothing but the display is new.
-//
-// WHAT IT IS NOT. It is not a network measurement and does not become one in a network game: it is
-// this machine's own logic frames per wall-clock second. Under lockstep every peer converges on the
-// same rate, so a low reading says the LOBBY is slow, never which peer is responsible - judging that
-// from a local number is the same mistake as quoting [GXSTALL]'s blocked slot.
-//
-// The frame counter is the measurement, and it is UnsignedInt: a reset - new match, back to the
-// shell - makes the delta wrap to ~4e9 and print as a rate no hardware could produce. [GXPACE] hit
-// this twice in one run. The rate genuinely IS unknown across a reset, so re-baseline and show the
-// sentinel rather than invent a number.
+// GeneralsX: the observed logic rate next to the render rate: fps is local (GPU, driver) while tps is the simulation,
+// shared with every peer in a network game. A low reading says the lobby is slow, never which peer.
+// The frame counter is UnsignedInt, so a reset (new match, back to the shell) wraps the delta; re-baseline instead.
 //
 void InGameUI::drawLogicRate(Int &x, Int &y)
 {

@@ -16,9 +16,9 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G (Task 3): the state one classic
-// draw uses, as the device truth holds it (dx8wrapper.h GxTruth*), and C2's comparison of two such states under the contract's
-// relevance mask - the classic draw's against L2's prediction for it. C8 checks the mask generator against a hand-written table.
+// The state one classic draw uses, as the device truth holds it (dx8wrapper.h GxTruth*), and the comparison of two such
+// states under the contract's relevance mask - the classic draw's against L2's prediction for it. The mask generator is
+// checked against a hand-written table.
 
 #pragma once
 
@@ -29,8 +29,8 @@ class LightEnvironmentClass;
 
 struct GxDrawState
 {
-	unsigned rs[256]; bool rsKnown[256];			// the device truth (CONTRACT_L2 r5 E2), not the wrapper's cache
-	// GeneralsX: WS-G Task 5 T3: all 8 stages (MAX_TEXTURE_STAGES) for C6; C2 still compares stages 0-3 (two
+	unsigned rs[256]; bool rsKnown[256];			// the device truth, not the wrapper's cache
+	// All 8 stages (MAX_TEXTURE_STAGES) are kept; the comparison still covers stages 0-3 (two
 	// per material (MAX_TEX_STAGES) + ShaderClass::Apply's raw stage 2)
 	unsigned tss[8][32]; bool tssKnown[8][32];
 	const void *tex[8];

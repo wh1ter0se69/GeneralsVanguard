@@ -1,4 +1,22 @@
-// GeneralsX: WS-B WSI - see VkSwapchain.h.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// See VkSwapchain.h.
 #include "VkSwapchain.h"
 
 #include <algorithm>
@@ -230,9 +248,9 @@ bool VkSwapchain::build(VkSwapchainKHR old, std::string* why)
 	VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	if (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
 		usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT; // GX_SHOT / screenshots read the presented frame
-	usage &= ~VkImageUsageFlags(m_desc.testDropUsage);   // TEST plant (FG P0 H3): 0 in the product
+	usage &= ~VkImageUsageFlags(m_desc.testDropUsage);   // TEST plant: 0 in the product
 	m_usage = usage;
-	// FG P0 H3 (rw3-W ruling 1): the read-back's TRANSFER_SRC comes from the images' PROVEN usage - never from a proxy's
+	// The read-back's TRANSFER_SRC comes from the images' PROVEN usage - never from a proxy's
 	m_canReadBack = hasUsage(VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 	VkCompositeAlphaFlagBitsKHR alpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	if (!(caps.supportedCompositeAlpha & alpha)) {
@@ -280,7 +298,7 @@ bool VkSwapchain::build(VkSwapchainKHR old, std::string* why)
 	vkGetSwapchainImagesKHR(device, m_swapchain, &n, m_images.data());
 	destroyViews();
 	m_views.assign(m_images.size(), VK_NULL_HANDLE);
-	// a view lets a caller render into the image - only where COLOR_ATTACHMENT is PROVEN (FG P0 H3): a view of an image without a
+	// a view lets a caller render into the image - only where COLOR_ATTACHMENT is PROVEN: a view of an image without a
 	// view-compatible usage is invalid (VUID-VkImageViewCreateInfo-image-04441), and a Streamline proxy's usage is unknowable
 	const bool views = hasUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) || m_desc.testViewsWithoutUsage;
 	for (size_t i = 0; i < m_images.size() && views; ++i) {
@@ -349,7 +367,7 @@ VkSwapchain::Status VkSwapchain::acquire(uint32_t frameSlot, uint32_t* imageInde
 		return Status::Error;
 	if (m_ctx->deviceLost())
 		return Status::DeviceLost;
-	// R19: the last present has run before this acquire (so the acquire, which may block for a free image, never holds the host
+	// The last present has run before this acquire (so the acquire, which may block for a free image, never holds the host
 	// lock that present needs), and the lock keeps the two host accesses of this swapchain apart anyway
 	if (m_presentPending)
 		m_ctx->waitOp(m_presentSeq);

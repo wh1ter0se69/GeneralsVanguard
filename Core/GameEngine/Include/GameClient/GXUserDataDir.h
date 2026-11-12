@@ -1,53 +1,26 @@
-// GeneralsX: GX_USERDATA_DIR: the whole user-data folder somewhere else.
-//
-// Owner decision B, 23/09/2026. A/B arms and scripted peers must never read or write the owner's
-// profile. Options.ini, Network.ini, Replays, Maps, MapCache.ini, GXLogin.txt (his sign-in),
-// GXPlayer.ini (his identity and friends) and the stderr mirror all live in the user-data folder,
-// and all of them are reached through GlobalData::getPath_UserData() - except iOS's stderr mirror,
-// installed before GlobalData exists, which asks gxIosStderrLogDir() below. So
-//
-//   GX_USERDATA_DIR=C:\dev\GX-AB\<arm>\userdata\      Windows
-//   GX_USERDATA_DIR=$HOME/gx-ab/<arm>/userdata        macOS, Linux; iOS through devicectl -e
-//
-// moves every one of them. Both games' GlobalData.cpp ask gxUserDataDirOverride() FIRST, before the
-// known-folder, HOME or XDG lookup, so nothing can win over it.
-//
-// The rules, each held by scripts/test/userdata-dir-test.cpp:
-//   * Absolute only. Windows: X:\ or X:/, or \\server\share. POSIX: a leading /. No ~ expansion; that is
-//     the shell's job.
-//   * SET BUT UNUSABLE STOPS THE PROCESS. An empty or relative value is REFUSED with a
-//     stderr line and the process exits 2 before anything reads or writes a profile
-//     (gxUserDataDirRefuse). It used to fall back to the normal folder - the owner's, the one outcome a
-//     test profile exists to prevent. Unset is still the normal player path.
-//   * Exactly one trailing separator, the platform's own. The engine concatenates file names on.
-//   * Every missing parent is created. Win32 CreateDirectory makes one level.
-//   * A folder that cannot be created is STILL USED, and said so. Once an absolute folder has been
-//     named, falling back to the owner's is the one outcome a test profile exists to prevent.
-//   * WinMain skips the one-time Windows migration when the override APPLIES (GXUserDataMigrate.h):
-//     a test run never copies the owner's files. A refused value never reaches it: GlobalData's call
-//     stopped the process first.
-//   * NEVER name the owner's own folder (Documents\GeneralsX\GeneralsZH\) with it. The override
-//     applies, so the migration is skipped on the very folder it would fill, and a GXPlayer.ini
-//     minted there unheld stops the old identity ever coming across. Nothing detects it
-//     (review of 2acfb7031, P3).
-//
-// THE ENGINE AND gxlauncher FOLLOW IT (gxlauncher since 28/09/2026: its settings, its own state and
-// WebView2's data, on this file's rules - scripts/launcher-rs gxio release.rs user_data_dir_override,
-// held to scripts/test/userdata-dir-test.cpp's table). Both STOP on a set but unusable value (gxlauncher:
-// user_data_dir_refusal, first thing in main()). gxlaunch.exe and the C# loader do NOT: they
-// resolve the owner's folder on their own - gxlaunch.c reads and writes RelayAddress in the owner's
-// Options.ini and reads the owner's GXLogin.txt. An arm or peer must start the game executable or
-// gxlauncher, never those two, for "never the owner's profile" to hold (review of 2acfb7031, P3).
-//
-// To ask "am I on a test profile", call gxUserDataDirOverride(), never getenv(): it is also the call that
-// stops a process whose value is refused.
-//
-// NOT IN THE SIMULATION DIGEST: Include/GameClient is not a digested root, though the digested
-// GlobalData.cpp includes it (GXReplaceFile.h is the precedent). It picks a folder and adds no
-// simulation code. The folder's CONTENTS are not all inert: MapCache.ini supplies user maps' start
-// waypoints (Core MapUtil.cpp, GameLogic.cpp's start pick) and no identity field covers it, so a
-// fresh-profile arm against a peer with a stale MapCache.ini can desync instead of being refused.
-// That predates this header. Pure C++ and std::filesystem, no engine headers, tested on any host.
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// GX_USERDATA_DIR moves the whole user-data folder so A/B arms and scripted peers never touch a real profile.
+// Absolute only (scripts/test/userdata-dir-test.cpp); SET BUT UNUSABLE (empty, relative) STOPS THE PROCESS (exit 2).
+// Never name the real profile folder with it: the override skips the one-time Windows migration on that folder.
+// gxlaunch.exe and the C# loader ignore it. Ask via gxUserDataDirOverride(), never getenv().
+// Not in the simulation digest, but a stale MapCache.ini (user maps' start waypoints) can desync a fresh-profile arm.
 #pragma once
 
 #ifdef _WIN32
@@ -86,7 +59,7 @@ inline GXUserDataDirStatus gxResolveUserDataDir(const char *value, bool windows,
 	bool absolute;
 	if (windows)
 	{
-		// GeneralsX: \\server\share, never \\server alone: a UNC
+		// \\server\share, never \\server alone: a UNC
 		// path names no folder without its share, so creating it fails and the engine would run on a profile
 		// that cannot exist while WinMain skips the normal migration.
 		size_t server = 2;
@@ -165,9 +138,9 @@ inline bool gxUserDataDirFromEnv(std::string &dir, std::string &line)
 /// iOS's stderr mirror folder. SDL3Main installs that mirror long before GlobalData exists, in
 /// $HOME/Documents/ where the Files app reaches it, and it rotates generals-stderr.log on every
 /// launch. Under an override that APPLIES it goes in the override's folder instead, or two test
-/// launches delete the owner's last log, the desync evidence (review of 459e3ade2, P2). Prints
+/// launches delete the real profile's last log, the desync evidence. Prints
 /// nothing: SDL3Main's later gxUserDataDirOverride() call says the verdict, into the mirror. A refused
-/// value stops the process here, before the owner's log is rotated.
+/// value stops the process here, before the real log is rotated.
 inline std::string gxIosStderrLogDir(const char *home)
 {
 	std::string dir, line;
@@ -199,15 +172,14 @@ inline bool gxUserDataDirOverride(std::string &dir)
 	return use;
 }
 
-/// The Windows folder GeneralsX used before 23/09/2026, Documents\<UserDataLeafName>, no trailing
+/// The previous Windows user-data folder, Documents\<UserDataLeafName>, no trailing
 /// separator. WinMain sets it when it runs the one-time migration (GXUserDataMigrate.h), so never
 /// under GX_USERDATA_DIR; it is empty on every other platform and in the tools.
 ///
 /// Only parseMod (CommandLine.cpp) reads it. A relative -mod name resolves in the user-data folder,
 /// and mods are not migrated - they can be any file or folder name - so a mod kept in the old folder
-/// was no longer found and the game started without it, silently (review of the merged folder move,
-/// finding 2). parseMod now looks here when the new folder lacks the name. Read only: the engine
-/// never writes into a mod.
+/// would not be found and the game would start without it, silently. parseMod looks here when the
+/// new folder lacks the name. Read only: the engine never writes into a mod.
 inline std::string &gxLegacyUserDataDirForMods()
 {
 	static std::string dir;

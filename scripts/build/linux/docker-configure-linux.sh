@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Configure Linux build using Docker (Ubuntu 22.04 x86_64)
 # Usage: ./scripts/build/linux/docker-configure-linux.sh [preset]
 

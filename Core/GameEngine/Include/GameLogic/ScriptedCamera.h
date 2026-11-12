@@ -16,19 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: THE SIMULATION'S HALF OF THE SCRIPTED CAMERA (catch-up re-land, step B).
-//
-// CAMERA_MOVEMENT_FINISHED is a script condition and GameEngine::isTimeFrozen reads the same answer, so whether a scripted
-// camera move has ended is simulation state. Both used to ask TheTacticalView: W3DView on a rendered peer, and ViewDummy -
-// a constant TRUE - on a -headless peer, the standing host and ReplaySimulation, so a map whose scripts wait for a camera
-// move split a match with a headless peer and a replay played headless. They ask TheScriptedCamera now: a
-// ScriptedCameraTimeline (Common/ScriptedCameraClock.h) fed by the SCRIPT ACTIONS ALONE - each method below has View's
-// signature, feeds the timeline and passes the same call on to TheTacticalView, so ScriptActions changes only the receiver -
-// and stepped by GameLogic::update. The player's own camera calls (a rotate key, a scroll, a radar jump, InGameUI's reset, a
-// replay's recorded camera) reach the view only: they end or start the view's moves, never this answer.
-//
-// Not saved: the view's scripted state never was either (View::xfer keeps the position and angle), so a save loaded
-// mid-move answers TRUE, as before. Reset with the script engine (ScriptEngine::newMap).
+// The simulation half of the scripted camera. CAMERA_MOVEMENT_FINISHED and GameEngine::isTimeFrozen ask
+// TheScriptedCamera, not TheTacticalView (a headless ViewDummy answered a constant TRUE), so every peer agrees.
+// It wraps a ScriptedCameraTimeline fed by script actions alone and stepped by GameLogic::update.
+// Not saved, so a save loaded mid-move answers TRUE. Reset with the script engine (ScriptEngine::newMap).
 
 #pragma once
 

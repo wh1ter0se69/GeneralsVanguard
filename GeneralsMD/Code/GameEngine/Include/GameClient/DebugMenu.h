@@ -28,44 +28,10 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
-** GeneralsX: Debug overlay reachable from the shell AND from in-game.
-**
-** This is deliberately NOT a Shell screen. Shell::doPush hardcodes winCreateLayout(filename) and
-** would run MainMenuShutdown on whatever is underneath, which is wrong for something that also has
-** to open on top of a running match. It is an off-stack WindowLayout built with CodeGui, exactly
-** the pattern Shell::getOptionsLayout already uses, so the same instance serves both entry points
-** and Back is a plain destroy with no pop/shutdownComplete handshake to stall on.
-**
-** GeneralsX: The cheats work in a LAN game.
-**
-** They are appended to TheMessageStream as MSG_GX_CHEAT_* orders, which sit in the 1000..1999
-** network band and are therefore shipped to every peer, deleted locally, and re-delivered - to the
-** sender too - on one stamped logic frame in fixed slot order. Every peer runs the identical
-** handler on the identical frame, so there is nothing left to diverge and the old
-** single-player-only gate is gone. Each order carries an explicit TARGET PLAYER INDEX, so a cheat
-** can be aimed at any player rather than always the local one. Two consequences worth knowing:
-** the effect lands a few frames after the tap, on the sender's screen as well, and both peers must
-** be running the same binary because the enum values ARE the protocol.
-**
-** GeneralsX: Only while at most one human is in the match. With a second
-** human every peer's simulation refuses the orders (GameLogic::gxCheatsAllowed) - a cheat any peer
-** can send is a way to remove any other player.
-**
-** GeneralsX: ...or from a player the RELAY proved an admin for the match
-** (GameLogic::gxCheatAllowedFor), hosting or not, and every player then sees who used which cheat on whom.
-**
-** GeneralsX: Spawn and delete get their own tab.
-**
-** Spawning used to mean typing an exact INI Object name into a text box, which is not something
-** anyone can do on a touch device and gave nothing back but "no such template" when it went wrong.
-** It is now a searchable list of every template the ThingFactory knows, with a count stepper, a
-** veterancy cycle and three named delete actions - so the DELETE_OBJECTS order's "every type" and
-** "all of them" sentinels are buttons rather than zeroes the user has to know to type.
-**
-** It is a SEPARATE PANE from Cheats because the panes are a fixed height and Cheats was already
-** near the bottom of it; a control laid out past its parent's rect is invisible and unhittable, not
-** merely clipped. The two panes share one target player - the Spawn pane reads the Cheats pane's
-** selection and says so - because two target lists on one screen is a bug waiting to be filed.
+** Debug overlay for shell and in-game: an off-stack WindowLayout built with CodeGui, not a Shell screen.
+** Cheats are MSG_GX_CHEAT_* network orders (band 1000..1999) run on one stamped frame; peers must run the same binary.
+** A second human makes every peer refuse them (gxCheatsAllowed), unless the sender is a relay-proven admin.
+** Spawn/delete has its own pane; both panes share one target player.
 */
 
 #pragma once

@@ -16,29 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: Identity assertion verification. See the header for the
-// format and for why the client only ever verifies.
-//
-// THE ORDER OF THE CHECKS BELOW IS THE SECURITY PROPERTY, not a style choice, and it is ported from
-// tools/master/gxtoken.js:211-277 rather than invented - that file has been reviewed, and the
-// launcher's manifest parser (gxlaunch.c:601-632) independently arrived at the same shape. It is:
-//
-//   shape only  ->  SIGNATURE  ->  meaning  ->  clock
-//
-// Nothing an attacker chose reaches a decision about MEANING before the signature has been checked.
-// The steps above the signature look at length and character class and count separators; they never
-// interpret a field. This matters because the interesting attacks are not "forge a signature", they
-// are "get the parser to do something interesting on the way to discovering the signature is bad".
-//
-// And the steps BELOW the signature are just as load-bearing, which is the part that gets dropped.
-// A validly signed assertion whose name is 400 characters, or contains a space, or whose sub is not
-// a number, is not an attack - it is a signer this client disagrees with - and it must still be
-// refused. Sixteen fixtures in scripts/test/identity-assert-fixtures.py carry a good signature and
-// expect a refusal, precisely to catch a verifier that treats "signed by us" as "safe to use".
-//
-// DELIBERATELY NOT INCLUDING PreRTS.h - see the header. Nothing here allocates: every buffer is a
-// fixed-size automatic sized from the header's constants, so there is no length an attacker can
-// choose that reaches an allocator.
+// Identity assertion verification (format and verify-only rationale: see the header).
+// Check order is the security property: shape only -> SIGNATURE -> meaning -> clock (as tools/master/gxtoken.js).
+// Nothing attacker-chosen is interpreted before the signature check; signed but malformed assertions are refused.
+// No PreRTS.h and no allocation: every buffer is fixed-size.
 
 #include "GameClient/GXIdentityAssertion.h"
 #include "GameClient/GXEd25519.h"
@@ -55,36 +36,14 @@ const char SEP = '~';
 // 64 signature bytes is 512 bits; base64url without padding is ceil(512/6) = 86 characters.
 const size_t SIG_TEXT_LEN = 86;
 
-// THE TRUST ANCHOR, AND IT IS NOT SET YET.
-//
-// Phase 3b (the sign-in service) has not run, so there is no key to pin.
-// All zeroes is the "unset" sentinel and keyIsPinned() checks for it EXPLICITLY.
-//
-// It would in fact fail anyway - the all-zero encoding decodes to a point of order 4, and
-// gx_ed25519_verify requires the public key to lie in the prime-order subgroup, so it would be
-// rejected. That is a fact about Edwards curves, and hanging a trust decision on it would be a
-// trust decision nobody reading this file can check. The explicit comparison below is one line and
-// says what it means.
-//
-// When 3b mints the real key, replace this with the output of `gx-manifest.py pubkey --c-array`
-// against the assertion key - generated, not typed, for the reason gxlaunch.c:81 gives about
-// GX_MANIFEST_PUBKEY. It must be a DIFFERENT key from the manifest's: the manifest key signs "which
-// binary should you download", the assertion key signs "who is this player", and one key that does
-// both means a compromise of either is a compromise of both.
-/* Ed25519 public key of the GeneralsX identity signer, from
- * scripts/tooling/mint-identity-key.py, which emits it via gx-manifest.py pubkey --c-array.
+// TRUST ANCHOR: an all-zero key is the "unset" sentinel, and keyIsPinned() checks for it explicitly rather than relying
+// on gx_ed25519_verify rejecting the all-zero (small-order) point. The key below is pinned.
+// The assertion key must differ from the manifest's, or a compromise of either is a compromise of both.
+// Generate it with `gx-manifest.py pubkey --c-array`, not by typing.
+/* Ed25519 public key of the GeneralsX identity signer, from scripts/tooling/mint-identity-key.py.
  * base64url: RDybn5Cr2920FQPaqlW49q0v1fY4U-oFqzl3VbJAuq4
- *
- * Minted 11/08/2026 for the sign-in service. The private half is not in this repository.
- *
- * IT IS NOT GX_MANIFEST_PUBKEY, and the difference is the point. That key answers "which binary
- * should you download"; this one answers "who is this player". Verified distinct by inspection at
- * mint time.
- *
- *
- *
- *
- */
+ * The private half lives only in the Worker's wrangler secrets (write-only) and the operator's password manager.
+ * NOT GX_MANIFEST_PUBKEY (which binary to download): this key says who the player is; the key dirs are separate. */
 const unsigned char GX_IDENTITY_PUBKEY[32] = {
 	0x44, 0x3c, 0x9b, 0x9f, 0x90, 0xab, 0xdb, 0xdd,
 	0xb4, 0x15, 0x03, 0xda, 0xaa, 0x55, 0xb8, 0xf6,
@@ -126,7 +85,7 @@ int b64urlValue(char c)
  *
  * No padding is accepted either. There is exactly one way to write a valid signature.
  *
- * GeneralsX: Generalised from the signature-only decoder for the bot
+ * Generalised from the signature-only decoder for the bot
  * login's public key (43 characters, 32 bytes, two leftover bits) - one decoder, one canonical rule.
  */
 bool b64urlDecode(const char *text, size_t chars, unsigned char *out, size_t bytes)
@@ -192,7 +151,7 @@ bool keyIsAllZero(const unsigned char pk[32])
  * line, LENGTH for a first line over GX_ASSERTION_MAX, otherwise OK with buf NUL-terminated. The CALLER
  * owns buf and wipes it; the stdio buffer is this function's and is wiped here.
  *
- * GeneralsX: Extracted from loadFileWithKey, unchanged, so the bot loader
+ * Extracted from loadFileWithKey, unchanged, so the bot loader
  * reads a file exactly the way the player loader does rather than through a second reader.
  */
 GXAssertStatus readAssertionLine(const char *path, char buf[GX_ASSERTION_MAX + 2])
@@ -200,7 +159,7 @@ GXAssertStatus readAssertionLine(const char *path, char buf[GX_ASSERTION_MAX + 2
 	if (path == NULL)
 		return GX_ASSERT_ABSENT;
 
-	// GeneralsX: The stream's buffer is OURS, and wiped. Left to itself stdio
+	// The stream's buffer is OURS, and wiped. Left to itself stdio
 	// reads the file into a buffer it allocates and frees at fclose with the bytes still in it - a heap
 	// copy of the whole sign-in that no sign-out can reach. Declared before the stream so it outlives it.
 	char iobuf[512];
@@ -225,8 +184,8 @@ GXAssertStatus readAssertionLine(const char *path, char buf[GX_ASSERTION_MAX + 2
 	// If the first line ran past the buffer, it is over-length only if what remains before the
 	// newline (or EOF) is real content. A maximum-length assertion whose CRLF or trailing spaces
 	// straddle the buffer edge is legal - the trim below restores it to the cap - and refusing it
-	// here would reject a valid signed assertion for its line ending. (Integration review,
-	// 2026-08-11.) The scan stops at the first newline, so a long second line costs nothing.
+	// here would reject a valid signed assertion for its line ending. The scan stops at the first
+	// newline, so a long second line costs nothing.
 	bool overlong = false;
 	if (nl == NULL)
 	{
@@ -257,9 +216,9 @@ GXAssertStatus readAssertionLine(const char *path, char buf[GX_ASSERTION_MAX + 2
 	return GX_ASSERT_OK;
 }
 
-// GeneralsX: Hand back the line that was VERIFIED, on OK only, for a caller that
+// Hand back the line that was VERIFIED, on OK only, for a caller that
 // will send it. Reading the file again for the bytes could return a file swapped in between that
-// nothing checked (review P3-1). readAssertionLine has already bounded buf to GX_ASSERTION_MAX.
+// nothing checked. readAssertionLine has already bounded buf to GX_ASSERTION_MAX.
 GXAssertStatus keepVerified(GXAssertStatus st, const char *buf, char *text)
 {
 	if (st == GX_ASSERT_OK && text != NULL)
@@ -334,7 +293,7 @@ GXAssertStatus GXIdentityAssertion::verifyWithKey(const unsigned char pk[32], co
 	const char * const sigText = field[nf - 1];
 	if (flen[nf - 1] != SIG_TEXT_LEN)
 		return GX_ASSERT_SIGSHAPE;
-	// GeneralsX: Wiped on every one of the returns below. The decoded signature
+	// Wiped on every one of the returns below. The decoded signature
 	// is the part of the token nobody can recompute: with the claims beside it, which the caller keeps,
 	// it IS the token.
 	unsigned char sig[64];
@@ -376,19 +335,10 @@ GXAssertStatus GXIdentityAssertion::verifyWithKey(const unsigned char pk[32], co
 				return GX_ASSERT_MALFORMED;
 	}
 
-	// ---- 8b. the role, which is optional and is never fatal -----------------------------------
-	// GeneralsX: Field 5, appended before the signature - the extension
-	// point step 4 above already accepts and scripts/test/identity-assert-fixtures.py already pins.
-	// It is below the signature, so it is signed data: an attacker cannot splice a role into a
-	// captured assertion without moving the payload and invalidating it. There is a fixture for
-	// exactly that splice, and it expects GX_ASSERT_SIGNATURE.
-	//
-	// NOT A REFUSAL PATH, AND THAT IS THE WHOLE DESIGN. A letter this build does not know means a
-	// signer newer than this build, and the safe reading of "I do not know what you are" is "you are
-	// an ordinary player". The alternative - GX_ASSERT_MALFORMED on an unrecognised role - would
-	// mean that minting a third role logs out every client that shipped before it, which is
-	// precisely what appending-before-the-signature exists to prevent. Empty, over-long and
-	// wrong-case all land in the same place, deliberately: there is one spelling of each role.
+	// ---- 8b. the role, which is optional and is never fatal ----
+	// Field 5, before the signature, so it is signed data: splicing a role into a captured assertion fails the signature.
+	// NOT A REFUSAL PATH: an unknown letter means a newer signer, read as "ordinary player"; refusing would log out every
+	// older client when a third role is minted. Empty, over-long and wrong-case land there too (one spelling per role).
 	GXAssertRole role = GX_ROLE_PLAYER;
 	if (nf >= 7 && flen[5] == (size_t)GX_ASSERTION_ROLE_MAX)
 	{
@@ -469,7 +419,7 @@ GXAssertStatus GXIdentityAssertion::verify(const char *text, long long nowS,
 GXAssertStatus GXIdentityAssertion::loadFileWithKey(const unsigned char pk[32], const char *path,
                                                     long long nowS, GXAssertionClaims *out, char *text)
 {
-	// GeneralsX: WIPED ON EVERY RETURN - the empty file, the over-long one,
+	// WIPED ON EVERY RETURN - the empty file, the over-long one,
 	// and after verification. It holds the whole assertion, a bearer token.
 	char buf[GX_ASSERTION_MAX + 2];
 	GXScopedWipe wipeBuf(buf, sizeof(buf));
@@ -487,7 +437,7 @@ GXAssertStatus GXIdentityAssertion::loadFile(const char *path, long long nowS,
 
 GXAssertStatus GXIdentityAssertion::verifyBot(const char *text, long long nowS, GXAssertionClaims *out)
 {
-	// GeneralsX: A BOT assertion - see the header. Self-verified ONLY so a corrupt
+	// A BOT assertion - see the header. Self-verified ONLY so a corrupt
 	// file is never sent: the relay's registry decides whether this key may speak for this account.
 	if (text == NULL || text[0] == '\0')
 		return GX_ASSERT_ABSENT;
@@ -540,12 +490,12 @@ GXAssertStatus GXIdentityAssertion::loadBotFile(const char *path, long long nowS
 
 bool GXIdentityAssertion::resolveBotPath(const char *env, const char *userDataDir, char *out, size_t cap)
 {
-	// GeneralsX: See the header. Both separators on every platform: Windows
+	// See the header. Both separators on every platform: Windows
 	// takes either, and a rule that only knew one would let the other through.
 	if (env == NULL || env[0] == '\0' || out == NULL || cap == 0)
 		return false;
 	const bool sep0 = env[0] == '/' || env[0] == '\\';
-	// GeneralsX: And \??\UNC\srv\share (review P3-3): Windows hands a \??\ path to
+	// And \??\UNC\srv\share: Windows hands a \??\ path to
 	// the NT layer as-is, which reaches the same server. '?' is never in a real file name.
 	if (sep0 && (env[1] == '/' || env[1] == '\\' || env[1] == '?'))
 		return false;													// \\srv, //srv, \/srv, \??\UNC: a server

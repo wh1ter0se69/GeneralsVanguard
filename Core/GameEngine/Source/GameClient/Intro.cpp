@@ -41,21 +41,9 @@ Intro::Intro()
 	, m_waitUntilMs(0)
 	, m_fadeValue(0.0f)
 {
-	// GeneralsX @tweak Owner 11/08/2026 This fork does not play the two startup MOVIES - the EA
-	// logo and the sizzle trailer - because they cost roughly twenty seconds on every launch and
-	// the owner asked for them gone. They are skipped here, in GameClient, rather than by flipping
-	// the m_playIntro/m_playSizzle defaults in GlobalData.cpp: that file is inside the SimID source
-	// digest (resources/gitinfo/simsourcedigest_watcher.cmake, SIMDIGEST_PATHS_CODE_ZH), so the
-	// one-line version there would force an atomic four-platform rebuild for a cosmetic change.
-	// Core/GameEngine/Source/GameClient is outside the digest and is shared by both twins, so this
-	// reaches all four platforms and ships on its own.
-	//
-	// The TheSuperHackers attribution screen below is deliberately KEPT. This fork is built on
-	// their work and the upstream comment asks downstream forks not to drop it; the owner asked
-	// only for the EA splash and the trailer.
-	//
-	// Set GX_INTRO=1 to restore both movies for a launch - nothing here becomes unreachable, so
-	// movie playback stays testable.
+	// The two startup MOVIES (EA logo, sizzle trailer) are not played: they cost about twenty seconds per launch.
+	// Skipped here, not via m_playIntro/m_playSizzle in GlobalData.cpp, which is inside the SimID source digest.
+	// GX_INTRO=1 restores both movies for a launch.
 	const Bool playMovies = (getenv("GX_INTRO") != NULL);
 
 	if (TheGlobalData->m_playIntro)
@@ -68,23 +56,10 @@ Intro::Intro()
 		// the plainest way to honour the first half, and it is three seconds.
 		m_allowedStateFlags |= 1u << IntroState_EALogoMovie;
 
-		// GeneralsX: The TheSuperHackers attribution screen is no longer
-		// shown, at the owner's request.
-		//
-		// The line that stood here asked downstream forks to keep it. It is a request in a comment,
-		// not a licence term: this project is GPL v3 (LICENSE.md) and GPL v3 section 7(b) only binds
-		// a downstream author to preserve an attribution when the licensor declares it as an
-		// additional term. The only additional terms attached here are EA's - preserve the copyright
-		// notice, do not misrepresent origins, mark modified versions as modified - and none of them
-		// names a logo screen. Checked before changing this rather than assumed.
-		//
-		// Attribution is NOT being dropped, only the splash: TheSuperHackers keep their per-change
-		// credit on every line they wrote throughout this tree, this fork's own history records the
-		// lineage, and the README states what it is built on. Removing a three-second screen is a
-		// presentation choice; erasing authorship would not be, and is not what this does.
-		//
-		// The states below still exist and drawDisplayEntities still handles them, so restoring the
-		// screen is re-adding these two lines - nothing was deleted.
+		// The TheSuperHackers attribution screen is not shown. The upstream comment asking forks to keep it is a request,
+		// not a licence term: GPL v3 section 7(b) binds only to additional terms the licensor declares, and those attached
+		// here are EA's (copyright notice, origins, modified marking). Attribution stays in per-change credits and the README.
+		// The states below still exist, so restoring the screen is re-adding these two lines.
 	}
 
 	if (TheGlobalData->m_playSizzle && playMovies)

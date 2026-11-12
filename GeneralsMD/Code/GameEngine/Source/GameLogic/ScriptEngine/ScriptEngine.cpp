@@ -40,6 +40,8 @@
 #include "Common/Player.h"
 #include "Common/PlayerList.h"
 #include "Common/Team.h"
+#include "GameLogic/GXP32AiProbe.h"
+#include "GameLogic/PolygonTrigger.h"
 #include "Common/ThingFactory.h"
 #include "Common/ThingTemplate.h"
 #include "Common/Xfer.h"
@@ -209,7 +211,7 @@ Int AttackPriorityInfo::getPriority(const ThingTemplate *tThing) const
 //-------------------------------------------------------------------------------------------------
 // GeneralsX: an upper bound on every getPriority result, for AI::findClosestEnemy's early stop.
 // Cached: a script's per-KindOf priority puts hundreds of templates in the map, and walking it on every priority search
-// (idle mood targets, turrets, guards, hunters) cost more than the search itself saved (ai-smartcheap-3 g4: IDLE +30%).
+// (idle mood targets, turrets, guards, hunters) cost more than the search itself saved.
 //-------------------------------------------------------------------------------------------------
 Int AttackPriorityInfo::getMaxPriority() const
 {
@@ -985,7 +987,6 @@ void ScriptEngine::init()
 	curTemplate->m_uiStrings[2] = " nearest team ";
 	curTemplate->m_uiStrings[3] = ".";
 
-	// GeneralsX: ai-wh1ter0se-econ R.
 	curTemplate = &m_actionTemplates[ScriptAction::AI_PLAYER_FACE_FRONT];
 	curTemplate->m_internalName = "AI_PLAYER_FACE_FRONT";
 	curTemplate->m_uiName = "Player_/AI/AI player turns production doors to its base front and defences outward.";
@@ -994,7 +995,6 @@ void ScriptEngine::init()
 	curTemplate->m_numUiStrings = 2;
 	curTemplate->m_uiStrings[0] = " ";
 	curTemplate->m_uiStrings[1] = " turns production doors to its base front.";
-	// GeneralsX: ai-wh1ter0se-econ T.
 	curTemplate = &m_actionTemplates[ScriptAction::AI_PLAYER_TUNNEL_AIR_WATCH];
 	curTemplate->m_internalName = "AI_PLAYER_TUNNEL_AIR_WATCH";
 	curTemplate->m_uiName = "Player_/AI/AI player's tunnels watch for enemy aircraft within a radius (0 = off); the team guards in the tunnels.";
@@ -5604,7 +5604,7 @@ void ScriptEngine::reset()
 //-------------------------------------------------------------------------------------------------
 /** newMap */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @diag /07/2026 See checkConditionsForTeamNames - counts how many delayed-eval
+// GeneralsX: See checkConditionsForTeamNames - counts how many delayed-eval
 // scripts draw from the shared logic RNG during newMap, which is where the two peers diverge.
 Int g_gxScriptDelayDraws = 0;
 Int g_gxScriptNoDelay = 0;
@@ -5680,7 +5680,7 @@ void ScriptEngine::newMap()
 	m_fadeFramesDecrease = FRAMES_TO_FADE_IN_AT_START;
 	m_curFadeValue = 0.0f;
 
-	// GeneralsX @diag /07/2026 delayDraws is the number of shared-RNG draws this call made.
+	// GeneralsX: delayDraws is the number of shared-RNG draws this call made.
 	// If it differs between peers, every later draw differs and the match desyncs at frame 0.
 	fprintf(stderr, "[GXSCRIPT] newMap EXIT seed=%u delayDraws=%d noDelay=%d\n",
 		(unsigned)GetGameLogicRandomSeedCRC(), g_gxScriptDelayDraws, g_gxScriptNoDelay);
@@ -5694,6 +5694,9 @@ DECLARE_PERF_TIMER(ScriptEngine)
 void ScriptEngine::update()
 {
 	USE_PERF_TIMER(ScriptEngine)
+#if defined(GX_TEST_INSTRUMENTS)
+	gxP32AiTick(TheGameLogic->getFrame());
+#endif
 #ifdef SPECIAL_SCRIPT_PROFILING
 #ifdef DEBUG_LOGGING
 	__int64 startTime64;
@@ -6085,6 +6088,7 @@ void ScriptEngine::doObjectTypeListMaintenance(const AsciiString& objectTypeList
 	} else {
 		currentObjectTypeVec->removeObjectType(objectType);
 	}
+	++m_objectTypeListsGeneration;
 
 	// Remove it. Its dead Jim.
 	if (currentObjectTypeVec->getListSize() == 0) {
@@ -6135,6 +6139,88 @@ PolygonTrigger *ScriptEngine::getQualifiedTriggerAreaByName( AsciiString name )
 		msg.concat("' not found.");
 		AppendDebugMessage(msg, TRUE);
 	}
+
+	return trig;
+}
+
+//-------------------------------------------------------------------------------------------------
+// GeneralsX: getQualifiedTriggerAreaByName for a script Parameter, without the string work on a
+// repeat: its answer depends only on the name, the start index the alias resolves to, and the trigger list. The index is worked
+// out on every call, once, as above, because Player::getCurrentEnemy() is stateful. A "no such trigger" answer is cached too: most
+// perimeter names on a 32-player map are missing (2/3 of these lookups on LastStand32), and each walked the whole list to say so. The
+// script debugger's warning, its only other effect, then appears once per parameter rather than on every evaluation.
+PolygonTrigger *ScriptEngine::getQualifiedTriggerAreaForParam( Parameter *pTriggerParm )
+{
+	enum { KIND_PLAIN, KIND_MY_INNER, KIND_MY_OUTER, KIND_ENEMY_INNER, KIND_ENEMY_OUTER };
+
+	const AsciiString &rawName = pTriggerParm->getString();
+	Int kind = pTriggerParm->gxGetTriggerKind();
+	if (kind < 0) {
+		if (rawName == MY_INNER_PERIMETER) kind = KIND_MY_INNER;
+		else if (rawName == MY_OUTER_PERIMETER) kind = KIND_MY_OUTER;
+		else if (rawName == ENEMY_INNER_PERIMETER) kind = KIND_ENEMY_INNER;
+		else if (rawName == ENEMY_OUTER_PERIMETER) kind = KIND_ENEMY_OUTER;
+		else kind = KIND_PLAIN;
+		pTriggerParm->gxSetTriggerKind(kind);
+	}
+
+	Int ndx = 0;
+	if (kind == KIND_MY_INNER || kind == KIND_MY_OUTER) {
+		if (!m_currentPlayer) {
+			return nullptr;
+		}
+		ndx = m_currentPlayer->getMpStartIndex()+1;
+	} else if (kind == KIND_ENEMY_INNER || kind == KIND_ENEMY_OUTER) {
+		ndx = -1;
+		if (m_currentPlayer) {
+			Player *enemy = getCurrentPlayer()->getCurrentEnemy();
+			if (enemy) {
+				ndx = enemy->getMpStartIndex()+1;
+			}
+		}
+	}
+
+	const UnsignedInt generation = PolygonTrigger::gxGetListGeneration();
+	Bool haveCached = pTriggerParm->gxHasCachedTrigger(ndx, generation);
+#if defined(GX_TEST_INSTRUMENTS)
+	const Bool shadow = gxP32AiOn();
+	if (shadow && gxP32Break() == GX_P32_BREAK_TRIGGER) {
+		haveCached = pTriggerParm->gxHasCachedTriggerAtAnyNdx(generation);	// the fail arm: a key that forgets the index
+	}
+	if (haveCached && !shadow) {
+		return pTriggerParm->gxGetCachedTrigger();
+	}
+#else
+	if (haveCached) {
+		return pTriggerParm->gxGetCachedTrigger();
+	}
+#endif
+
+	AsciiString name = rawName;
+	if (kind == KIND_MY_INNER || kind == KIND_ENEMY_INNER) {
+		name.format("%s%d", INNER_PERIMETER, ndx);
+	} else if (kind == KIND_MY_OUTER || kind == KIND_ENEMY_OUTER) {
+		name.format("%s%d", OUTER_PERIMETER, ndx);
+	}
+	PolygonTrigger *trig = TheTerrainLogic->getTriggerAreaByName(name);
+#if defined(GX_TEST_INSTRUMENTS)
+	if (shadow) {
+		TheGXP32Ai.trigCalls++;
+		if (haveCached) {
+			TheGXP32Ai.trigHit++;
+			if (pTriggerParm->gxGetCachedTrigger() != trig) {
+				gxP32NoteMismatch("trigger", TheGameLogic->getFrame());
+			}
+		}
+	}
+#endif
+	if (trig==nullptr) {
+		AsciiString msg = "!!!WARNING!!! Trigger area '";
+		msg.concat(name);
+		msg.concat("' not found.");
+		AppendDebugMessage(msg, TRUE);
+	}
+	pTriggerParm->gxSetCachedTrigger(trig, ndx, generation);
 
 	return trig;
 }
@@ -6582,33 +6668,9 @@ Bool ScriptEngine::evaluateCounter( Condition *pCondition )
 		counterNdx = allocateCounter(pCondition->getParameter(0)->getString());
 		pCondition->getParameter(0)->friend_setInt(counterNdx);
 	}
-	// GeneralsX: A map's raw frame literals are 30 Hz frame counts.
-	//
-	// This is why the main-menu camera sat still for a minute and then panned at half speed.
-	//
-	// The shell map arms one countdown timer, "Restart Camera", with SET_MILLISECOND_TIMER = 120
-	// SECONDS, and setTimer converts that to frames at the CURRENT rate: 3600 at 30 Hz, 7200 at
-	// 60 Hz. Thirteen scripts then fire off `COUNTER "Restart Camera" EQUAL <literal>` where the
-	// literals - 3599, 3300, 3000 ... 1 - are baked into the shipped .map and are 30 Hz FRAMES.
-	// The seed scales with the tick rate; the literals cannot. So the first move needed the
-	// counter to reach 3599, which is 1 frame after the seed at 30 Hz and 3601 frames at 60 Hz.
-	//
-	// That the literals really are 30 Hz frames is not an assumption: every one of those scripts
-	// is NAMED for the wall-clock second the 30 Hz arithmetic produces - "If at 110" carries the
-	// literal 300, and (3600 - 300) / 30 = 110.00 - and it holds for all thirteen.
-	//
-	// It is camera-only because "Restart Camera" is the only counter in the map that is both
-	// timer-armed and compared against a frame literal; every other timed event uses
-	// TIMER_EXPIRED (value < 1), which is rate-invariant, and the patrols are CONDITION_TRUE on
-	// frame 0. Hence "camera stuck but things move around".
-	//
-	// Same cause explains the second half of the complaint: the gaps between literals are 300
-	// frames, which is 10 s at 30 Hz but 5 s at 60 Hz, while each MOVE_CAMERA_TO is authored to
-	// take 10 s - so every pan was pre-empted halfway and never arrived. "Moving now but very
-	// slow."
-	//
-	// Gated on isCountdownTimer so plain SET_COUNTER flags - the map's "Audio Level" and
-	// "Generals On-Line Kill Voice", compared against 0/1 - are left alone.
+	// A map's raw frame literals are 30 Hz frame counts, but a countdown timer seed scales with the tick rate, so a
+	// script comparing such a counter against a baked-in literal (the shell map's Restart Camera) fires late at 60 Hz.
+	// Literals compared against a countdown timer go through GX_FRAMES30; plain SET_COUNTER flags are left alone.
 	Int value = pCondition->getParameter(2)->getInt();
 	if (m_counters[counterNdx].isCountdownTimer) {
 		value = GX_FRAMES30(value);
@@ -6984,6 +7046,7 @@ void ScriptEngine::removeObjectTypes(ObjectTypes *typesToRemove)
 
 	// remove it from the main array of stuff
 	m_allObjectTypeLists.erase(it);
+	++m_objectTypeListsGeneration;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -7182,7 +7245,7 @@ void ScriptEngine::checkConditionsForTeamNames(Script *pScript)
 	AsciiString singletonTeamName;
 	AsciiString multiTeamName;
 
-	// GeneralsX @diag /07/2026 Count the draws this makes - it is the ONLY live consumer of
+	// GeneralsX: Count the draws this makes - it is the ONLY live consumer of
 	// the shared logic RNG between populateRandomStartPosition and the end of ScriptEngine::newMap,
 	// and measurement says the two peers leave that window with different seeds. Replaying one .rep
 	// headless on each platform: both enter at seed 2805577022, Windows leaves at 2805577022 (zero
@@ -8258,14 +8321,7 @@ void ScriptEngine::evaluateAndProgressAllSequentialScripts()
 		}
 
 		AIUpdateInterface *ai = obj ? obj->getAIUpdateInterface() : nullptr;
-		AIGroupPtr aigroup = (team ? TheAI->createGroup() : nullptr);
-		if (aigroup) {
-#if RETAIL_COMPATIBLE_AIGROUP
-			team->getTeamAsAIGroup(aigroup);
-#else
-			team->getTeamAsAIGroup(aigroup.Peek());
-#endif
-		}
+		AIGroupPtr aigroup = (team ? TheAI->gxBuildTeamGroup(team) : nullptr);
 
 		if (ai || aigroup) {
 			if (seqScript->m_framesToWait == 0 ||
@@ -8353,12 +8409,8 @@ void ScriptEngine::evaluateAndProgressAllSequentialScripts()
 						itAdvanced = true;
 					} else if (team) {
 						// attempt to rebuild the aigroup, as it probably expired during the action execution
-						aigroup = (team ? TheAI->createGroup() : nullptr);
-#if RETAIL_COMPATIBLE_AIGROUP
-						team->getTeamAsAIGroup(aigroup);
-#else
-						team->getTeamAsAIGroup(aigroup.Peek());
-#endif
+						aigroup = nullptr;	// GeneralsX: our own reference must not count against reusing it (AI::gxBuildTeamGroup)
+						aigroup = TheAI->gxBuildTeamGroup(team);
 					}
 
 					if (aigroup && aigroup->isIdle()) {
@@ -8869,17 +8921,10 @@ void ScriptEngine::AdjustDebugVariableData(const AsciiString& variableName, Int 
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: Determinism-1 (ROADMAP_2027 M1 item 1): which script state is CLIENT-LOCAL, so
-// ScriptEngine::crc can leave it out. Every peer runs every script, but a condition can read the LOCAL player, camera,
-// selection or sound, and then fires on some peers only. The shipped Data\Scripts\MultiplayerScripts.scb is built on
-// that: "Set <faction> Faction" sets counter _FACTION from SKIRMISH_PLAYER_FACTION("<Local Player>"), and the
-// victory/defeat timers start on MULTIPLAYER_*_DEFEAT/VICTORY (TheVictoryConditions->isLocal*). Hashing those
-// counters, timers or the scripts' one-shot isActive would split the CRC in every mixed-faction match. Decided
-// from the scripts' CONTENT alone (the same on every peer), never from what ran: a local script is one with a
-// client-dependent condition type, a local-player parameter, or a condition on a local counter/flag; whatever a local
-// action writes (a counter, a flag) or enables, disables or calls (a script, a group) becomes local too, to a fixpoint.
-// A local action is one in a local script or one naming the local player. Local state that DOES move objects still
-// splits the object CRC, as it always did; this only keeps purely local bookkeeping out of the new section.
+// Which script state is CLIENT-LOCAL, so ScriptEngine::crc can leave it out. A condition reading the local player,
+// camera, selection or sound fires on some peers only, so hashing its counters, timers or isActive would split the
+// CRC. Decided from script content alone: local condition types or parameters, or conditions on a local counter/flag;
+// what a local action writes, enables, disables or calls becomes local too, to a fixpoint.
 // ------------------------------------------------------------------------------------------------
 static Bool gxConditionTypeIsClientLocal( Int conditionType )
 {
@@ -8900,9 +8945,9 @@ static Bool gxConditionTypeIsClientLocal( Int conditionType )
 	}
 }
 
-// GeneralsX: review det1-hashes P2-3. These only READ their counter, for the HUD
-// (ScriptActions::doDisplayCounter and its three siblings call TheInGameUI alone), so a local script showing a shared
-// counter must not make the counter local: that took it, and every script testing it, out of the CRC on every peer.
+// GeneralsX: these only READ their counter, for the HUD (ScriptActions::doDisplayCounter and its three siblings call
+// TheInGameUI alone), so a local script showing a shared counter must not make the counter local: that would take it,
+// and every script testing it, out of the CRC on every peer.
 static Bool gxActionOnlyDisplaysCounter( Int actionType )
 {
 	switch( actionType )
@@ -8989,12 +9034,12 @@ Bool ScriptEngine::gxClassifyScript( Script *script, Bool challenge )
 				localAction = gxNamesLocalPlayer( action->getParameter( i ), challenge );
 			if( !localAction )
 				continue;
-			// GeneralsX: review det1-hashes P2-2 +. These name a UNIT or TEAM, not
+			// GeneralsX: These name a UNIT or TEAM, not
 			// a script, and change the sequential queue a SHARED script started - a stop empties it, the *_FOR_FRAMECOUNT
 			// actions set its wait (setSequentialTimer) - on one peer only; crc() then leaves the whole queue out (a
 			// unit/team name can be "<This Object>"/"<This Team>", resolved only at run time).
 			// Trade-off: the whole queue, not just the named units' entries - a coverage loss, never a false desync, and
-			// only in maps with such a local action (none in the shipped MP/skirmish scripts, 03/10); narrow it per
+			// only in maps with such a local action (none in the shipped MP/skirmish scripts); narrow it per
 			// entry if one ever needs that coverage.
 			switch( action->getActionType() )
 			{
@@ -9027,7 +9072,7 @@ Bool ScriptEngine::gxClassifyScript( Script *script, Bool challenge )
 					case Parameter::ATTACK_PRIORITY_SET:	// GeneralsX: a set a local action creates or writes
 						if( action->getActionType() == ScriptAction::NAMED_APPLY_ATTACK_PRIORITY_SET
 							|| action->getActionType() == ScriptAction::TEAM_APPLY_ATTACK_PRIORITY_SET )
-							break;	// only READS the set (r2): its table stays shared and covered
+							break;	// only READS the set: its table stays shared and covered
 						if( !gxHasName( m_gxLocalAttackSets, name ) ) { m_gxLocalAttackSets.push_back( name ); changed = TRUE; }
 						break;
 					case Parameter::SCRIPT:
@@ -9053,9 +9098,9 @@ void ScriptEngine::gxClassifyClientLocal()
 	m_gxLocalGroups.clear();
 	m_gxLocalAttackSets.clear();
 	m_gxLocalSequentialStop = FALSE;
-	// GeneralsX: review det1-hashes P2-1. evaluateFlag answers TRUE for a flag named after a
-	// pending UI interaction (m_uiInteractions), and signalUIInteract is only ever called with TheShellHookNames - e.g.
-	// "ShellOptionsOpened" when one player opens Options in a match. Such a flag is client-local from the start.
+	// GeneralsX: evaluateFlag answers TRUE for a flag named after a pending UI interaction (m_uiInteractions), and
+	// signalUIInteract is only ever called with TheShellHookNames - e.g. "ShellOptionsOpened" when one player opens
+	// Options in a match. Such a flag is client-local from the start.
 	for( Int i = 0; i < SHELL_SCRIPT_HOOK_TOTAL; ++i )
 		m_gxLocalFlags.push_back( TheShellHookNames[ i ] );
 	if( !TheSidesList )
@@ -9141,7 +9186,7 @@ void ScriptEngine::crc( Xfer *xfer )
 			xfer->xferSnapshot( &m_attackPriorityInfo[ i ] );
 
 	// A sequential script started by a LOCAL script runs on some peers only; the classifier marked its script local
-	// (the SCRIPT parameter of the start action), so it is left out the same way (adversarial review, P2).
+	// (the SCRIPT parameter of the start action), so it is left out the same way.
 	// A local stop action can remove entries on some peers only (gxClassifyScript): then the queue is left out whole.
 	for( VecSequentialScriptPtrIt it = m_sequentialScripts.begin(); it != m_sequentialScripts.end() && !m_gxLocalSequentialStop; ++it )
 		for( SequentialScript *seq = *it; seq; seq = seq->m_nextScriptInSequence )
@@ -9933,6 +9978,7 @@ void ScriptEngine::xfer( Xfer *xfer )
 
 				// put on list
 				m_allObjectTypeLists.push_back( objectTypes );
+				++m_objectTypeListsGeneration;
 
 			}
 

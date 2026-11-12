@@ -131,11 +131,11 @@ protected:
 	void doBuildBuilding(const AsciiString& buildingType);
 	void doBuildSupplyCenter(const AsciiString& playerName, const AsciiString& buildingType, Int cash);
 	void doBuildObjectNearestTeam( const AsciiString& playerName, const AsciiString& buildingType, const AsciiString& teamName );
-	void doAIPlayerFaceFront( const AsciiString& playerName );	///< GeneralsX 22/10/2026 (ai-wh1ter0se-econ R)
-	void doAIPlayerGxRule( const AsciiString& playerName, Int rule, Int key, Int value );	///< GeneralsX 30/10/2026 (rb-core)
-	void doAIPlayerGxRuleTemplate( const AsciiString& playerName, Int rule, Int key, const AsciiString& templateName );	///< GeneralsX 30/10/2026 (rb-core)
-	void doAIPlayerGxRuleTeam( const AsciiString& playerName, Int rule, Int key, const AsciiString& teamName );	///< GeneralsX 30/10/2026 (rb-core)
-	void doAIPlayerTunnelAirWatch( const AsciiString& playerName, Int radius, const AsciiString& teamName );	///< GeneralsX 22/10/2026 (ai-wh1ter0se-econ T)
+	void doAIPlayerFaceFront( const AsciiString& playerName );	///< GeneralsX: AI_PLAYER_FACE_FRONT
+	void doAIPlayerGxRule( const AsciiString& playerName, Int rule, Int key, Int value );	///< GeneralsX: AI rule bank
+	void doAIPlayerGxRuleTemplate( const AsciiString& playerName, Int rule, Int key, const AsciiString& templateName );	///< GeneralsX: AI rule bank
+	void doAIPlayerGxRuleTeam( const AsciiString& playerName, Int rule, Int key, const AsciiString& teamName );	///< GeneralsX: AI rule bank
+	void doAIPlayerTunnelAirWatch( const AsciiString& playerName, Int radius, const AsciiString& teamName );	///< GeneralsX: AI_PLAYER_TUNNEL_AIR_WATCH
 	void doBuildUpgrade(const AsciiString& playerName, const AsciiString& upgrade);
 	void doBuildBaseDefense(Bool flank);
 	void doBuildBaseStructure(const AsciiString& buildingType, Bool flank);

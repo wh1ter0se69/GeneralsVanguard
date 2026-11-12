@@ -745,10 +745,8 @@ void Particle::xfer( Xfer *xfer )
 	xfer->xferDrawableID( &drawableID );	//saving for backwards compatibility when we supported drawables.
 
 	// system under control as an id
-	// GeneralsX: A load used to read the ID into a local and drop it, so loadPostProcess looked up
-	// whatever the union held. Now the loaded ID is kept (tagged) for loadPostProcess, and a save writes the ID only of a
-	// system that is itself saved (alive and saveable), so the load can find it. Same bytes on disk: one ParticleSystemID.
-	// Ports upstream PR #3579 (68d1668ab).
+	// A load keeps the ID (tagged) for loadPostProcess instead of dropping it, and a save writes the ID only of a system that
+	// is itself saved (alive and saveable). Same bytes on disk: one ParticleSystemID. Ports upstream PR #3579 (68d1668ab).
 	if (xfer->getXferMode() == XFER_SAVE)
 	{
 		ParticleSystemID systemUnderControlID = INVALID_PARTICLE_SYSTEM_ID;
@@ -3400,32 +3398,10 @@ void ParticleSystemManager::reset()
 //DECLARE_PERF_TIMER(ParticleSystemManager)
 void ParticleSystemManager::update()
 {
-	// GeneralsX: Advance particles on the LEGACY 30 Hz cadence, not on the
-	// simulation tick rate. At 60 Hz every particle effect ran at DOUBLE SPEED - reported from live
-	// play as smoke, nuclear radiation and exhaust visibly 2x.
-	//
-	// Everything in Particle::update is a PER-FRAME quantity read straight from INI and never
-	// converted: --m_lifetimeLeft, m_vel += m_accel, m_pos += m_vel, m_angleX += m_angularRateX,
-	// m_size += m_sizeRate, plus three multiplicative dampings (m_velDamping, m_angularDamping,
-	// m_sizeRateDamping). Doubling the call rate doubles every one of them at once.
-	//
-	// WHY GATE THE CADENCE RATHER THAN CONVERT THE UNITS. Converting correctly means three
-	// different transforms across ten fields - frame COUNTS scale up, per-frame linear DELTAS scale
-	// down, and per-frame MULTIPLICATIVE dampings need an exponent, powf(f, 30/LOGICFRAMES_PER_SECOND).
-	// Getting any single one backwards is silent and surfaces only as "that effect looks a bit
-	// wrong", which nobody ever bisects. Gating the cadence preserves every relative rate exactly,
-	// in one line. It is also what the GeneralsOnline client does for the same reason - it keeps a
-	// parallel 30 Hz "legacy frame" counter that its cosmetic systems run against.
-	//
-	// The cost is that particles animate at 30 Hz rather than 60. That is precisely what they did
-	// at 30 Hz, so it is not a regression - it is the correct default until the INI data is
-	// deliberately re-authored for a higher rate.
-	//
-	// SAFE PER PEER: this file is Core/GameEngine/Source/GameClient, which is in no digested path,
-	// and GameLogic::getCRC walks Objects and ThePartitionManager only - particles are never
-	// hashed. Two peers disagreeing about particle cadence cannot desync.
-	//
-	// Integer division gives 1 at 30 Hz, so the 30 Hz path keeps the behaviour it always had.
+	// Advance particles on the LEGACY 30 Hz cadence, not the simulation tick rate: Particle::update works in per-frame
+	// quantities read from INI (lifetime, velocity, size rate, three dampings), so calling it at 60 Hz ran every effect 2x.
+	// Gating the cadence keeps every relative rate in one line; converting the units needs three different transforms.
+	// Safe per peer: no digested path, particles are never hashed. Integer division gives 1 at 30 Hz.
 	const UnsignedInt legacyFrame =
 		TheGameLogic->getFrame() / (UnsignedInt)(LOGICFRAMES_PER_SECOND / BaseFps);
 
@@ -3494,7 +3470,7 @@ void ParticleSystemManager::update()
 	}
 	else
 	{
-		// GeneralsX @bugfix Bender 01/04/2026 Clear stale smudges when heat effects are disabled.
+		// Clear stale smudges when heat effects are disabled.
 		// Without this, previously flagged smudges may persist in later render passes.
 		TheSmudgeManager->reset();
 	}

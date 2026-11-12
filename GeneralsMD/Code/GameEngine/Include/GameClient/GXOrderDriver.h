@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: GX_ORDERS: a scripted human for multiplayer test matches. See GXOrderDriver.cpp.
+// GX_ORDERS: a scripted human for multiplayer test matches. See GXOrderDriver.cpp.
 
 #pragma once
 
@@ -24,7 +24,7 @@
 /// orders for the logic frame through TheMessageStream, exactly as the UI would.
 void gxOrderDriverUpdate();
 
-// GeneralsX: The driver's one-peer-safe reads, shared with the ai-gym bot input (GXGym.cpp) so both
+// The driver's one-peer-safe reads, shared with the ai-gym bot input (GXGym.cpp) so both
 // order sources answer "could a human click this?" with the same code. See GXOrderDriver.cpp for why each is safe.
 class Object;
 class Player;

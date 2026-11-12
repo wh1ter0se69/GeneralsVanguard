@@ -549,47 +549,10 @@ void GameWindowManager::windowHiding( GameWindow *window )
 {
 
 	// if this window has keyboard focus remove it
-	//
-	// GeneralsX: Drop focus through winSetFocus, not by hand.
-	//
-	// This used to assign m_keyboardFocus = nullptr directly, which silently skips the
-	// GWM_INPUT_FOCUS FALSE notification that every other focus change sends. Note the two
-	// lines below: the modal head and the mouse captor both go through their proper API
-	// (winUnsetModal, winCapture) - only focus was poked by hand, and that asymmetry is the bug.
-	//
-	// A text entry does real work when it loses focus (GadgetTextEntry.cpp:373-388): it resets
-	// the caret and constructText and - the part that matters - calls TheIMEManager->attach(nullptr).
-	//
-	//
-	//
-	//
-	//
-	// THE PATH THAT ACTUALLY PRODUCES THE REPORTED BUG is HideInGameChat
-	// (GUICallbacks/InGameChat.cpp:106-118), and it is worth stating exactly, because an earlier
-	// version of this comment named DisconnectMenu::init() and that story does not survive:
-	// Shell::hideShell() calls TheIMEManager->detach() unconditionally on every network-game start
-	// (Shell.cpp:611-612), so the disconnect entry is not left bound.
-	//
-	// HideInGameChat hides chatTextEntry at :113 and only THEN calls winSetFocus(nullptr) at :115.
-	// Pre-fix, the hide had already hand-nulled m_keyboardFocus, so winSetFocus's outgoing-window
-	// guard (`if( m_keyboardFocus && m_keyboardFocus != window )`, :781) was already false and the
-	// FALSE message was never sent. The IME therefore stayed bound to the IN-GAME CHAT ENTRY, and
-	// every key pressed during play was appended to it - which is the symptom as reported, "keys
-	// pressed during play leak into the chat text entry", and why the leaked text is still there
-	// when you next open chat (the entry's contents are saved and restored at :110 / s_savedChat).
-	// The two stacked winSetFocus(nullptr) calls at InGameChat.cpp:115 and :117 are dead for the
-	// same reason and look like an earlier attempt at this same bug that could not work.
-	//
-	// WINDOWS ONLY. IMEManager is #ifdef _WIN32 in its entirety and CreateIMEManagerInterface
-	// returns nullptr elsewhere (IMEManager.cpp:1621-1626), so TheIMEManager is null on macOS,
-	// Linux and iPadOS. Their SDL3 text path re-derives its target from winGetFocus() every event
-	// (SDL3GameEngine.cpp:1195) rather than latching it, so it was never exposed. This fix changes
-	// observable behaviour on the Windows peer only and cannot be falsified on the other three.
-	//
-	// winSetFocus(nullptr) is null-safe by construction: its NO_FOCUS test is already guarded by
-	// if(window), it sends the FALSE message to the OUTGOING window, and it then leaves
-	// m_keyboardFocus null down both remaining branches. Re-entrancy is bounded because the
-	// guard below only fires for the window that actually holds focus.
+	// Drop focus through winSetFocus, not by assigning m_keyboardFocus: assignment skips the GWM_INPUT_FOCUS FALSE
+	// message, so a text entry never resets its caret or detaches the IME (keys leaked into the in-game chat).
+	// IME is Windows-only; TheIMEManager is null elsewhere. winSetFocus(nullptr) is null-safe, and this fires
+	// only for the focused window, so re-entrancy is bounded.
 	if( m_keyboardFocus == window )
 		winSetFocus( nullptr );
 
@@ -869,18 +832,9 @@ WinInputReturnCode GameWindowManager::winProcessKey( UnsignedByte key,
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX: Tell the mouse WHAT the cursor is hovering, so it can
-	* restart the tooltip hover wait when the cursor reaches something new instead of every time the
-	* cursor twitches. See Mouse::setTooltipTarget.
-	*
-	* A listbox is a single GameWindow but many separate things to hover, so it is keyed by row as
-	* well. That is the granularity the per-row tooltip callbacks (gameTooltip, playerTooltip, ...)
-	* already resolve at, and it is exactly what "keep the card up while I stay on this player"
-	* means. Column is deliberately NOT part of the key: sliding along a row swaps the card's
-	* contents at once rather than blanking it for another full delay.
-	*
-	* GadgetListBoxGetEntryBasedOnXY blind-casts winGetUserData() to ListboxData, so the style check
-	* is load-bearing, not defensive. */
+/** Tell the mouse WHAT the cursor is hovering, so it restarts the tooltip hover wait only on a new target.
+	* A listbox is one GameWindow but many things to hover, so it is keyed by row too (not column).
+	* GadgetListBoxGetEntryBasedOnXY blind-casts winGetUserData(), so the style check is load-bearing. */
 //-------------------------------------------------------------------------------------------------
 static void noteTooltipTarget( GameWindow *toolTipWindow, const ICoord2D *mousePos )
 {
@@ -1891,39 +1845,11 @@ GameWindow *GameWindowManager::gogoMessageBox(Int x, Int y, Int width, Int heigh
 	GameWindow *staticTextMessage = winGetWindowFromId(parent, staticTextMessageID);
 	GadgetStaticTextSetText(staticTextMessage,bodyString);
 
-	// GeneralsX: Grow the box to fit the body instead of clipping it.
-	//
-	// MessageBox.wnd is a fixed-size layout from 2003, when every message in it was one short
-	// retail sentence. The SimID join-failure diagnostics are several sentences and name two
-	// hashes, and the text is centred vertically inside the message control - so an oversized
-	// body is clipped at the TOP as well as the bottom, and the reader loses the first line,
-	// which is the one saying which machine has to update. Observed on the iPad: the box showed
-	// the middle third of the message with the verdict cut off at both ends.
-	//
-	// GeneralsX: The block below used to measure the WRONG HEIGHT and
-	// therefore never grew anything. Its own comment claimed "the DisplayString has already
-	// word-wrapped to the control's width by this point". It has not, and cannot have:
-	//
-	//   * winCreateFromScript builds a fresh layout on every gogoMessageBox call, so the
-	//     DisplayString here is brand new;
-	//   * a new Render2DSentenceClass starts at WrapWidth 0 (render2dsentence.cpp:71), and
-	//     Get_Formatted_Text_Extents only wraps when WrapWidth > 0 (:800);
-	//   * the only place that ever sets it is drawStaticTextText (W3DStaticText.cpp:97), which
-	//     runs a frame LATER, at draw time, from the window's size.
-	//
-	// So getSize() returned a ONE LINE height for any body without an embedded newline, `grow`
-	// came out negative, and the whole block was dead. The dialog then clipped exactly as it had
-	// before the fix - which is what the SimID join-failure screenshots kept showing.
-	//
-	// Mirror the three calls drawStaticTextText makes, in its order, before measuring. That is
-	// duplication, but it is duplication of the *device* layer from the *client* layer, and the
-	// alternative - measuring at draw time - is a frame too late to resize a modal.
-	//
-	// GeneralsX: The box also WIDENS now, and steps its body font down as a
-	// last resort, so a twelve-player desync report fits: see GameClient/MessageBoxFit.h for the
-	// three steps and why each is gated on the one before. A body that fits the layout as authored
-	// takes none of them and draws exactly as it did. The wrap width is no longer set once here:
-	// the fit sets it per candidate width, after the other two draw-path calls below.
+	// Grow the box to fit the body instead of clipping it: MessageBox.wnd is fixed-size and the body is centred
+	// vertically, so an oversized body loses its first line.
+	// Measure after the draw-path setup: a new DisplayString has WrapWidth 0 until drawStaticTextText sets it a
+	// frame later, so mirror its word-wrap and hotkey calls first. MessageBoxFit.h sets the wrap width per candidate
+	// width, widens the box and steps the font down.
 	GameFont *bodyFont = ( staticTextMessage != nullptr ) ? staticTextMessage->winGetFont() : nullptr;
 	if( staticTextMessage != nullptr && bodyFont != nullptr && TheDisplay != nullptr )
 	{

@@ -1104,7 +1104,7 @@ void ThingTemplate::validate()
 // copy the guts of that into this, but preserve this' name, id, and list-links.
 // GeneralsX: And its override link: `*this = *that` copied that's place in ITS override chain too.
 // A map.ini "ObjectReskin A A" left A's new override pointing at itself, so getFinalOverride never returned and every peer
-// hung at the first script naming A (measured on 0.9.61 in AttackPriorityInfo::setPriority); a reskin of a template with
+// hung at the first script naming A (in AttackPriorityInfo::setPriority); a reskin of a template with
 // overrides shared their chain (deleted twice by ThingFactory::reset); a reskin made by a map.ini lost its override mark
 // and outlived the match.
 void ThingTemplate::copyFrom(const ThingTemplate* that)

@@ -847,36 +847,78 @@ UpdateSleepTime StealthUpdate::update()
 }
 
 //-------------------------------------------------------------------------------------------------
-void setWakeupIfInRange( Object *obj, void *userData)
+void StealthUpdate::markAsDetected(UnsignedInt numFrames)
 {
-	Object *victim = (Object *)userData;
-	AIUpdateInterface *ai = obj->getAI();
-	if (!ai) {
-		return;
+	const Player *wakePlayer = markAsDetectedDeferWake(numFrames);
+	if( wakePlayer )
+	{
+		const Object *self = getObject();
+		wakeIdleEnemiesOfVictims( wakePlayer, &self, 1 );
 	}
-
-	Real vision = obj->getVisionRange();
-
-	Coord3D srcpos = *obj->getPosition();
-	Coord3D dstpos = *victim->getPosition();
-
-	srcpos.sub(dstpos);
-	if (srcpos.length() > vision)
-		return;
-
-	ai->wakeUpAndAttemptToTarget();
-
-//	if( obj->isKindOf( KINDOF_SELECTABLE ) && ( obj->isAbleToAttack() || !obj->isKindOf( KINDOF_STRUCTURE ) )) {
-//		Drawable *draw = obj->getDrawable();
-//		if( draw ) {
-//			draw->setEmoticon( "Emoticon_Alarm", 5000 );
-//		}
-//	}
 }
 
+//-------------------------------------------------------------------------------------------------
+// GeneralsX: packed walk: retail in-vision-range test over Player::gxGetWakeRecords instead of the team lists, touching
+// the Object only for a hit. Exact: the array holds the set iterateObjects visits, its floats are the bits of getPosition()
+// and getVisionRange(), the wake is order-free and idempotent. The cheap test only rejects what the original would
+// (2% of squared range is far beyond float rounding; a NaN goes on to the original test).
+static void gxWakeFromRecords( const Player *player, const Object *const *victims, Int count )
+{
+	Int numRecords = 0;
+	const Player::GXWakeRecord *rec = player->gxGetWakeRecords( numRecords );
+	for( ; numRecords > 0; --numRecords, ++rec )
+	{
+		const Real paddedRangeSqr = rec->vision * rec->vision * 1.02f;
+		for( Int i = 0; i < count; ++i )
+		{
+			const Coord3D *dst = victims[i]->getPosition();
+			const Real dx = rec->x - dst->x;
+			const Real dy = rec->y - dst->y;
+			const Real dz = rec->z - dst->z;
+			if( dx * dx + dy * dy + dz * dz > paddedRangeSqr )
+				continue;
+
+			Coord3D srcpos;
+			srcpos.x = rec->x;
+			srcpos.y = rec->y;
+			srcpos.z = rec->z;
+			srcpos.sub( *dst );
+			if( srcpos.length() > rec->vision )
+				continue;
+
+			AIUpdateInterface *ai = rec->obj->getAI();
+			if( ai )
+				ai->wakeUpAndAttemptToTarget();
+			break;	// already woken: a repeat would assign the same two fields again
+		}
+	}
+}
 
 //-------------------------------------------------------------------------------------------------
-void StealthUpdate::markAsDetected(UnsignedInt numFrames)
+// GeneralsX: the walk of markAsDetected's "order idle enemies to attack me", for count victims of thisPlayer: each
+// enemy player in list order, the packed walk over its members.
+void StealthUpdate::wakeIdleEnemiesOfVictims( const Player *thisPlayer, const Object *const *victims, Int count )
+{
+	// This can't be a partitionmanager thing, because we need to know which objects can see
+	// us. Therefore, walk the play list, and for each player that considers us an enemy,
+	// check if any of their units can see us.
+	Int numPlayers = ThePlayerList->getPlayerCount();
+	for (Int n = 0; n < numPlayers; ++n)
+	{
+
+		Player *player = ThePlayerList->getNthPlayer(n);
+		if (!player)
+			continue;
+
+		if (player->getRelationship(thisPlayer->getDefaultTeam()) != ENEMIES)
+			continue;
+
+		gxWakeFromRecords(player, victims, count);
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+const Player *StealthUpdate::markAsDetectedDeferWake(UnsignedInt numFrames)
 {
 	Object *self = getObject();
 	Object *stealthOwner = calcStealthOwner();
@@ -925,26 +967,9 @@ void StealthUpdate::markAsDetected(UnsignedInt numFrames)
 		m_detectionExpiresFrame = now + numFrames;
 	}
 
-	if( orderIdlesToAttack )
-	{
-		// This can't be a partitionmanager thing, because we need to know which objects can see
-		// us. Therefore, walk the play list, and for each player that considers us an enemy,
-		// check if any of their units can see us.
-
-		Int numPlayers = ThePlayerList->getPlayerCount();
-		for (Int n = 0; n < numPlayers; ++n)
-		{
-
-			Player *player = ThePlayerList->getNthPlayer(n);
-			if (!player)
-				continue;
-
-			if (player->getRelationship(thisPlayer->getDefaultTeam()) != ENEMIES)
-				continue;
-
-			player->iterateObjects(setWakeupIfInRange, self);
-		}
-	}
+	// GeneralsX: the idle-enemy wake is the caller's (markAsDetected, or SpawnBehavior::revealSlaves once for all its
+	// slaves): wakeIdleEnemiesOfVictims( thisPlayer, ... ).
+	return orderIdlesToAttack ? thisPlayer : nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------

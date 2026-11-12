@@ -1,4 +1,6 @@
-# GeneralsX: rule bank DATA rule ARMY.GLA_DEMO_BIKES: Demolition GLA mid game rides Combat
+# Copyright 2026 GeneralsX contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+# rule bank DATA rule ARMY.GLA_DEMO_BIKES: Demolition GLA mid game rides Combat
 # Bikes with its tanks. Stock Demolition Hard fields bikes only in wave 5 ("5TH Wave Bikes F/C/B"); its 2nd- and 3rd-wave Scorpion
 # teams ("2ND Wave Tanks. 1", "3RD Wave Tanks F. 1", "3RD Wave Tanks C. 1": 0-8 Scorpions, slot 2 empty) never do. Here each gains
 # [Combat Bike, b, b] in slot 2, b = bike_share_pm of the team's 8 (rounded). The bike needs only the Demolition Arms Dealer (INIZH),

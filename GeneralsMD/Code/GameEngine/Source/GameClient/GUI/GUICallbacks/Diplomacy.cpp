@@ -97,21 +97,9 @@ void InitBuddyControls(Int type);
 void updateBuddyInfo();
 static void grabWindowPointers()
 {
-	// GeneralsX: SHOW ALL TWELVE, NOT THE EIGHT THE .WND AUTHORS.
-	//
-	// Diplomacy.wnd authors StaticTextPlayer0..7, StaticTextSide0..7, StaticTextTeam0..7,
-	// StaticTextStatus0..7, ButtonMute0..7 and ButtonUnMute0..7 - verified by extracting it from
-	// WindowZH.big, all six columns stop at 7. MAX_SLOTS became 12, so the loop below asks for
-	// rows 8..11, winGetWindowFromId returns null for every one of them, and the in-game player
-	// list silently shows eight of twelve players. Reported live from a running 12-slot match.
-	//
-	// Same fix and same helper as the three lobby screens: extrapolate the column's own pitch and
-	// clone the missing rows into the band the authored ones occupy. CodeGuiRowsEnsure returns 0
-	// without touching a rect when the layout already covers rowCount, so at the shipped 8-slot
-	// layout this is a measurement and nothing else - and it returns 0 for a column it cannot find
-	// two rows to read a pitch from, so a future .wnd that drops one of these is not a crash.
-	//
-	// It must run BEFORE the binding loop: the loop is what caches the pointers this creates.
+	// Show all MAX_SLOTS rows, not the eight Diplomacy.wnd authors: CodeGuiRowsEnsure clones the missing rows
+	// and returns 0 without touching a rect when the layout already covers rowCount or no pitch can be read.
+	// Must run BEFORE the binding loop, which caches the pointers this creates.
 	if (theWindow != nullptr)
 	{
 		CodeGuiRowsEnsure( theWindow, "Diplomacy.wnd:StaticTextPlayer%d", MAX_SLOTS, CODEGUI_ROWS_BAND );
@@ -177,24 +165,9 @@ static void updateFunc( WindowLayout *layout, void *param )
 			theWindow->winHide( TRUE );
 	}
 
-	// GeneralsX: The panel was populated ONCE, when it opened.
-	//
-	// Every figure in it moves - ping most obviously, but also alive/defeated and the mute state -
-	// and none of them were refreshed while it was on screen. The only way to see a current ping
-	// was to close the panel and reopen it, which is also the only reason the numbers ever appeared
-	// to change: you were not watching them update, you were watching a second snapshot.
-	//
-	// PopulateInGameDiplomacyPopup only calls winSetText/winHide on windows that already exist - it
-	// builds no rows and owns no listbox - so re-running it holds no selection or scroll state to
-	// lose, which is what makes a periodic refresh safe here at all.
-	//
-	// Throttled rather than per-frame because the underlying figure cannot move faster than the
-	// router publishes it (m_networkRunAheadMetricsTime apart, not once per frame), so a per-frame
-	// rebuild would be pure cost for a value that is identical 59 times out of 60.
-	//
-	// timeGetTime, not the logic frame: this is client-side furniture and must keep updating while
-	// the simulation is blocked waiting on a peer - which is exactly when somebody opens this panel
-	// to find out whose connection is the problem.
+	// The panel is refreshed while open (ping, alive/defeated, mute state move); it holds no selection state.
+	// Throttled: the router publishes its figure every m_networkRunAheadMetricsTime, not every frame.
+	// timeGetTime, not the logic frame: it must keep updating while the simulation waits on a peer.
 	if (theWindow != nullptr && !theWindow->winIsHidden())
 	{
 		static UnsignedInt s_lastRepopulate = 0;
@@ -629,69 +602,16 @@ void PopulateInGameDiplomacyPopup()
 					}
 				}
 
-				// GeneralsX: PING PER PLAYER, on the screen the player
-				// already opens with TAB (CommandMap.ini binds DIPLOMACY to KEY_TAB in GAME, and
-				// MSG_META_DIPLOMACY calls ToggleDiplomacy - verified by extracting
-				// Data\English\CommandMap.ini from EnglishZH.big, so no retail key is rebound).
-				//
-				// APPENDED TO THE STATUS CELL RATHER THAN GIVEN ITS OWN COLUMN, deliberately.
-				// Diplomacy.wnd authors no ping column, and CodeGuiRowsEnsure grows an EXISTING
-				// column - it cannot conjure a new one - so a real column would mean placing
-				// widgets at coordinates chosen without being able to see the screen. That is the
-				// exact failure this area has already produced (a cloned row landing at the wrong
-				// x). Reusing a cell that already exists inherits the authored geometry, works
-				// unchanged on the rows CodeGuiRowsEnsure clones for slots 8..11, and needs no
-				// .wnd edit - which also means no dataID move, so this ships with the engine.
-				//
-				// Status is the right cell rather than a lucky one: its longest strings ("gone",
-				// "observer gone") occur exactly when there is no live figure to show, so the
-				// number and the long words are never competing for the same width.
-				//
-				// A DASH IS NOT A ZERO. -1 comes back for every honest "I do not know" - an AI or
-				// empty slot, a router that has not published yet, a lost report, or a peer that
-				// went quiet and aged out - and every one of them must read as "--ms" rather than
-				// as a perfect connection. This readout has been fixed four times for printing a
-				// confident number it could not support.
+				// Ping per player on the Diplomacy screen (TAB), appended to the status cell: Diplomacy.wnd has no
+				// ping column and CodeGuiRowsEnsure cannot create one.
+				// A dash is not a zero: -1 means unknown (AI, empty slot, no report yet, peer aged out), shown "--ms".
 				if (TheNetwork != nullptr && slot->isHuman())
 				{
 					Int pingMs = TheNetwork->getPeerPingMs(slotNum);
 
-					// GeneralsX: THE HOST USED TO SEE "--ms" FOR ITSELF
-					// while every client saw a figure for its own row, which reads as a broken
-					// readout on exactly one machine in the lobby.
-					//
-					// It is not a missing measurement, it is an absent one. This column means "your
-					// round trip to the packet router", and the router has no round trip to itself:
-					// publishLatencyReport (ConnectionManager.cpp:827-829) deliberately leaves the
-					// router's own slot at 0, and 0 is the "no figure" sentinel everywhere in that
-					// path. A client's own row works because a client really does measure its leg
-					// to the router.
-					//
-					// So the fix belongs HERE and not in the network layer. Storing a zero upstream
-					// would collide with the sentinel and make "the router knows nothing about this
-					// slot" indistinguishable from "this slot is the router". Rendering it here
-					// states the one case the sentinel cannot: your latency to the host, when you
-					// ARE the host, is zero. That is a definition rather than a measurement, which
-					// is why it is the only place a confident 0 is honest - every other zero in
-					// this readout still renders as a dash.
-					// GeneralsX: AND EVERY CLIENT USED TO SEE "--ms" FOR
-					// THE HOST, which is the same absence seen from the other side.
-					//
-					// The fix above only covered "I am the router, looking at my own row". A client
-					// looking at the ROUTER's row hits the identical sentinel for the identical
-					// reason - the router publishes its own slot as 0 because it has no round trip
-					// to itself - so the one row every player most wants a figure for was the one
-					// row nobody ever got one for.
-					//
-					// A client does not need the router to measure itself, because the leg is
-					// symmetric and the client already measured it: "my ping to the host" and "the
-					// host's row, as seen by me" are the same wire. So render the client's own
-					// measurement in the router's row. It is the same number the router publishes
-					// back as that client's own row, which is why the two rows now agree instead of
-					// one of them being a dash.
-					//
-					// Naming the router's slot is what needed getPacketRouterSlot() on
-					// NetworkInterface; isPacketRouter() can only answer for the local machine.
+					// The router publishes its own slot as 0 (no round trip to itself), also the "no figure" sentinel.
+					// Fixed here, not in the network layer: when you ARE the host your latency to it is zero.
+					// A client shows its own measurement in the router's row; naming it needs getPacketRouterSlot().
 					if (pingMs < 0)
 					{
 						const Int routerSlot = TheNetwork->getPacketRouterSlot();

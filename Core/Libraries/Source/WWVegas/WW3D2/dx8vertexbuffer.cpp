@@ -422,7 +422,7 @@ DX8VertexBufferClass::~DX8VertexBufferClass()
 
 void DX8VertexBufferClass::Create_Vertex_Buffer(UsageType usage)
 {
-	DX8Wrapper::GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: WS-G Task 5: a known device access (no RAW_ACCESS)
+	DX8Wrapper::GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: a known device access (no RAW_ACCESS)
 	DX8_THREAD_ASSERT();
 	WWASSERT(!VertexBuffer);
 

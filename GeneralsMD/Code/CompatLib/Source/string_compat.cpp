@@ -1,40 +1,31 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 GeneralsX contributors
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "string_compat.h"
 
 #include <sstream>
 #include <streambuf>
 #include <ostream>
 
-// GeneralsX: THIS FUNCTION WROTE NOTHING AT ALL ON macOS, AND IT CAUSED A
-// CROSS-PLATFORM SIMULATION DIVERGENCE.
-//
-// The previous body handed `str` to std::stringbuf::pubsetbuf and streamed into it. pubsetbuf on a
-// stringbuf is IMPLEMENTATION-DEFINED: libstdc++ honours it, libc++ IGNORES it completely and the
-// stringbuf keeps using its own internal buffer. So on macOS `str` was never touched and every
-// caller read whatever happened to be on the stack.
-//
-// Measured, minimal repro compiled on both toolchains with the buffer poisoned to 0xAB first:
-//   macOS   / libc++    : AB AB AB AB AB AB AB AB   - never written
-//   linux   / libstdc++ : 32 00 AB AB AB AB AB AB   - "2", correct
-//
-// HOW THAT BECAME A DESYNC. OpenContain::exitObjectViaDoor builds an exit bone name for a container
-// with NumberOfExitPaths > 1 as "ExitStart" + '0' + itoa(m_whichExitPath). On macOS the suffix was
-// stack garbage, so it asked the model for a bone called "ExitStart0\xAB\xB5..." which does not
-// exist. Object::getSingleLogicalBonePosition then takes its SILENT fallback
-// (Object.cpp:6161, *position = *getPosition()) and the passenger is placed at the container's own
-// centre instead of at the door - 13.2 world units away from where every x86 peer put it. That is
-// a hard CRC divergence, and it took a full replay bisect to find because nothing anywhere reports
-// a failed bone lookup.
-//
-// Nothing about this was 60 Hz specific. It fires on any tick rate, on any container with more
-// than one exit path. The 30 Hz soaks only looked clean because the AI never unloaded one.
-//
-// The old body was wrong three ways: it ignored `base` entirely (always decimal), it hard-coded a
-// 33-byte capacity while callers pass buffers as small as char[8] (OpenContain.cpp), and it relied
-// on implementation-defined behaviour for the write itself.
-//
-// This replacement follows the traditional itoa contract: caller guarantees the buffer is large
-// enough, negative values are only sign-prefixed for base 10 (matching MSVC's _itoa, which treats
-// the value as unsigned for every other base), and the result is always NUL-terminated.
+// Do not write through std::stringbuf::pubsetbuf: it is implementation-defined (libc++ ignores it), so on macOS str was
+// never written. OpenContain::exitObjectViaDoor builds the exit bone name from itoa(m_whichExitPath); the failed lookup
+// silently put the passenger at the container centre: a CRC divergence. Caller sizes the buffer; sign only in base 10;
+// NUL-terminated.
 char* itoa(int value, char* str, int base)
 {
   if (str == nullptr)

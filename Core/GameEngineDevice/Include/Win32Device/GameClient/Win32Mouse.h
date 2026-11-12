@@ -80,7 +80,7 @@ public:
 	/// add an event from a win32 window procedure
 	void addWin32Event( UINT msg, WPARAM wParam, LPARAM lParam, DWORD time );
 
-	Bool isLostFocus() const { return m_lostFocus; }	// GeneralsX @feature tilt-thumb-buttons: WinMain drops a thumb DOWN while unfocused
+	Bool isLostFocus() const { return m_lostFocus; }	// GeneralsX: tilt-thumb-buttons: WinMain drops a thumb DOWN while unfocused
 
 protected:
 

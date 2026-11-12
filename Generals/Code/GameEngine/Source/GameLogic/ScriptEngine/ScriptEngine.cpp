@@ -5678,33 +5678,9 @@ Bool ScriptEngine::evaluateCounter( Condition *pCondition )
 		counterNdx = allocateCounter(pCondition->getParameter(0)->getString());
 		pCondition->getParameter(0)->friend_setInt(counterNdx);
 	}
-	// GeneralsX: A map's raw frame literals are 30 Hz frame counts.
-	//
-	// This is why the main-menu camera sat still for a minute and then panned at half speed.
-	//
-	// The shell map arms one countdown timer, "Restart Camera", with SET_MILLISECOND_TIMER = 120
-	// SECONDS, and setTimer converts that to frames at the CURRENT rate: 3600 at 30 Hz, 7200 at
-	// 60 Hz. Thirteen scripts then fire off `COUNTER "Restart Camera" EQUAL <literal>` where the
-	// literals - 3599, 3300, 3000 ... 1 - are baked into the shipped .map and are 30 Hz FRAMES.
-	// The seed scales with the tick rate; the literals cannot. So the first move needed the
-	// counter to reach 3599, which is 1 frame after the seed at 30 Hz and 3601 frames at 60 Hz.
-	//
-	// That the literals really are 30 Hz frames is not an assumption: every one of those scripts
-	// is NAMED for the wall-clock second the 30 Hz arithmetic produces - "If at 110" carries the
-	// literal 300, and (3600 - 300) / 30 = 110.00 - and it holds for all thirteen.
-	//
-	// It is camera-only because "Restart Camera" is the only counter in the map that is both
-	// timer-armed and compared against a frame literal; every other timed event uses
-	// TIMER_EXPIRED (value < 1), which is rate-invariant, and the patrols are CONDITION_TRUE on
-	// frame 0. Hence "camera stuck but things move around".
-	//
-	// Same cause explains the second half of the complaint: the gaps between literals are 300
-	// frames, which is 10 s at 30 Hz but 5 s at 60 Hz, while each MOVE_CAMERA_TO is authored to
-	// take 10 s - so every pan was pre-empted halfway and never arrived. "Moving now but very
-	// slow."
-	//
-	// Gated on isCountdownTimer so plain SET_COUNTER flags - the map's "Audio Level" and
-	// "Generals On-Line Kill Voice", compared against 0/1 - are left alone.
+	// GeneralsX: Raw frame literals in a map are 30 Hz frame counts, while a countdown timer is seeded in seconds and
+	// converted at the current rate (3600 at 30 Hz, 7200 at 60 Hz), so literals such as 3599 are scaled with GX_FRAMES30.
+	// Only countdown timers: plain SET_COUNTER flags (0/1) are left alone.
 	Int value = pCondition->getParameter(2)->getInt();
 	if (m_counters[counterNdx].isCountdownTimer) {
 		value = GX_FRAMES30(value);
@@ -7953,17 +7929,11 @@ void ScriptEngine::AdjustDebugVariableData(const AsciiString& variableName, Int 
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: Determinism-1 (ROADMAP_2027 M1 item 1): which script state is CLIENT-LOCAL, so
-// ScriptEngine::crc can leave it out. Every peer runs every script, but a condition can read the LOCAL player, camera,
-// selection or sound, and then fires on some peers only. The shipped Data\Scripts\MultiplayerScripts.scb is built on
-// that: "Set <faction> Faction" sets counter _FACTION from SKIRMISH_PLAYER_FACTION("<Local Player>"), and the
-// victory/defeat timers start on MULTIPLAYER_*_DEFEAT/VICTORY (TheVictoryConditions->isLocal*). Hashing those
-// counters, timers or the scripts' one-shot isActive would split the CRC in every mixed-faction match. Decided
-// from the scripts' CONTENT alone (the same on every peer), never from what ran: a local script is one with a
-// client-dependent condition type, a local-player parameter, or a condition on a local counter/flag; whatever a local
-// action writes (a counter, a flag) or enables, disables or calls (a script, a group) becomes local too, to a fixpoint.
-// A local action is one in a local script or one naming the local player. Local state that DOES move objects still
-// splits the object CRC, as it always did; this only keeps purely local bookkeeping out of the new section.
+// GeneralsX: Which script state is client-local, so ScriptEngine::crc can leave it out. Conditions reading the local
+// player, camera, selection or sound fire on some peers only, and hashing their counters would split the CRC.
+// Decided from the scripts' content alone (the same on every peer), never from what ran. A script is local if it has a
+// client-dependent condition, local-player parameter or local counter; whatever a local action writes or enables,
+// disables or calls becomes local too, to a fixpoint.
 // ------------------------------------------------------------------------------------------------
 static Bool gxConditionTypeIsClientLocal( Int conditionType )
 {
@@ -7984,7 +7954,7 @@ static Bool gxConditionTypeIsClientLocal( Int conditionType )
 	}
 }
 
-// GeneralsX: review det1-hashes P2-3. These only READ their counter, for the HUD
+// GeneralsX: These only READ their counter, for the HUD
 // (ScriptActions::doDisplayCounter and its three siblings call TheInGameUI alone), so a local script showing a shared
 // counter must not make the counter local: that took it, and every script testing it, out of the CRC on every peer.
 static Bool gxActionOnlyDisplaysCounter( Int actionType )
@@ -8072,12 +8042,12 @@ Bool ScriptEngine::gxClassifyScript( Script *script )
 				localAction = gxNamesLocalPlayer( action->getParameter( i ) );
 			if( !localAction )
 				continue;
-			// GeneralsX: review det1-hashes P2-2 +. These name a UNIT or TEAM, not
+			// GeneralsX: These name a UNIT or TEAM, not
 			// a script, and change the sequential queue a SHARED script started - a stop empties it, the *_FOR_FRAMECOUNT
 			// actions set its wait (setSequentialTimer) - on one peer only; crc() then leaves the whole queue out (a
 			// unit/team name can be "<This Object>"/"<This Team>", resolved only at run time).
 			// Trade-off: the whole queue, not just the named units' entries - a coverage loss, never a false desync, and
-			// only in maps with such a local action (none in the shipped MP/skirmish scripts, 03/10); narrow it per
+			// only in maps with such a local action (none in the shipped MP/skirmish scripts); narrow it per
 			// entry if one ever needs that coverage.
 			switch( action->getActionType() )
 			{
@@ -8110,7 +8080,7 @@ Bool ScriptEngine::gxClassifyScript( Script *script )
 					case Parameter::ATTACK_PRIORITY_SET:	// GeneralsX: a set a local action creates or writes
 						if( action->getActionType() == ScriptAction::NAMED_APPLY_ATTACK_PRIORITY_SET
 							|| action->getActionType() == ScriptAction::TEAM_APPLY_ATTACK_PRIORITY_SET )
-							break;	// only READS the set (r2): its table stays shared and covered
+							break;	// only READS the set: its table stays shared and covered
 						if( !gxHasName( m_gxLocalAttackSets, name ) ) { m_gxLocalAttackSets.push_back( name ); changed = TRUE; }
 						break;
 					case Parameter::SCRIPT:
@@ -8136,7 +8106,7 @@ void ScriptEngine::gxClassifyClientLocal()
 	m_gxLocalGroups.clear();
 	m_gxLocalAttackSets.clear();
 	m_gxLocalSequentialStop = FALSE;
-	// GeneralsX: review det1-hashes P2-1. evaluateFlag answers TRUE for a flag named after a
+	// GeneralsX: evaluateFlag answers TRUE for a flag named after a
 	// pending UI interaction (m_uiInteractions), and signalUIInteract is only ever called with TheShellHookNames - e.g.
 	// "ShellOptionsOpened" when one player opens Options in a match. Such a flag is client-local from the start.
 	for( Int i = 0; i < SHELL_SCRIPT_HOOK_TOTAL; ++i )
@@ -8222,7 +8192,7 @@ void ScriptEngine::crc( Xfer *xfer )
 			xfer->xferSnapshot( &m_attackPriorityInfo[ i ] );
 
 	// A sequential script started by a LOCAL script runs on some peers only; the classifier marked its script local
-	// (the SCRIPT parameter of the start action), so it is left out the same way (adversarial review, P2).
+	// (the SCRIPT parameter of the start action), so it is left out the same way.
 	// A local stop action can remove entries on some peers only (gxClassifyScript): then the queue is left out whole.
 	for( VecSequentialScriptPtrIt it = m_sequentialScripts.begin(); it != m_sequentialScripts.end() && !m_gxLocalSequentialStop; ++it )
 		for( SequentialScript *seq = *it; seq; seq = seq->m_nextScriptInSequence )

@@ -393,20 +393,10 @@ long Targa::Load(const char* name, char* palette, char* image,bool invert_image)
 			/* Load the palette from the TGA if a palette buffer is provided
 			 * otherwise we will skip it.
 			 */
-			// GeneralsX @bugfix Validate the colour-map header before using it to
-			// offset into, and size a read for, the caller's palette buffer.
-			//
-			// CMapStart, CMapLength and CMapDepth all come straight from the file
-			// with no checks. CMapStart is a signed short and was multiplied by the
-			// entry size and ADDED to the destination pointer, so a crafted TGA
-			// picked both the write offset (positive or negative) and the length.
-			// Callers pass fixed stack arrays of 256*3 or 256*4 bytes, and a 256-entry
-			// 32bpp palette already fills the larger of those exactly — so any
-			// nonzero CMapStart overran even a well-formed-looking file. TGAs are
-			// loaded from BIG archives and from user-supplied maps and mods.
-			//
-			// A colour map cannot legally exceed 256 entries, and the smallest buffer
-			// any caller supplies is 256*3, so bound the total against that.
+			// GeneralsX: Validate the colour-map header before using it to offset into, and size a read for, the palette buffer.
+			// CMapStart, CMapLength and CMapDepth come straight from the file, and CMapStart is a signed short added to the
+			// destination pointer. Callers pass fixed 256*3 or 256*4 byte arrays and a colour map cannot exceed 256 entries,
+			// so the total is bounded against the smallest buffer. TGAs load from BIG archives and user maps and mods.
 			const long kMaxPaletteBytes = 256 * 3;
 			const bool paletteHeaderSane =
 				(Header.CMapStart >= 0) &&
@@ -1151,7 +1141,7 @@ long Targa::DecodeImage()
 				count &= 0x7F;
 				count++;
 
-				/* GeneralsX @bugfix Reject a packet claiming more pixels than remain.
+				/* GeneralsX: Reject a packet claiming more pixels than remain.
 				 * pixel_count is unsigned, so "pixel_count -= count" with an oversized
 				 * final packet wrapped it to ~2^64 and the loop kept decoding file
 				 * bytes into the heap until a read happened to fail. TGAs come from
@@ -1181,7 +1171,7 @@ long Targa::DecodeImage()
 				{
 				count++;
 
-				/* GeneralsX @bugfix Same bound as the run-length branch above. */
+				/* GeneralsX: Same bound as the run-length branch above. */
 				if ((unsigned long)count > pixel_count)
 					{
 					error = TGAERR_SYNTAX;

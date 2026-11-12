@@ -93,15 +93,9 @@ static WW3DFormat findFormat(const WW3DFormat formats[], WW3DFormat fallback)
 	// GeneralsX: W3DRadar: When DXVK/MoltenVK caps query returns no supported
 	// format (e.g. CheckDeviceFormat fails on macOS for R8G8B8/R5G6B5), fall back to a guaranteed format.
 	// Without this, texture creation silently produces a null D3D texture and crashes in buildTerrainTexture.
-	//
-	// GeneralsX @bugfix 14/06/2026 (iOS): the fallback MUST preserve an alpha channel for the
-	// overlay and shroud textures. On iOS, MoltenVK's caps query reports NO radar format as
-	// supported, so ALL THREE radar textures hit this fallback. The original code always returned
-	// X8R8G8B8 (no alpha); the shroud/overlay are then opaque and render solid black over the
-	// terrain -> black minimap in modes where the map starts shrouded (e.g. Generals Challenge).
-	// Each caller now passes the correct guaranteed-supported fallback: X8R8G8B8 for the opaque
-	// terrain layer, A8R8G8B8 (alpha) for the overlay and shroud layers. Both are universally
-	// supported on any Vulkan/Metal GPU.
+	// GeneralsX: the fallback must keep alpha for the overlay and shroud textures, or they render opaque black: each
+	// caller passes its own (X8R8G8B8 for the
+	// terrain layer, A8R8G8B8 for overlay and shroud).
 #if !defined(_WIN32)
 	fprintf(stderr, "W3DRadar: findFormat: no supported format found in caps query - falling back to format %d\n", (int)fallback);
 	fflush(stderr);
@@ -1396,8 +1390,8 @@ void W3DRadar::buildBorderTexture( Int width, Int height )
 			sy = clamp( bordered.lo.y + half, sy, bordered.hi.y - half );
 			RGBColor color;
 			// Nothing of the playable map, shrouded or not, may reach the margin: not its texels (filtering at the map image's
-			// edge blends them in), not a playable cell the lookup clamps onto (r13), nor anything
-			// next to it (r14, r15). So the plain colour wherever the sample - after the clamp - lies within GUARD of the
+			// edge blends them in), not a playable cell the lookup clamps onto, nor anything
+			// next to it. So the plain colour wherever the sample - after the clamp - lies within GUARD of the
 			// playable extent.
 			if( fade >= 1.0f || (wx > m_mapExtent.lo.x - GUARD && wx < m_mapExtent.hi.x + GUARD && sy > m_mapExtent.lo.y - GUARD
 					&& sy < m_mapExtent.hi.y + GUARD) )
@@ -1612,7 +1606,6 @@ void W3DRadar::draw( Int pixelX, Int pixelY, Int width, Int height )
 	// dimmed, at the map image's scale.
 	// The thin line still marks where the playable map ends.
 	// GeneralsX: Not in the legacy look: there the radar is retail's again, black margins included
-	//
 	const Bool border = !gxRadarRetailMargins && m_borderImage != nullptr && (scaledWidth < width - 1 || scaledHeight < height - 1);
 	if( border )
 	{

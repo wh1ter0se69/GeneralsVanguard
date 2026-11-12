@@ -16,28 +16,10 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: CAN THIS CACHED START DATA HAVE COME FROM THE MAP AT ALL?
-//
-// MapCache::addMap trusts a user-map entry when its size, CRC and timestamp match the file, and
-// never looks inside it again. On Windows, MapCache.ini lives in the retail user-data folder, which
-// retail Zero Hour, TheSuperHackers builds and Generals Online also read and rewrite. All of them
-// parse an entry into `Coord3D m_waypoints[8]` followed directly by `m_initialCameraPosition`, and
-// none clamps numPlayers - so reading a 12-player entry copies index 8 (the camera) into
-// Player_9_Start and whatever bytes follow into 10..12, and the next rewrite persists that. The map
-// file is untouched, so the size/CRC/timestamp test keeps passing forever. Measured on a desyncing
-// peer: Player_9_Start == InitialCameraPosition and Player_10..12_Start == 0,0 for all three of its
-// 12-player maps.
-//
-// The rule is deliberately narrow - a legitimate entry that trips it is re-scanned on EVERY launch:
-//   * numPlayers < 2: never judged. A map with no start waypoints is reported as 1 player.
-//   * a start at exactly (0,0): the value the reader leaves for a line the entry does not have, and
-//     where the foreign garbage landed in every poisoned entry measured. Real starts are inland.
-//   * Player_9_Start bitwise equal to the camera: the one alias an 8-entry reader ALWAYS produces,
-//     whatever its build's layout after that. Only index 8 - a real 10..12 on the camera is legal.
-// Starts that coincide with each other or with the camera below Player_9 are never judged: authors
-// do that, and no known reader can produce it.
-//
-// Engine-free so scripts/test/mapcache-credibility-test.cpp can drive it with the real entries.
+// Plausibility check for cached start data. Other builds sharing MapCache.ini read m_waypoints[8] unclamped,
+// so a 12-player entry gets the camera as Player_9_Start and 0,0 for 10..12; the next rewrite persists it.
+// Judged bad: a start at exactly (0,0), or Player_9_Start bitwise equal to the camera. numPlayers < 2 is never judged.
+// A legitimate entry that trips this is re-scanned on every launch.
 
 #pragma once
 

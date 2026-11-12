@@ -48,7 +48,7 @@
 #include "Common/GameUtility.h"
 #include "Common/GlobalData.h"
 #include "GameClient/GXNoShroud.h"
-#include "GameClient/GXDebugIntelGate.h"	// GeneralsX @security GX_CAM: who may have the camera find other players' armies
+#include "GameClient/GXDebugIntelGate.h"	// GeneralsX: GX_CAM: who may have the camera find other players' armies
 #include "Common/PerfTimer.h"
 #include "Common/Player.h"
 #include "Common/PlayerList.h"
@@ -294,7 +294,7 @@ GameClient::~GameClient()
 
 static void gxNoShroud( void );		// defined above update(); see the GX_NOSHROUD note there
 
-// GeneralsX: GX_REMASTERED_PROBE (graphics P3-3, GXGraphicsSettings.h): lets a run with no
+// GeneralsX: GX_REMASTERED_PROBE (GXGraphicsSettings.h): lets a run with no
 // keyboard - a headless peer, the Linux VPS - prove GXGraphics.ini persists. =1 reads the value and logs it
 // ([GXREMASTER]); =flip also flips it and writes the file, as the chord does. The value is render-only.
 static void gxRemasteredProbe( void )
@@ -656,32 +656,10 @@ static void gxDrawTimed( void )
 	gxReplayDiagDrawSpan( gxPerfMonoNs() - t0 );
 }
 
-// GeneralsX: [GXPACE], a 1 Hz frame-pacing probe.
-//
-// Exists because the frame pacer cannot be measured before it is patched, and BOTH obvious
-// ways to measure it return constants:
-//   * TheFramePacer->getUpdateTime() is frozen at its constructor 1/BaseFps for the whole of
-//     every harness run. TheFramePacer->update() is reachable only from GameEngine::execute()
-//     and the loading-screen fade, while every -lanhost/-lanjoin peer runs HeadlessMatch::run(),
-//     which calls TheGameEngine->update() directly. So this keeps its OWN clock and never asks
-//     the pacer anything.
-//   * TheDisplay->getAverageFPS() is a constant under -headless, because W3DDisplay::draw()
-//     returns on m_headless BEFORE updateAverageFPS(). Both that number and a locally counted
-//     rate are emitted, so a frozen one can be RECOGNISED rather than believed.
-//
-// Lives in GameClient/ deliberately. That path is not in the SimID source digest
-// (resources/gitinfo/simsourcedigest_watcher.cmake digests only {Include,Source}/{Common,
-// GameLogic,GameNetwork} plus build config), so this ships to one peer at a time and can never
-// cause an ENGINE_DIFFERS or DATA_DIFFERS refusal.
-//
-// Its own tag on its own line, never folded into [GXCRC]: several harnesses md5sum and diff the
-// .crc streams byte-for-byte across peers, so a per-peer clock in that stream would make every
-// one of them report a false desync. 1 Hz, because the iOS peer's stderr goes through a
-// filtered sink capped at 8 MB and a per-frame tag would truncate a match mid-run.
-//
-// Off unless GX_PACE is set. Reading the env var once is deliberate - it must not become a
-// per-frame syscall, and it must not vary mid-match.
-// ---------------------------------------------------------------------------
+// GeneralsX: [GXPACE], a 1 Hz frame-pacing probe, off unless GX_PACE is set (read once). It keeps its own clock:
+// TheFramePacer->getUpdateTime() is frozen in headless -lanhost/-lanjoin runs and getAverageFPS() is constant under
+// -headless. Own tag, not folded into [GXCRC] (harnesses diff the .crc streams across peers); 1 Hz because the iOS
+// stderr sink is capped at 8 MB.
 static Bool gxPaceSample( void )	// TRUE when it printed: [GXGFX] closes its window on the same iteration
 {
 	static const Bool s_enabled = (getenv("GX_PACE") != NULL);
@@ -723,31 +701,9 @@ static Bool gxPaceSample( void )	// TRUE when it printed: [GXGFX] closes its win
 	s_lastIter = now;
 	++s_iters;
 
-	// "Blocked waiting on a peer's input" and "my own local limiter held me" are completely
-	// different problems with different fixes, and the engine reports neither.
-	//
-	// GeneralsX: hold_ms could not see the thing it existed to measure.
-	//
-	// It used to attribute time only on an iteration where the logic frame did NOT advance, and
-	// split that between stall and hold. But the frame pacer's sleep happens in
-	// TheFramePacer->update(), at the END of an iteration that has just advanced a frame - so in
-	// singleplayer, where every iteration advances, the local limiter was credited NOTHING. Solo
-	// hold_ms read 0.00 across 1018 seconds while the limiter was demonstrably working, holding
-	// the loop to exactly 30.0 iterations per second.
-	//
-	// The limiter reports its own sleep as a cumulative total (FrameRateLimit::getTotalHoldNs), so
-	// hold is a MEASUREMENT rather than whatever time was left over, and no longer depends on
-	// whether the frame advanced. It is read as a per-window DELTA at emit time rather than
-	// accumulated here, because wait() and this sampler do not run at the same rate in either
-	// direction - the loading transition drives the pacer without going through GameClient, and
-	// HeadlessMatch never drives the pacer at all. See FrameRateLimit.h. stall_ms keeps the old
-	// rule, because being blocked on a peer genuinely IS defined by the frame not advancing.
-	// stall and hold MUST be disjoint or the split is worthless. sinceLastIter is wall time and
-	// therefore already contains the previous iteration's limiter sleep, so a window that is both
-	// blocked on a peer AND capped would otherwise report ~1000 ms of stall and ~1000 ms of hold -
-	// the same milliseconds, counted twice, in exactly the case this probe exists to diagnose.
-	// This could not happen before the limiter was allowed to run during network games; making it
-	// run is what created the overlap. Found by the cross-model review.
+	// hold_ms is a measurement: FrameRateLimit::getTotalHoldNs is cumulative and read as a per-window delta, since the
+	// pacer sleeps at the end of an advancing iteration. stall_ms counts only iterations where the frame did not
+	// advance. The two must be disjoint: sinceLastIter already contains the previous limiter sleep.
 	const int64_t holdNowNs   = (TheFramePacer != NULL) ? (int64_t)TheFramePacer->getTotalHoldNs() : 0;
 	const int64_t holdDeltaNs = holdNowNs - s_lastHoldNs;
 	s_lastHoldNs = holdNowNs;
@@ -829,44 +785,10 @@ static Bool gxPaceSample( void )	// TRUE when it printed: [GXGFX] closes its win
 }
 
 // ---------------------------------------------------------------------------
-// GeneralsX: [GXGFX], the 1 Hz render split (graphics P2 i-01/i-06).
-//
-// The frames are marked in W3DDisplay::draw and Present is timed through DX8Wrapper::Present_Probe; this only
-// prints what GameClient/GXGfxProbe.h accumulated. With GX_PACE on it closes its window on the SAME iteration
-// [GXPACE] prints, so both lines carry one frame= and describe one window; without it, its own 1 s window.
-// Printed right after gxPaceSample, before this update's DRAW, so a line describes the frames drawn since the
-// previous line - exactly [GXPACE]'s window.
-//
-// Field contract (ms are means per completed frame unless noted; a value that is not known is OMITTED):
-//   frame f0   logic frame at the end and start of the window (the alignment key across peers and runs)
-//   win        window wall ms;  n  frames that completed End_Render;  skip  draw() calls past the headless
-//              return that completed none (load screen, alt-tab, TiVO skip, early returns)
-//   lod        dynamic LOD level at print time (particle work changes with it)
-//   np pint pint99 pintmax   np = Present-to-Present intervals in the window; interval between successive Present returns, per Present (p99 is a 12.5%-bucket
-//              upper bound over at most 8 Presents per draw; a freeze-time draw can Present more than once)
-//   draw d99 dmax         W3DDisplay::draw wall, from the headless return to the end of End_Render
-//   dcpu off              draw's main-thread CPU, and draw - dcpu (time the thread was blocked or preempted)
-//   prep views part rtt begin scene ui flush pres   span wall ms (GXGfxProbe.h names each span);
-//   <span>c               the same span's main-thread CPU ms
-//   pmax       longest single Present;  ovh  the probe's own clock-read cost, us per frame (init-measured)
-//   cli        GameClient::update wall per update, from just after this print to the end of DRAW (cli - draw =
-//              client work: camera drivers, drawable updates, shroud refresh); an update that returns early is dropped
-//   dc dcmax   draws that reached the D3D8 device per completed draw(), over all its Presents (i-02: DX8Wrapper::Get_Draw_Calls_Total() delta
-//              between Present returns: the two wrapper sites plus every direct device draw, the shadow/water
-//              pre-pass included). NOT [GXDRAW]'s draws, which adds sorting inserts and skins.
-//   dcw tex rs the wrapper-only draw count (Get_Last_Frame_Statistics().draw_calls, main pass only), texture
-//              and render-state changes, per frame - kept for continuity with older logs
-// `pres` is the whole DXVK downstream wait, NOT GPU time - see GXGfxProbe.h. Reserved for later classes, never
-// reused: gpu gw gu gmax busy gsync csync cs vkdc rp sub pipe.
-//
-// The init line, once: [GXGFX] init clk=1 (POSIX thread clock) | clk=2 (Windows cycles / cpn) cpn= (cycles per
-// ns, Windows) rdw= rdc= (ns per wall / CPU clock read) w= h=, and with GX_GFX_LOAD lspan= lus= lsleep=.
-//   cpnw       Windows only: this window's cycles/ns from GetThreadTimes; a drift from init's cpn means the CPU
-//              fields (dcpu, <span>c, off) are not to be trusted for that window (the report tool flags it)
-//   therm lpm  Apple only (i-08): NSProcessInfo thermalState 0-3 and Low Power Mode 0/1, read at print time
-//   load       with GX_GFX_LOAD: the us loaded into lspan on every frame of THIS window, 0 on the windows between
-//              (a calibration run; gx-gfx-report.py --calib)
-// ---------------------------------------------------------------------------
+// GeneralsX: [GXGFX], the 1 Hz render split. It prints what GameClient/GXGfxProbe.h accumulated (frames marked in
+// W3DDisplay::draw, Present timed through DX8Wrapper::Present_Probe) and closes its window on the same iteration as
+// [GXPACE] when GX_PACE is on. Times are ms means per completed frame; unknown values are omitted; GXGfxProbe.h
+// names each span. pres is the whole DXVK downstream wait, not GPU time.
 static int gxGfxAppend( char *buf, int len, int cap, const char *fmt, ... )
 {
 	if( len < 0 || len >= cap )
@@ -983,7 +905,7 @@ static void gxGfxSample( Bool paceEmitted )
 		if( len > 0 && len < (int)sizeof( buf ) )
 			fprintf( stderr, "%s\n", buf );
 
-		// [GXGFXF] (graphics P2 c3-12; GXGfxProbe.h names every field): scene sub-spans and hmupd in ms, counters as
+		// [GXGFXF] (GXGfxProbe.h names every field): scene sub-spans and hmupd in ms, counters as
 		// means, per completed frame; same window and frame= as [GXGFX].
 		if( w.n > 0 )
 		{
@@ -997,7 +919,7 @@ static void gxGfxSample( Bool paceEmitted )
 				fprintf( stderr, "%s\n", buf );
 		}
 
-		// [GXSHADOW] (GX_SHADOWSTATS=1, graphics P2 c1-01; GXGfxProbe.h names every field): per completed frame,
+		// [GXSHADOW] (GX_SHADOWSTATS=1; GXGfxProbe.h names every field): per completed frame,
 		// counts as means, times (upd..pcol) in ms, upkb in KB. Same window and frame= as the [GXGFX] line above.
 		if( gxShadowOn() && w.n > 0 )
 		{
@@ -1050,25 +972,10 @@ static void gxGfxSample( Bool paceEmitted )
 }
 
 // ---------------------------------------------------------------------------
-// GeneralsX: The player's OWN lag verdict, on the game's own toast
-// channel.
-//
-// ONE SURFACE, CHOSEN BECAUSE IT COSTS NO .wnd EDIT. Adding a widget to Diplomacy.wnd would move
-// dataID, and a dataID move refuses every join with DATA_DIFFERS - which reads like a real data
-// mismatch and has cost this project a session before. TheInGameUI->message() is the engine's
-// existing toast channel, authored nowhere, so this ships with the engine alone and is outside the
-// sourceID digest as well (GameClient/, not Common/GameLogic/GameNetwork).
-//
-// THEIR OWN VERDICT AND NOBODY ELSE'S. gxPerfLocalVerdict() is built
-// from values measured on THIS machine; it never names another player. An in-game table of
-// everyone's numbers is a blame generator that would be wrong - [GXSTALL]'s blocked-slot field is
-// the standing example of an attribution signal that reads authoritative and is biased toward low
-// slot indices.
-//
-// ON CHANGE ONLY, AND NOT MORE THAN ONCE A MINUTE. The verdict is recomputed every second; toasting
-// every second would be the feature that makes players turn telemetry off - which they cannot,
-// because there is no opt-out, so restraint here is the whole bargain.
-// ---------------------------------------------------------------------------
+// GeneralsX: the player's own lag verdict on the existing toast channel (TheInGameUI->message()): no .wnd edit,
+// which would move dataID and refuse every join with DATA_DIFFERS. Built from this machine's measurements, never
+// naming another player. Toasted on change only and at most once a minute, though the verdict is recomputed every
+// second.
 static void gxPerfVerdictToast( void )
 {
 	/* GX_PERF_VERDICT_MAX, never a literal: a copy shorter than the composer's truncates, a
@@ -1122,7 +1029,7 @@ static void gxObserveDrive( void )
 	}
 	if (s_index < 0 || TheGameLogic == NULL || ThePlayerList == NULL || TheControlBar == NULL || TheGameLogic->getFrame() < 1)
 		return;
-	// Only a replay or an observer seat, never the shell map's own game (rcpu r1: the shell reached frame 1 and
+	// Only a replay or an observer seat, never the shell map's own game (the shell reached frame 1 and
 	// consumed the request before the replay loaded) and never a seated player's live view.
 	if (TheGameLogic->isInShellGame())
 		return;
@@ -1165,37 +1072,10 @@ static Bool gxProbeMaySeeOthers( void )
 #endif
 }
 
-// GeneralsX: GX_CAM - point the camera at an army, every N logic frames.
-//
-// GeneralsX: It picks ANY player's army, a shrouded enemy's included, and prints where: in a
-// live match against another human that told a player where every enemy army was. It now holds the camera wherever
-// gxProbeMaySeeOthers() says no, printing [GXCAMLOCK] once per match and no [GXCAM] move, so gx-ab's rule F excludes the
-// peer's fps; GX_CAMPAN follows the target, so it holds too.
-//
-// WHY THIS EXISTS. Every render measurement this project has taken from a `-lanhost -lanai` arm was
-// taken with the camera parked where the engine left it: over the local player's start position,
-// which in an AI-only match is a corner of the map where nothing ever happens. The 2026-08-18 weak-
-// peer survey says so itself (§5) and had to invalidate conclusions over it (§12.4). A renderer
-// measured over empty terrain is not the renderer a player runs: no armies, no particles, no
-// smudges, no shadow casters - so the very costs we are trying to measure are absent, and the arm
-// reports a comfortable null.
-//
-// WHAT IT DOES. Every GX_CAM frames, pick one active playable player that owns at least one MOBILE
-// object, take the centroid of those objects, and lookAt() it. Players are cycled by frame number,
-// so over a match the camera visits every army in turn.
-//
-// WHY IT IS DETERMINISTIC, and why that matters. The selection reads only the frame number and the
-// object list, in list order - no RNG, no wall clock, no input. Two peers running the same match
-// therefore drive their cameras identically, which keeps this usable as an A/B instrument rather
-// than a source of variance between arms. It is still CLIENT-side: lookAt() moves TheTacticalView
-// and nothing else, and GameLogic::getCRC walks Objects, ThePartitionManager, ThePlayerList and
-// TheAI - none of which the view touches. EXPECTED sim-neutral; prove it with a CRC A/B before any
-// result measured under it is quoted, because "the camera cannot matter" is exactly the kind of
-// assumption this project writes memos about.
-//
-// THE CANARY IS NOT OPTIONAL. It emits [GXCAM] every time it moves the camera. Without that line a
-// null render result is ambiguous between "the change did nothing" and "the camera never moved and
-// the arm measured empty grass again" - and those two look identical in an fps number.
+// GeneralsX: GX_CAM - every N logic frames, look at the centroid of the mobile objects of one active playable
+// player, cycling players by frame number, so render measurements see armies instead of empty terrain. Deterministic
+// (frame number and object order only) and client-side. Emits [GXCAM] per move. Held where gxProbeMaySeeOthers()
+// says no: [GXCAMLOCK] once per match; GX_CAMPAN holds too.
 static Coord3D s_gxCamTarget;			// GX_CAM's last target, for GX_CAMPAN
 static Bool    s_gxCamHaveTarget = FALSE;
 
@@ -1345,15 +1225,13 @@ static void gxCameraDrive( void )
 	fflush(stderr);
 }
 
-// GeneralsX: GX_CAMPAN=<amplitude>,<period> - a moving camera for render measurements
-// (graphics P2: i-07's baseline scenes and c1-01's shadow probe).
+// GeneralsX: GX_CAMPAN=<amplitude>,<period> - a moving camera for render measurements.
 //
-// GX_CAM jump-cuts to the front line every N frames and then PARKS, so a "camera over a battle" scene is a parked
-// camera most of the time and terrain/shadow/culling work that only happens while the view moves is never seen.
-// This pans the view along x around GX_CAM's last target, target.x + amplitude * sin(2 pi frame / period), once
+// GX_CAM jump-cuts to the front line every N frames and then PARKS, so terrain/shadow/culling work that only happens while
+// the view moves is never seen. This pans the view along x around GX_CAM's last target, target.x + amplitude * sin(2 pi frame / period), once
 // per logic frame. It needs GX_CAM (no target, no pan) and does nothing until the first GX_CAM move.
 //
-// GeneralsX @test skybox-1 11/10/2026: GX_CAMPITCH=<degrees> holds this client's view pitch (0.1..89.9, View::setPitch's own
+// GeneralsX: GX_CAMPITCH=<degrees> holds the view pitch of this client (0.1..89.9, View::setPitch's own
 // clamp) so a picture or a draw-cost run sits at the horizon without an admin session. Client-only; unset = untouched.
 static void gxCameraPitch( void )
 {
@@ -1415,18 +1293,10 @@ static void gxCameraPan( void )
 	TheTacticalView->lookAt(&p);
 }
 
-// GeneralsX: GX_SHOT=<frame>[,<frame>...] takes the same PNG screenshot as the screenshot hotkey
-// (TheDisplay->takeScreenShot, the MSG_META_TAKE_SCREENSHOT_PNG path in CommandXlat.cpp) once at each listed logic
-// frame of the process's first match; never in the shell, and never in a later match (28/09/2026: the W3D capture
-// clock counts from the first match, so a later match's frame N would not show a fresh run's phase at frame N). Files go where the hotkey writes
-// them, <user data>/Screenshots/sshot_<local time>.png, so they sort in request order; each capture logs
-// "[GXSHOT] n=<k> f=<frame> asked=<frame>". It lets an A/B harness compare two arms' renders of the same
-// deterministic scene at the same logic frame on machines where an outside screen grabber has no permission. The
-// hotkey's "screenshot saved" message is not shown while GX_SHOT is set (W3D_UpdateScreenshotMessages), so no shot
-// contains an earlier one's message. scripts/test/gx-shotdiff pairs and compares the shots.
-// Off when GX_SHOT is unset, and on a -headless peer (one log line). Strict parse: 1-16 comma-separated decimal
-// frames, each 1..999999999, strictly ascending, nothing else; anything else turns it off and logs the reason once.
-// Client-only: it reads the logic frame and game mode and writes nothing the simulation reads.
+// GeneralsX: GX_SHOT=<frame>[,<frame>...] takes the screenshot-hotkey PNG (TheDisplay->takeScreenShot) at each
+// listed logic frame of the first match only (the W3D capture clock counts from the first match), never in the
+// shell. Logs [GXSHOT] n=<k> f=<frame> asked=<frame>. Off when unset or -headless. Strict parse: 1-16 ascending
+// decimal frames, each 1..999999999, else off with the reason logged once.
 static Bool gxShotParse( const char *env, UnsignedInt *frames, Int maxFrames, Int *count, const char **why )
 {
 	*count = 0;
@@ -1556,11 +1426,11 @@ Real gxRenderTimeScale( void )
 	return gxShotCaptureOn() ? (Real)s_gxClockSteps : TheFramePacer->getActualLogicTimeScaleOverFpsRatio();
 }
 
-// GeneralsX: The camera's own easing (W3DView zoomCameraToDesiredHeight, movePivotToGround) steps by
-// min(speed * BaseFps / render fps, 1) per draw and STOPS once the remainder is under a threshold, so where it comes to
-// rest depended on the render cadence: a constant sub-pixel camera offset for the rest of the match, measured as per-pixel
-// noise over 60-68% of an uncapped A-vs-A pair on uneven ground (Mini 2026-09-29, Red Rock). Under capture it steps by
-// the same total per logic frame, BaseFps / tick rate, once per logic frame.
+// GeneralsX: the camera easing (W3DView zoomCameraToDesiredHeight, movePivotToGround) steps by min(speed * BaseFps /
+// render fps, 1) per draw and STOPS once the remainder is under a threshold, so where it comes to rest depended on
+// the render cadence: a constant sub-pixel camera offset for the rest of the match, seen as per-pixel noise on
+// uneven ground. Under capture it steps by the same total per logic frame, BaseFps / tick rate, once per logic
+// frame.
 Real gxRenderBaseOverUpdateFpsRatio( void )
 {
 	return gxShotCaptureOn() ? (Real)s_gxClockSteps * (Real)BaseFps / (Real)LOGICFRAMES_PER_SECOND
@@ -1711,45 +1581,10 @@ static void gxShotDrive( void )
 // lobby option set by the HOST (HeadlessMatch hostStressFromEnv, "ST=") and applied by the
 // simulation on every peer: GameLogic::gxStressSpawn / gxStressOrders, GameLogic/GXStress.h.
 
-// GeneralsX: GX_NOSHROUD=1 - draw the whole map on THIS client, shroud off.
-//
-// WHY THIS EXISTS. Every rendered A/B arm so far measured a SHROUDED map: the local player sees
-// its own corner, so most AI bases and armies are culled before they reach the renderer
-// (W3DScene.cpp:838 skips robj->Render for anything past OBJECTSHROUD_CLEAR) and the render-side
-// numbers understate the load. The synced reveal (MSG_GX_CHEAT_REVEAL_MAP) cannot fix that in the
-// real Windows + Mini lobby: gxCheatTarget refuses every cheat with two humans in the match
-// (GameLogicDispatch.cpp:1694-1731), on every peer, so it is a one-human instrument only.
-//
-// WHAT IT DOES. Every client site that culls by the shroud asks gxShroudDrawn() (GameClient/GXNoShroud.h), which is
-// retail's ENABLE_CONFIGURABLE_SHROUD switch, TheGlobalData->m_shroudOn, and false under the probe: W3DScene.cpp,
-// W3DView.cpp, W3DRadar.cpp, BaseHeightMap.cpp, InGameUI.cpp, and the culls that read the grid directly
-// FXList::doFXPos/doFXObj, ParticleSystem::update and W3DPropBuffer::drawProps. Left culling on purpose because they
-// cost no render time: radar blips (W3DRadar.cpp:664/1635), the order and cursor gates (CommandXlat.cpp:2386,
-// InGameUI.cpp:3750/6529/6785) and fogged toppling trees (W3DTreeBuffer.cpp:1852). The flag DERIVED from the grid,
-// Drawable::fullyObscuredByShroud, is forced false in its setter (Drawable.cpp): it is read before W3DScene's override,
-// and a ghost snapShot or an observer switch would otherwise hide a unit. W3DGhostObject::snapShot is gated too, so no
-// static ghost copy replaces a live model.
-//
-// WHAT IT DOES NOT DO. It writes no global data (backlog #22): it used to CLEAR m_shroudOn, which forced
-// update()'s getShroudedStatus refresh - a sim cache logic reads - to be re-opened with `|| probe`, and then a map whose
-// GameData says ShroudOn = No ran that refresh on the probe peer alone. The refresh below is retail's again, and the
-// shroud grid in the frame CRC (PartitionCell) is never touched. Set once, here, from init() - before TheDisplay
-// exists, so W3DScene and the terrain build without a shroud pass - and nothing a map loads can switch it back.
-// EXPECTED sim-neutral, like GX_CAM: prove it with the [CRC] stream before quoting a number measured under it. Set it
-// on EVERY rendered peer, in BOTH arms, or the arms differ.
-//
-// THE CANARY IS NOT OPTIONAL: [GXNOSHROUD] says the shroud was off; without it a render number
-// came from a shrouded map and is provisional.
-//
-// GeneralsX: ONLY IN A GX_TEST_INSTRUMENTS BUILD. In a shipped build this was a map hack: one
-// environment variable, and a player in a live online match saw every enemy unit and building, undetectable by the
-// other peers because nothing the simulation reads changes. A per-match gate (replay / observer / no network game) cannot
-// be applied here: this runs once, before any match exists, and what it decides is built in at init (W3DScene's shroud
-// pass, BaseHeightMap's W3DShroud) and cannot be withdrawn when a match turns out to be against another human. So a
-// build without the instruments ignores it and says so - in a line WITHOUT the [GXNOSHROUD] canary, so gx-ab's G14
-// excludes that peer's fps instead of passing a shrouded map. A replay or an observer seat seen as itself loses nothing:
-// it draws no shroud anyway (gxObserveDrive's note). Rendered A/B arms that need the whole map from a PLAYER's seat build
-// with -DGX_TEST_INSTRUMENTS=ON, both arms.
+// GeneralsX: GX_NOSHROUD=1 draws the whole map on this client: every client shroud cull asks gxShroudDrawn()
+// (GXNoShroud.h), false under the probe. It writes no global data, never touches the shroud grid in the frame CRC,
+// and is set once from init(). Only in a GX_TEST_INSTRUMENTS build, since it would reveal enemies; otherwise it is
+// ignored with a line lacking the [GXNOSHROUD] canary.
 static void gxNoShroud( void )
 {
 #if ENABLE_CONFIGURABLE_SHROUD
@@ -1845,18 +1680,10 @@ static void gxFastForwardSchedule()
 	}
 }
 
-// GeneralsX: GX_REPLAY_PAUSE="<frame>:<seconds>" - render-split gate G0:
-// the draw-only ceiling of a late-game scene. In a replay played through the client
-// (-loadreplay: no network, so a paused game halts - GameEngine::isGameHalted, FramePacer::getActualLogicTimeScaleFps),
-// pause the logic at <frame> for <seconds> of wall time while the client keeps drawing that world, then resume once.
-// Compare [GXPACE] rfps and [GXGFX] spans inside the window with the same scene running on either side. setGamePaused also
-// pauses game sound (GameLogic::setGamePaused), so the window's frame carries no audio work either: say so with the number.
-// Prints "[GXRPAUSE] on f=<frame> paused=<0|1>" and "[GXRPAUSE] off f=<frame> held_ms=<ms>"; on and off must print the same
-// frame. Ignored outside a replay; one window per process; never with GX_REPLAY_SEEK or a strip click (both unpause).
-// Run uncapped (-noFPSLimit), or the window measures the frame cap. Inside the window the per-drawable and ghost updates
-// are skipped too (GameClient::update freezeTime): that is the draw-only ceiling, not the running frame minus the tick.
-// With tick catch-up for single player, rfps outside the window also counts logic-only passes and there
-// are none inside it (paused = ineligible): compare frames DRAWN, [GXPACE] iters - cu, or run with GX_CATCHUP=0.
+// GeneralsX: GX_REPLAY_PAUSE="<frame>:<seconds>" - in a replay played through the client (-loadreplay), pause logic
+// at <frame> for <seconds> of wall time while the client keeps drawing, then resume once: the draw-only ceiling of a
+// scene. Prints [GXRPAUSE] on and off lines with the frame. Ignored outside a replay; one window per process; never
+// with GX_REPLAY_SEEK. Run uncapped (-noFPSLimit); sound and per-drawable updates are paused too.
 static void gxReplayPauseSchedule()
 {
 	static const char *const s_spec = getenv("GX_REPLAY_PAUSE");
@@ -1879,7 +1706,7 @@ static void gxReplayPauseSchedule()
 		TheGameLogic->setGamePaused(TRUE, FALSE, FALSE);
 		s_since = now;
 		s_state = 1;
-		// paused=1 is the proof the window holds the logic (review: a refused pause would label a running match "held")
+		// paused=1 is the proof the window holds the logic (a refused pause would label a running match "held")
 		fprintf(stderr, "[GXRPAUSE] on f=%u paused=%d\n", (unsigned)frame, TheGameLogic->isGamePaused() ? 1 : 0);
 	}
 	else if (s_state == 1 && std::chrono::duration<double>(now - s_since).count() >= s_seconds)
@@ -1954,17 +1781,10 @@ static void gxTestSaveAtFrame()
 	fprintf(stderr, "[SAVELOAD] test save at frame %d: SaveCode %d file '%s'\n", at, (Int)r.saveCode, r.filename.str());
 }
 
-// GeneralsX: GX_TEST_QUIT_AT=<frame>[:surrender] - at <frame> this peer QUITS the match through the calls
-// the in-game menu makes, so a headless run (scripts/test/victory-probe.sh QUIT=) exercises the real quit path:
-//   (default)  Esc > Exit Game > Yes: QuitMenu.cpp exitQuitMenu, i.e. GameLogic::quit(FALSE) with the quit menu up - which is
-//              what makes quit() quit (MSG_SELF_DESTRUCT(TRUE), then exitGame) instead of toggling the menu.
-//   surrender  Esc > Surrender: surrenderQuitMenu's MSG_SELF_DESTRUCT(TRUE); the player stays and watches.
-//   exitprocess  (GeneralsX: rw1-I) the default quit, then a normal engine shutdown - a rendered
-//              -loadreplay run otherwise stays at the score screen; the GXCAP capture driver needs the process to end by
-//              itself (device release included) to judge its exit status.
-//   exitonly   NOT a quit: GameLogic::exitGame alone, the teardown a desync's end-game timer does (Network::setSawCRCMismatch
-//              -> ScriptEngine) - no self-destruct, nobody chose to leave. The control arm for "only a quit is a quit".
-// Off unless set; fires once. exit and surrender only do what the player's own two clicks do.
+// GeneralsX: GX_TEST_QUIT_AT=<frame>[:surrender] - at <frame> this peer quits through the in-game menu calls, so a
+// headless run exercises the real quit path. Default: Esc > Exit Game > Yes. surrender: MSG_SELF_DESTRUCT(TRUE), the
+// player stays. exitprocess: the default quit, then a normal engine shutdown. exitonly: GameLogic::exitGame alone,
+// no self-destruct. Off unless set; fires once.
 static void gxTestQuitAtFrame()
 {
 	static Int s_frame = -2;
@@ -2100,17 +1920,10 @@ static void gxTestRevealScript()
 	fflush(stderr);
 }
 
-// GeneralsX: GX_TEST_CHEAT_SCRIPT="<frame>:<order>:<target>,...": at each listed logic frame, run
-// one step and print one "[GXCHEATSCRIPT] step <n> frame <f> ..." line. Cheat orders go through the message stream as the
-// Debug menu's buttons send them, so an admin's is signed on its way out (Network.cpp gxSealAdminOrder): spawn, cars and
-// rangers (7 VETERAN AmericaVehicleHumvee, CarSedan01 - a car-bomb-convertible civilian car - or AmericaInfantryRanger at
-// the map's centre), kill (defeat, no transfer), money (+1000), wipe (KILL_OBJECTS, structures too). <target>: a slot
-// number (its "player<slot>"), "me" - this peer's own Player, an observer's being the shared ReplayObserver - or "obs",
-// the ReplayObserver whoever sends it. Two more take
-// "me": enter - each of this player's Rangers, in id order, is sent into one Neutral unmanned vehicle, in id order, as a
-// selection and a right-click send it; probe - per kind (Humvee, car, Ranger), who owns the living ones and how many are
-// unmanned and veteran (a read of simulation state, the same on every peer at one frame). Test-only, like
-// GX_TEST_FORGE: scripts/test/net-kill-gates.sh admin-spawn-neutral.
+// GeneralsX: GX_TEST_CHEAT_SCRIPT="<frame>:<order>:<target>,...": at each listed logic frame run one step and print
+// a [GXCHEATSCRIPT] line. Cheat orders go through the message stream as the Debug menu sends them (an admin's is
+// signed in Network.cpp gxSealAdminOrder): spawn, cars, rangers, defeat, money, wipe. <target>: a slot number, me
+// (this peer's Player) or obs (the ReplayObserver).
 static void gxTestCheatScript()
 {
 	static UnsignedInt s_frame[16];
@@ -2620,20 +2433,10 @@ static void gxTestEnterQueueScript( CommandTranslator *xlat )
 }
 #endif
 
-// GeneralsX: H02 (ROADMAP_2027 M2): translate this update's
-// input and queue the orders on the network BEFORE the draw and its blocking Present, instead of after them in
-// GameEngine::update. An order used to wait a whole draw (iPad ~8 ms, most of it Present) before it was even queued, and
-// its local feedback (selection, move hint) was first drawn one update later; so did every frame's command-count packet.
-// The send itself still obeys the connections' frame-grouping deferral (Connection::doSend), so the wire gain is UP TO
-// one draw (H02's own A/B measured it with a [GXWIRE] trace that does not ship: modernize/smooth-input).
-// SAME EXECUTION FRAME BY CONSTRUCTION: no logic tick runs between here and GameEngine::update's own translation (logic
-// runs only after it), so getExecutionFrame() stamps what it would have stamped a draw later; Network::sendLocalCommands
-// never relays a frame and only sends (ConnectionManager::flushSends drains the socket into the transport buffer but
-// processes nothing), so the frame-ready decision and all processing of what was received stay after the draw. GameEngine::update still translates and sends whatever is appended after this point (the draw, the
-// shell, the in-game UI), in the same FIFO order.
-// RENDERED NETWORK MATCHES ONLY: a -headless peer draws nothing, so it keeps the old path exactly. In-match GUI callbacks
-// now run before the draw; if one ends or replaces the match (a Debug-menu load does it synchronously) this returns
-// FALSE and GameClient::update stops before drawing a world nothing has updated yet. GX_H02_OFF=1 restores the old timing.
+// GeneralsX: translate this update's input and queue the orders on the network BEFORE the draw and its blocking
+// Present, so an order is not queued a whole draw late. Same execution frame: no logic tick runs between here and
+// GameEngine::update's own translation. The frame-ready decision stays after the draw. Rendered network matches
+// only; if a GUI callback ends the match this returns FALSE. GX_H02_OFF=1 restores the old timing.
 static Bool gxSendOrdersBeforeDraw( void )
 {
 	static const Bool s_off = getenv( "GX_H02_OFF" ) != nullptr;
@@ -2660,9 +2463,9 @@ void GameClient::update()
 	// GeneralsX: First, so its clock read is as close to the loop's wake as it can be: the
 	// render interpolation phase every drawable of this frame is drawn at (GXLogicPhase.h). One sample per update, on
 	// purpose: camera tracking, the drawables' client updates, attached emitters and the draw all read this one phase
-	// and so agree with each other; a second sample just before the draw would split them (declined).
-	// The client work before the draw adds its variable time as latency jitter; measured on the whole path, judder is cv
-	// 0.037-0.038 at ~600 fps uncapped (Windows, 10,800 frames) against 2.9-3.9 without interpolation.
+	// and so agree with each other; a second sample just before the draw would split them.
+	// The client work before the draw adds its variable time as latency jitter; with interpolation, judder is cv
+	// 0.037-0.038 at ~600 fps uncapped, against 2.9-3.9 without.
 	TheDisplay->updateLogicPhase();
 	gxShotClockTick();	// GeneralsX: before anything this update animates or draws
 	gxTestSelect();	// GeneralsX: GX_TEST_SELECT: a Command Center's command bar for GX_SHOT
@@ -2783,37 +2586,10 @@ void GameClient::update()
 		return;
 	}
 
-	// GeneralsX: The operator's voice, inside a match.
-	//
-	// WHY THIS IS NEEDED AT ALL. announceToRoom and noticeTo already emit an operator line as
-	// GXSAY <room> 0.0.0.0 <text> and need no new client capability - the shape was chosen for
-	// exactly that reason - but the grey sender-zero line is DRAWN in the `senderIp == 0` branch at
-	// WOLLobbyMenu.cpp:5373-5393 and nowhere else. So operator messaging is free in the lobby and
-	// costs this call in a match.
-	//
-	// AHEAD OF TheShell->UPDATE() BELOW, deliberately. The shell's relay-lobby drain
-	// (WOLLobbyMenu.cpp:5362, via gxLobbyTakeChat) consumes the SAME bounded queue - Transport's
-	// 16-slot chat ring, Transport.h:719-724 - and whichever runs first takes the line. That drain
-	// is reached only through Shell::update()'s runUpdate() over the screen stack (Shell.cpp:205),
-	// which is what TheShell->UPDATE() below drives; TheWindowManager->UPDATE() just after this
-	// does NOT reach it. The drain is also gated on s_relayLobby, which WOLLobbyMenuShutdown clears
-	// when a game is pushed, so today it does not run during a match - ordering this first means the
-	// property does not DEPEND on a flag owned by another file, and scripts/test/gxm1-reach-test.sh
-	// asserts the order rather than trusting a comment.
-	//
-	// GeneralsX: MOVED UP, ABOVE THE RTS_DEBUG EARLY RETURN. This used to
-	// sit between TheDisplayStringManager->update() and TheShell->UPDATE(), which is below the
-	// `if (TheGlobalData->m_noDraw > TheGameLogic->getFrame() ...) return;` guard that RTS_DEBUG
-	// compiles in. A debug build running with m_noDraw therefore skipped the drain entirely and
-	// every operator line went unrendered - and the ordering check could not see it, because the
-	// drain was still textually present and still textually above the shell. Up here it is above
-	// BOTH remaining returns in this function, and the shell ordering is unchanged.
-	//
-	// PLATFORM REACH: this is GameClient, which every platform compiles, and GameEngine::update()
-	// calls TheGameClient->UPDATE() unconditionally (GameEngine.cpp:1278) from both engine classes
-	// (SDL3GameEngine.cpp:1154, Win32GameEngine.cpp:169). No engine-class edit is needed and none
-	// is made - a second call site there would render every operator line twice. That is the
-	// d19090d14 lesson pointed the other way, and the reach test holds it.
+	// GeneralsX: draws operator lines (GXSAY <room> 0.0.0.0 <text>) inside a match; the grey sender-zero line is drawn
+	// only in the senderIp == 0 branch of WOLLobbyMenu.cpp. Runs ahead of TheShell->UPDATE() because the shell lobby
+	// drain consumes the same 16-slot chat ring and the first to run takes the line, and above the RTS_DEBUG m_noDraw
+	// return. No engine-class call site: it would render each line twice.
 	gxMatchDrainOperatorLines();
 	// GeneralsX: Out of the Online lobby for the match, back in after it
 	// (GXMatchChat.h gxMatchPresenceGate) - a player in a game was also listed in the main lobby. And the
@@ -2893,16 +2669,10 @@ void GameClient::update()
 		{	// update() could free the Drawable, so go ahead and grab 'next'
 			Drawable* next = draw->getNextDrawable();
 #if ENABLE_CONFIGURABLE_SHROUD
-			// GeneralsX: RETAIL'S GATE, WITH OR WITHOUT GX_NOSHROUD. getShroudedStatus() is a
-			// lazy cache (PartitionData::m_shroudedness / m_everSeenByPlayer) that logic reads back
-			// (ActionManager.cpp:114/272): WHEN it recomputes decides m_everSeenByPlayer, so this must run on
-			// exactly the frames it runs on every other peer. The probe no longer writes m_shroudOn (backlog #22),
-			// so this is that schedule; the probe changes drawing only - the setter forces the resulting flag false
-			// (Drawable.cpp) and snapShot() refuses (W3DGhostObject.cpp).
-			// GeneralsX: Since fix/transfer-shroud-history-free no logic decision reads
-			// m_everSeenByPlayer: :272 tests the cells (isFullyShroudedForPlayer), :114 never told FOGGED from SHROUDED,
-			// and every other logic reader takes only clear-ness, which comes from the cells. The schedule above still
-			// matches retail, but it no longer decides anything another peer can see. Proof: GX_VISPROBE (M1 item 2).
+			// GeneralsX: retail gate, with or without GX_NOSHROUD. getShroudedStatus() is a lazy cache
+			// (PartitionData::m_shroudedness / m_everSeenByPlayer) that logic reads back, so it must recompute on the same
+			// frames as on every other peer; the probe changes drawing only. No logic decision reads m_everSeenByPlayer now
+			// (ActionManager.cpp tests the cells), so the schedule matches retail but decides nothing another peer can see.
 			if (TheGlobalData->m_shroudOn)
 #else
 			if (true)
@@ -3000,9 +2770,9 @@ void GameClient::update()
 
 	// GeneralsX: GX_SHOT capture, right after this frame was drawn and presented: the image is
 	// the state at the logged logic frame. It reads the back buffer after Present, as the screenshot hotkey does
-	// (CommandXlat runs in propagateMessages: after this update, or - in a rendered network match since H02 - before
+	// (CommandXlat runs in propagateMessages: after this update, or in a rendered network match before
 	// this draw, reading the previous frame's presented buffer). D3D leaves a DISCARD back buffer undefined
-	// after Present; under DXVK the last rendered image stays there (the Mini's shots show the scene), and the hotkey
+	// after Present; under DXVK the last rendered image stays there, and the hotkey
 	// has always relied on the same.
 	gxShotDrive();
 	missileVisualTestFire();	// GX_TEST_FIRESW: test input only
@@ -3975,8 +3745,8 @@ void GameClient::xfer( Xfer *xfer )
 	}
 
 
-	// GeneralsX @bugfix skybox-1 12/10/2026 (skybox): a map script that switched the sky off keeps it off after a
-	// load (W3DWater.cpp's latch; the engine reset before the load cleared it). Version 3 saves read as "not switched off".
+	// GeneralsX: a map script that switched the sky off keeps it off after a
+	// load (W3DWater.cpp's latch; the engine reset before the load cleared it). Version 3 saves read as not switched off.
 	if (version >= 4)
 	{
 		Bool skyOff = gxSkyScriptOff();

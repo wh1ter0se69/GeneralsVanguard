@@ -1,7 +1,7 @@
-// GxDxvkMath.h - DXVK 2.6's CPU vector/matrix arithmetic, for the FF state GxPackFF uploads (rw3-P, 11/10/2026).
+// GxDxvkMath.h - DXVK 2.6's CPU vector/matrix arithmetic, for the FF state GxPackFF uploads.
 //
 // Adapted from DXVK 2.6 (fbraz3 fork 954c5c69 = the classic path players run) src/util/util_matrix.cpp / util_matrix.h and
-// src/util/util_vector.h - ALTERED (GXRender/third_party/SOURCE.txt: paths, commit, sha256). Approved by, 11/10/2026.
+// src/util/util_vector.h - ALTERED (GXRender/third_party/SOURCE.txt: paths, commit, sha256).
 // DXVK is Copyright (c) 2017 Philip Rebohle and DXVK contributors, provided under the zlib/libpng licence:
 //   This software is provided 'as-is', without any express or implied warranty. In no event will the authors be held liable
 //   for any damages arising from the use of this software. Permission is granted to anyone to use this software for any
@@ -18,7 +18,7 @@
 // contraction), while its scalar `coef = a * b - c * d` lines are single statements. Do not "simplify" anything here.
 //
 // FP CONTRACTION, pinned to what DXVK's shipped builds do (DXVK's meson.build sets no -ffp-contract: each compiler's default):
-//   macOS / iOS arm64, Apple clang (cmake/dx8.cmake meson build): per-statement fusion. OBSERVED in RI-A's libdxvk_d3d9: inverse()
+//   macOS / iOS arm64, Apple clang (cmake/dx8.cmake meson build): per-statement fusion. OBSERVED in libdxvk_d3d9: inverse()
 //     = 18 fmadd (its 18 coef lines), Matrix4*Matrix4 and Matrix4*Vector4 = 0 fused ops. -> `#pragma clang fp contract(on)`.
 //   Windows x64, mingw-w64 gcc (build-dxvk-win64.ps1) and Linux x86_64 gcc: -msse..-msse3 -mfpmath=sse, no FMA instruction set,
 //     so nothing can fuse. -> MSVC `fp_contract (off)`; a GCC build with FMA enabled is refused below.

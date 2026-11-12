@@ -28,20 +28,8 @@
 
 #define AL_STREAM_BUFFER_COUNT 32
 
-// ---------------------------------------------------------------------------
-// Audio diagnostics
-//
-// Intermittent audio faults (a sudden blast of noise, the stalled-speech chirp)
-// are hard to catch because by the time a human reacts the state that caused it
-// is gone. So streams continuously record their interesting transitions into a
-// small ring buffer, costing nothing until something asks for it, and the player
-// triggers a dump the moment they hear the fault. The dump prints the recent
-// history plus every live stream's current state, which is what actually
-// distinguishes "restarted with stale buffers still queued" from "decoder handed
-// us garbage".
-//
-// Trigger: F9 on desktop, a four-finger tap on iOS.
-// ---------------------------------------------------------------------------
+// Audio diagnostics: streams record their transitions into a small ring buffer, and a dump prints the recent
+// history plus every live stream's current state. Trigger: F9 on desktop, a four-finger tap on iOS.
 void AudioDebugRecord(const char *fmt, ...);
 void AudioDebugDump(const char *reason);
 
@@ -51,13 +39,13 @@ public:
     OpenALAudioStream();
     ~OpenALAudioStream();
 
-    // GeneralsX @bugfix 14/06/2026 The data callback now returns FALSE when the source
+    // The data callback now returns FALSE when the source
     // stream has reached true end-of-file (no more data will ever come), so update()
     // can let a finished one-shot speech reach a stable AL_STOPPED instead of endlessly
     // restarting its drained source. Returns TRUE on a normal refill or transient error.
     void setRequireDataCallback(std::function<bool()> callback) { m_requireDataCallback = callback; }
     ALuint getSource() const { return m_source; }
-    // GeneralsX @bugfix 14/06/2026 True once the source stream signalled real EOF.
+    // True once the source stream signalled real EOF.
     bool isAtEnd() const { return m_endOfData; }
 
     bool bufferData(const uint8_t *data, size_t data_size, ALenum format, int samplerate);
@@ -73,8 +61,8 @@ public:
 
 protected:
     std::function<bool()> m_requireDataCallback = nullptr;
-    bool m_endOfData = false; ///< GeneralsX: source stream signalled true EOF; stop restarting it
-    int m_stalledProbes = 0;  ///< GeneralsX: consecutive EOF-probes that produced no new data
+    bool m_endOfData = false; ///< source stream signalled true EOF; stop restarting it
+    int m_stalledProbes = 0;  ///< consecutive EOF-probes that produced no new data
     ALuint m_source = 0;
     ALuint m_buffers[AL_STREAM_BUFFER_COUNT] = {};
     unsigned int m_current_buffer_idx = 0;

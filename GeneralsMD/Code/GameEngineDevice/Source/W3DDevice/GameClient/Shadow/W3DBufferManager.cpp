@@ -25,7 +25,7 @@
 
 #include "Common/Debug.h"
 #include "W3DDevice/GameClient/W3DBufferManager.h"
-#include "GameClient/GXGfxProbe.h"	// [GXSHADOW] slotfail (graphics P2 c1-01)
+#include "GameClient/GXGfxProbe.h"	// [GXSHADOW] slotfail
 
 #include <stdio.h>
 
