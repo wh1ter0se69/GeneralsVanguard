@@ -63,6 +63,7 @@
 
 // PUBLIC DATA ////////////////////////////////////////////////////////////////////////////////////
 GameWindowManager *TheWindowManager = nullptr;
+GXFocusObserverFn TheGXFocusObserver = nullptr;
 UnsignedInt WindowLayoutCurrentVersion = 2;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -788,6 +789,8 @@ Int GameWindowManager::winSetFocus( GameWindow *window )
 	if( wantsFocus == FALSE )
 		m_keyboardFocus = nullptr;
 
+	if( TheGXFocusObserver )
+		TheGXFocusObserver( m_keyboardFocus != nullptr && BitIsSet( m_keyboardFocus->winGetStyle(), GWS_ENTRY_FIELD ) );
 	return WIN_ERR_OK;
 
 }

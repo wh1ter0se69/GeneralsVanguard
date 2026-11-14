@@ -864,6 +864,7 @@ int gxRelayListFetch(const GXRelayEndpoint *targets, int ntargets, unsigned long
 
 #include "Common/GlobalData.h"
 #include "GameClient/GXUserDataDir.h"
+#include "WWLib/gxproductdir.h"	// GeneralsX: GeneralsVanguard or GeneralsX
 #include "gitinfo.h"
 
 #include <atomic>
@@ -976,7 +977,10 @@ void configure(GXRelayListConfig &c)
 	if (gxUserDataDirOverride(ovr))
 		addLauncherCache(c, ovr + "launcher/gxmanifest.txt");
 	else if (const char *h = getenv("HOME"))
-		addLauncherCache(c, std::string(h) + "/Library/Application Support/GeneralsX/gxmanifest.txt");
+	{
+		const std::string support = std::string(h) + "/Library/Application Support";
+		addLauncherCache(c, support + "/" + gxProductDirName(support) + "/gxmanifest.txt");
+	}
 #elif !defined(__APPLE__)
 	std::string ovr;
 	if (gxUserDataDirOverride(ovr))
@@ -985,9 +989,12 @@ void configure(GXRelayListConfig &c)
 	{
 		const char *x = getenv("XDG_DATA_HOME");
 		if (x != NULL && x[0] == '/')
-			addLauncherCache(c, std::string(x) + "/GeneralsX/gxmanifest.txt");
+			addLauncherCache(c, std::string(x) + "/" + gxProductDirName(x) + "/gxmanifest.txt");
 		else if (const char *h = getenv("HOME"))
-			addLauncherCache(c, std::string(h) + "/.local/share/GeneralsX/gxmanifest.txt");
+		{
+			const std::string share = std::string(h) + "/.local/share";
+			addLauncherCache(c, share + "/" + gxProductDirName(share) + "/gxmanifest.txt");
+		}
 	}
 #endif
 	// iOS has no launcher: its sources are its own cache and the GXUPD fetch.

@@ -533,6 +533,56 @@ static int ini_get(const char *text, const char *key, char *out, size_t cap)
  * the engine's fallback for a shell32 without it, so it is ours too. */
 typedef HRESULT (WINAPI *pfn_known_folder)(REFKNOWNFOLDERID, DWORD, HANDLE, PWSTR *);
 
+/* GeneralsX @feature 13/11/2026 THE PARENT IS Documents\GeneralsVanguard OR Documents\GeneralsX, by the engine's rule
+ * (WWLib gxproductdir.h; the launcher's is gxio installname.rs product_dir_under): a GeneralsVanguard holding an entry
+ * whose name does not start with '.', else GeneralsX when it is a folder, else an empty GeneralsVanguard, else GeneralsX.
+ * A later launcher renames the folder; until then every program reads both and none creates the new name. */
+static int is_dir_w(const wchar_t *path)
+{
+	/* An empty path: the caller's _snwprintf_s did not fit, and nothing is there. */
+	if (path[0] == 0) {
+		return 0;
+	}
+	DWORD a = GetFileAttributesW(path);
+	return a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_DIRECTORY) != 0;
+}
+
+static const wchar_t *product_dir_name(const wchar_t *base)
+{
+	wchar_t path[MAX_PATH];
+	WIN32_FIND_DATAW fd;
+	HANDLE h;
+	int full = 0;
+
+	/* _snwprintf_s with _TRUNCATE, never swprintf_s: a Documents path near MAX_PATH would otherwise end in the CRT's
+	 * invalid-parameter handler, which stops the updater (review rename-r1 r2). A path that does not fit is no folder. */
+	if (_snwprintf_s(path, MAX_PATH, _TRUNCATE, L"%s\\GeneralsVanguard\\*", base) < 0) {
+		path[0] = 0;
+	}
+	h = path[0] ? FindFirstFileW(path, &fd) : INVALID_HANDLE_VALUE;
+	if (h != INVALID_HANDLE_VALUE) {
+		do {
+			if (fd.cFileName[0] != L'.') {
+				full = 1;
+			}
+		} while (!full && FindNextFileW(h, &fd));
+		FindClose(h);
+	}
+	if (full) {
+		return L"GeneralsVanguard";
+	}
+	if (_snwprintf_s(path, MAX_PATH, _TRUNCATE, L"%s\\GeneralsX", base) < 0) {
+		path[0] = 0;
+	}
+	if (is_dir_w(path)) {
+		return L"GeneralsX";
+	}
+	if (_snwprintf_s(path, MAX_PATH, _TRUNCATE, L"%s\\GeneralsVanguard", base) < 0) {
+		path[0] = 0;
+	}
+	return is_dir_w(path) ? L"GeneralsVanguard" : L"GeneralsX";
+}
+
 static int userdata_path(wchar_t *out, size_t cap, const wchar_t *leafFile)
 {
 	wchar_t docs[MAX_PATH];
@@ -559,7 +609,11 @@ static int userdata_path(wchar_t *out, size_t cap, const wchar_t *leafFile)
 		}
 	}
 
-	swprintf_s(out, cap, L"%s\\GeneralsX\\GeneralsZH\\%s", docs, leafFile);
+	/* Too long for the buffer: no path, rather than the CRT's invalid-parameter handler (the longer new name made it likelier). */
+	if (_snwprintf_s(out, cap, _TRUNCATE, L"%s\\%s\\GeneralsZH\\%s", docs, product_dir_name(docs), leafFile) < 0) {
+		out[0] = 0;
+		return 0;
+	}
 	return 1;
 }
 
@@ -2313,6 +2367,74 @@ static int place_tree(const wchar_t *stage, const wchar_t *dest)
 	return ok;
 }
 
+/* gxfiles.txt: every file an update is about to place, appended
+ * to the record GeneralsX-Setup.exe starts. The uninstaller deletes only what that record names
+ * (GeneralsX.iss SweepOwned) - {app} may be a folder the player chose, so "everything in it" is not
+ * ours - and a file placed here but never recorded would be left behind on uninstall. Recorded
+ * BEFORE placing, so a partial apply is still covered; a listed name that is not there is skipped
+ * by the uninstaller, so recording too much costs nothing. Best effort: a record that cannot be
+ * written is logged, never a reason to refuse the update. Links in the stage are not followed. */
+static void record_walk(FILE *f, const wchar_t *dir, const wchar_t *rel)
+{
+	WIN32_FIND_DATAW fd;
+	wchar_t glob[MAX_PATH], child[MAX_PATH], crel[MAX_PATH];
+	char line[MAX_PATH * 3];
+	HANDLE h;
+
+	path_join(glob, MAX_PATH, dir, L"*");
+	h = FindFirstFileW(glob, &fd);
+	if (h == INVALID_HANDLE_VALUE) {
+		return;
+	}
+	do {
+		if (!wcscmp(fd.cFileName, L".") || !wcscmp(fd.cFileName, L"..") ||
+			(fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)) {
+			continue;
+		}
+		path_join(child, MAX_PATH, dir, fd.cFileName);
+		if (rel[0]) {
+			swprintf_s(crel, MAX_PATH, L"%s/%s", rel, fd.cFileName);
+		} else {
+			wcscpy_s(crel, MAX_PATH, fd.cFileName);
+		}
+		if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+			record_walk(f, child, crel);
+		} else if (WideCharToMultiByte(CP_UTF8, 0, crel, -1, line, sizeof(line), NULL, NULL) > 0) {
+			fprintf(f, "%s\r\n", line);
+		}
+	} while (FindNextFileW(h, &fd));
+	FindClose(h);
+}
+
+static void record_stage(const wchar_t *stage)
+{
+	wchar_t path[MAX_PATH];
+	FILE *f = NULL;
+	int fresh;
+
+	path_join(path, MAX_PATH, g_dir, L"gxfiles.txt");
+	{
+		DWORD a = GetFileAttributesW(path);
+		/* A record that is a link would take this append somewhere outside the install. */
+		if (a != INVALID_FILE_ATTRIBUTES && (a & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY))) {
+			logf_("record: %S is not a plain file - not written; uninstalling will leave this update's new files", path);
+			return;
+		}
+		fresh = a == INVALID_FILE_ATTRIBUTES;
+	}
+	if (_wfopen_s(&f, path, L"ab") || !f) {
+		logf_("record: cannot open %S - uninstalling will leave this update's new files", path);
+		return;
+	}
+	if (fresh) {
+		fputs("gxfiles 1\r\n", f);
+	}
+	record_walk(f, stage, L"");
+	if (fclose(f)) {
+		logf_("record: cannot finish %S - uninstalling may leave this update's new files", path);
+	}
+}
+
 /* Sweep the .gxold files a previous update left behind. Best effort by definition: one of them
  * may still be the executable of a game that is running right now. */
 static void sweep_old(const wchar_t *dir)
@@ -2328,6 +2450,11 @@ static void sweep_old(const wchar_t *dir)
 	}
 	do {
 		if (!wcscmp(fd.cFileName, L".") || !wcscmp(fd.cFileName, L"..")) {
+			continue;
+		}
+		/* Never through a link: a junction in the install
+		 * (dev arms link Data into a shared folder) would make this delete a .gxold that is not this install's. */
+		if (fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
 			continue;
 		}
 		path_join(child, MAX_PATH, dir, fd.cFileName);
@@ -2606,7 +2733,8 @@ static int do_update(const manifest *m, const state *st, const config *c)
 		}
 	}
 
-	/* Phase three, and only now. */
+	/* Phase three, and only now. Recorded first: see record_stage. */
+	record_stage(stage);
 	if (!place_tree(stage, g_dir)) {
 		/* Partial by definition if this fails, and it is logged as such rather than papered
 		 * over: the state file is NOT written, so the next launch re-downloads and re-applies
@@ -2990,13 +3118,13 @@ static int run(int argc, wchar_t **argv)
 	 * directly or gxlauncher, which follow it. The dialog only without stdout, as in launch_game: under a
 	 * harness a modal box is a hang. Checked by test-test-profile.sh, which compiles this block. */
 	if (_wgetenv(L"GX_USERDATA_DIR") != NULL) {
-		const char *why = "GeneralsX launcher: REFUSED - GX_USERDATA_DIR is set (a test profile) and this "
+		const char *why = "Generals Vanguard updater: REFUSED - GX_USERDATA_DIR is set (a test profile) and this "
 			"program does not follow it: it would read and write the owner's Options.ini. Start "
 			"generalszh.exe directly, or gxlauncher.";
 		HANDLE so = GetStdHandle(STD_OUTPUT_HANDLE);
 		fprintf(stderr, "%s\n", why);
 		if (so == NULL || so == INVALID_HANDLE_VALUE) {
-			MessageBoxA(NULL, why, "GeneralsX", MB_ICONERROR | MB_OK | MB_SETFOREGROUND);
+			MessageBoxA(NULL, why, "Generals Vanguard", MB_ICONERROR | MB_OK | MB_SETFOREGROUND);
 		}
 		return 4;
 	}

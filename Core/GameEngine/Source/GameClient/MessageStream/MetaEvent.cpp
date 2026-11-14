@@ -731,6 +731,13 @@ static Bool gxOptionsMenuUp(GameWindow *w)
 	return FALSE;
 }
 
+// GeneralsX @feature Replay telemetry: a CommandMap action a key produced (HotKey.h, TheGXInputKeyObserver).
+static void gxObserveMeta(GameMessage::Type meta, Int key)
+{
+	if (TheGXInputKeyObserver)
+		TheGXInputKeyObserver(GX_INPUT_META, (Int)meta, 0, key, 0);
+}
+
 // The Remastered chord's press (GXGraphicsSettings.h). Refused while an Options menu is up - keys do reach this
 // translator under its modal parent, and its checkbox still shows the old value, so its Accept would write that back
 // over the flip.
@@ -833,11 +840,15 @@ void MetaEventTranslator::onKeyEvent(const GameMessage *msg, GameMessageDisposit
 				GameMessage *selectAll = TheMessageStream->appendMessage(GameMessage::MSG_META_SELECT_ALL);
 				if (infantry)
 					selectAll->appendIntegerArgument(GX_SELECT_ALL_INFANTRY);
+				gxObserveMeta(GameMessage::MSG_META_SELECT_ALL, systemKey);
 			}
 			if (remastered && isPress)
 				gxToggleRemastered();
 			if (cameraReset && isPress)
+			{
 				TheMessageStream->appendMessage(GameMessage::MSG_META_CAMERA_RESET);	// the retail KP5 message, CommandXlat resets the view
+				gxObserveMeta(GameMessage::MSG_META_CAMERA_RESET, systemKey);
+			}
 			if (GXKeyTraceEnabled())
 			{
 				fprintf(stderr, "[GXKEY] select-chord: key=0x%02x state=0x%x mods=%d -> %s\n", systemKey, systemKeyState, newModState,
@@ -871,6 +882,7 @@ void MetaEventTranslator::onKeyEvent(const GameMessage *msg, GameMessageDisposit
 		{
 			//DEBUG_LOG(("Frame %d: MetaEventTranslator::translateGameMessage() Mods-only change: %s", TheGameLogic->getFrame(), findGameMessageNameByType(map->m_meta)));
 			/*GameMessage *metaMsg =*/ TheMessageStream->appendMessage(map->m_meta);
+			gxObserveMeta(map->m_meta, systemKey);
 			disp = DESTROY_MESSAGE;
 			break;
 		}
@@ -920,6 +932,7 @@ void MetaEventTranslator::onKeyEvent(const GameMessage *msg, GameMessageDisposit
 
 
 				/*GameMessage *metaMsg =*/ TheMessageStream->appendMessage(map->m_meta);
+				gxObserveMeta(map->m_meta, systemKey);
 				//DEBUG_LOG(("Frame %d: MetaEventTranslator::translateGameMessage() normal: %s", TheGameLogic->getFrame(), findGameMessageNameByType(map->m_meta)));
 			}
 			// GeneralsX: GX_KEYTRACE (HotKey.h): a CommandMap binding eats the key before the

@@ -32,6 +32,7 @@
 #define K_HEIGHT_MAP_VERSION_2	2	// Height map cell = 10.0
 #define K_HEIGHT_MAP_VERSION_3	3	// Added m_borderSize
 #define K_HEIGHT_MAP_VERSION_4	4	// Major rev. See comments at bottom of file.
+#define K_HEIGHT_MAP_VERSION_5	5	// GeneralsX: height scale multiplier k. See comments at bottom of file.
 #define K_BLEND_TILE_VERSION_1	1	// Height map cell = 5.0
 #define K_BLEND_TILE_VERSION_2	2	// Height map cell = 10.0
 #define K_BLEND_TILE_VERSION_3	3	// Added long diagonal blends.
@@ -123,4 +124,13 @@ public:
 	We now support multiple boundary areas. They are stored in a vector of ICoord2Ds. The lower-
 	left corner is always (0,0), and the ICoord2D specifies the top-right coordinate.
 	The boundary also contains a name.
+*/
+
+/*
+	rev K_HEIGHT_MAP_VERSION_5 (GeneralsX)
+
+	One Int k (1..MAP_HEIGHT_SCALE_K_MAX) follows the boundaries and comes before dataSize. A height
+	byte is k * MAP_HEIGHT_SCALE world units on this map. A reader without version 5 takes k for
+	dataSize, which fails width * height == dataSize, so it refuses the map instead of loading it flat.
+	Readers refuse versions above 5.
 */

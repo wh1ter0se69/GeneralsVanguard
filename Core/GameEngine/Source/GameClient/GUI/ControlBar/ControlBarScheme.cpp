@@ -63,6 +63,7 @@
 #include "GameClient/LayoutScale.h"
 #include "GameClient/GameWindowManager.h"
 #include "GameClient/GadgetPushButton.h"
+#include "GameNetwork/GameInfo.h"
 
 //-----------------------------------------------------------------------------
 // DEFINES ////////////////////////////////////////////////////////////////////
@@ -1181,13 +1182,35 @@ void ControlBarSchemeManager::setControlBarSchemeByPlayerTemplate( const PlayerT
 		m_currentScheme->init();
 }
 //-----------------------------------------------------------------------------
+/** TRUE if the match has a human in a slot other than ours, a player or an observer. */
+static Bool controlBarHasOtherHuman()
+{
+	if (TheGameInfo == nullptr)
+		return FALSE;
+	const Int local = TheGameInfo->getLocalSlotNum();
+	for (Int i = 0; i < MAX_SLOTS; ++i)
+	{
+		const GameSlot *slot = TheGameInfo->getConstSlot(i);
+		if (i != local && slot != nullptr && slot->isHuman())
+			return TRUE;
+	}
+	return FALSE;
+}
+
+//-----------------------------------------------------------------------------
 void ControlBarSchemeManager::setControlBarSchemeByPlayer(Player *p)
 {
 	GameWindow *communicatorButton = TheWindowManager->winGetWindowFromId( nullptr, NAMEKEY("ControlBar.wnd:PopupCommunicator") );
 	if (communicatorButton && TheControlBar)
 	{
 		if (TheRecorder->isMultiplayer())
+		{
 			TheControlBar->setControlCommand(communicatorButton, TheControlBar->findCommandButton("NonCommand_Communicator") );
+			// The chat button needs someone to chat with: hidden in a live match whose other slots are all empty or AI.
+			// GameLogic shows it again at every map load.
+			if (!TheRecorder->isPlaybackMode() && !controlBarHasOtherHuman())
+				communicatorButton->winHide(TRUE);
+		}
 		else
 			TheControlBar->setControlCommand(communicatorButton, TheControlBar->findCommandButton("NonCommand_BriefingHistory") );
 	}

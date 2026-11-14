@@ -416,6 +416,22 @@ if [[ -f "${FONTCONFIG_ETC_DIR}/fonts.conf" ]]; then
     echo "  + Fontconfig config"
     mkdir -p "${RESOURCES_DIR}/fontconfig"
     cp "${FONTCONFIG_ETC_DIR}/fonts.conf" "${RESOURCES_DIR}/fontconfig/fonts.conf"
+    # vcpkg's relocatable fonts.conf names its FIRST cache dir as
+    # `./../../var/cache/fontconfig`, and Fontconfig resolves that against the WORKING directory - the
+    # Zero Hour data folder the launch script cd's into. MEASURED: a headless launch from ~/GeneralsX/GeneralsZH
+    # wrote ~/var/cache/fontconfig/*.cache-9 into the player's home, which no uninstall can tell from anyone
+    # else's; from a Steam library it would write into Steam's folder. The cache goes to ~/Library/Caches under the
+    # bundle's own identifier, which uninstall removes: a fixed file cannot follow the product-folder rule
+    # (installname::product_dir_under), and naming GeneralsVanguard there would CREATE it and move every program's
+    # profile to an empty folder. Refuse to bundle if any relative cache dir is left.
+    # Any cache dir that is neither absolute, nor ~-rooted, nor XDG-relative is the vcpkg one, whatever its
+    # attributes (prefix="default" and the like).
+    perl -0pi -e 's#<cachedir(?![^>]*prefix="xdg")[^>]*>\s*(?![~/])[^<]*</cachedir>#<cachedir>~/Library/Caches/com.generalsx.generalsxzh/fontconfig</cachedir>#g' \
+        "${RESOURCES_DIR}/fontconfig/fonts.conf"
+    if perl -0ne 'exit((/<cachedir(?![^>]*prefix="xdg")[^>]*>\s*(?![~\/])/) ? 0 : 1)' "${RESOURCES_DIR}/fontconfig/fonts.conf"; then
+        echo "ERROR: ${RESOURCES_DIR}/fontconfig/fonts.conf still has a relative <cachedir> - it would write beside the game data" >&2
+        exit 1
+    fi
     rm -rf "${RESOURCES_DIR}/fontconfig/conf.d"
     if [[ -d "${FONTCONFIG_ETC_DIR}/conf.d" ]]; then
         cp -R "${FONTCONFIG_ETC_DIR}/conf.d" "${RESOURCES_DIR}/fontconfig/conf.d"

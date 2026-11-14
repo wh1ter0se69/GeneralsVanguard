@@ -59,6 +59,7 @@
 #include "Lib/BaseType.h"
 #include "Common/GameType.h"
 #include "Common/AsciiString.h"
+#include <vector>
 
 //-----------------------------------------------------------------------------
 //           Forward References
@@ -142,6 +143,8 @@ public:
 	const SphereClass &getBounds() {return m_bounds;};
 	Int GetNumVertex() {return m_numVertex;};
 	Int GetNumIndex() {return m_numIndex;};
+	const VertexFormatXYZDUV1 *GetVertexData() const {return m_vb;}
+	const UnsignedShort *GetIndexData() const {return m_ib;}
 	Int GetVertices(VertexFormatXYZDUV1 *destination_vb, Int numToCopy);
 	Int GetIndices(UnsignedShort *destination_ib, Int numToCopy, Int offset);
 	void updateSegLighting();
@@ -157,6 +160,8 @@ protected:
 	DX8IndexBufferClass			*m_indexRoad;	///<indices defining a triangles for the road drawing.
 	Int			m_numRoadVertices; ///<Number of vertices used in m_vertexRoad.
 	Int			m_numRoadIndices;	///<Number of indices used in b_indexRoad;
+	Int			m_vertexCapacity;	///< Usable size of m_vertexRoad, 0 = none.
+	Int			m_indexCapacity;	///< Usable size of m_indexRoad, 0 = none.
 	Int					  m_uniqueID;     ///< ID of the road type in INI.
 	Bool					m_isAutoLoaded;
 	Int						m_stackingOrder; ///< Order in the drawing.  0 drawn first, then 1 and so on.
@@ -166,6 +171,11 @@ protected:
 #endif
 public:
 	void loadTexture(AsciiString path, Int id);
+	// GeneralsX @feature The buffers are sized per map to this type's own roads (0 = none), not to MaxRoadVertex/Index
+	// for every type in Roads.ini, so a high limit costs memory only on the maps that use it.
+	void sizeBuffers(Int numVertex, Int numIndex);
+	Int getVertexCapacity() {return m_vertexCapacity;}
+	Int getIndexCapacity() {return m_indexCapacity;}
 	void applyTexture();
 	Int getStacking() {return m_stackingOrder;}
 	void setStacking(Int order) {m_stackingOrder = order;}
@@ -185,6 +195,7 @@ public:
 }	;
 
 class WorldHeightMap;
+struct RoadBuildScratch;
 //
 // W3DRoadBuffer: Draw buffer for the roads.
 //
@@ -230,11 +241,24 @@ protected:
 	Int m_maxRoadTypes;			///< Size of m_roadTypes.
 	Int			m_curNumRoadVertices; ///<Number of vertices used in current road type.
 	Int			m_curNumRoadIndices;	///<Number of indices used in current road type;
+	Int			m_curVertexCapacity;	///< Usable size of the current road type's vertex buffer.
+	Int			m_curIndexCapacity;		///< Usable size of the current road type's index buffer.
+
+	// GeneralsX @feature Counts for the [GXROADS] log line: roads that did not fit.
+	Int m_mapRoadPairs;				///< Road point pairs on the map.
+	Int m_refusedRoadPairs;		///< Pairs left out because m_roads was full.
+	Int m_rebuildDropped;			///< Visible segments left out of the last buffer rebuild (vertex/index limit).
+	Int m_maxRebuildDropped;	///< Most visible segments left out of one rebuild since the map loaded.
+	Int m_iniMaxRoadSegments;	///< MaxRoadSegments; m_roads is sized per map up to it.
+	Bool m_segmentsFull;			///< A segment was refused because m_roads was full.
 
 	Bool m_updateBuffers; ///< If true, update the vertex buffers.
+	RoadBuildScratch *m_build;	///< The build's indexes; set only inside buildRoadSegments.
 
 	void addMapObjects();
-	void addMapObject(RoadSegment *pRoad, Bool updateTheCounts);
+	void addMapObject(RoadSegment *pRoad, Int slot, Bool updateTheCounts);
+	Int firstRoadEndFrom(const Vector2 &loc, Int fromPos);
+	void roadsAtPointAfter(const Vector2 &loc, Int index1, std::vector<Int> &out);
 	void adjustStacking(Int topUniqueID, Int bottomUniqueID);
 	Int findCrossTypeJoinVector(Vector2 loc, Vector2 *joinVector, Int uniqueID);
 	void flipTheRoad(RoadSegment *pRoad) {TRoadPt tmp=pRoad->m_pt1; pRoad->m_pt1 = pRoad->m_pt2; pRoad->m_pt2 = tmp;}; ///< Flips the loc1 and loc2 info.
@@ -242,7 +266,6 @@ protected:
 	void insertCrossTypeJoins();
 	void insertJoinAt(Int ndx);
 	void miter(Int ndx1, Int ndx2);
-	void moveRoadSegTo(Int fromNdx, Int toNdx);
 	void checkLinkAfter(Int ndx);
 	void checkLinkBefore(Int ndx);
 	void updateCounts(RoadSegment *pRoad);
@@ -257,6 +280,10 @@ protected:
 	void offsetY(TRoadPt *pc1, TRoadPt *pc2, TRoadPt *pc3, Vector2 loc, Vector2 upVector, Real widthInTexture);
 	void offsetH(TRoadPt *pc1, TRoadPt *pc2, TRoadPt *pc3, Vector2 loc, Vector2 upVector, Vector2 teeVector, Bool flip, Bool mirror, Real widthInTexture);
 	void preloadRoadsInVertexAndIndexBuffers(); ///< Fills the index and vertex buffers for drawing.
+	void sizeRoadTypeBuffers(); ///< Sizes each road type's buffers to its roads on this map.
+	void buildRoadSegments();		///< Builds m_roads from the map objects.
+	Int countMapRoadPairs();			///< Road point pairs on the map.
+	void sizeSegmentArray(Int count);	///< Makes m_roads hold count segments.
 	void preloadRoadSegment(RoadSegment *pRoad); ///< Fills the index and vertex buffers for drawing 1 segment.
 	void loadCurve(RoadSegment *pRoad, Vector2 loc1, Vector2 loc2, Real scale); ///< Fills the index and vertex buffers for drawing 1 fade.
 	void loadTee(RoadSegment *pRoad, Vector2 loc1, Vector2 loc2, Bool is4way, Real scale); ///< Fills the index and vertex buffers for drawing 1 tee intersection.

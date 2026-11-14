@@ -205,7 +205,7 @@ inline const char *gxDiagOptionValue( const char *in )
 	{
 		"yes", "no", "true", "false", "on", "off", "low", "medium", "high", "veryhigh", "custom", "classic", "native", "default",
 		"bilinear", "trilinear", "point", "none", "anisotropic", "fsr1", "fsr3", "dlss", "metalfx", "metalfx-temporal", "xess",
-		"quality", "balanced", "performance", "ultra",
+		"quality", "balanced", "performance", "ultra", "auto", "compat",
 	};
 	if( in == NULL || *in == 0 )
 		return "other";
@@ -922,4 +922,249 @@ inline unsigned gxTelSlowIoTakeDroppedSeconds( GxTelSlowIo &s )
 	const long long sec = ( s.droppedNs + GX_DIAG_SECOND_NS - 1 ) / GX_DIAG_SECOND_NS;
 	s.droppedNs = 0;
 	return sec > 0xFFFFFFFFLL ? 0xFFFFFFFFu : (unsigned)sec;
+}
+
+// ------------------------------------------------------------------------------------------------
+// Kind 5 INPUT: one 9-byte entry per game action of the recording player - a game hotkey and what it resolved to, a CommandMap
+// action, a left/right click, an order this client issued - with the selection count, the cursor mode and the command waiting for a
+// target when it was recorded. There is no field for a key or a character: a hotkey is its command type, a CommandMap key its meta
+// action. Written at every level but off.
+//
+// Entry: u16 frame offset from the batch's frameStart (logic frames, nothing finer), u8 code, u8 flags, u16 what, u8 sel, u8 mode,
+// u16 pending. Batches use the PERF batch header (rowBytes 10); a batch holds 99 entries, a window writes at most four.
+// A command type or meta action is written as gxTelNameHash of its NAME (TheGuiCommandNames, GameMessage::getCommandTypeAsString):
+// their ordinals move between builds, the names do not. scripts/test/replay-tel-input-names-test.py keeps the names collision-free.
+// ------------------------------------------------------------------------------------------------
+enum
+{
+	GX_TEL_IN_HOTKEY  = 1,		///< what: the name hash of the button's command type (0 when nothing answered or withheld)
+	GX_TEL_IN_META    = 2,		///< what: the name hash of the MSG_META_* action (0 when withheld)
+	GX_TEL_IN_CLICK_L = 3,		///< what: the screen spot, gxTelQuantisePos
+	GX_TEL_IN_CLICK_R = 4,
+	GX_TEL_IN_ORDER   = 5,		///< what: the order's message type
+};
+enum
+{
+	GX_TEL_IN_F_PASS = 0x80,	///< the first entry since the last loop sample: entries up to the next PASS are one input pass
+	GX_TEL_IN_F_TEXT = 0x40,	///< the key began in or near a text box: an action fired, which one is withheld
+	GX_TEL_IN_HK_FIRED = 0, GX_TEL_IN_HK_DISABLED = 1, GX_TEL_IN_HK_HIDDEN = 2, GX_TEL_IN_HK_NOTHING = 3,
+	GX_TEL_IN_CK_UI = 1, GX_TEL_IN_CK_DOUBLE = 2, GX_TEL_IN_CK_DRAG = 4, GX_TEL_IN_CK_SHIFT = 8, GX_TEL_IN_CK_CTRL = 16, GX_TEL_IN_CK_ALT = 32,
+};
+enum
+{
+	GX_TEL_IN_M_ATTACKMOVE = 1, GX_TEL_IN_M_FORCEATTACK = 2, GX_TEL_IN_M_FORCEMOVE = 4, GX_TEL_IN_M_WAYPOINT = 8,
+	GX_TEL_IN_M_PREFERSEL = 16, GX_TEL_IN_M_PLACING = 32,
+};
+enum
+{
+	GX_TEL_INPUT_ENTRY_BYTES = 10,
+	GX_TEL_INPUT_PER_RECORD = 99,
+	GX_TEL_INPUT_RECORDS_PER_WINDOW = 4,
+	GX_TEL_INPUT_RING = GX_TEL_INPUT_PER_RECORD * GX_TEL_INPUT_RECORDS_PER_WINDOW,
+};
+
+struct GxTelInputEntry
+{
+	uint32_t frame;			///< absolute logic frame; packed as an offset from the batch base
+	uint8_t code, flags;
+	uint16_t what;
+	uint8_t sel, mode;
+	uint16_t pending;		///< the name hash of the command waiting for a target, 0 none
+};
+
+/// FNV-1a 32 of a name, its low 16 bits; 0 for no name.
+inline uint16_t gxTelNameHash( const char *name )
+{
+	if( name == NULL )
+		return 0;
+	uint32_t h = 0x811C9DC5u;
+	for( ; *name != 0; ++name )
+		h = ( h ^ (uint8_t)*name ) * 0x01000193u;
+	return (uint16_t)( h & 0xFFFFu );
+}
+
+/// The screen spot in 1/256 of each axis, x in the high byte; 0 for a screen with no size.
+inline uint16_t gxTelQuantisePos( int x, int y, int w, int h )
+{
+	if( w <= 0 || h <= 0 )
+		return 0;
+	long long qx = (long long)x * 256 / w, qy = (long long)y * 256 / h;
+	qx = qx < 0 ? 0 : qx > 255 ? 255 : qx;
+	qy = qy < 0 ? 0 : qy > 255 ? 255 : qy;
+	return (uint16_t)( ( qx << 8 ) | qy );
+}
+
+/// 10 bytes, or 0 when the entry is before frameStart or more than 65535 frames after it (it starts the next batch).
+inline size_t gxTelPackInputEntry( const GxTelInputEntry &e, uint32_t frameStart, uint8_t *out )
+{
+	if( e.frame < frameStart || e.frame - frameStart > 0xFFFFu )
+		return 0;
+	gxTelPut16( out, (uint16_t)( e.frame - frameStart ) );
+	out[2] = e.code;
+	out[3] = e.flags;
+	gxTelPut16( out + 4, e.what );
+	out[6] = e.sel;
+	out[7] = e.mode;
+	gxTelPut16( out + 8, e.pending );
+	return GX_TEL_INPUT_ENTRY_BYTES;
+}
+
+/// Entries wait here between writes. Past its size an entry is counted, not kept; the count rides the next written batch.
+struct GxTelInputRing
+{
+	GxTelInputEntry e[ GX_TEL_INPUT_RING ];
+	unsigned head, count, dropped;
+};
+
+inline void gxTelInputRingInit( GxTelInputRing &r )
+{
+	r.head = r.count = r.dropped = 0;
+}
+
+inline void gxTelInputPush( GxTelInputRing &r, const GxTelInputEntry &e )
+{
+	if( r.count >= (unsigned)GX_TEL_INPUT_RING )
+	{
+		++r.dropped;
+		return;
+	}
+	r.e[ ( r.head + r.count ) % GX_TEL_INPUT_RING ] = e;
+	++r.count;
+}
+
+/// One batch from the oldest waiting entries: up to 99, all within 65535 frames of the first. Returns how many it took; 0 leaves the
+/// batch untouched. The dropped count goes in this batch and is cleared.
+inline unsigned gxTelInputFill( GxTelInputRing &r, GxTelBatch &b, uint32_t msSinceStart, unsigned droppedSeconds )
+{
+	if( r.count == 0 )
+		return 0;
+	const uint32_t base = r.e[ r.head ].frame;
+	gxTelBatchBegin( b, GX_TEL_INPUT_ENTRY_BYTES, base, msSinceStart, droppedSeconds, r.dropped );
+	r.dropped = 0;
+	unsigned taken = 0;
+	uint8_t row[ GX_TEL_INPUT_ENTRY_BYTES ];
+	while( r.count > 0 && taken < (unsigned)GX_TEL_INPUT_PER_RECORD )
+	{
+		if( gxTelPackInputEntry( r.e[ r.head ], base, row ) == 0 || !gxTelBatchAppend( b, row ) )
+			break;
+		r.head = ( r.head + 1 ) % GX_TEL_INPUT_RING;
+		--r.count;
+		++taken;
+	}
+	return taken;
+}
+
+// ------------------------------------------------------------------------------------------------
+// The text-key guard: which key actions are recorded without saying which. Memory only, never written.
+//
+// A key typed into a focused text box is eaten by the window system and never reaches the hotkey layers. But focus at translation
+// time is not focus at arrival time: Return can submit the chat inside the event pump while letters queued in that pump are
+// translated after it, a key held through Return is released later, and a hitch can let a chat open and close between two loop
+// samples. So each key is judged at its DOWN, before the window system: it is text-owned if a text box had focus then, at either of
+// the last two samples, or at any moment since (the focus latch). A release whose press never arrived (a dropped event, a focus
+// reset) counts the same. A text-owned key's action is written with GX_TEL_IN_F_TEXT and no identity. Engine events only: the same
+// on every platform.
+// ------------------------------------------------------------------------------------------------
+enum { GX_TEL_GUARD_MARGIN = 2 };
+
+struct GxTelKeyGuard
+{
+	uint8_t owned[32], seenDown[32], upPending[32];
+	unsigned iter, focusSeenIter;
+	bool focused, focusSeen;
+};
+
+inline void gxTelGuardInit( GxTelKeyGuard &g )
+{
+	memset( &g, 0, sizeof( g ) );
+}
+
+inline bool gxTelGuardBit( const uint8_t *bits, int key )
+{
+	return key >= 0 && key < 256 && ( bits[ key >> 3 ] & ( 1u << ( key & 7 ) ) ) != 0;
+}
+
+inline void gxTelGuardSet( uint8_t *bits, int key, bool on )
+{
+	if( key < 0 || key >= 256 )
+		return;
+	if( on )
+		bits[ key >> 3 ] |= (uint8_t)( 1u << ( key & 7 ) );
+	else
+		bits[ key >> 3 ] &= (uint8_t)~( 1u << ( key & 7 ) );
+}
+
+inline void gxTelGuardSeen( GxTelKeyGuard &g )
+{
+	g.focusSeen = true;
+	g.focusSeenIter = g.iter;
+}
+
+/// Once per loop iteration. Releases observed since the last sample clear their key; a text box with focus now is seen now.
+inline void gxTelGuardSample( GxTelKeyGuard &g, bool entryFocusedNow )
+{
+	for( int i = 0; i < 32; ++i )
+	{
+		g.owned[i] &= (uint8_t)~g.upPending[i];
+		g.seenDown[i] &= (uint8_t)~g.upPending[i];
+		g.upPending[i] = 0;
+	}
+	if( g.focused )
+		gxTelGuardSeen( g );	// it had focus during the iteration that just ended
+	++g.iter;
+	g.focused = entryFocusedNow;
+	if( entryFocusedNow )
+		gxTelGuardSeen( g );
+}
+
+/// Keyboard focus moved; entryField: the new focus is a text box.
+inline void gxTelGuardFocus( GxTelKeyGuard &g, bool entryField )
+{
+#ifndef GX_TEL_RED_NO_LATCH	// fail arm: only samples see focus, so a chat opened and closed between two of them is missed
+	if( entryField || g.focused )
+		gxTelGuardSeen( g );
+	g.focused = entryField;
+#else
+	(void)g;
+	(void)entryField;
+#endif
+}
+
+inline bool gxTelGuardNearText( const GxTelKeyGuard &g, bool entryFocusedNow )
+{
+#ifndef GX_TEL_RED_NO_MARGIN	// fail arm: only focus right now counts, so a letter translated after Return leaks
+	return entryFocusedNow || g.focused || ( g.focusSeen && g.iter <= g.focusSeenIter + GX_TEL_GUARD_MARGIN );
+#else
+	return entryFocusedNow || g.focused;
+#endif
+}
+
+/// A raw key message, before the window system sees it. A fresh press decides again; an auto-repeat never clears ownership.
+inline void gxTelGuardKey( GxTelKeyGuard &g, int key, bool down, bool repeat, bool entryFocusedNow )
+{
+	if( !down )
+	{
+		gxTelGuardSet( g.upPending, key, true );
+		return;
+	}
+	gxTelGuardSet( g.upPending, key, false );
+	const bool nearText = gxTelGuardNearText( g, entryFocusedNow );
+	if( repeat )
+	{
+		if( nearText || !gxTelGuardBit( g.seenDown, key ) )
+			gxTelGuardSet( g.owned, key, true );
+	}
+	else
+		gxTelGuardSet( g.owned, key, nearText );
+	gxTelGuardSet( g.seenDown, key, true );
+}
+
+/// Whether an action from this key is written without its identity.
+inline bool gxTelGuardWithhold( const GxTelKeyGuard &g, int key )
+{
+#ifndef GX_TEL_RED_NO_UNSEEN	// fail arm: a release whose press never arrived is trusted
+	return gxTelGuardBit( g.owned, key ) || !gxTelGuardBit( g.seenDown, key );
+#else
+	return gxTelGuardBit( g.owned, key );
+#endif
 }

@@ -118,3 +118,10 @@ void gxReplayTelSetOsReader( GXReplayTelOsFn fn );
 /// a flag store, returns at once - the thread is detached and never joined, so a recording never waits on an OS or driver query.
 typedef void (*GXReplayTelControlFn)( int start );
 void gxReplayTelSetSamplerControl( GXReplayTelControlFn fn );
+
+/// INPUT (kind 5, written at every level but off): the stream observers GameClient attaches. role 0 before the window system (raw
+/// keys for the text-box guard, raw button releases as clicks), role 1 after the window system, the HUDs and the hotkeys (the click
+/// reached the world; its context again), role 2 after every translator that can make an order (the orders this client sends). Each
+/// keeps every message.
+class GameMessageTranslator;
+GameMessageTranslator *gxNewReplayInputTranslator( int role );

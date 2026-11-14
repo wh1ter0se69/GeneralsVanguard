@@ -208,6 +208,9 @@ static Bool ParseSizeOnly(DataChunkInput &file, DataChunkInfo *info, void *userD
 	if (m_dataSize != 0) {
 		throw ERROR_CORRUPT_FILE_FORMAT;	// a second HeightMapData chunk: the loader refuses it too
 	}
+	if (info->version > K_HEIGHT_MAP_VERSION_5) {
+		throw ERROR_CORRUPT_FILE_FORMAT;	// GeneralsX @feature as the loader: a version it does not know is refused
+	}
 	m_width = file.readInt();
 	m_height = file.readInt();
 	if (info->version >= K_HEIGHT_MAP_VERSION_3) {
@@ -234,12 +237,22 @@ static Bool ParseSizeOnly(DataChunkInput &file, DataChunkInfo *info, void *userD
 	// (WorldHeightMap.cpp: heightMapSizeFits, boundariesFitHeightMap, the border check) without reading the samples, so a
 	// map a start would refuse as damaged is not offered at all. This returned before dataSize, and an unreachable copy of
 	// the loader's old unchecked allocation followed; a mismatched size was listed and refused only when a match started.
+	// GeneralsX @feature Version 5 stores the height scale multiplier k before dataSize (WorldHeightMap.cpp's readers).
+	if (info->version >= K_HEIGHT_MAP_VERSION_5) {
+		const Int heightScaleK = file.readInt();
+		if (heightScaleK < 1 || heightScaleK > MAP_HEIGHT_SCALE_K_MAX) {
+			throw ERROR_CORRUPT_FILE_FORMAT;
+		}
+	}
 	m_dataSize = file.readInt();
 	const Int minSide = info->version == K_HEIGHT_MAP_VERSION_1 ? 3 : 2;	// as heightMapSizeFits: two samples a side once loaded
 	if (m_width < minSide || m_height < minSide || m_dataSize <= 0 || m_dataSize > (Int)file.getChunkDataSizeLeft()
 		|| (Int64)m_width * (Int64)m_height != (Int64)m_dataSize
 		|| m_borderSize < 0 || (Int64)m_width - 2 * (Int64)m_borderSize < 2 || (Int64)m_height - 2 * (Int64)m_borderSize < 2) {
 		throw ERROR_CORRUPT_FILE_FORMAT;
+	}
+	if (info->version >= K_HEIGHT_MAP_VERSION_5 && m_dataSize <= MAP_HEIGHT_SCALE_K_MAX) {
+		throw ERROR_CORRUPT_FILE_FORMAT;	// GeneralsX @feature as the loader: a version 5 map has more samples than any k
 	}
 	for (size_t i = 0; i < m_boundaries.size(); ++i) {
 		if (m_boundaries[i].x > 2 * (Int64)m_width || m_boundaries[i].y > 2 * (Int64)m_height) {

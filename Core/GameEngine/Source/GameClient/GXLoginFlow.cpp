@@ -20,6 +20,7 @@
 #include "GameClient/GXLoopback.h"
 #include "GameClient/GXPlayerIdentity.h"
 #include "GameClient/GXIdentityAssertion.h"
+#include "GameClient/GXLoginClockText.h"
 #include "GameClient/GXScopedWipe.h"	// the sign-in's stack and stdio copies are wiped
 #include "GameClient/GXPrivateFile.h"	// the assertion is written owner-only
 #include "Common/GlobalData.h"
@@ -159,7 +160,7 @@ Bool acceptDelivery(const char *assertion)
 	{
 		fprintf(stderr, "[GXLOGIN] delivered assertion refused: %s\n",
 			GXIdentityAssertion::statusName(st));
-		queue("That login could not be verified.", COLOR_REFUSE);
+		queue(gxLoginRefusalText(st), COLOR_REFUSE);
 		return FALSE;
 	}
 

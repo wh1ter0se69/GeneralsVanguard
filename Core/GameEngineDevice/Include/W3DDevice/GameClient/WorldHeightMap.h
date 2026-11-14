@@ -135,6 +135,8 @@ protected:
 	VecICoord2D m_boundaries;	///< the in-game boundaries
 	Int m_dataSize;			///< size of m_data.
 	UnsignedByte *m_data;	///< array of z(height) values in the height map.
+	Int m_heightScaleK;		///< GeneralsX: height scale multiplier k from a version 5 HeightMapData chunk, 1 for older maps.
+	Real m_heightScale;		///< GeneralsX: world units per height byte, MAP_HEIGHT_SCALE * k.
 
   UnsignedByte *m_seismicUpdateFlag;  ///< array of bits to prevent ovelapping physics-update regions from doubling effects on shared cells
   UnsignedInt   m_seismicUpdateWidth; ///< width of the array holding SeismicUpdateFlags
@@ -248,6 +250,8 @@ public:  // height map info.
 	static Int getMaxHeightValue() {return K_MAX_HEIGHT;}
 
 	UnsignedByte *getDataPtr() {return m_data;}
+	Real getHeightScale() const {return m_heightScale;}	///< GeneralsX: world units per height byte on this map
+	Int getHeightScaleK() const {return m_heightScaleK;}	///< GeneralsX: 1..MAP_HEIGHT_SCALE_K_MAX
 
 
 	Int getXExtent() const {return m_width;}	///<number of vertices in x

@@ -323,7 +323,7 @@ static AsciiString gxBuildPayload(void)
 	}
 
 	AsciiString state;
-	state.concat("GeneralsX");
+	state.concat("Generals Vanguard");
 	state.concat(gxBuildBadge());
 
 	AsciiString json;

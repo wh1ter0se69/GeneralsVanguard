@@ -935,7 +935,7 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 				// happened to be in the sender's uninitialised stack, so quoting it would
 				// be worse than saying nothing.
 				body = TheGameText->FETCH_OR_SUBSTITUTE("LAN:SimIdPeerSilent",
-					L"Version mismatch, not a network problem. The other machine is running an older build of GeneralsX that cannot report its build identity. Update both machines to the same build.");
+					L"Version mismatch, not a network problem. The other machine is running an older build of Generals Vanguard that cannot report its build identity. Update both machines to the same build.");
 				break;
 
 			case SIMID_ENGINE_DIFFERS:
@@ -1172,7 +1172,7 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 			// rather than as an explicit refusal.
 			body = getErrorStringFromReturnType(ret);
 			body.concat(TheGameText->FETCH_OR_SUBSTITUTE("LAN:SimIdTimeoutHint",
-				L" If the host is running a different build of GeneralsX it may be ignoring this request entirely."));
+				L" If the host is running a different build of Generals Vanguard it may be ignoring this request entirely."));
 		}
 		else
 		{

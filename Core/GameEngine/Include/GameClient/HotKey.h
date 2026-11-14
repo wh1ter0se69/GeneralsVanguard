@@ -186,6 +186,15 @@ const CommandButton *gxShortcutKeySource( const CommandButton *shortcut );
 // a single cached getenv, so it costs nothing unless set. Written for the "select units, press A, they stand still"
 // report, which a static trace of this path could not explain: with retail data it matches retail line for line.
 Bool GXKeyTraceEnabled();
+
+// GeneralsX @feature Replay telemetry's INPUT entries: the game action a key resolved to. GX_INPUT_HOTKEY: a command-button hotkey,
+// what = its GUICommandType, result = GX_HOTKEY_*. GX_INPUT_META: a CommandMap action, what = the MSG_META_* type. key (the raw key)
+// and letter (its lowercase character, 0 for a CommandMap action) are for the text-box guard and the hotkey-letter check only and are
+// never written. Null unless a recording installs it.
+enum { GX_INPUT_HOTKEY = 1, GX_INPUT_META = 2 };
+enum { GX_HOTKEY_FIRED = 0, GX_HOTKEY_DISABLED = 1, GX_HOTKEY_HIDDEN = 2, GX_HOTKEY_NOTHING = 3 };
+typedef void (*GXInputKeyObserverFn)( Int code, Int what, Int result, Int key, Int letter );
+extern GXInputKeyObserverFn TheGXInputKeyObserver;
 //-----------------------------------------------------------------------------
 // INLINING ///////////////////////////////////////////////////////////////////
 //-----------------------------------------------------------------------------

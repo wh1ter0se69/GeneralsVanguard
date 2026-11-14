@@ -394,7 +394,7 @@ static void initLabelVersion()
 	NameKeyType versionID = TheNameKeyGenerator->nameToKey( "MainMenu.wnd:LabelVersion" );
 	GameWindow *labelVersion = TheWindowManager->winGetWindowFromId( nullptr, versionID );
 	UnicodeString creditText;
-	creditText.translate("GeneralsX - Multiplatform C&C Generals");
+	creditText.translate("Generals Vanguard");
 
 	if (labelVersion)
 	{
@@ -1507,7 +1507,7 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 			else if( controlID == getUpdateID )
 			{
 #ifdef SAGE_UPDATE_CHECK
-				SDL_OpenURL("https://github.com/fbraz3/GeneralsX/releases");
+				SDL_OpenURL("https://wh1ter0se.dev/generals/download/");
 #else
 				StartDownloadingPatches();
 #endif
@@ -1515,8 +1515,8 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 #ifdef SAGE_UPDATE_CHECK
 			else if( updateNotifyButton != nullptr && control == updateNotifyButton )
 			{
-				// GeneralsX: Dynamic update button click -> open releases page
-				SDL_OpenURL("https://github.com/fbraz3/GeneralsX/releases");
+				// GeneralsX: Dynamic update button click -> open the download page
+				SDL_OpenURL("https://wh1ter0se.dev/generals/download/");
 			}
 #endif
 			else if( controlID == exitID )

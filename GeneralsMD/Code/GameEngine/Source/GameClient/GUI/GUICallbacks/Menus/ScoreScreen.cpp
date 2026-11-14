@@ -378,8 +378,24 @@ void ScoreScreenInit( WindowLayout *layout, void *userData )
 			"ScoreScreen.wnd:GameWindowWinner%d",
 			nullptr
 		};
+		// Fit the band to the rows this match lists, not to MAX_SLOTS: fitting 34 rows into the band
+		// EA drew for 8 shrinks every row's face, even on a one-player screen. Up to 8 rows the layout
+		// is left exactly as authored.
+		Int rowsListed = 0;
+		for( Int i = 0; i < MAX_SLOTS; ++i )
+		{
+			if( ThePlayerList != nullptr && ThePlayerList->getPlayerFromSlotIndex( i ) != nullptr )
+				++rowsListed;
+		}
+		// Every index up to MAX_SLOTS still gets a window: the transitions mirrored onto cloned rows stay
+		// registered for the whole process, and starting one on a missing window dereferences null. The
+		// rows past the listed ones are parked on row 0's rect and hidden by hideWindows before the
+		// transitions start.
 		for( const char *const *fmt = scoreRowColumns; *fmt != nullptr; ++fmt )
-			CodeGuiRowsEnsure( parent, *fmt, MAX_SLOTS, CODEGUI_ROWS_BAND );
+		{
+			CodeGuiRowsEnsure( parent, *fmt, rowsListed, CODEGUI_ROWS_BAND );
+			CodeGuiRowsEnsure( parent, *fmt, MAX_SLOTS, CODEGUI_ROWS_FREE );
+		}
 	}
 
 	buttonOk = TheWindowManager->winGetWindowFromId( parent, buttonOkID );
@@ -1130,6 +1146,39 @@ void initReplaySinglePlayer()
 
 /** Special Init path for making this a Multiplayer Score Screen(LAN) */
 //-------------------------------------------------------------------------------------------------
+/** TRUE if the match had a human in a slot other than ours (a player or an observer), i.e. someone to chat with. */
+static Bool scoreScreenHasOtherHuman()
+{
+	if( TheGameInfo == nullptr )
+		return FALSE;
+	const Int local = TheGameInfo->getLocalSlotNum();
+	for( Int i = 0; i < MAX_SLOTS; ++i )
+	{
+		const GameSlot *slot = TheGameInfo->getConstSlot( i );
+		if( i != local && slot != nullptr && slot->isHuman() )
+			return TRUE;
+	}
+	return FALSE;
+}
+
+/** With nobody else in the match, the chat block has no one to talk to: hide it, as the skirmish screen does. */
+static void scoreScreenHideChatIfAlone()
+{
+	if( scoreScreenHasOtherHuman() )
+		return;
+	if( textEntryChat )
+		textEntryChat->winHide( TRUE );
+	if( buttonEmote )
+		buttonEmote->winHide( TRUE );
+	if( listboxChatWindowScoreScreen )
+		listboxChatWindowScoreScreen->winHide( TRUE );
+	if( chatBoxBorder )
+		chatBoxBorder->winHide( TRUE );
+	// The init paths focus the entry; a hidden one must not keep taking keys.
+	if( textEntryChat && TheWindowManager->winGetFocus() == textEntryChat )
+		TheWindowManager->winSetFocus( nullptr );
+}
+
 void initLANMultiPlayer()
 {
 	screenType = SCORESCREEN_LAN;
@@ -1155,6 +1204,7 @@ void initLANMultiPlayer()
 		chatBoxBorder->winHide(FALSE);
 	if (buttonBuddies)
 		buttonBuddies->winHide(TRUE);
+	scoreScreenHideChatIfAlone();
 }
 
 /** Special Init path for making this a Multiplayer Score Screen(Internet) */
@@ -1189,6 +1239,7 @@ void initInternetMultiPlayer()
 		buttonBuddies->winHide(TRUE);
 	else
 		buttonBuddies->winHide(FALSE);
+	scoreScreenHideChatIfAlone();
 
 	if (!TheGameSpyBuddyMessageQueue)
 		return;

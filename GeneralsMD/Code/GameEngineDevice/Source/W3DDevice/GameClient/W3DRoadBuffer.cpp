@@ -67,7 +67,19 @@
 #include "WW3D2/mesh.h"
 #include "WW3D2/meshmdl.h"
 
+#include <algorithm>
+#include <chrono>
+#include <cstdio>
+#include <cstring>
+#include <unordered_map>
+#include <vector>
+
 static const Real TEE_WIDTH_ADJUSTMENT = 1.03f;
+// GeneralsX @feature Segments a map gets per road point pair, for sizing m_roads (loadRoads builds again at
+// MaxRoadSegments when a map needs more). A dense real-world city measured 1.4.
+static const Int SEGMENTS_PER_PAIR = 2;
+// Never below the stock MaxRoadSegments: every stock map fits it, so none is built twice.
+static const Int MIN_ROAD_SEGMENTS = 4000;
 
 
 //-----------------------------------------------------------------------------
@@ -119,6 +131,323 @@ static Int xpSign(const Vector2 &v1, const Vector2 &v2) {
 	return 0;
 }
 
+//=============================================================================
+// The road build index
+//=============================================================================
+// GeneralsX @feature The road build used to find a segment by walking m_roads from the start - once per segment per
+// phase, so a real-world city map's 50,000 segments took 3.4 s to build. These structures answer the same questions
+// the walks did and hand back the candidates in the walks' own order, so the first hit is the hit the walk found and
+// the built roads are identical (proved by the [GXROADS] built hashes). Endpoints are compared with Vector2's ==,
+// which is exact float equality: the key is the exact bit pattern, with -0 folded into +0 (they compare equal) and
+// NaN never indexed (it compares equal to nothing, so the walks never matched it either).
+
+struct RoadPtKey
+{
+	UnsignedInt x, y;
+	bool operator==(const RoadPtKey &o) const { return x == o.x && y == o.y; }
+};
+
+struct RoadPtKeyHash
+{
+	size_t operator()(const RoadPtKey &k) const { return ((size_t)k.x * 0x9E3779B1u) ^ (((size_t)k.y * 0x85EBCA77u) << 1); }
+};
+
+static Bool roadPtKey(const Vector2 &v, RoadPtKey &k)
+{
+	if (!(v.X == v.X) || !(v.Y == v.Y)) {
+		return false;
+	}
+	const Real x = v.X == 0.0f ? 0.0f : v.X;
+	const Real y = v.Y == 0.0f ? 0.0f : v.Y;
+	memcpy(&k.x, &x, sizeof(k.x));
+	memcpy(&k.y, &y, sizeof(k.y));
+	return true;
+}
+
+/// Which segments have an end at a point.
+class RoadEndpointMap
+{
+public:
+	void clear() { m_map.clear(); }
+	void add(Int seg, const Vector2 &loc)
+	{
+		RoadPtKey k;
+		if (!roadPtKey(loc, k)) {
+			return;
+		}
+		std::vector<Int> &v = m_map[k];
+		if (v.empty() || v.back() != seg) {
+			v.push_back(seg);
+		}
+	}
+	void addEnds(Int seg, const RoadSegment &r) { add(seg, r.m_pt1.loc); add(seg, r.m_pt2.loc); }
+	/// Appends the segments with an end at loc (a segment can repeat across calls; callers sort and unique).
+	void collect(const Vector2 &loc, std::vector<Int> &out) const
+	{
+		RoadPtKey k;
+		if (!roadPtKey(loc, k)) {
+			return;
+		}
+		Map::const_iterator it = m_map.find(k);
+		if (it != m_map.end()) {
+			out.insert(out.end(), it->second.begin(), it->second.end());
+		}
+	}
+private:
+	typedef std::unordered_map<RoadPtKey, std::vector<Int>, RoadPtKeyHash> Map;
+	Map m_map;
+};
+
+/// The order the old array kept the segments in, as an implicit treap over segment slots: a position lookup, an
+/// insert and a move each cost O(log n) instead of shifting everything behind them.
+class RoadOrder
+{
+public:
+	void reset(Int capacity)
+	{
+		m_n.assign(capacity + 1, Node());
+		m_root = 0;
+		m_size = 0;
+	}
+	Int size() const { return m_size; }
+	/// The slot at pos (0 <= pos < size).
+	Int at(Int pos) const
+	{
+		Int t = m_root;
+		while (t) {
+			const Int ls = m_n[m_n[t].l].size;
+			if (pos < ls) {
+				t = m_n[t].l;
+			} else if (pos == ls) {
+				return t - 1;
+			} else {
+				pos -= ls + 1;
+				t = m_n[t].r;
+			}
+		}
+		return -1;
+	}
+	/// The position of a placed slot.
+	Int rankOf(Int slot) const
+	{
+		Int t = slot + 1;
+		Int r = m_n[m_n[t].l].size;
+		while (m_n[t].p) {
+			const Int p = m_n[t].p;
+			if (m_n[p].r == t) {
+				r += m_n[m_n[p].l].size + 1;
+			}
+			t = p;
+		}
+		return r;
+	}
+	/// The old insertion: everything from pos on moves up one, the slot takes pos.
+	void insertAt(Int pos, Int slot)
+	{
+		const Int t = slot + 1;
+		m_n[t] = Node();
+		m_n[t].size = 1;
+		UnsignedInt h = (UnsignedInt)slot * 2654435761u;
+		h ^= h >> 15;
+		h *= 2246822519u;
+		m_n[t].pri = h ^ (h >> 13);
+		Int a, b;
+		split(m_root, pos, a, b);
+		m_root = merge(merge(a, t), b);
+		m_n[m_root].p = 0;
+		m_size++;
+	}
+	/// The old moveRoadSegTo: the segment at fromPos goes to toPos, the ones between shift by one.
+	void moveTo(Int fromPos, Int toPos)
+	{
+		if (fromPos == toPos) {
+			return;
+		}
+		Int a, b, m, c;
+		split(m_root, fromPos, a, b);
+		split(b, 1, m, c);
+		m_root = merge(a, c);
+		m_n[m].p = 0;
+		split(m_root, toPos, a, b);
+		m_root = merge(merge(a, m), b);
+		m_n[m_root].p = 0;
+	}
+	/// The slots in order.
+	void toVector(std::vector<Int> &out) const
+	{
+		out.clear();
+		out.reserve(m_size);
+		std::vector<Int> stack;
+		Int t = m_root;
+		while (t || !stack.empty()) {
+			while (t) {
+				stack.push_back(t);
+				t = m_n[t].l;
+			}
+			t = stack.back();
+			stack.pop_back();
+			out.push_back(t - 1);
+			t = m_n[t].r;
+		}
+	}
+private:
+	struct Node
+	{
+		Int l, r, p, size;
+		UnsignedInt pri;
+		Node() : l(0), r(0), p(0), size(0), pri(0) {}
+	};
+	std::vector<Node> m_n;	///< node i is slot i-1; node 0 is "none" and keeps size 0.
+	Int m_root;
+	Int m_size;
+	void upd(Int t)
+	{
+		Node &n = m_n[t];
+		n.size = 1 + m_n[n.l].size + m_n[n.r].size;
+		if (n.l) m_n[n.l].p = t;
+		if (n.r) m_n[n.r].p = t;
+	}
+	Int merge(Int a, Int b)
+	{
+		if (!a) return b;
+		if (!b) return a;
+		if (m_n[a].pri > m_n[b].pri) {
+			m_n[a].r = merge(m_n[a].r, b);
+			upd(a);
+			return a;
+		}
+		m_n[b].l = merge(a, m_n[b].l);
+		upd(b);
+		return b;
+	}
+	/// The first k of t into a, the rest into b.
+	void split(Int t, Int k, Int &a, Int &b)
+	{
+		if (!t) {
+			a = b = 0;
+			return;
+		}
+		if (m_n[m_n[t].l].size >= k) {
+			Int tl;
+			split(m_n[t].l, k, a, tl);
+			m_n[t].l = tl;
+			upd(t);
+			b = t;
+		} else {
+			Int tr;
+			split(m_n[t].r, k - m_n[m_n[t].l].size - 1, tr, b);
+			m_n[t].r = tr;
+			upd(t);
+			a = t;
+		}
+	}
+};
+
+/// Which straight segments of other road types lie under an open road end (insertCrossTypeJoins): a uniform grid
+/// over the segments' widened bounds. A cell's list is in ascending index, the old walk's order.
+struct RoadJoinGrid
+{
+	Real loX, loY, cell;
+	Int w, h;
+	std::vector<std::vector<Int> > cells;
+	std::vector<Int> always;	///< segments whose bounds are not finite: the old test ran on them too.
+
+	static Bool bounds(const RoadSegment &r, Region2D &b)
+	{
+		const Vector2 loc1 = r.m_pt1.loc;
+		const Vector2 loc2 = r.m_pt2.loc;
+		b.lo.x = loc1.X;
+		b.lo.y = loc1.Y;
+		b.hi = b.lo;
+		if (b.lo.x > loc2.X) b.lo.x = loc2.X;
+		if (b.lo.y > loc2.Y) b.lo.y = loc2.Y;
+		if (b.hi.x < loc2.X) b.hi.x = loc2.X;
+		if (b.hi.y < loc2.Y) b.hi.y = loc2.Y;
+		b.lo.x -= r.m_scale/2;
+		b.lo.y -= r.m_scale/2;
+		b.hi.x += r.m_scale/2;
+		b.hi.y += r.m_scale/2;
+		return b.lo.x - b.lo.x == 0.0f && b.lo.y - b.lo.y == 0.0f && b.hi.x - b.hi.x == 0.0f && b.hi.y - b.hi.y == 0.0f;
+	}
+	Int cellX(Real x) const
+	{
+		Int c = (Int)((x - loX) / cell);
+		return c < 0 ? 0 : (c >= w ? w - 1 : c);
+	}
+	Int cellY(Real y) const
+	{
+		Int c = (Int)((y - loY) / cell);
+		return c < 0 ? 0 : (c >= h ? h - 1 : c);
+	}
+	void build(const RoadSegment *roads, Int count)
+	{
+		cells.clear();
+		always.clear();
+		w = h = 0;
+		Real hiX = 0, hiY = 0;
+		Bool any = false;
+		Int i;
+		Region2D b;
+		for (i=0; i<count; i++) {
+			if (roads[i].m_type != SEGMENT) continue;
+			if (!bounds(roads[i], b)) {
+				always.push_back(i);
+				continue;
+			}
+			if (!any) {
+				loX = b.lo.x; loY = b.lo.y; hiX = b.hi.x; hiY = b.hi.y;
+				any = true;
+			} else {
+				if (b.lo.x < loX) loX = b.lo.x;
+				if (b.lo.y < loY) loY = b.lo.y;
+				if (b.hi.x > hiX) hiX = b.hi.x;
+				if (b.hi.y > hiY) hiY = b.hi.y;
+			}
+		}
+		if (!any) return;
+		// About one cell per segment (a stock map's 300 segments get 18 x 18, a city's 50,000 get 224 x 224): the cell
+		// count is a cost knob only - a cell holds every segment whose bounds touch it, whatever its size.
+		Int perAxis = 1;
+		while (perAxis < 256 && perAxis * perAxis < count) {
+			perAxis++;
+		}
+		cell = (hiX - loX > hiY - loY ? hiX - loX : hiY - loY) / perAxis;
+		if (!(cell >= 1.0f)) cell = 1.0f;	// also catches a zero or NaN extent
+		w = cellX_unclamped(hiX) + 1;
+		h = cellY_unclamped(hiY) + 1;
+		if (w > perAxis + 1) w = perAxis + 1;
+		if (h > perAxis + 1) h = perAxis + 1;
+		cells.resize((size_t)w * h);
+		for (i=0; i<count; i++) {
+			if (roads[i].m_type != SEGMENT || !bounds(roads[i], b)) continue;
+			const Int x0 = cellX(b.lo.x), x1 = cellX(b.hi.x), y0 = cellY(b.lo.y), y1 = cellY(b.hi.y);
+			for (Int y=y0; y<=y1; y++) {
+				for (Int x=x0; x<=x1; x++) {
+					cells[(size_t)y * w + x].push_back(i);
+				}
+			}
+		}
+	}
+	Int cellX_unclamped(Real x) const { Int c = (Int)((x - loX) / cell); return c < 0 ? 0 : c; }
+	Int cellY_unclamped(Real y) const { Int c = (Int)((y - loY) / cell); return c < 0 ? 0 : c; }
+	/// The cell list for a point, or null when the point is outside every finite bound.
+	const std::vector<Int> *at(const Vector2 &loc) const
+	{
+		if (w == 0 || !(loc.X - loc.X == 0.0f) || !(loc.Y - loc.Y == 0.0f)) return nullptr;
+		if (loc.X < loX || loc.Y < loY) return nullptr;
+		return &cells[(size_t)cellY(loc.Y) * w + cellX(loc.X)];
+	}
+};
+
+/// Everything the build keeps between its phases; alive only inside buildRoadSegments.
+struct RoadBuildScratch
+{
+	RoadOrder order;				///< Phases 1-2: the array order of the slots in m_roads.
+	RoadEndpointMap ends;		///< Phases 1-2 (by slot) and 3-4 (by index): which segments have an end at a point.
+	std::vector<Int> cand;	///< Scratch for candidate lists.
+	RoadJoinGrid grid;			///< Phase 6.
+};
+
 static Bool s_dynamic = false;
 
 //-----------------------------------------------------------------------------
@@ -134,6 +463,10 @@ RoadType::RoadType():
 m_roadTexture(nullptr),
 m_vertexRoad(nullptr),
 m_indexRoad(nullptr),
+m_numRoadVertices(0),
+m_numRoadIndices(0),
+m_vertexCapacity(0),
+m_indexCapacity(0),
 m_stackingOrder(0),
 m_uniqueID(-1)
 {
@@ -183,15 +516,42 @@ void RoadType::loadTexture(AsciiString path, Int ID)
 	m_roadTexture->Get_Filter().Set_U_Addr_Mode(TextureFilterClass::TEXTURE_ADDRESS_REPEAT);
 	m_roadTexture->Get_Filter().Set_V_Addr_Mode(TextureFilterClass::TEXTURE_ADDRESS_REPEAT);
 
-	m_vertexRoad=NEW_REF(DX8VertexBufferClass,(DX8_FVF_XYZDUV1,TheGlobalData->m_maxRoadVertex+4, (s_dynamic?DX8VertexBufferClass::USAGE_DYNAMIC:DX8VertexBufferClass::USAGE_DEFAULT)));
-	m_indexRoad=NEW_REF(DX8IndexBufferClass,(TheGlobalData->m_maxRoadIndex+4, (s_dynamic?DX8IndexBufferClass::USAGE_DYNAMIC:DX8IndexBufferClass::USAGE_DEFAULT)));
-	m_numRoadVertices=0;
-	m_numRoadIndices=0;
+	// GeneralsX @feature No buffers here: W3DRoadBuffer::sizeRoadTypeBuffers sizes them per map.
+	sizeBuffers(0, 0);
 
 #ifdef LOAD_TEST_ASSETS
 	m_texturePath = path;
 #endif
 	m_uniqueID = ID;
+}
+
+//=============================================================================
+// RoadType sizeBuffers
+//=============================================================================
+/** Makes the vertex and index buffers hold numVertex and numIndex (0 = none). */
+//=============================================================================
+void RoadType::sizeBuffers(Int numVertex, Int numIndex)
+{
+	if (numVertex <= 0 || numIndex <= 0) {
+		numVertex = 0;
+		numIndex = 0;
+	}
+	m_numRoadVertices = 0;
+	m_numRoadIndices = 0;
+	if (numVertex == m_vertexCapacity && numIndex == m_indexCapacity) {
+		return;
+	}
+	REF_PTR_RELEASE(m_vertexRoad);
+	REF_PTR_RELEASE(m_indexRoad);
+	m_vertexCapacity = 0;
+	m_indexCapacity = 0;
+	if (numVertex == 0) {
+		return;
+	}
+	m_vertexRoad=NEW_REF(DX8VertexBufferClass,(DX8_FVF_XYZDUV1,numVertex+4, (s_dynamic?DX8VertexBufferClass::USAGE_DYNAMIC:DX8VertexBufferClass::USAGE_DEFAULT)));
+	m_indexRoad=NEW_REF(DX8IndexBufferClass,(numIndex+4, (s_dynamic?DX8IndexBufferClass::USAGE_DYNAMIC:DX8IndexBufferClass::USAGE_DEFAULT)));
+	m_vertexCapacity = numVertex;
+	m_indexCapacity = numIndex;
 }
 
 #ifdef LOAD_TEST_ASSETS
@@ -580,6 +940,7 @@ void W3DRoadBuffer::loadFloat4PtSection(RoadSegment *pRoad, Vector2 loc,
 														Real uOffset, Real vOffset, Real uScale, Real vScale)
 {
 
+	// GeneralsX @feature world-unit tolerances: kept at the retail step on a taller map (getHeightScale), so roads hug it as closely
 	const Real FLOAT_AMOUNT = MAP_HEIGHT_SCALE/8;
 	const Real MAX_ERROR = MAP_HEIGHT_SCALE*1.1f;
 	UnsignedShort ib[MAX_SEG_INDEX];
@@ -651,8 +1012,8 @@ void W3DRoadBuffer::loadFloat4PtSection(RoadSegment *pRoad, Vector2 loc,
 			nextColumn.lightGradient = false;
 			nextColumn.uIndex = i;
 
-			Real minHeight=m_map->getMaxHeightValue()*MAP_HEIGHT_SCALE;
-			Real maxHeight = m_map->getMinHeightValue()*MAP_HEIGHT_SCALE;
+			Real minHeight=m_map->getMaxHeightValue()*m_map->getHeightScale();
+			Real maxHeight = m_map->getMinHeightValue()*m_map->getHeightScale();
 			for (j=0; j<vCount; j++) {
 				Real jFactor = ((Real)j / (vCount-1));
 				Real jBarFactor = 1.0f-jFactor;
@@ -800,6 +1161,7 @@ to the road normal.  */
 void W3DRoadBuffer::loadLit4PtSection(RoadSegment *pRoad, UnsignedShort *ib, VertexFormatXYZDUV1 *vb, RefRenderObjListIterator *pDynamicLightsIterator)
 {
 
+	// GeneralsX @feature world-unit tolerances: kept at the retail step on a taller map (getHeightScale), so roads hug it as closely
 	const Real FLOAT_AMOUNT = MAP_HEIGHT_SCALE/8;
 	const Real MAX_ERROR = MAP_HEIGHT_SCALE*1.1f;
 
@@ -877,8 +1239,8 @@ void W3DRoadBuffer::loadLit4PtSection(RoadSegment *pRoad, UnsignedShort *ib, Ver
 			nextColumn.lightGradient = false;
 			nextColumn.uIndex = i;
 
-			Real minHeight=m_map->getMaxHeightValue()*MAP_HEIGHT_SCALE;
-			Real maxHeight = m_map->getMinHeightValue()*MAP_HEIGHT_SCALE;
+			Real minHeight=m_map->getMaxHeightValue()*m_map->getHeightScale();
+			Real maxHeight = m_map->getMinHeightValue()*m_map->getHeightScale();
 			for (j=0; j<vCount; j++) {
 				Real jFactor = ((Real)j / (vCount-1));
 				Real jBarFactor = 1.0f-jFactor;
@@ -942,7 +1304,7 @@ void W3DRoadBuffer::loadLit4PtSection(RoadSegment *pRoad, UnsignedShort *ib, Ver
 								break;
 							}
 				Real U, V;
-				if (m_curNumRoadVertices >= m_maxRoadVertex) {
+				if (m_curNumRoadVertices >= m_curVertexCapacity) {
 					break;
 				}
 				curVector.Set(curColumn.vtx[j].X - info.loc.X, curColumn.vtx[j].Y - info.loc.Y);
@@ -1031,7 +1393,7 @@ void W3DRoadBuffer::loadLit4PtSection(RoadSegment *pRoad, UnsignedShort *ib, Ver
 				j = 0;
 				k = 0;
 				while (j<vCount-1 && k<vCount-1) {
-					if (m_curNumRoadIndices >= m_maxRoadIndex) {
+					if (m_curNumRoadIndices >= m_curIndexCapacity) {
 						break;
 					}
 					UnsignedShort *curIb = ib+m_curNumRoadIndices;
@@ -1255,6 +1617,8 @@ void W3DRoadBuffer::loadRoadsInVertexAndIndexBuffers()
 		this->m_roadTypes[m_curRoadType].setNumIndices(0);
 		return;
 	}
+	m_curVertexCapacity = m_roadTypes[m_curRoadType].getVertexCapacity();
+	m_curIndexCapacity = m_roadTypes[m_curRoadType].getIndexCapacity();
 	DX8IndexBufferClass::WriteLockClass lockIdxBuffer(m_roadTypes[m_curRoadType].getIB(), s_dynamic?D3DLOCK_DISCARD:0);
 	DX8VertexBufferClass::WriteLockClass lockVtxBuffer(m_roadTypes[m_curRoadType].getVB(), s_dynamic?D3DLOCK_DISCARD:0);
 	vb=(VertexFormatXYZDUV1*)lockVtxBuffer.Get_Vertex_Array();
@@ -1333,6 +1697,13 @@ void W3DRoadBuffer::loadLitRoadsInVertexAndIndexBuffers(RefRenderObjListIterator
 	m_curNumRoadIndices = 0;
 	VertexFormatXYZDUV1 *vb;
 	UnsignedShort *ib;
+	if (m_roadTypes[m_curRoadType].getIB() == nullptr) {
+		this->m_roadTypes[m_curRoadType].setNumVertices(0);
+		this->m_roadTypes[m_curRoadType].setNumIndices(0);
+		return;
+	}
+	m_curVertexCapacity = m_roadTypes[m_curRoadType].getVertexCapacity();
+	m_curIndexCapacity = m_roadTypes[m_curRoadType].getIndexCapacity();
 	// Lock the buffers.
 	DX8IndexBufferClass::WriteLockClass lockIdxBuffer(m_roadTypes[m_curRoadType].getIB());
 	DX8VertexBufferClass::WriteLockClass lockVtxBuffer(m_roadTypes[m_curRoadType].getVB());
@@ -1370,8 +1741,13 @@ void W3DRoadBuffer::loadRoadSegment(UnsignedShort *ib, VertexFormatXYZDUV1 *vb, 
 		return;
 	}
 	Int curVertex = m_curNumRoadVertices;
-	if (curVertex+pRoad->GetNumVertex() >= m_maxRoadVertex) return;
-	if (m_curNumRoadIndices+pRoad->GetNumIndex() >= m_maxRoadIndex) return;
+	// GeneralsX @feature A segment that does not fit is counted for [GXROADS] (it is not drawn). The buffer
+	// holds at most MaxRoadVertex/Index, fewer when this type's roads need fewer.
+	if (curVertex+pRoad->GetNumVertex() >= m_maxRoadVertex || curVertex+pRoad->GetNumVertex() > m_curVertexCapacity ||
+		m_curNumRoadIndices+pRoad->GetNumIndex() >= m_maxRoadIndex || m_curNumRoadIndices+pRoad->GetNumIndex() > m_curIndexCapacity) {
+		m_rebuildDropped++;
+		return;
+	}
 	m_curNumRoadVertices += pRoad->GetVertices(vb+curVertex, pRoad->GetNumVertex());
 	m_curNumRoadIndices += pRoad->GetIndices(ib+m_curNumRoadIndices, pRoad->GetNumIndex(), curVertex);
 
@@ -1379,81 +1755,46 @@ void W3DRoadBuffer::loadRoadSegment(UnsignedShort *ib, VertexFormatXYZDUV1 *vb, 
 
 
 //=============================================================================
-// W3DRoadBuffer::moveRoadSegTo
-//=============================================================================
-/** Moves a road segment. */
-//=============================================================================
-void W3DRoadBuffer::moveRoadSegTo(Int fromNdx, Int toNdx)
-{
-	if (fromNdx<0 || fromNdx>=m_numRoads || toNdx<0 || toNdx>=m_numRoads) {
-#ifdef RTS_DEBUG
-		DEBUG_LOG(("bad moveRoadSegTo"));
-#endif
-		return;
-	}
-	if (fromNdx == toNdx) return;
-	RoadSegment cur = m_roads[fromNdx];
-	Int i;
-	if (fromNdx<toNdx) {
-		for (i=fromNdx; i<toNdx; i++) {
-			m_roads[i] = m_roads[i+1];
-		}
-	} else {
-		for (i=fromNdx; i>toNdx; i--) {
-			m_roads[i] = m_roads[i-1];
-		}
-	}
-	m_roads[toNdx] = cur;
-
-}
-//=============================================================================
 // W3DRoadBuffer::checkLinkBefore
 //=============================================================================
 /** Checks to see if any segments need to link before this one. */
 //=============================================================================
 void W3DRoadBuffer::checkLinkBefore(Int ndx)
 {
+	// Positions are the old array's; the segment at a position is m_roads[m_build->order.at(position)].
+	RoadOrder &order = m_build->order;
 	// Check for things whose loc == our loc2.
-	if (m_roads[ndx].m_pt2.count != 1) {
+	if (m_roads[order.at(ndx)].m_pt2.count != 1) {
 		return;
 	}
 
-	Vector2 loc2 = m_roads[ndx].m_pt2.loc;
-#ifdef RTS_DEBUG
-	DEBUG_ASSERTLOG(m_roads[ndx].m_pt1.loc == m_roads[ndx+1].m_pt2.loc, ("Bad link"));
-	if (ndx>0) {
-		DEBUG_ASSERTLOG(m_roads[ndx].m_pt2.loc != m_roads[ndx-1].m_pt1.loc, ("Bad Link"));
-	}
-#endif
+	Vector2 loc2 = m_roads[order.at(ndx)].m_pt2.loc;
 
 	Int endOfCurSeg = ndx+1;
 	while (endOfCurSeg<m_numRoads-1) {
-		if (m_roads[endOfCurSeg].m_pt1.loc != m_roads[endOfCurSeg+1].m_pt2.loc) {
+		if (m_roads[order.at(endOfCurSeg)].m_pt1.loc != m_roads[order.at(endOfCurSeg+1)].m_pt2.loc) {
 			break;
 		}
 		endOfCurSeg++;
 	}
 	Int checkNdx = endOfCurSeg+1;
 	while (checkNdx < m_numRoads) {
-		if (m_roads[checkNdx].m_pt1.loc == loc2) {
-#ifdef RTS_DEBUG
-			DEBUG_ASSERTLOG(m_roads[checkNdx].m_pt1.count==1, ("Bad count"));
-#endif
-			moveRoadSegTo(checkNdx, ndx);
-			loc2 = m_roads[ndx].m_pt2.loc;
-			if (m_roads[ndx].m_pt2.count != 1) return;
+		// The old loop stepped checkNdx to the next segment with an end at loc2; the index names it.
+		checkNdx = firstRoadEndFrom(loc2, checkNdx);
+		if (checkNdx < 0) {
+			return;
+		}
+		RoadSegment &found = m_roads[order.at(checkNdx)];
+		if (found.m_pt1.loc == loc2) {
+			order.moveTo(checkNdx, ndx);
+			loc2 = m_roads[order.at(ndx)].m_pt2.loc;
+			if (m_roads[order.at(ndx)].m_pt2.count != 1) return;
 			endOfCurSeg++;
-		} else if (m_roads[checkNdx].m_pt2.loc == loc2) {
-#ifdef RTS_DEBUG
-			if (m_roads[checkNdx].m_pt2.count!=1) {
-				::OutputDebugString("fooey.\n");
-			}
-			DEBUG_ASSERTLOG(m_roads[checkNdx].m_pt2.count==1, ("Bad count"));
-#endif
-			flipTheRoad(&m_roads[checkNdx]);
-			moveRoadSegTo(checkNdx, ndx);
-			loc2 = m_roads[ndx].m_pt2.loc;
-			if (m_roads[ndx].m_pt2.count != 1) return;
+		} else if (found.m_pt2.loc == loc2) {
+			flipTheRoad(&found);
+			order.moveTo(checkNdx, ndx);
+			loc2 = m_roads[order.at(ndx)].m_pt2.loc;
+			if (m_roads[order.at(ndx)].m_pt2.count != 1) return;
 			endOfCurSeg++;
 		}	else {
 			checkNdx++;
@@ -1472,41 +1813,35 @@ void W3DRoadBuffer::checkLinkBefore(Int ndx)
 //=============================================================================
 void W3DRoadBuffer::checkLinkAfter(Int ndx)
 {
+	RoadOrder &order = m_build->order;
 	// Check for things whose loc == our loc1.
-	if (m_roads[ndx].m_pt1.count != 1) {
+	if (m_roads[order.at(ndx)].m_pt1.count != 1) {
 		return;
 	}
 	if (ndx >= m_numRoads-1) {
 		return;
 	}
 
-	Vector2 loc1 = m_roads[ndx].m_pt1.loc;
-#ifdef RTS_DEBUG
-	DEBUG_ASSERTLOG(m_roads[ndx].m_pt2.loc == m_roads[ndx-1].m_pt1.loc, ("Bad link"));
-#endif
+	Vector2 loc1 = m_roads[order.at(ndx)].m_pt1.loc;
 
 	Int checkNdx = ndx+1;
 	while (checkNdx < m_numRoads && ndx < m_numRoads-1) {
-		if (m_roads[checkNdx].m_pt2.loc == loc1) {
-#ifdef RTS_DEBUG
-			DEBUG_ASSERTLOG(m_roads[checkNdx].m_pt2.count==1, ("Bad count"));
-#endif
+		checkNdx = firstRoadEndFrom(loc1, checkNdx);
+		if (checkNdx < 0) {
+			return;
+		}
+		RoadSegment &found = m_roads[order.at(checkNdx)];
+		if (found.m_pt2.loc == loc1) {
 			ndx++;
-			moveRoadSegTo(checkNdx, ndx);
-			loc1 = m_roads[ndx].m_pt1.loc;
-			if (m_roads[ndx].m_pt1.count != 1) return;
-		} else if (m_roads[checkNdx].m_pt1.loc == loc1) {
-#ifdef RTS_DEBUG
-			DEBUG_ASSERTLOG(m_roads[checkNdx].m_pt1.count==1, ("Wrong m_pt1.count."));
-			if ( m_roads[checkNdx].m_pt1.count!=1) {
-				::OutputDebugString("Wrong m_pt1.count.\n");
-			}
-#endif
-			flipTheRoad(&m_roads[checkNdx]);
+			order.moveTo(checkNdx, ndx);
+			loc1 = m_roads[order.at(ndx)].m_pt1.loc;
+			if (m_roads[order.at(ndx)].m_pt1.count != 1) return;
+		} else if (found.m_pt1.loc == loc1) {
+			flipTheRoad(&found);
 			ndx++;
-			moveRoadSegTo(checkNdx, ndx);
-			loc1 = m_roads[ndx].m_pt1.loc;
-			if (m_roads[ndx].m_pt1.count != 1) return;
+			order.moveTo(checkNdx, ndx);
+			loc1 = m_roads[order.at(ndx)].m_pt1.loc;
+			if (m_roads[order.at(ndx)].m_pt1.count != 1) return;
 		}	else {
 			checkNdx++;
 		}
@@ -1514,15 +1849,35 @@ void W3DRoadBuffer::checkLinkAfter(Int ndx)
 
 }
 
+//=============================================================================
+// W3DRoadBuffer::firstRoadEndFrom
+//=============================================================================
+/** The first position at or after fromPos whose segment has an end at loc, or -1 (phases 1-2). */
+//=============================================================================
+Int W3DRoadBuffer::firstRoadEndFrom(const Vector2 &loc, Int fromPos)
+{
+	std::vector<Int> &cand = m_build->cand;
+	cand.clear();
+	m_build->ends.collect(loc, cand);
+	Int best = -1;
+	for (size_t c=0; c<cand.size(); c++) {
+		const Int pos = m_build->order.rankOf(cand[c]);
+		if (pos >= fromPos && (best < 0 || pos < best)) {
+			best = pos;
+		}
+	}
+	return best;
+}
+
 static Bool warnSegments = true;
-#define CHECK_SEGMENTS {if (m_numRoads >= m_maxRoadSegments) { if (warnSegments) DEBUG_LOG(("****** Too many road segments.  Need to increase ini values.  See john a.")); warnSegments = false; return;}}
+#define CHECK_SEGMENTS {if (m_numRoads >= m_maxRoadSegments) { m_segmentsFull = true; if (warnSegments) DEBUG_LOG(("****** Too many road segments.  Need to increase ini values.  See john a.")); warnSegments = false; return;}}
 
 //=============================================================================
 // W3DRoadBuffer::addMapObject
 //=============================================================================
 /** Loads the roads from the map objects. */
 //=============================================================================
-void W3DRoadBuffer::addMapObject(RoadSegment *pRoad, Bool updateTheCounts)
+void W3DRoadBuffer::addMapObject(RoadSegment *pRoad, Int slot, Bool updateTheCounts)
 {
 
 	RoadSegment cur = *pRoad;
@@ -1543,59 +1898,70 @@ void W3DRoadBuffer::addMapObject(RoadSegment *pRoad, Bool updateTheCounts)
 	}
 
 	CHECK_SEGMENTS;
-	Int i;
+	// The old loop walked every segment in array order for the first that is this road (both ends equal) or that
+	// shares the end whose count is 1. Only a segment with an end at loc1 or loc2 can be either; the index names
+	// them, and they are walked in array order, so the one found is the one the walk found.
+	RoadOrder &order = m_build->order;
+	std::vector<Int> &cand = m_build->cand;
+	cand.clear();
+	m_build->ends.collect(loc1, cand);
+	m_build->ends.collect(loc2, cand);
+	for (size_t c=0; c<cand.size(); c++) {
+		cand[c] = order.rankOf(cand[c]);
+	}
+	std::sort(cand.begin(), cand.end());
+	cand.erase(std::unique(cand.begin(), cand.end()), cand.end());
 	Bool flip = false;
 	Bool addBefore = false;
 	Bool addAfter = false;
 	Bool bothMatch = false;
-	for (i=0; i<m_numRoads; i++) {
+	Int addIndex = m_numRoads;
+	for (size_t c=0; c<cand.size(); c++) {
+		const RoadSegment &road = m_roads[order.at(cand[c])];
 		bothMatch = false;
-		if ( (m_roads[i].m_pt1.loc==loc1 && m_roads[i].m_pt2.loc==loc2) ||
-			(m_roads[i].m_pt1.loc==loc2 && m_roads[i].m_pt2.loc==loc1) ) {
+		if ( (road.m_pt1.loc==loc1 && road.m_pt2.loc==loc2) ||
+			(road.m_pt1.loc==loc2 && road.m_pt2.loc==loc1) ) {
 			bothMatch = true;	// identical segment, so discard.
 			break;
 		}
 		if (cur.m_pt1.count==1) {
-			if ((m_roads[i].m_pt1.loc == loc1)) {
+			if ((road.m_pt1.loc == loc1)) {
 				flip = true;
 				addAfter = true;
 			}
-			if ((m_roads[i].m_pt2.loc ==loc1)) {
+			if ((road.m_pt2.loc ==loc1)) {
 				flip = false;
 				addBefore = true;
 			}
 		}
 		if (cur.m_pt2.count==1) {
-			if ((m_roads[i].m_pt1.loc == loc2)) {
+			if ((road.m_pt1.loc == loc2)) {
 				flip = false;
 				addAfter = true;
 			}
-			if ((m_roads[i].m_pt2.loc == loc2)) {
+			if ((road.m_pt2.loc == loc2)) {
 				flip = true;
 				addBefore = true;
 			}
 		}
 		if (addBefore || addAfter) {
+			addIndex = cand[c];
 			break;
 		}
 	}
 	if (bothMatch) {
 		return;
 	}
-	Int addIndex = i;
 	if (addAfter) {
 		addIndex++;
 	}
-	if (addIndex < m_numRoads) {
-		for (i=m_numRoads; i>addIndex; i--) {
-			m_roads[i] = m_roads[i-1];
-		}
-	}
 
-	m_roads[addIndex] = cur;
+	m_roads[slot] = cur;
 	if (flip) {
-		flipTheRoad(&m_roads[addIndex]);
+		flipTheRoad(&m_roads[slot]);
 	}
+	order.insertAt(addIndex, slot);
+	m_build->ends.addEnds(slot, m_roads[slot]);
 	m_numRoads++;
 	if (addBefore) {
 		checkLinkBefore(addIndex);
@@ -1613,8 +1979,23 @@ void W3DRoadBuffer::addMapObjects()
 {
 	MapObject *pMapObj;
 	MapObject *pMapObj2;
+	m_mapRoadPairs = 0;
+	m_refusedRoadPairs = 0;
+	// During the two passes m_roads holds the segments by SLOT (the order they were accepted) and m_build->order holds
+	// the old array's order of those slots; the array is put back in that order at the end.
+	m_build->order.reset(m_maxRoadSegments);
+	m_build->ends.clear();
 	for (pMapObj = MapObject::getFirstMapObject(); pMapObj; pMapObj = pMapObj->getNext()) {
 		if (m_numRoads >= m_maxRoadSegments) {
+			m_segmentsFull = true;
+			// GeneralsX @feature Full: count the pairs left out for [GXROADS].
+			for (; pMapObj; pMapObj = pMapObj->getNext()) {
+				if (pMapObj->getFlag(FLAG_ROAD_POINT1) && pMapObj->getNext() && pMapObj->getNext()->getFlag(FLAG_ROAD_POINT2)) {
+					m_mapRoadPairs++;
+					m_refusedRoadPairs++;
+					pMapObj = pMapObj->getNext();
+				}
+			}
 			break;
 		}
 		if (pMapObj->getFlag(FLAG_ROAD_POINT1)) {
@@ -1624,6 +2005,7 @@ void W3DRoadBuffer::addMapObjects()
 #endif
 			if (pMapObj2==nullptr) break;
 			if (!pMapObj2->getFlag(FLAG_ROAD_POINT2)) continue;
+			m_mapRoadPairs++;
 			Vector2 loc1, loc2;
 			loc1.Set(pMapObj->getLocation()->x, pMapObj->getLocation()->y);
 			loc2.Set(pMapObj2->getLocation()->x, pMapObj2->getLocation()->y);
@@ -1672,17 +2054,33 @@ void W3DRoadBuffer::addMapObjects()
 			curRoad.m_type = SEGMENT;
 			curRoad.m_curveRadius = pMapObj->getFlag(FLAG_ROAD_CORNER_TIGHT)?TIGHT_CORNER_RADIUS:CORNER_RADIUS;
 
-			addMapObject(&curRoad, true);
+			addMapObject(&curRoad, m_numRoads, true);
 			pMapObj = pMapObj2;
 		}
 	}
-	Int curCount = m_numRoads;
-	Int i;
+	// Second pass, as always: every accepted segment is added again, now with its final counts. The slots stay put;
+	// the order is rebuilt.
+	std::vector<Int> firstOrder;
+	m_build->order.toVector(firstOrder);
+	m_build->order.reset(m_maxRoadSegments);
+	m_build->ends.clear();
 	m_numRoads = 0;
-	for (i=0; i<curCount; i++) {
-		RoadSegment curRoad = m_roads[i];
-		addMapObject(&curRoad, false);
+	size_t i;
+	for (i=0; i<firstOrder.size(); i++) {
+		RoadSegment curRoad = m_roads[firstOrder[i]];
+		addMapObject(&curRoad, firstOrder[i], false);
 	}
+	// m_roads by position again: the order the rest of the build and the drawing read.
+	std::vector<Int> finalOrder;
+	m_build->order.toVector(finalOrder);
+	std::vector<RoadSegment> inOrder(finalOrder.size());
+	for (i=0; i<finalOrder.size(); i++) {
+		inOrder[i] = m_roads[finalOrder[i]];
+	}
+	for (i=0; i<finalOrder.size(); i++) {
+		m_roads[i] = inOrder[i];
+	}
+	m_numRoads = (Int)finalOrder.size();
 
 }
 
@@ -1702,30 +2100,37 @@ void W3DRoadBuffer::updateCounts(RoadSegment *pRoad)
 	Vector2 loc1, loc2;
 	loc1 = pRoad->m_pt1.loc;
 	loc2 = pRoad->m_pt2.loc;
-	Int i;
-	for (i=0; i<m_numRoads; i++) {
+	// Only a segment with an end at loc1 or loc2 changes anything; the index names them, each once.
+	std::vector<Int> &cand = m_build->cand;
+	cand.clear();
+	m_build->ends.collect(loc1, cand);
+	m_build->ends.collect(loc2, cand);
+	std::sort(cand.begin(), cand.end());
+	cand.erase(std::unique(cand.begin(), cand.end()), cand.end());
+	for (size_t c=0; c<cand.size(); c++) {
+		RoadSegment &road = m_roads[cand[c]];
 		// Only connect same type of road.
-		if (m_roads[i].m_uniqueID != pRoad->m_uniqueID) {
+		if (road.m_uniqueID != pRoad->m_uniqueID) {
 			continue;
 		}
-		if ((m_roads[i].m_pt1.loc == loc1)) {
-			m_roads[i].m_pt1.count++;
+		if ((road.m_pt1.loc == loc1)) {
+			road.m_pt1.count++;
 			pRoad->m_pt1.count++;
 		}
-		if ((m_roads[i].m_pt1.loc == loc2)) {
-			m_roads[i].m_pt1.count++;
+		if ((road.m_pt1.loc == loc2)) {
+			road.m_pt1.count++;
 			pRoad->m_pt2.count++;
 		}
-		if ((m_roads[i].m_pt2.loc ==loc1)) {
-			m_roads[i].m_pt2.count++;
+		if ((road.m_pt2.loc ==loc1)) {
+			road.m_pt2.count++;
 			pRoad->m_pt1.count++;
 		}
-		if ((m_roads[i].m_pt2.loc == loc2)) {
-			m_roads[i].m_pt2.count++;
+		if ((road.m_pt2.loc == loc2)) {
+			road.m_pt2.count++;
 			pRoad->m_pt2.count++;
 		}
-		m_roads[i].m_pt1.multi = m_roads[i].m_pt1.count > 1;
-		m_roads[i].m_pt2.multi = m_roads[i].m_pt2.count > 1;
+		road.m_pt1.multi = road.m_pt1.count > 1;
+		road.m_pt2.multi = road.m_pt2.count > 1;
 	}
 	pRoad->m_pt1.multi = pRoad->m_pt1.count > 1;
 	pRoad->m_pt2.multi = pRoad->m_pt2.count > 1;
@@ -1738,45 +2143,43 @@ void W3DRoadBuffer::updateCounts(RoadSegment *pRoad)
 //=============================================================================
 void W3DRoadBuffer::updateCountsAndFlags()
 {
-	Int i, j;
+	Int i;
 	for (i=0; i<m_numRoads; i++) {
 		m_roads[i].m_pt1.last = true;
 		m_roads[i].m_pt2.last = true;
 		m_roads[i].m_pt1.count = 0;
 		m_roads[i].m_pt2.count = 0;
 	}
-	for (j=m_numRoads-1; j>0; j--) {
-		Vector2 loc1, loc2;
-		loc1 = m_roads[j].m_pt1.loc;
-		loc2 = m_roads[j].m_pt2.loc;
-		for (i=0; i<j; i++) {
-			if (m_roads[i].m_uniqueID != m_roads[j].m_uniqueID) {
-				continue;
+	// The old pass compared every pair of same-type segments. Per end that is: count = the other same-type ends at
+	// its point, last = no later segment of its type has an end there.
+	RoadEndpointMap &ends = m_build->ends;
+	ends.clear();
+	for (i=0; i<m_numRoads; i++) {
+		ends.addEnds(i, m_roads[i]);
+	}
+	std::vector<Int> &cand = m_build->cand;
+	for (i=0; i<m_numRoads; i++) {
+		TRoadPt *pts[2] = {&m_roads[i].m_pt1, &m_roads[i].m_pt2};
+		for (Int e=0; e<2; e++) {
+			const Vector2 loc = pts[e]->loc;
+			cand.clear();
+			ends.collect(loc, cand);
+			Int count = 0;
+			Bool later = false;
+			for (size_t c=0; c<cand.size(); c++) {
+				const Int j = cand[c];
+				if (j == i || m_roads[j].m_uniqueID != m_roads[i].m_uniqueID) {
+					continue;
+				}
+				if (m_roads[j].m_pt1.loc == loc) count++;
+				if (m_roads[j].m_pt2.loc == loc) count++;
+				if (j > i) later = true;
 			}
-			if ((m_roads[i].m_pt1.loc == loc1)) {
-				m_roads[i].m_pt1.last = false;
-				m_roads[i].m_pt1.count++;
-				m_roads[j].m_pt1.count++;
-			}
-			if ((m_roads[i].m_pt1.loc == loc2)) {
-				m_roads[i].m_pt1.last = false;
-				m_roads[i].m_pt1.count++;
-				m_roads[j].m_pt2.count++;
-			}
-			if ((m_roads[i].m_pt2.loc ==loc1)) {
-				m_roads[i].m_pt2.last = false;
-				m_roads[i].m_pt2.count++;
-				m_roads[j].m_pt1.count++;
-			}
-			if ((m_roads[i].m_pt2.loc == loc2)) {
-				m_roads[i].m_pt2.last = false;
-				m_roads[i].m_pt2.count++;
-				m_roads[j].m_pt2.count++;
-			}
+			pts[e]->count = count;
+			pts[e]->last = !later;
 		}
 	}
 }
-
 
 //=============================================================================
 // W3DRoadBuffer::insertTee
@@ -1809,10 +2212,12 @@ void W3DRoadBuffer::insertTee(Vector2 loc, Int index1, Real scale)
 		pr1 = &m_roads[index1].m_pt1;
 		pc1 = &m_roads[index1].m_pt2;
 	}
-	Int i;
 	Int index2=0;
 	Int index3=0;
-	for (i = index1+1; i<m_numRoads; i++) {
+	std::vector<Int> &cand = m_build->cand;
+	roadsAtPointAfter(loc, index1, cand);
+	for (size_t c=0; c<cand.size(); c++) {
+		const Int i = cand[c];
 		if (m_roads[i].m_pt1.loc == loc) {
 			m_roads[i].m_pt1.count = -2;
 			if (pr2==nullptr) {
@@ -1919,6 +2324,10 @@ void W3DRoadBuffer::insertTee(Vector2 loc, Int index1, Real scale)
 
 		}
 
+		// The offsets moved these ends: the index learns their new points.
+		m_build->ends.addEnds(index1, m_roads[index1]);
+		m_build->ends.addEnds(index2, m_roads[index2]);
+		m_build->ends.addEnds(index3, m_roads[index3]);
 		pc1->last = true;
 		pc1->count = 0;
 		pc2->last = true;
@@ -1937,6 +2346,7 @@ void W3DRoadBuffer::insertTee(Vector2 loc, Int index1, Real scale)
 		m_roads[m_numRoads].m_type = flip?THREE_WAY_H_FLIP:THREE_WAY_H;
 		m_roads[m_numRoads].m_uniqueID = m_roads[index1].m_uniqueID;
 		m_numRoads++;
+	m_build->ends.addEnds(m_numRoads-1, m_roads[m_numRoads-1]);
 	} else {
 		// Do a not slanted tee.
 		Real angle = (PI/2); // 90 degrees.
@@ -1956,6 +2366,10 @@ void W3DRoadBuffer::insertTee(Vector2 loc, Int index1, Real scale)
 		if (do32) {
 			offset3Way(pc3, pc2, pc1, loc, upVector, teeVector, m_roads[index1].m_widthInTexture);
 		}
+		// The offsets moved these ends: the index learns their new points.
+		m_build->ends.addEnds(index1, m_roads[index1]);
+		m_build->ends.addEnds(index2, m_roads[index2]);
+		m_build->ends.addEnds(index3, m_roads[index3]);
 		pc1->last = true;
 		pc1->count = 0;
 		pc2->last = true;
@@ -1974,6 +2388,7 @@ void W3DRoadBuffer::insertTee(Vector2 loc, Int index1, Real scale)
 		m_roads[m_numRoads].m_type = TEE;
 		m_roads[m_numRoads].m_uniqueID = m_roads[index1].m_uniqueID;
 		m_numRoads++;
+	m_build->ends.addEnds(m_numRoads-1, m_roads[m_numRoads-1]);
 	}
 }
 
@@ -2003,10 +2418,12 @@ Bool W3DRoadBuffer::insertY(Vector2 loc, Int index1, Real scale)
 		pr1 = &m_roads[index1].m_pt1;
 		pc1 = &m_roads[index1].m_pt2;
 	}
-	Int i;
 	Int index2=0;
 	Int index3=0;
-	for (i = index1+1; i<m_numRoads; i++) {
+	std::vector<Int> &cand = m_build->cand;
+	roadsAtPointAfter(loc, index1, cand);
+	for (size_t c=0; c<cand.size(); c++) {
+		const Int i = cand[c];
 		if (m_roads[i].m_pt1.loc == loc) {
 			m_roads[i].m_pt1.count = -2;
 			if (pr2==nullptr) {
@@ -2156,6 +2573,10 @@ Bool W3DRoadBuffer::insertY(Vector2 loc, Int index1, Real scale)
 		}
 	}
 
+	// The offsets moved these ends: the index learns their new points.
+	m_build->ends.addEnds(index1, m_roads[index1]);
+	m_build->ends.addEnds(index2, m_roads[index2]);
+	m_build->ends.addEnds(index3, m_roads[index3]);
 	pc1->last = true;
 	pc1->count = 0;
 	pc2->last = true;
@@ -2163,7 +2584,10 @@ Bool W3DRoadBuffer::insertY(Vector2 loc, Int index1, Real scale)
 	pc3->last = true;
 	pc3->count = 0;
 
-	if (m_numRoads >= m_maxRoadSegments) return false;
+	if (m_numRoads >= m_maxRoadSegments) {
+		m_segmentsFull = true;
+		return false;
+	}
 	m_roads[m_numRoads].m_pt1.loc.Set(loc);
 	m_roads[m_numRoads].m_pt2.loc.Set(loc+teeVector);
 	m_roads[m_numRoads].m_pt1.last = true; // if not, that one will clear flag in prior loop.
@@ -2174,6 +2598,7 @@ Bool W3DRoadBuffer::insertY(Vector2 loc, Int index1, Real scale)
 	m_roads[m_numRoads].m_type = THREE_WAY_Y;
 	m_roads[m_numRoads].m_uniqueID = m_roads[index1].m_uniqueID;
 	m_numRoads++;
+	m_build->ends.addEnds(m_numRoads-1, m_roads[m_numRoads-1]);
 
 
 	return true;
@@ -2453,19 +2878,27 @@ void W3DRoadBuffer::insert4Way(Vector2 loc, Int index1, Real scale)
 		pr1 = &m_roads[index1].m_pt1;
 		pc1 = &m_roads[index1].m_pt2;
 	}
-	Int i;
-	for (i = index1+1; i<m_numRoads; i++) {
+	Int index2=0;
+	Int index3=0;
+	Int index4=0;
+	std::vector<Int> &cand = m_build->cand;
+	roadsAtPointAfter(loc, index1, cand);
+	for (size_t c=0; c<cand.size(); c++) {
+		const Int i = cand[c];
 		if (m_roads[i].m_pt1.loc == loc) {
 			m_roads[i].m_pt1.count = -2;
 			if (pr2==nullptr) {
 				pr2 = &m_roads[i].m_pt2;
 				pc2 = &m_roads[i].m_pt1;
+				index2 = i;
 			} else if (pr3==nullptr) {
 				pr3 = &m_roads[i].m_pt2;
 				pc3 = &m_roads[i].m_pt1;
+				index3 = i;
 			}	else {
 				pr4 = &m_roads[i].m_pt2;
 				pc4 = &m_roads[i].m_pt1;
+				index4 = i;
 			}
 		}
 		if (m_roads[i].m_pt2.loc == loc) {
@@ -2473,12 +2906,15 @@ void W3DRoadBuffer::insert4Way(Vector2 loc, Int index1, Real scale)
 			if (pr2==nullptr) {
 				pr2 = &m_roads[i].m_pt1;
 				pc2 = &m_roads[i].m_pt2;
+				index2 = i;
 			} else if (pr3==nullptr) {
 				pr3 = &m_roads[i].m_pt1;
 				pc3 = &m_roads[i].m_pt2;
+				index3 = i;
 			}	else {
 				pr4 = &m_roads[i].m_pt1;
 				pc4 = &m_roads[i].m_pt2;
+				index4 = i;
 			}
 		}
 	}
@@ -2573,6 +3009,11 @@ void W3DRoadBuffer::insert4Way(Vector2 loc, Int index1, Real scale)
 	if (do34) {
 		offset4Way(pc3, pc4, pc1, pr1, pc2, loc, alignVector, m_roads[index1].m_widthInTexture);
 	}
+	// The offsets moved these ends: the index learns their new points.
+	m_build->ends.addEnds(index1, m_roads[index1]);
+	m_build->ends.addEnds(index2, m_roads[index2]);
+	m_build->ends.addEnds(index3, m_roads[index3]);
+	m_build->ends.addEnds(index4, m_roads[index4]);
 	if (alignVector.X<0) {
 		// Since the 4 way intersection is symmetrical, make it go right (pos x)
 		alignVector.X = -alignVector.X;
@@ -2589,11 +3030,28 @@ void W3DRoadBuffer::insert4Way(Vector2 loc, Int index1, Real scale)
 	m_roads[m_numRoads].m_type = FOUR_WAY;
 	m_roads[m_numRoads].m_uniqueID = m_roads[index1].m_uniqueID;
 	m_numRoads++;
+	m_build->ends.addEnds(m_numRoads-1, m_roads[m_numRoads-1]);
 
 
 
 }
 
+
+//=============================================================================
+// W3DRoadBuffer::roadsAtPointAfter
+//=============================================================================
+/** The segments after index1 with an end at loc, in array order (phases 3-4). Ends the offsets moved stay listed
+under their old point; the callers compare the live locations, as the old walks did. */
+//=============================================================================
+void W3DRoadBuffer::roadsAtPointAfter(const Vector2 &loc, Int index1, std::vector<Int> &out)
+{
+	out.clear();
+	m_build->ends.collect(loc, out);
+	std::sort(out.begin(), out.end());
+	out.erase(std::unique(out.begin(), out.end()), out.end());
+	std::vector<Int>::iterator first = std::upper_bound(out.begin(), out.end(), index1);
+	out.erase(out.begin(), first);
+}
 
 //=============================================================================
 // W3DRoadBuffer::insertTeeIntersections
@@ -2605,6 +3063,12 @@ void W3DRoadBuffer::insertTeeIntersections()
 	// Insert the tees.
 	Int numRoadSegments = m_numRoads;
 	Int i;
+	// The tee scans ask which segments after one have an end at its junction point. The index answers from here on,
+	// and learns every segment the tees append and every end the offsets move.
+	m_build->ends.clear();
+	for (i=0; i<numRoadSegments; i++) {
+		m_build->ends.addEnds(i, m_roads[i]);
+	}
 //	Int segmentStartIndex = -1;
 	for (i=0; i<numRoadSegments; i++) {
 		if (m_roads[i].m_type != SEGMENT) {
@@ -2662,10 +3126,18 @@ void W3DRoadBuffer::insertCurveSegments()
 Int W3DRoadBuffer::findCrossTypeJoinVector(Vector2 loc, Vector2 *joinVector, Int uniqueID)
 {
 	Vector2 newVector = *joinVector;
-	// Insert the curve segments.
-	Int numRoadSegments = m_numRoads;
-	Int i;
-	for (i=0; i<numRoadSegments; i++) {
+	// The old walk tested every segment's widened bounds in array order. The grid names the segments whose bounds can
+	// hold loc; walked in ascending index (merged with the ones whose bounds are not finite) they give the same first hit.
+	const RoadJoinGrid &grid = m_build->grid;
+	const std::vector<Int> *cell = grid.at(loc);
+	size_t a = 0, b = 0;
+	while ((cell && a < cell->size()) || b < grid.always.size()) {
+		Int i;
+		if (cell && a < cell->size() && (b >= grid.always.size() || (*cell)[a] < grid.always[b])) {
+			i = (*cell)[a++];
+		} else {
+			i = grid.always[b++];
+		}
 		// we only want different road types.
 		if (m_roads[i].m_uniqueID == uniqueID) continue;
 		// Only join to straight line segments.
@@ -2754,6 +3226,9 @@ void W3DRoadBuffer::insertCrossTypeJoins()
 	// Insert the curve segments.
 	Int numRoadSegments = m_numRoads;
 	Int i;
+	// The joins only append ALPHA_JOIN segments (never a candidate) and move tops and bottoms (never a bound), so the
+	// grid built here is good for the whole pass.
+	m_build->grid.build(m_roads, numRoadSegments);
 	for (i=0; i<numRoadSegments; i++) {
 		Vector2 loc1, loc2;
 		Bool isPt1 = false;
@@ -3098,7 +3573,16 @@ W3DRoadBuffer::W3DRoadBuffer()	:
 	m_maxRoadTypes(8),
 	m_maxRoadVertex(1000),
 	m_maxRoadIndex(2000),
-	m_curRoadType(0)
+	m_curRoadType(0),
+	m_curVertexCapacity(0),
+	m_curIndexCapacity(0),
+	m_mapRoadPairs(0),
+	m_refusedRoadPairs(0),
+	m_rebuildDropped(0),
+	m_maxRebuildDropped(0),
+	m_iniMaxRoadSegments(500),
+	m_segmentsFull(false),
+	m_build(nullptr)
 
 {
 	allocateRoadBuffers();
@@ -3114,6 +3598,7 @@ void W3DRoadBuffer::freeRoadBuffers()
 {
 	delete[] m_roads;
 	m_roads = nullptr;
+	m_maxRoadSegments = 0;
 
 	delete[] m_roadTypes;
 	m_roadTypes = nullptr;
@@ -3127,9 +3612,12 @@ void W3DRoadBuffer::freeRoadBuffers()
 void W3DRoadBuffer::allocateRoadBuffers()
 {
 	Int i = 0;
+	const std::chrono::steady_clock::time_point allocStart = std::chrono::steady_clock::now();
 
 	// save data for max limits
-	m_maxRoadSegments = TheGlobalData->m_maxRoadSegments;
+	// GeneralsX @feature The segment array is sized per map by loadRoads, at most MaxRoadSegments.
+	m_iniMaxRoadSegments = TheGlobalData->m_maxRoadSegments;
+	m_maxRoadSegments = 0;
 	m_maxRoadVertex = TheGlobalData->m_maxRoadVertex;
 	m_maxRoadIndex = TheGlobalData->m_maxRoadIndex;
 	m_maxRoadTypes = TheGlobalData->m_maxRoadTypes;
@@ -3140,7 +3628,7 @@ void W3DRoadBuffer::allocateRoadBuffers()
 
 	m_curNumRoadVertices=0;
 	m_curNumRoadIndices=0;
-	m_roads = MSGNEW("RoadBuffer") RoadSegment[m_maxRoadSegments];
+	m_roads = nullptr;
 	m_roadTypes = MSGNEW("RoadBuffer") RoadType[m_maxRoadTypes];
 
 	// load roads from INI
@@ -3170,6 +3658,15 @@ void W3DRoadBuffer::allocateRoadBuffers()
 	m_curOpenRoad = i;
 #endif
 
+	// GeneralsX @feature What creating the road types and their buffers cost (once per terrain, not per map).
+	Int typesWithBuffers = 0;
+	for (Int t=0; t<m_maxRoadTypes; t++) {
+		if (m_roadTypes[t].getVertexCapacity() > 0) {
+			typesWithBuffers++;
+		}
+	}
+	fprintf(stderr, "[GXROADS] alloc types_with_buffers=%d ms=%.1f\n", typesWithBuffers,
+		std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - allocStart).count());
 	m_initialized = true;
 
 }
@@ -3212,23 +3709,202 @@ void W3DRoadBuffer::setMap(WorldHeightMap *pMap)
 //=============================================================================
 void W3DRoadBuffer::loadRoads()
 {
-	if (!m_initialized) {
+	if (!m_initialized || m_roadTypes == nullptr) {
 		return;
 	}
 	// Free any existing road segments.
 	clearAllRoads();
 	//Int ticks = ::GetTickCount();
-	addMapObjects();
-	updateCountsAndFlags();
-	insertTeeIntersections();
-	insertCurveSegments();
-	insertCrossTypeJoins();
+	const std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+	// GeneralsX @feature Size the segment array from the map's own roads (junctions, curves and joins add segments
+	// to the point pairs). If that fills it, build again at MaxRoadSegments, so a map keeps every road a
+	// MaxRoadSegments array would have kept.
+	Int want = countMapRoadPairs()*SEGMENTS_PER_PAIR + 64;
+	if (want < MIN_ROAD_SEGMENTS) {
+		want = MIN_ROAD_SEGMENTS;
+	}
+	if (want > m_iniMaxRoadSegments || want < 0) {
+		want = m_iniMaxRoadSegments;
+	}
+	sizeSegmentArray(want);
+	buildRoadSegments();
+	Bool rebuilt = false;
+	if (m_segmentsFull && m_maxRoadSegments < m_iniMaxRoadSegments) {
+		clearAllRoads();
+		sizeSegmentArray(m_iniMaxRoadSegments);
+		buildRoadSegments();
+		rebuilt = true;
+	}
+	const std::chrono::steady_clock::time_point preloadStart = std::chrono::steady_clock::now();
 	preloadRoadsInVertexAndIndexBuffers();
+	const std::chrono::steady_clock::time_point preloadEnd = std::chrono::steady_clock::now();
+	sizeRoadTypeBuffers();
+	m_maxRebuildDropped = 0;
 	m_updateBuffers = true;
+	// GeneralsX @feature One line per load: how many roads the map has, how many fit, and what the buffers cost.
+	Int typesUsed = 0;
+	Int vbBytes = 0;
+	Int ibBytes = 0;
+	Int segHeapBytes = 0;
+	for (Int i=0; i<m_numRoads; i++) {
+		segHeapBytes += m_roads[i].GetNumVertex()*sizeof(VertexFormatXYZDUV1) + m_roads[i].GetNumIndex()*sizeof(UnsignedShort);
+	}
+	for (Int i=0; i<m_maxRoadTypes; i++) {
+		if (m_roadTypes[i].getVertexCapacity() > 0) {
+			typesUsed++;
+			vbBytes += (m_roadTypes[i].getVertexCapacity()+4)*sizeof(VertexFormatXYZDUV1);
+			ibBytes += (m_roadTypes[i].getIndexCapacity()+4)*sizeof(UnsignedShort);
+		}
+	}
+	const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+	fprintf(stderr, "[GXROADS] load pairs=%d refused=%d segments=%d cap=%d max=%d full=%d rebuilt=%d types=%d vb_kib=%d ib_kib=%d "
+		"seg_array_kib=%d seg_heap_kib=%d ms=%.1f\n",
+		m_mapRoadPairs, m_refusedRoadPairs, m_numRoads, m_maxRoadSegments, m_iniMaxRoadSegments, m_segmentsFull ? 1 : 0,
+		rebuilt ? 1 : 0,
+		typesUsed, vbBytes/1024, ibBytes/1024, (Int)(m_maxRoadSegments*sizeof(RoadSegment)/1024), segHeapBytes/1024, ms);
+	fprintf(stderr, "[GXROADS] phases build_ms=%.1f preload_ms=%.1f after_ms=%.1f\n",
+		std::chrono::duration<double, std::milli>(preloadStart - start).count(),
+		std::chrono::duration<double, std::milli>(preloadEnd - preloadStart).count(),
+		ms - std::chrono::duration<double, std::milli>(preloadEnd - start).count());
+	// What was built, in order: equal hashes on two builds mean they draw the same roads.
+	UnsignedInt hash = 2166136261u;
+	for (Int i=0; i<m_numRoads; i++) {
+		const RoadSegment &r = m_roads[i];
+		const Real f[6] = {r.m_pt1.loc.X, r.m_pt1.loc.Y, r.m_pt2.loc.X, r.m_pt2.loc.Y, r.m_scale, r.m_widthInTexture};
+		const Int n[2] = {(Int)r.m_type, r.m_uniqueID};
+		const unsigned char *b = (const unsigned char *)f;
+		for (size_t k=0; k<sizeof(f); k++) {
+			hash = (hash ^ b[k]) * 16777619u;
+		}
+		b = (const unsigned char *)n;
+		for (size_t k=0; k<sizeof(n); k++) {
+			hash = (hash ^ b[k]) * 16777619u;
+		}
+	}
+	// And what they draw: every segment's vertex and index bytes, in order (equal = the same triangles on screen).
+	UnsignedInt vtxHash = 2166136261u;
+	Int vertices = 0;
+	Int indices = 0;
+	for (Int i=0; i<m_numRoads; i++) {
+		const Int nv = m_roads[i].GetNumVertex();
+		const Int ni = m_roads[i].GetNumIndex();
+		const Int n[2] = {nv, ni};
+		const unsigned char *b = (const unsigned char *)n;
+		for (size_t k=0; k<sizeof(n); k++) {
+			vtxHash = (vtxHash ^ b[k]) * 16777619u;
+		}
+		b = (const unsigned char *)m_roads[i].GetVertexData();
+		for (size_t k=0; b && k<nv*sizeof(VertexFormatXYZDUV1); k++) {
+			vtxHash = (vtxHash ^ b[k]) * 16777619u;
+		}
+		b = (const unsigned char *)m_roads[i].GetIndexData();
+		for (size_t k=0; b && k<ni*sizeof(UnsignedShort); k++) {
+			vtxHash = (vtxHash ^ b[k]) * 16777619u;
+		}
+		vertices += nv;
+		indices += ni;
+	}
+	fprintf(stderr, "[GXROADS] built segments=%d hash=%08x vtx=%08x vertices=%d indices=%d\n", m_numRoads, hash, vtxHash,
+		vertices, indices);
 	//ticks = ::GetTickCount() - ticks;
 	//char buf[256];
 	//sprintf(buf, "%d road segs, %d milisec.\n", m_numRoads, ticks);
 	//::OutputDebugString(buf);
+}
+
+//=============================================================================
+// W3DRoadBuffer::buildRoadSegments
+//=============================================================================
+/** Builds the road segments from the map objects into m_roads. */
+//=============================================================================
+void W3DRoadBuffer::buildRoadSegments()
+{
+	m_segmentsFull = false;
+	RoadBuildScratch scratch;
+	m_build = &scratch;
+	std::chrono::steady_clock::time_point t[6];
+	t[0] = std::chrono::steady_clock::now();
+	addMapObjects();
+	t[1] = std::chrono::steady_clock::now();
+	updateCountsAndFlags();
+	t[2] = std::chrono::steady_clock::now();
+	insertTeeIntersections();
+	t[3] = std::chrono::steady_clock::now();
+	insertCurveSegments();
+	t[4] = std::chrono::steady_clock::now();
+	insertCrossTypeJoins();
+	t[5] = std::chrono::steady_clock::now();
+	// Where the build's time goes, per phase (the first two walk every segment for every segment).
+	fprintf(stderr, "[GXROADS] build segments=%d add_ms=%.1f counts_ms=%.1f tees_ms=%.1f curves_ms=%.1f joins_ms=%.1f\n", m_numRoads,
+		std::chrono::duration<double, std::milli>(t[1] - t[0]).count(), std::chrono::duration<double, std::milli>(t[2] - t[1]).count(),
+		std::chrono::duration<double, std::milli>(t[3] - t[2]).count(), std::chrono::duration<double, std::milli>(t[4] - t[3]).count(),
+		std::chrono::duration<double, std::milli>(t[5] - t[4]).count());
+	m_build = nullptr;
+}
+
+//=============================================================================
+// W3DRoadBuffer::countMapRoadPairs
+//=============================================================================
+/** Road point pairs on the map, counted the way addMapObjects reads them. */
+//=============================================================================
+Int W3DRoadBuffer::countMapRoadPairs()
+{
+	Int pairs = 0;
+	for (MapObject *pMapObj = MapObject::getFirstMapObject(); pMapObj; pMapObj = pMapObj->getNext()) {
+		if (pMapObj->getFlag(FLAG_ROAD_POINT1) && pMapObj->getNext() && pMapObj->getNext()->getFlag(FLAG_ROAD_POINT2)) {
+			pairs++;
+			pMapObj = pMapObj->getNext();
+		}
+	}
+	return pairs;
+}
+
+//=============================================================================
+// W3DRoadBuffer::sizeSegmentArray
+//=============================================================================
+/** Makes m_roads hold count segments. Call after clearAllRoads. */
+//=============================================================================
+void W3DRoadBuffer::sizeSegmentArray(Int count)
+{
+	if (count < 0) {
+		count = 0;
+	}
+	if (count == m_maxRoadSegments && (m_roads != nullptr || count == 0)) {
+		return;
+	}
+	delete[] m_roads;
+	m_roads = count > 0 ? MSGNEW("RoadBuffer") RoadSegment[count] : nullptr;
+	m_maxRoadSegments = count;
+}
+
+//=============================================================================
+// W3DRoadBuffer::sizeRoadTypeBuffers
+//=============================================================================
+/** Sizes each road type's buffers to what its roads on this map can fill, at most MaxRoadVertex/Index;
+a type with no roads gets none. */
+//=============================================================================
+void W3DRoadBuffer::sizeRoadTypeBuffers()
+{
+	// One pass over the segments (a dense map's are ~10 MB): a pass per road type cost ~0.2 s of load on one.
+	std::vector<Int> numVertex(m_maxRoadTypes, 0);
+	std::vector<Int> numIndex(m_maxRoadTypes, 0);
+	Int i, j;
+	for (j=0; j<m_numRoads; j++) {
+		const Int uniqueID = m_roads[j].m_uniqueID;
+		for (i=0; i<m_maxRoadTypes; i++) {
+			if (m_roadTypes[i].getUniqueID() == uniqueID) {
+				numVertex[i] += m_roads[j].GetNumVertex();
+				numIndex[i] += m_roads[j].GetNumIndex();
+			}
+		}
+	}
+	for (i=0; i<m_maxRoadTypes; i++) {
+		if (m_roadTypes[i].getUniqueID() < 0) {
+			numVertex[i] = numIndex[i] = 0;
+		}
+		m_roadTypes[i].sizeBuffers(numVertex[i] < m_maxRoadVertex ? numVertex[i] : m_maxRoadVertex,
+			numIndex[i] < m_maxRoadIndex ? numIndex[i] : m_maxRoadIndex);
+	}
 }
 
 //=============================================================================
@@ -3335,12 +4011,18 @@ void W3DRoadBuffer::drawRoads(CameraClass * camera, TextureClass *cloudTexture, 
 
 
 	Bool loadBuffers = false;
+	const std::chrono::steady_clock::time_point roadStart = std::chrono::steady_clock::now();
+	Bool checked = m_updateBuffers;
 	if (m_updateBuffers) {
 		if (visibilityChanged(bounds)) {
 			loadBuffers = true;
 		}
 	}
 	m_updateBuffers = false;
+	if (loadBuffers) {
+		m_rebuildDropped = 0;
+	}
+	std::chrono::steady_clock::duration roadTime = std::chrono::steady_clock::now() - roadStart;
 
 	for (stacking=0; stacking <= maxStacking; stacking++) {
 		for (i=0; i<m_maxRoadTypes; i++) {
@@ -3349,7 +4031,11 @@ void W3DRoadBuffer::drawRoads(CameraClass * camera, TextureClass *cloudTexture, 
 			}
 			m_curUniqueID = m_roadTypes[i].getUniqueID();
 			m_curRoadType = i;
-			if (loadBuffers) loadRoadsInVertexAndIndexBuffers();
+			if (loadBuffers) {
+				const std::chrono::steady_clock::time_point loadStart = std::chrono::steady_clock::now();
+				loadRoadsInVertexAndIndexBuffers();
+				roadTime += std::chrono::steady_clock::now() - loadStart;
+			}
 			if (m_roadTypes[i].getNumIndices() == 0) continue;
 			if (wireframe) {
 				m_roadTypes[i].applyTexture();
@@ -3380,6 +4066,38 @@ void W3DRoadBuffer::drawRoads(CameraClass * camera, TextureClass *cloudTexture, 
 		DEBUG_LOG(("Road poly count %d", polys));
 	}
 #endif
+	// GeneralsX @feature Once a second while roads are being rebuilt: how often, the CPU it cost (visibility test plus
+	// buffer fills), and the visible segments the vertex/index limits left undrawn.
+	static std::chrono::steady_clock::time_point s_secStart = std::chrono::steady_clock::now();
+	static Int s_checks = 0, s_rebuilds = 0, s_dropRebuilds = 0, s_dropMax = 0;
+	static double s_us = 0.0;
+	if (checked) {
+		s_checks++;
+		s_us += std::chrono::duration<double, std::micro>(roadTime).count();
+	}
+	if (loadBuffers) {
+		s_rebuilds++;
+		if (m_rebuildDropped > 0) {
+			s_dropRebuilds++;
+			if (m_rebuildDropped > s_dropMax) {
+				s_dropMax = m_rebuildDropped;
+			}
+			if (m_rebuildDropped > m_maxRebuildDropped) {
+				m_maxRebuildDropped = m_rebuildDropped;
+				DEBUG_LOG(("Road segments not drawn (vertex/index limit): %d", m_rebuildDropped));
+			}
+		}
+	}
+	const std::chrono::steady_clock::time_point roadNow = std::chrono::steady_clock::now();
+	if (roadNow - s_secStart >= std::chrono::seconds(1)) {
+		if (s_checks > 0) {
+			fprintf(stderr, "[GXROADS] per_s checks=%d rebuilds=%d cpu_ms=%.2f drop_rebuilds=%d drop_max=%d segments=%d\n",
+				s_checks, s_rebuilds, s_us/1000.0, s_dropRebuilds, s_dropMax, m_numRoads);
+		}
+		s_secStart = roadNow;
+		s_checks = s_rebuilds = s_dropRebuilds = s_dropMax = 0;
+		s_us = 0.0;
+	}
 
 #if 0
 	// Need to use a separate set of index & vertex buffers for this.  jba.

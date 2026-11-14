@@ -299,22 +299,32 @@ gx_overlay_where() {
 # as GeneralsXPatch/ShippedMaps/<Name>/ (see that file). Loose files, inert to the engine's "*.big" overlay
 # scan; the launcher installs them into <userdata>/Maps. Fails (rc 1, nothing half-staged is trusted) when a
 # source is missing or its .map does not hash to the listed value. GX_MAPS_SRC overrides the source root (tests).
+# A row's optional third column names the SOURCE folder when it differs from the shipped name: the files of
+# <root>/<Source>/ are staged as <Name>/<Name>.<ext> (a map shipped under a name its harness folder does not carry).
 gx_overlay_stage_shipped_maps() {
-    local dest="${1:?patch dir}" here root list name want got f
+    local dest="${1:?patch dir}" here root list name want src got f base
     here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     root="${GX_MAPS_SRC:-${here}/../test/maps}"
     list="${GX_MAPS_LIST:-${here}/overlay-maps.txt}"
     rm -rf "${dest}/ShippedMaps"
-    while IFS='|' read -r name want; do
+    while IFS='|' read -r name want src; do
+        # trim each field as the Windows packager does (Trim()): a trailing space or CR in a hand-edited row is not part of a name
+        name="${name#"${name%%[![:space:]]*}"}"; name="${name%"${name##*[![:space:]]}"}"
+        want="${want#"${want%%[![:space:]]*}"}"; want="${want%"${want##*[![:space:]]}"}"
+        src="${src#"${src%%[![:space:]]*}"}";    src="${src%"${src##*[![:space:]]}"}"
         case "${name}" in ''|'#'*) continue ;; esac
-        [ -f "${root}/${name}/${name}.map" ] || { echo "ERROR: shipped map ${name}: ${root}/${name}/${name}.map is missing" >&2; return 1; }
-        if command -v sha256sum >/dev/null 2>&1; then got="$(sha256sum "${root}/${name}/${name}.map" | cut -d' ' -f1)" || return 1
-        else got="$(shasum -a 256 "${root}/${name}/${name}.map" | cut -d' ' -f1)" || return 1; fi
+        src="${src:-${name}}"
+        [ -f "${root}/${src}/${src}.map" ] || { echo "ERROR: shipped map ${name}: ${root}/${src}/${src}.map is missing" >&2; return 1; }
+        if command -v sha256sum >/dev/null 2>&1; then got="$(sha256sum "${root}/${src}/${src}.map" | cut -d' ' -f1)" || return 1
+        else got="$(shasum -a 256 "${root}/${src}/${src}.map" | cut -d' ' -f1)" || return 1; fi
         [ -n "${got}" ] || { echo "ERROR: shipped map ${name}: could not hash the .map" >&2; return 1; }
         [ "${got}" = "${want}" ] || { echo "ERROR: shipped map ${name}: .map sha256 ${got} is not the ${want} overlay-maps.txt lists" >&2; return 1; }
         mkdir -p "${dest}/ShippedMaps/${name}" || return 1
-        for f in "${root}/${name}"/*; do
-            [ -f "${f}" ] && { cp "${f}" "${dest}/ShippedMaps/${name}/" || return 1; }
+        for f in "${root}/${src}"/*; do
+            [ -f "${f}" ] || continue
+            base="${f##*/}"
+            case "${base}" in "${src}".*) base="${name}.${base#"${src}".}" ;; esac
+            cp "${f}" "${dest}/ShippedMaps/${name}/${base}" || return 1
         done
     done < "${list}"
     [ -d "${dest}/ShippedMaps" ] || { echo "ERROR: overlay-maps.txt lists no map" >&2; return 1; }

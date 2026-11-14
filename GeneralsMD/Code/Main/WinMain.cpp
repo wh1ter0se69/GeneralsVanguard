@@ -69,6 +69,15 @@
 #include "GameLogic/GXHookTimer.h"  // GeneralsX: GX_HOOK_FLUSH_ALL before WinMain returns (test-instruments builds)
 #include "GXCpuSets.h"  // GeneralsX: prefer the V-cache CCD on X3D CPUs
 #include "GXCrashLog.h"   // GeneralsX: readable crash log beside the minidump
+#include "GXVulkanCheck.h"  // GeneralsX: no Vulkan 1.3 = a sentence, not DXVK's null call
+#include "GXD3DBackend.h"  // GeneralsX: DXVK, or compatibility graphics when this PC has no Vulkan
+#include "Common/OptionPreferences.h"  // GXGraphicsBackend, read before the engine starts
+#include "WW3D2/dx8wrapper.h"  // Set_Direct3DCreate8_Override
+#ifdef GX_COMPAT_D3D9
+#include "gx_d3d8to9.h"  // Dependencies/d3d8to9, linked only into the MSVC x64 exe
+#endif
+#include <csignal>    // SIGABRT, for gxInstallFatalHandlers
+#include <exception>  // std::set_terminate, for gxInstallFatalHandlers
 #include "GameClient/SaveLoadFeedback.h"  // TheGXCrashLogWriter
 #include "gitinfo.h"
 #include "GXUserDataMigrate.h"  // GeneralsX: own user-data folder
@@ -936,6 +945,51 @@ static int gxCrashFrames(const CONTEXT *fault, void **frames, int max)
 }
 #endif
 
+// GeneralsX @bugfix A modal box is for a PLAYER. On a headless peer (the
+// rule ReleaseCrash's own box keeps, Debug.cpp) and on a test profile - every harness that starts a rendered
+// game on Windows sets GX_USERDATA_DIR, a player never does; gxlaunch.c draws
+// the same line - it would turn an exit the harness sees at once into a hang until its timeout.
+static bool gxPlayerMayBeShownABox()
+{
+	if (TheReleaseCrashHeadless || (TheGlobalData != nullptr && TheGlobalData->m_headless))
+		return false;
+	return getenv("GX_USERDATA_DIR") == nullptr;
+}
+
+// GeneralsX @feature 13/11/2026 The user-data folder the crash box names, once WinMain knows it: Documents\GeneralsVanguard
+// or Documents\GeneralsX (WWLib gxproductdir.h). Empty until then, and the box names both.
+static char s_gxCrashBoxUserData[MAX_PATH];
+
+static void gxRememberCrashBoxUserData(const char *userData)
+{
+	snprintf(s_gxCrashBoxUserData, sizeof(s_gxCrashBoxUserData), "%s", userData);
+	const size_t n = strlen(s_gxCrashBoxUserData);
+	if (n > 0 && s_gxCrashBoxUserData[n - 1] == '\\')
+		s_gxCrashBoxUserData[n - 1] = '\0';	// "...\GeneralsZH. Please send it", not "...\GeneralsZH\."
+}
+
+// GeneralsX @bugfix The box a player sees when the game dies outside
+// ReleaseCrash: an unhandled exception, abort(), std::terminate.
+static void gxShowCrashBox(const char *reason)
+{
+	if (!gxPlayerMayBeShownABox())
+		return;
+	char text[640];
+	snprintf(text, sizeof(text),
+		"Generals Vanguard stopped because of %s.\n\n"
+		"A crash log was written to the CrashLogs folder in %s. "
+		"Please send it, with generals-stderr.log from the same folder, when you report this.",
+		reason, s_gxCrashBoxUserData[0] != '\0' ? s_gxCrashBoxUserData
+			: "Documents\\GeneralsVanguard\\GeneralsZH (or Documents\\GeneralsX\\GeneralsZH)");
+	// The folder is UTF-8 (getPath_UserData, AsciiString::translate): MessageBoxA would read it in the ANSI code page and
+	// garble a non-ASCII Documents path (review rename-r1 r2), so the box gets it as UTF-16.
+	wchar_t wide[640];
+	if (MultiByteToWideChar(CP_UTF8, 0, text, -1, wide, 640) > 0)
+		::MessageBoxW(nullptr, wide, L"Technical Difficulties...", MB_OK | MB_SYSTEMMODAL | MB_ICONERROR);
+	else
+		::MessageBoxA(nullptr, text, "Technical Difficulties...", MB_OK | MB_SYSTEMMODAL | MB_ICONERROR);
+}
+
 // UnHandledExceptionFilter ===================================================
 /** Handler for unhandled win32 exceptions. */
 //=============================================================================
@@ -984,7 +1038,236 @@ static LONG WINAPI UnHandledExceptionFilter( struct _EXCEPTION_POINTERS* e_info 
 	// lock — the faulting thread may not be the one holding it.
 	GXStderrLog_Settle();
 
+	// GeneralsX @bugfix SAY SO. Every evidence file is on disk by
+	// now; without this the player sees the window vanish and nothing else - a player's PC wrote 18 of
+	// these crash logs in two days and he never knew one existed. Last, so a box that cannot appear (a
+	// heap or loader lock held by the faulting thread) costs a hang after the evidence, never the evidence.
+	{
+		char reason[48];
+		snprintf(reason, sizeof(reason), "a crash (exception 0x%08lX)", (unsigned long)e_info->ExceptionRecord->ExceptionCode);
+		gxShowCrashBox(reason);
+	}
+
 	return EXCEPTION_EXECUTE_HANDLER;
+}
+
+// GeneralsX @bugfix THE DEATHS THE FILTER ABOVE NEVER SEES.
+//
+// abort(), std::terminate (an uncaught C++ exception), a pure virtual call and an invalid parameter to the
+// C runtime all end the process WITHOUT reaching UnHandledExceptionFilter: no crash log, no minidump, no
+// settled stderr, no box. SDL3Main has had std::set_terminate and a SIGABRT handler since 25/09/2026; Windows
+// had neither. Each now writes "FATAL: <what>" to stderr, a CrashLogs file with the stack, settles the
+// mirror, shows the same box the filter does, and ends with _exit(3) - abort()'s own exit code.
+static void gxFatalWindows(const char *reason)
+{
+	// A second fatal raised while reporting the first (the CRT, the heap, the box) must not recurse.
+	static volatile LONG s_reporting = 0;
+	if (InterlockedExchange(&s_reporting, 1) != 0)
+		_exit(3);
+	void *frames[64];
+	const int n = (int)CaptureStackBackTrace(1, 63, frames, nullptr);
+	fprintf(stderr, "\nFATAL: %s\n", reason);
+	fflush(stderr);
+	GXCrashLog_Write(reason, frames, n);
+	GXStderrLog_Settle();
+	gxShowCrashBox(reason);
+	_exit(3);
+}
+
+static void gxOnTerminate() { gxFatalWindows("std::terminate (an unhandled C++ exception)"); }
+static void __cdecl gxOnAbort(int) { gxFatalWindows("abort()"); }
+static void __cdecl gxOnPurecall() { gxFatalWindows("a pure virtual function call"); }
+static void __cdecl gxOnInvalidParameter(const wchar_t *, const wchar_t *, const wchar_t *, unsigned int, uintptr_t)
+{
+	gxFatalWindows("an invalid parameter passed to the C runtime");
+}
+
+static void gxInstallFatalHandlers()
+{
+	std::set_terminate(gxOnTerminate);
+	signal(SIGABRT, gxOnAbort);
+	// No "abort() has been called" box of the CRT's own and no Watson report on top of ours.
+	_set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+	_set_purecall_handler(gxOnPurecall);
+	_set_invalid_parameter_handler(gxOnInvalidParameter);
+}
+
+// GeneralsX @bugfix The loader GXVulkanCheck.h probes through: the same
+// LoadLibraryA(<each of gxvk::kLoaderNames>) + GetProcAddress("vkGetInstanceProcAddr") DXVK's vulkan_loader.cpp
+// does, so the two cannot disagree about whether Vulkan is there.
+static void *gxVkOpen(const char *name) { return reinterpret_cast<void *>(LoadLibraryA(name)); }
+static void *gxVkSymbol(void *library, const char *name)
+{
+	return reinterpret_cast<void *>(GetProcAddress(static_cast<HMODULE>(library), name));
+}
+static void gxVkClose(void *library) { FreeLibrary(static_cast<HMODULE>(library)); }
+
+/// Is the DXVK pair beside this exe (GXVulkanCheck.h usesDxvkPair)? Only then does this start need Vulkan.
+static bool gxUsesDxvkPair()
+{
+	wchar_t path[MAX_PATH];
+	const DWORD n = GetModuleFileNameW(nullptr, path, MAX_PATH);
+	if (n == 0 || n >= MAX_PATH)
+		return true;  // cannot tell: probe, as every shipped Windows install has the pair
+	wchar_t *slash = wcsrchr(path, L'\\');
+	if (slash == nullptr)
+		return true;
+	const size_t room = MAX_PATH - static_cast<size_t>(slash + 1 - path);
+	auto beside = [&](const wchar_t *leaf) {
+		if (wcscpy_s(slash + 1, room, leaf) != 0)
+			return false;
+		const DWORD a = GetFileAttributesW(path);
+		return a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_DIRECTORY) == 0;
+	};
+	const bool d3d8 = beside(L"d3d8.dll");
+	const bool d3d9 = beside(L"d3d9.dll");
+	return gxvk::usesDxvkPair(d3d8, d3d9);
+}
+
+#ifdef GX_COMPAT_D3D9
+// The Direct3DCreate8 DX8Wrapper::Init calls in compatibility graphics: d3d8to9 onto System32\d3d9.dll. Says which d3d9.dll
+// it loaded (anything but System32 would be a bug: the one beside the exe is DXVK's) or why it could not.
+static IDirect3D8 *WINAPI gxCompatCreate8(UINT sdk)
+{
+	char why[256] = "";
+	IDirect3D8 *const d = static_cast<IDirect3D8 *>(gx_d3d8to9_Direct3DCreate8(sdk, why, sizeof(why)));
+	fprintf(stderr, "[GXGFX] d3d9=%ls%s%s\n", gx_d3d8to9_LoadedD3D9Path(), d != nullptr ? "" : " FAILED: ", d != nullptr ? "" : why);
+	fflush(stderr);
+	return d;
+}
+static const bool kGxCompatBuilt = true;
+#else
+static const bool kGxCompatBuilt = false;
+#endif
+
+// <userdata>gxgraphics.txt: the decision line the launcher shows, and the crash marker's state (GXD3DBackend.h). A plain buffer,
+// not an AsciiString: gxDeviceStage may run late, and a static AsciiString would outlive the memory manager.
+static char s_gxGraphicsPath[1024] = "";
+static int s_gxFailures = 0;	// the backoff count this start carries into its DXVK device marker (gxDeviceStage)
+
+static GxD3DState gxReadGraphicsState()
+{
+	char text[512] = "";
+	if (FILE *f = fopen(s_gxGraphicsPath, "r"))
+	{
+		text[fread(text, 1, sizeof(text) - 1, f)] = '\0';
+		fclose(f);
+	}
+	return gxD3DParseState(text);
+}
+
+/// TRUE only when the whole state reached the disk.
+static bool gxWriteGraphicsState(int backend, int reason, GxD3DState st)
+{
+	char text[256];
+	const int n = gxD3DFormatFile(text, sizeof(text), backend, reason, st);
+	if (n <= 0 || n >= (int)sizeof(text) || s_gxGraphicsPath[0] == '\0')
+		return false;
+	FILE *f = fopen(s_gxGraphicsPath, "w");
+	if (f == nullptr)
+		return false;
+	const bool written = fputs(text, f) >= 0;
+	return fclose(f) == 0 && written;
+}
+
+// DXVK starts only: the marker stands while DXVK brings its device up (DX8Wrapper::Device_Stage_Hook 0) and is cleared - with any
+// compat starts still owed - once a device exists (1). Later device re-creations (a resolution change) change nothing.
+static void gxDeviceStage(int stage)
+{
+	static bool s_ready = false;
+	if (s_ready)
+		return;
+	const GxD3DState st = { stage == 0 ? (int)GXD3D_PENDING_DEVICE : (int)GXD3D_PENDING_NONE, 0, stage == 0 ? s_gxFailures : 0 };
+	gxWriteGraphicsState(GXD3D_DXVK, GXD3D_R_VULKAN_OK, st);
+	if (stage == 1)
+	{
+		s_ready = true;
+		fprintf(stderr, "[GXGFX] dxvk device ready: crash marker cleared\n");
+		fflush(stderr);
+	}
+}
+
+/// Which Direct3D 8 renders this start (GXD3DBackend.h): DXVK when this PC can run DXVK 2.6 (GXVulkanCheck.h), otherwise
+/// compatibility graphics - d3d8to9 in this exe onto Windows' own d3d9. Writes one [GXGFX] line and <userdata>gxgraphics.txt
+/// ("<backend> <reason>", read by the launcher). FALSE only when neither can render (a build without compat, the DXVK pair
+/// and no Vulkan): the reason goes to stderr and to a box in plain words, and the caller ends the process cleanly - before
+/// any game window exists.
+static Bool gxPickD3D()
+{
+	const char *env = getenv("GX_D3D_BACKEND");	// test-only: shipping builds scrub it (GXEnvAllowList.h); the key is the switch
+	const OptionPreferences prefs;	// Options.ini, or this instance's Options_InstanceNN.ini (the instance check ran above)
+	const AsciiString key = prefs.getAsciiString("GXGraphicsBackend", AsciiString::TheEmptyString);
+	const char *keyText = key.isEmpty() ? nullptr : key.str();
+	const bool pair = gxUsesDxvkPair();
+	char leaf[64];
+	gxD3DStateFileName(leaf, sizeof(leaf), rts::ClientInstance::getInstanceId());
+	snprintf(s_gxGraphicsPath, sizeof(s_gxGraphicsPath), "%s%s", TheGlobalData->getPath_UserData().str(), leaf);
+
+	// The last DXVK start died in the probe or before its device existed: compatibility graphics, no probe (GXD3DBackend.h).
+	// Only when the shortened countdown is saved first: a marker that cannot be rewritten would send every start to compat.
+	GxD3DState next;
+	bool fallback = gxD3DFallback(env, keyText, kGxCompatBuilt, pair, gxReadGraphicsState(), &next);
+	if (fallback && !gxWriteGraphicsState(GXD3D_COMPAT, GXD3D_R_DXVK_FAILED, next))
+	{
+		fallback = false;
+		next.pending = GXD3D_PENDING_NONE;
+		next.compatLeft = 0;
+		next.failures = 0;
+		fprintf(stderr, "[GXGFX] %s cannot be written: its crash marker is ignored this start\n", s_gxGraphicsPath);
+	}
+
+	int verdict = -1;
+	gxvk::Probe probe;
+	if (fallback)
+		fprintf(stderr, "[GXVULKAN] skipped: the last DXVK start never got a device (gxgraphics.txt crash marker)\n");
+	else if (gxD3DNeedsProbe(env, keyText, kGxCompatBuilt, pair))
+	{
+		// a Vulkan driver that crashes inside the probe leaves this marker, and the next start skips the probe
+		gxWriteGraphicsState(GXD3D_DXVK, GXD3D_R_VULKAN_OK, GxD3DState{ GXD3D_PENDING_PROBE, next.compatLeft, next.failures });
+		const gxvk::Loader loader = { gxVkOpen, gxVkSymbol, gxVkClose };
+		probe = gxvk::probe(loader);
+		verdict = gxvk::judge(probe);
+		char line[512];
+		gxvk::logLine(static_cast<gxvk::Verdict>(verdict), probe, line, sizeof(line));
+		fprintf(stderr, "%s\n", line);
+	}
+	else
+		fprintf(stderr, "[GXVULKAN] skipped: %s\n", pair ? "compatibility graphics forced" : "no DXVK pair (d3d8.dll + d3d9.dll) beside the game");
+
+	GxD3DDecision d = gxD3DDecide(env, keyText, kGxCompatBuilt, pair, verdict);
+	if (fallback)
+	{
+		d.backend = GXD3D_COMPAT;
+		d.reason = GXD3D_R_DXVK_FAILED;
+	}
+	fprintf(stderr, "[GXGFX] backend=%s reason=%s%s%s", gxD3DBackendWord(d.backend), gxD3DReasonWord(d.reason),
+		d.badKey ? " ignored GXGraphicsBackend=" : "", d.badKey ? keyText : "");
+	if (fallback)
+		fprintf(stderr, " (DXVK is tried again after %d more compatibility start%s, or now with GXGraphicsBackend=dxvk)",
+			next.compatLeft, next.compatLeft == 1 ? "" : "s");
+	fprintf(stderr, "\n");
+	fflush(stderr);
+
+	if (d.backend == GXD3D_REFUSED)
+	{
+		char text[1024];
+		gxvk::playerMessage(static_cast<gxvk::Verdict>(verdict), probe, text, sizeof(text));
+		GXStderrLog_Settle();
+		if (gxPlayerMayBeShownABox())
+			::MessageBoxA(nullptr, text, "Generals Vanguard", MB_OK | MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
+		return FALSE;
+	}
+#ifdef GX_COMPAT_D3D9
+	if (d.backend == GXD3D_COMPAT)
+		DX8Wrapper::Set_Direct3DCreate8_Override(gxCompatCreate8, gxD3DReasonWord(d.reason));
+#endif
+	if (d.backend == GXD3D_DXVK && kGxCompatBuilt)
+		DX8Wrapper::Device_Stage_Hook = gxDeviceStage;
+
+	next.pending = GXD3D_PENDING_NONE;	// the probe returned; the device marker is gxDeviceStage's
+	s_gxFailures = next.failures;
+	gxWriteGraphicsState(d.backend, d.reason, next);
+	return TRUE;
 }
 
 // WinMain ====================================================================
@@ -1004,6 +1287,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	try {
 
 		SetUnhandledExceptionFilter( UnHandledExceptionFilter );
+		gxInstallFatalHandlers();	// GeneralsX @bugfix the deaths the filter never sees
 		//
 		// there is something about checkin in and out the .dsp and .dsw files
 		// that blows the working directory information away on each of the
@@ -1022,6 +1306,42 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		initMemoryManager();
 
 		CommandLine::parseCommandLineForStartup();
+
+		// GeneralsX: The instance check comes before anything that writes the player's folder. Below the stderr
+		// mirror, the crash-log install and the minidump init, a second copy that was about to bail had already
+		// rotated generals-stderr.log (GXStderrLog.cpp: the old -prev deleted, the running copy's log renamed to
+		// -prev) and pruned CrashDumps, so two extra presses lost the log of the run that actually failed. It needs
+		// only the command line: -replay and a headless -maxspeed host switch multi-instance on from
+		// paramsForStartup, which parseCommandLineForStartup has just read. Still before the game window, for the
+		// reason the next comment gives. Pinned by scripts/test/stderr-log-instance-order-test.sh.
+		// TheSuperHackers @refactor The instance mutex now lives in its own class.
+		// GeneralsX: Taken BEFORE the game window exists, not after it. A copy
+		// that loses the mutex then never creates one, so the GX_GAME_WINDOW_CLASS window is the primary
+		// holder's. Checked after the window, two copies double-clicked together each created one first
+		// and could raise each other instead of the running game.
+		if (!rts::ClientInstance::initialize())
+		{
+			// The winner takes the mutex shortly before it creates its window (the log, crash-log and minidump
+			// installs and the splash load sit in between), so a copy launched in the same instant can look too
+			// early. Poll briefly. Trade-off: fixed 2 s cap, because a headless winner never gets a window; this
+			// copy has none either, so the wait shows nothing.
+			HWND ccwindow = FindWindow(GX_GAME_WINDOW_CLASS, nullptr);
+			for (int tries = 0; ccwindow == nullptr && tries < 20; ++tries)
+			{
+				Sleep(100);
+				ccwindow = FindWindow(GX_GAME_WINDOW_CLASS, nullptr);
+			}
+			if (ccwindow)
+			{
+				SetForegroundWindow(ccwindow);
+				ShowWindow(ccwindow, SW_RESTORE);
+			}
+
+			DEBUG_LOG(("Generals is already running...Bail!"));
+			shutdownMemoryManager();
+			return exitcode;
+		}
+		DEBUG_LOG(("Create Generals Mutex okay."));
 
 		// Mirror stderr into the user-data folder: a WIN32-subsystem process has no console, so the "[CRC] MISMATCH" desync
 		// report would be discarded. After parseCommandLineForStartup(), which constructs TheGlobalData, so getPath_UserData()
@@ -1092,33 +1412,15 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		MiniDumper::initMiniDumper(TheGlobalData->getPath_UserData());
 #endif
 
-		// TheSuperHackers @refactor The instance mutex now lives in its own class.
-		// GeneralsX: Taken BEFORE the game window exists, not after it. A copy
-		// that loses the mutex then never creates one, so the GX_GAME_WINDOW_CLASS window is the primary
-		// holder's. Checked after the window, two copies double-clicked together each created one first
-		// and could raise each other instead of the running game.
-		if (!rts::ClientInstance::initialize())
+		// GeneralsX: THE DIRECT3D CHOICE FIRST, BEFORE THE WINDOW. DXVK without Vulkan 1.3 crashes while creating the
+		// device - a black window, then nothing (GXVulkanCheck.h) - so a PC without it gets compatibility graphics
+		// (gxPickD3D). After the log, crash-log and minidump installs so the verdict is on disk; skipped headless,
+		// which never makes a device.
+		if (!TheGlobalData->m_headless && !gxPickD3D())
 		{
-			// The winner takes the mutex just before it creates its window, so a copy launched in the
-			// same instant can look too early. Poll briefly. Trade-off: fixed 2 s cap, because a headless
-			// winner never gets a window; this copy has none either, so the wait shows nothing.
-			HWND ccwindow = FindWindow(GX_GAME_WINDOW_CLASS, nullptr);
-			for (int tries = 0; ccwindow == nullptr && tries < 20; ++tries)
-			{
-				Sleep(100);
-				ccwindow = FindWindow(GX_GAME_WINDOW_CLASS, nullptr);
-			}
-			if (ccwindow)
-			{
-				SetForegroundWindow(ccwindow);
-				ShowWindow(ccwindow, SW_RESTORE);
-			}
-
-			DEBUG_LOG(("Generals is already running...Bail!"));
 			shutdownMemoryManager();
 			return exitcode;
 		}
-		DEBUG_LOG(("Create Generals Mutex okay."));
 
 		// register windows class and create application window
 		if(!TheGlobalData->m_headless && initializeAppWindows(hInstance, nCmdShow, TheGlobalData->m_windowed) == false)
@@ -1163,6 +1465,8 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		}
 
 		DEBUG_LOG(("CRC message is %d", GameMessage::MSG_LOGIC_CRC));
+		if (TheGlobalData != nullptr)
+			gxRememberCrashBoxUserData(TheGlobalData->getPath_UserData().str());
 
 		// GeneralsX: Freed HERE, after the user-data copy, not right after the
 		// window was made: the copy pumps the window (gxMigrateUserDataPumping), and a WM_PAINT during it

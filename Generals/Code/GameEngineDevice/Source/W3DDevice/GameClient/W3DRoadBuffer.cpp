@@ -568,6 +568,7 @@ void W3DRoadBuffer::loadFloat4PtSection(RoadSegment *pRoad, Vector2 loc,
 														Real uOffset, Real vOffset, Real uScale, Real vScale)
 {
 
+	// GeneralsX @feature world-unit tolerances: kept at the retail step on a taller map (getHeightScale), so roads hug it as closely
 	const Real FLOAT_AMOUNT = MAP_HEIGHT_SCALE/8;
 	const Real MAX_ERROR = MAP_HEIGHT_SCALE*1.1f;
 	UnsignedShort ib[MAX_SEG_INDEX];
@@ -639,8 +640,8 @@ void W3DRoadBuffer::loadFloat4PtSection(RoadSegment *pRoad, Vector2 loc,
 			nextColumn.lightGradient = false;
 			nextColumn.uIndex = i;
 
-			Real minHeight=m_map->getMaxHeightValue()*MAP_HEIGHT_SCALE;
-			Real maxHeight = m_map->getMinHeightValue()*MAP_HEIGHT_SCALE;
+			Real minHeight=m_map->getMaxHeightValue()*m_map->getHeightScale();
+			Real maxHeight = m_map->getMinHeightValue()*m_map->getHeightScale();
 			for (j=0; j<vCount; j++) {
 				Real jFactor = ((Real)j / (vCount-1));
 				Real jBarFactor = 1.0f-jFactor;
@@ -785,6 +786,7 @@ to the road normal.  */
 void W3DRoadBuffer::loadLit4PtSection(RoadSegment *pRoad, UnsignedShort *ib, VertexFormatXYZDUV1 *vb, RefRenderObjListIterator *pDynamicLightsIterator)
 {
 
+	// GeneralsX @feature world-unit tolerances: kept at the retail step on a taller map (getHeightScale), so roads hug it as closely
 	const Real FLOAT_AMOUNT = MAP_HEIGHT_SCALE/8;
 	const Real MAX_ERROR = MAP_HEIGHT_SCALE*1.1f;
 
@@ -878,8 +880,8 @@ void W3DRoadBuffer::loadLit4PtSection(RoadSegment *pRoad, UnsignedShort *ib, Ver
 			nextColumn.lightGradient = false;
 			nextColumn.uIndex = i;
 
-			Real minHeight=m_map->getMaxHeightValue()*MAP_HEIGHT_SCALE;
-			Real maxHeight = m_map->getMinHeightValue()*MAP_HEIGHT_SCALE;
+			Real minHeight=m_map->getMaxHeightValue()*m_map->getHeightScale();
+			Real maxHeight = m_map->getMinHeightValue()*m_map->getHeightScale();
 			for (j=0; j<vCount; j++) {
 				Real jFactor = ((Real)j / (vCount-1));
 				Real jBarFactor = 1.0f-jFactor;

@@ -417,7 +417,7 @@ void W3DGeneralsXCreditDraw( GameWindow *window, WinInstanceData *instData )
 		return;
 
 	UnicodeString ucredit;
-	ucredit.translate("GeneralsX - Multiplatform C&C Generals");
+	ucredit.translate("Generals Vanguard");
 	instData->setText(ucredit);
 
 	DisplayString *dString = instData->getTextDisplayString();

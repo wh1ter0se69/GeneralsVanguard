@@ -66,7 +66,7 @@ static const Color GX_HELP_REFUSE_COLOR = GameMakeColor( 255, 140, 140, 255 );	/
 // Role and system-line colours, kept beside the four above for the same dataID reason.
 // A chat row carries one colour: the NAME colour goes to ListboxPlayers (COLUMNS: 2), the TEXT colour to the chat row.
 // Keep GX_CHAT_SYSTEM_COLOR distinct from GSCOLOR_CHAT_OWNER (255,255,0), and ADMIN from whisper violet (220,160,255).
-// The ADMIN colour is the console's panel.css --accent #D62B44 on both surfaces, taken from GXChatLine.h.
+// The ADMIN colour is GXChatLine.h GX_CHAT_TONE_ADMIN on both surfaces: the console hue, lifted to read on the dark boxes.
 static Color gxWebTone( unsigned int rgb, Color fallback )
 {
 	if (rgb == (unsigned int)GX_WEB_TONE_NONE)

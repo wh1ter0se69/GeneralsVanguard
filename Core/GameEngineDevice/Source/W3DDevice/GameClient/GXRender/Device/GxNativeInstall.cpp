@@ -105,6 +105,14 @@ void Install()
 {
 	if (!Requested())
 		return;
+	if (DX8Wrapper::Is_Compat_D3D9())
+	{
+		// the native renderer is Vulkan and this start is compatibility graphics (no Vulkan, or forced: the backend's own
+		// reason says which): the request is kept, this start is classic
+		fprintf(stderr, "[GXNATIVE] session=classic reason=compat-graphics backend_reason=%s\n", DX8Wrapper::Compat_D3D9_Reason());
+		fflush(stderr);
+		return;
+	}
 	DX8Wrapper::Interface_Wrap_Hook = &Wrap;
 	fprintf(stderr, "[GXNATIVE] requested: renderer=native (the [GXRENDERER] line says by what), interface hook installed\n");
 	fflush(stderr);

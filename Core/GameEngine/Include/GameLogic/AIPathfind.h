@@ -829,6 +829,7 @@ public:
 	void gxXferQueue( Xfer *xfer );	///< GeneralsX: saves/loads the queue (CHUNK_GXPathfindQueue, AIPathfind.cpp)
 #if RTS_ZEROHOUR
 	void gxXferHumanQueue( Xfer *xfer );	///< GeneralsX: the human-order lane, version 2 of the same block
+	void gxXferAiCursor( Xfer *xfer );	///< GeneralsX: the AI lane's round-robin cursor, version 3 of the same block
 #endif
 	void processPathfindQueue(); ///< Process some or all of the queued pathfinds.
 	void forceMapRecalculation();	///< Force pathfind map recomputation. If region is given, only that area is recomputed
@@ -1102,7 +1103,14 @@ private:
 	Int						m_gxHumanHead;
 	Int						m_gxHumanTail;
 	Bool					m_gxAiStarved;	///< the AI lane got nothing last pass while it had requests: serve it first this pass
+	Int						m_gxAiCursor;	///< AI lane round robin: the first player index the next pass's plan starts at
+	Int						m_gxAiPlan[PATHFIND_QUEUE_LEN];	///< this pass's AI-lane serve order as sort keys (one pass only, not saved)
+	Int						m_gxAiPlanLen;
+	Int						m_gxAiPlanNext;
 	Bool gxServeOne( ObjectID *ring, Int &head, Int tail, Int &pathsFound );	///< pops one request off a ring and serves it
+	void gxPlanAiLane();	///< orders the AI lane's requests for this pass: players in turn from the cursor
+	Bool gxServeRoundRobin( Int &pathsFound );	///< serves the next planned AI-lane request; false when the plan is used up
+	void gxCompactAiLane();	///< end of a pass: closes the served slots, drops gone requests, keeps the order
 #endif
 	Int						m_cumulativeCellsAllocated;
 

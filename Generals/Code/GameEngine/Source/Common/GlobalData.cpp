@@ -64,6 +64,7 @@
 #include "GameClient/Display.h"
 #include "GameClient/TerrainVisual.h"
 #include "GameClient/GXUserDataDir.h"	// GeneralsX: GX_USERDATA_DIR
+#include "WWLib/gxproductdir.h"	// GeneralsX: GeneralsVanguard or GeneralsX
 
 #include "GameNetwork/FirewallHelper.h"
 
@@ -1494,8 +1495,10 @@ AsciiString GlobalData::BuildUserDataPathFromIni()
 		// must keep loading), but it no longer names our folder: it named the one retail Generals uses.
 		// There is no migration for base Generals.
 		//
-		// Win32 CreateDirectory makes ONE level; the caller creates the leaf, so the parent goes first.
-		myDocumentsDirectory.concat("GeneralsX\\");
+		// Win32 CreateDirectory makes ONE level; the caller creates the leaf, so the parent goes first. The parent is
+		// GeneralsVanguard or GeneralsX by gxproductdir.h's rule.
+		myDocumentsDirectory.concat(gxProductDirName(myDocumentsDirectory.str()));
+		myDocumentsDirectory.concat('\\');
 		CreateDirectory(myDocumentsDirectory.str(), nullptr);
 		myDocumentsDirectory.concat("Generals\\");
 	}
@@ -1507,7 +1510,8 @@ AsciiString GlobalData::BuildUserDataPathFromIni()
 	{
 		const char* home = getenv("HOME");
 		if (home) {
-			std::filesystem::path path = std::filesystem::path(home) / "Library" / "Application Support" / "GeneralsX" / "Generals" / "";
+			const std::filesystem::path support = std::filesystem::path(home) / "Library" / "Application Support";
+			std::filesystem::path path = support / gxProductDirName(support) / "Generals" / "";
 			std::filesystem::create_directories(path);
 			userDataDir = path.string().c_str();
 		} else {
@@ -1530,7 +1534,7 @@ AsciiString GlobalData::BuildUserDataPathFromIni()
 			path = ".";
 		}
 
-		path = path / "GeneralsX" / "Generals" / "";
+		path = path / gxProductDirName(path) / "Generals" / "";
 		std::filesystem::create_directories(path);
 		userDataDir = path.string().c_str();
 	}

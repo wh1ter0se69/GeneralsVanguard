@@ -1,4 +1,4 @@
-# Maps GeneralsX ships to every desktop client, one per line:   <Name>|<sha256 of <Name>.map>
+# Maps GeneralsX ships to every desktop client, one per line:   <Name>|<sha256 of the .map>[|<source folder, when not <Name>>]
 #
 # GeneralsX: The source of each is scripts/test/maps/<Name>/ (<Name>.map, <Name>.tga).
 # The packagers stage them as loose files in GeneralsXPatch/ShippedMaps/<Name>/ (inside the OPTIONAL tier -
@@ -15,3 +15,10 @@ TwinRidgesZHv2|bda0262e2e09e558a0ba369c7144e1885db98c38aa688751cf9655c031db7dc5
 Crown32ZHv1|2d33a097debcbd57f9243fbbfa22ba39d7d87902b14574f12328bfe939bc619b
 CrownFlat32ZHv1|45fedf40067075fcece9a2683fe127ffa895827661f72b3436e55ec042f1cd9f
 LastStand32ZHv1|7a9dccecb67af824df148b30119785af194bb545efe18fd0b9d8b708209572a1
+# The three maps below were promised for 0.9.71 and ship from the 0.9.75 update.
+# Their harness folders carry the GX tag that RULES R11 refuses in a shipped stem, and 38 tests and tools pin
+# those folders, so the optional THIRD column names the source folder and the packagers stage its files under the shipped
+# stem (<Name>.map, <Name>.tga): bytes unchanged, so the map CRC is the one every tester already holds.
+Cauldron12ZHv1|6f12fffe7e80c5cd44db4bf8fd0c953b6d16c980a9233dd98460aafe435f3194|GXCauldron12ZHv1
+Circle12ZHv1|d4754dba0cfc0afdd15531fb618d3c0d1deefac9622651590f68838275cbea5e|GXCircle12ZHv1
+Quarry8ZHv1|279d12ce40371d15edc6e80752a571ca238a39d655839816faf003ca9a79aab1|GXQuarry8ZHv1

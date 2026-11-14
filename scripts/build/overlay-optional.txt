@@ -118,7 +118,7 @@ on|340_ControlBarPro1440ZH.big|ControlBar Pro - 1440 layout
 # wrong - only package-windows-share.ps1 did, which is why a Linux bundle on 14/09 stopped with
 # !GXUI.big missing and the archive had to be copied to the host by hand. macOS and Linux invoke
 # it now; iOS still does not, and it produces no CDN artifact either.
-on|!GXUI.big|GeneralsX UI layouts (adds the Confirm Password field to Host Game)
+on|!GXUI.big|Generals Vanguard UI layouts (adds the Confirm Password field to Host Game)
 # GeneralsX: !GXUIHD.big: hand-drawn 7x16 / 10x24 occupancy pips for renders 1440p and taller
 # BUILT, like !GXUI.big, but from nothing: scripts/build/make-gxuihd-archive.py draws the art in its
 # own grids, so no install is read and every box writes the same bytes. Two members, Art\Textures\GXUIHD_Pips.tga and
@@ -132,7 +132,7 @@ on|!GXUIHD.big|Sharper unit pips at 1440p and 4K (hand-drawn, original colours)
 # keep every name - 36 remapped to the new texture, 10 identical to the Community Patch's). NOT BUILT: a hand-placed binary like
 # !!GXCameoHD.big (4,202,415 B, sha256 4e74491e802d6a14...), so it must be on every packaging box before this line reaches a
 # packager - a listed optional archive that is missing fails packaging (lib-overlay.sh gx_overlay_stage_optional). Placed for
-# 0.9.59 in each packaging box's GeneralsXPatch folder.
+# 0.9.59 in the GeneralsXPatch folder of every packaging box.
 # MappedImages and textures are outside the SimID fingerprint: dataID does not move, assetID does (tier-2, warn only).
 # Default on and never flip it later (see the note above on flipped defaults).
 on|!!GXEmblemHD.big|HD faction emblems (upscaled, original colours)

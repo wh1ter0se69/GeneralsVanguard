@@ -433,6 +433,12 @@ static Int getVictimAntiMask(const Object* victim)
 }
 
 //-------------------------------------------------------------------------------------------------
+Int WeaponSet::gxVictimAntiMask(const Object* victim)
+{
+	return getVictimAntiMask(victim);
+}
+
+//-------------------------------------------------------------------------------------------------
 Bool WeaponSet::isAnyWithinTargetPitch(const Object* obj, const Object* victim) const
 {
 	if (!m_hasPitchLimit)

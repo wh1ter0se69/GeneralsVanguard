@@ -231,6 +231,7 @@ AIUpdateInterface::AIUpdateInterface( Thing *thing, const ModuleData* moduleData
 	m_requestedDestination.zero();
 	m_requestedDestination2.zero();
 	m_pathTimestamp = 0;
+	m_gxQuickRunStart = 0;
 	m_ignoreObstacleID = INVALID_ID;
 	m_pathExtraDistance = 0;
 	m_pathfindGoalCell.x = m_pathfindGoalCell.y = -1;
@@ -512,7 +513,7 @@ void AIUpdateInterface::requestPath( Coord3D *destination, Bool isFinalGoal )
 		/* Requesting path very quickly.  Can cause a spin. */
 		//DEBUG_LOG(("%d Pathfind - repathing in less than 3 frames.  Waiting 1 second",
 			//TheGameLogic->getFrame()));
-		setQueueForPathTime(LOGICFRAMES_PER_SECOND);
+		setQueueForPathTime(gxQuickRepathHold(LOGICFRAMES_PER_SECOND));
 		// See if it has been too soon.
 		// jba intense debug
 		//DEBUG_LOG(("Info - RePathing very quickly %d, %d.", m_pathTimestamp, TheGameLogic->getFrame()));
@@ -524,6 +525,7 @@ void AIUpdateInterface::requestPath( Coord3D *destination, Bool isFinalGoal )
 		}
 		return;
 	}
+	m_gxQuickRunStart = 0;	// a request outside the window ends a run of quick ones
 	TheAI->pathfinder()->queueForPath(getObject()->getID());
 
 }
@@ -544,10 +546,11 @@ void AIUpdateInterface::requestAttackPath( ObjectID victimID, const Coord3D* vic
 	if (m_pathTimestamp > TheGameLogic->getFrame()-GX_FRAMES30(3)) {
 		/* Requesting path very quickly.  Can cause a spin. */
 		//DEBUG_LOG(("%d Pathfind - repathing in less than 3 frames.  Waiting 2 second",TheGameLogic->getFrame()));
-		setQueueForPathTime(2*LOGICFRAMES_PER_SECOND);
+		setQueueForPathTime(gxQuickRepathHold(2*LOGICFRAMES_PER_SECOND));
 		setLocomotorGoalNone();
 		return;
 	}
+	m_gxQuickRunStart = 0;	// a request outside the window ends a run of quick ones
 	TheAI->pathfinder()->queueForPath(getObject()->getID());
 }
 
@@ -568,9 +571,10 @@ void AIUpdateInterface::requestApproachPath( Coord3D *destination )
 	if (m_pathTimestamp > TheGameLogic->getFrame()-GX_FRAMES30(3)) {
 		/* Requesting path very quickly.  Can cause a spin. */
 		//DEBUG_LOG(("%d Pathfind - repathing in less than 3 frames.  Waiting 2 second",TheGameLogic->getFrame()));
-		setQueueForPathTime(2*LOGICFRAMES_PER_SECOND);
+		setQueueForPathTime(gxQuickRepathHold(2*LOGICFRAMES_PER_SECOND));
 		return;
 	}
+	m_gxQuickRunStart = 0;	// a request outside the window ends a run of quick ones
 	TheAI->pathfinder()->queueForPath(getObject()->getID());
 }
 
@@ -592,9 +596,10 @@ void AIUpdateInterface::requestSafePath( ObjectID repulsor )
 	if (m_pathTimestamp > TheGameLogic->getFrame()-GX_FRAMES30(3)) {
 		/* Requesting path very quickly.  Can cause a spin. */
 		//DEBUG_LOG(("%d Pathfind - repathing in less than 3 frames.  Waiting 2 second",TheGameLogic->getFrame()));
-		setQueueForPathTime(2*LOGICFRAMES_PER_SECOND);
+		setQueueForPathTime(gxQuickRepathHold(2*LOGICFRAMES_PER_SECOND));
 		return;
 	}
+	m_gxQuickRunStart = 0;	// a request outside the window ends a run of quick ones
 	TheAI->pathfinder()->queueForPath(getObject()->getID());
 }
 
@@ -975,6 +980,26 @@ void AIUpdateInterface::doSurrenderUpdateStuff()
 	}
 }
 #endif
+
+//-------------------------------------------------------------------------------------------------
+// GeneralsX: retail holds every request made within 3 frames of the last path for 1-2 s, which freezes attack-moving
+// units that retarget often. A human player's unit in attack-move waits only to the end of that window, for the first
+// QUICK_REPATH_RUN_FRAMES of an unbroken run of such requests, then the retail hold again: a unit that re-paths without
+// getting anywhere cannot keep the pathfinder busy. AI units, and other states, keep the retail hold.
+static const UnsignedInt QUICK_REPATH_RUN_FRAMES = 5 * LOGICFRAMES_PER_SECOND;
+
+Int AIUpdateInterface::gxQuickRepathHold(Int retailFrames)
+{
+	const Player *owner = getObject()->getControllingPlayer();
+	if (owner == nullptr || owner->getPlayerType() != PLAYER_HUMAN || getAIStateType() != AI_ATTACK_MOVE_TO)
+		return retailFrames;
+	const UnsignedInt now = TheGameLogic->getFrame();
+	if (m_gxQuickRunStart == 0)
+		m_gxQuickRunStart = now;
+	if (now - m_gxQuickRunStart >= QUICK_REPATH_RUN_FRAMES)
+		return retailFrames;
+	return (Int)(m_pathTimestamp + GX_FRAMES30(3) - now);	// the rest of the window; the caller's window test keeps it above 0
+}
 
 //-------------------------------------------------------------------------------------------------
 void AIUpdateInterface::setQueueForPathTime(Int frames)
@@ -4983,7 +5008,7 @@ Bool AIUpdateInterface::canAutoAcquireWhileStealthed() const
 /**
  * Return the next object that our mood suggests we should attack.
  */
-Object* AIUpdateInterface::getNextMoodTarget( Bool calledByAI, Bool calledDuringIdle )
+Object* AIUpdateInterface::getNextMoodTarget( Bool calledByAI, Bool calledDuringIdle, PartitionFilter *extraFilter )
 {
 	Object *obj = getObject();
 
@@ -5046,6 +5071,8 @@ Object* AIUpdateInterface::getNextMoodTarget( Bool calledByAI, Bool calledDuring
 			}
 		}
 
+		if (teamVictim && extraFilter != nullptr && !extraFilter->allow(teamVictim))
+			teamVictim = nullptr;	// GeneralsX @bugfix a team target the caller filters out falls through to the search
 		if (teamVictim && getAttitude()>=ATTITUDE_NORMAL)
 			return teamVictim;
 	}
@@ -5131,7 +5158,7 @@ Object* AIUpdateInterface::getNextMoodTarget( Bool calledByAI, Bool calledDuring
 		flags |= AI::UNFOGGED;
 	}
 
-	Object *newVictim = TheAI->findClosestEnemy(obj, rangeToFindWithin, flags, getAttackInfo());
+	Object *newVictim = TheAI->findClosestEnemy(obj, rangeToFindWithin, flags, getAttackInfo(), extraFilter);
 
 /*
 DEBUG_LOG(("GNMT frame %d: %s %08lx (con %s %08lx) uses range %f, flags %08lx, %s finds %s %08lx",

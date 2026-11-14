@@ -489,7 +489,7 @@ Vector3 *W3DShadowGeometryHeightmapMesh::GetVertex (int dwVertId, Vector3 *pvVer
 	UnsignedByte *data=map->getDataPtr();
 	pvVertex->X=(m_patchOriginX+column)*MAP_XY_FACTOR;
 	pvVertex->Y=(m_patchOriginY+row)*MAP_XY_FACTOR;
-	pvVertex->Z=(Real)data[(m_patchOriginX+column)+(m_patchOriginY+row)*map->getXExtent()]*MAP_HEIGHT_SCALE;
+	pvVertex->Z=(Real)data[(m_patchOriginX+column)+(m_patchOriginY+row)*map->getXExtent()]*map->getHeightScale();
 
 	return pvVertex;
 }
@@ -1291,7 +1291,7 @@ void W3DVolumetricShadow::updateOptimalExtrusionPadding()
 
 		m_extraExtrusionPadding = objPos.Z - baseGroundHeight + SHADOW_EXTRUSION_BUFFER;
 
-		DEBUG_ASSERTCRASH(m_extraExtrusionPadding <= (255.0f*MAP_HEIGHT_SCALE),("Warning: Volumetric Shadow UpdateOptimalExtrusionPadding too large"));
+		DEBUG_ASSERTCRASH(m_extraExtrusionPadding <= (255.0f*MAP_HEIGHT_SCALE*MAP_HEIGHT_SCALE_K_MAX),("Warning: Volumetric Shadow UpdateOptimalExtrusionPadding too large"));
 	}
 }
 

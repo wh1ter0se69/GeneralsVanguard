@@ -441,7 +441,7 @@ void WorldHeightMap::freeListOfMapObjects()
  transparent tile for non-blended tiles.
 */
 WorldHeightMap::WorldHeightMap():
-	m_width(0), m_height(0),  m_dataSize(0), m_data(nullptr), m_cellFlipState(nullptr), m_seismicUpdateFlag(nullptr), m_seismicZVelocities(nullptr),
+	m_width(0), m_height(0),  m_dataSize(0), m_data(nullptr), m_heightScaleK(1), m_heightScale(MAP_HEIGHT_SCALE), m_cellFlipState(nullptr), m_seismicUpdateFlag(nullptr), m_seismicZVelocities(nullptr),
 	m_drawOriginX(0), m_drawOriginY(0),
 	m_numTextureClasses(0),
 	m_drawWidthX(NORMAL_DRAW_WIDTH), m_drawHeightY(NORMAL_DRAW_HEIGHT),
@@ -480,7 +480,7 @@ static Bool ParseFunkyTilingDataChunk(DataChunkInput &file, DataChunkInfo *info,
 *
 */
 WorldHeightMap::WorldHeightMap(ChunkInputStream *pStrm, Bool logicalDataOnly):
-	m_width(0), m_height(0),  m_dataSize(0), m_data(nullptr), m_cellFlipState(nullptr), m_seismicUpdateFlag(nullptr), m_seismicZVelocities(nullptr),
+	m_width(0), m_height(0),  m_dataSize(0), m_data(nullptr), m_heightScaleK(1), m_heightScale(MAP_HEIGHT_SCALE), m_cellFlipState(nullptr), m_seismicUpdateFlag(nullptr), m_seismicZVelocities(nullptr),
 	m_drawOriginX(0),	m_cellCliffState(nullptr), m_drawOriginY(0),
 	m_numTextureClasses(0),
 	m_drawWidthX(NORMAL_DRAW_WIDTH), m_drawHeightY(NORMAL_DRAW_HEIGHT),
@@ -923,6 +923,10 @@ Bool WorldHeightMap::ParseHeightMapData(DataChunkInput &file, DataChunkInfo *inf
 	if (m_data != nullptr) {
 		throw ERROR_CORRUPT_FILE_FORMAT;
 	}
+	// GeneralsX @feature A version this reader does not know is refused rather than read as an older one.
+	if (info->version > K_HEIGHT_MAP_VERSION_5) {
+		throw ERROR_CORRUPT_FILE_FORMAT;
+	}
 	m_width = file.readInt();
 	m_height = file.readInt();
 	if (info->version >= K_HEIGHT_MAP_VERSION_3) {
@@ -958,11 +962,27 @@ Bool WorldHeightMap::ParseHeightMapData(DataChunkInput &file, DataChunkInfo *inf
 		m_boundaries[0].y = m_height - 2 * m_borderSize;
 	}
 
+	// GeneralsX @feature Version 5 stores the height scale multiplier k here, before dataSize, so a reader without
+	// version 5 takes k for dataSize and refuses the map instead of loading its terrain flat.
+	m_heightScaleK = 1;
+	if (info->version >= K_HEIGHT_MAP_VERSION_5) {
+		m_heightScaleK = file.readInt();
+		if (m_heightScaleK < 1 || m_heightScaleK > MAP_HEIGHT_SCALE_K_MAX) {
+			throw ERROR_CORRUPT_FILE_FORMAT;
+		}
+	}
+	m_heightScale = MAP_HEIGHT_SCALE * (Real)m_heightScaleK;
+
 	m_dataSize = file.readInt();
 	if (!heightMapSizeFits(m_width, m_height, m_dataSize, (Int)file.getChunkDataSizeLeft(),
 			info->version == K_HEIGHT_MAP_VERSION_1 ? 3 : 2)
 		|| !boundariesFitHeightMap(m_boundaries, m_width, m_height)) {
 		throw ERROR_CORRUPT_FILE_FORMAT	;
+	}
+	// GeneralsX @feature A version 5 map has more samples than any k: a reader without version 5 then never finds its
+	// k equal to width * height, so it always refuses the map.
+	if (info->version >= K_HEIGHT_MAP_VERSION_5 && m_dataSize <= MAP_HEIGHT_SCALE_K_MAX) {
+		throw ERROR_CORRUPT_FILE_FORMAT;
 	}
 	m_data = MSGNEW("WorldHeightMap_ParseHeightMapData") UnsignedByte[m_dataSize];
 
@@ -1017,6 +1037,10 @@ Bool WorldHeightMap::ParseSizeOnly(DataChunkInput &file, DataChunkInfo *info, vo
 	if (m_data != nullptr) {
 		throw ERROR_CORRUPT_FILE_FORMAT;
 	}
+	// GeneralsX @feature A version this reader does not know is refused rather than read as an older one.
+	if (info->version > K_HEIGHT_MAP_VERSION_5) {
+		throw ERROR_CORRUPT_FILE_FORMAT;
+	}
 	m_width = file.readInt();
 	m_height = file.readInt();
 	if (info->version >= K_HEIGHT_MAP_VERSION_3) {
@@ -1052,11 +1076,27 @@ Bool WorldHeightMap::ParseSizeOnly(DataChunkInput &file, DataChunkInfo *info, vo
 		m_boundaries[0].y = m_height - 2 * m_borderSize;
 	}
 
+	// GeneralsX @feature Version 5 stores the height scale multiplier k here, before dataSize, so a reader without
+	// version 5 takes k for dataSize and refuses the map instead of loading its terrain flat.
+	m_heightScaleK = 1;
+	if (info->version >= K_HEIGHT_MAP_VERSION_5) {
+		m_heightScaleK = file.readInt();
+		if (m_heightScaleK < 1 || m_heightScaleK > MAP_HEIGHT_SCALE_K_MAX) {
+			throw ERROR_CORRUPT_FILE_FORMAT;
+		}
+	}
+	m_heightScale = MAP_HEIGHT_SCALE * (Real)m_heightScaleK;
+
 	m_dataSize = file.readInt();
 	if (!heightMapSizeFits(m_width, m_height, m_dataSize, (Int)file.getChunkDataSizeLeft(),
 			info->version == K_HEIGHT_MAP_VERSION_1 ? 3 : 2)
 		|| !boundariesFitHeightMap(m_boundaries, m_width, m_height)) {
 		throw ERROR_CORRUPT_FILE_FORMAT	;
+	}
+	// GeneralsX @feature A version 5 map has more samples than any k: a reader without version 5 then never finds its
+	// k equal to width * height, so it always refuses the map.
+	if (info->version >= K_HEIGHT_MAP_VERSION_5 && m_dataSize <= MAP_HEIGHT_SCALE_K_MAX) {
+		throw ERROR_CORRUPT_FILE_FORMAT;
 	}
 	m_data = MSGNEW("WorldHeightMap_ParseSizeOnly") UnsignedByte[m_dataSize];
 	file.readArrayOfBytes((char *)m_data, m_dataSize);
@@ -1413,7 +1453,10 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 */
 Bool WorldHeightMap::ParseObjectDataChunk(DataChunkInput &file, DataChunkInfo *info, void *userData)
 {
-	WorldHeightMap *pThis = (WorldHeightMap *)file.m_userData;
+	// GeneralsX @bugfix file.m_userData is never set (DataChunkInput's constructor leaves it null), so this called
+	// ParseObjectData on a null map, harmless only while that function read no member. userData is the map the
+	// constructor's parse was given (ParseObjectsDataChunk passes it on), and ParseObjectData now reads its height scale.
+	WorldHeightMap *pThis = (WorldHeightMap *)userData;
 	return pThis->ParseObjectData(file, info, userData, info->version >= K_OBJECTS_VERSION_2);
 }
 
@@ -1434,7 +1477,7 @@ Bool WorldHeightMap::ParseObjectData(DataChunkInput &file, DataChunkInfo *info, 
 	loc.z = file.readReal();
 
 	Real minZ = -100*MAP_XY_FACTOR;
-	Real maxZ = (255*10)*MAP_HEIGHT_SCALE;
+	Real maxZ = (255*10)*m_heightScale;	// GeneralsX @feature scales with the map's k (HeightMapData comes first in a map)
 
 	if (info->version <= K_OBJECTS_VERSION_2) {
 		loc.z = 0;
@@ -1956,7 +1999,7 @@ Bool WorldHeightMap::getUVForTileIndex(Int ndx, Short tileNdx, float U[4], float
 
 		static Real TALL_STRETCH_LIMIT = 2.0f;
 		static Real DIAMOND_STRETCH_LIMIT = 2.4f;
-		static Real HEIGHT_SCALE = MAP_HEIGHT_SCALE / MAP_XY_FACTOR;
+		const Real HEIGHT_SCALE = m_heightScale / MAP_XY_FACTOR;	// GeneralsX @feature per map: a static kept the first map's scale
 
 		Real nU, nV, xU, xV;
 		nU=nV=xU=xV = 0.0f;
@@ -2491,10 +2534,10 @@ void WorldHeightMap::initCliffFlagsFromHeights()
 /** Sets the cliff flag for a cell based on height. */
 void WorldHeightMap::setCellCliffFlagFromHeights(Int xIndex, Int yIndex)
 {
-	Real height1 = getHeight(xIndex, yIndex)*MAP_HEIGHT_SCALE;
-	Real height2 = getHeight(xIndex+1, yIndex)*MAP_HEIGHT_SCALE;
-	Real height3 = getHeight(xIndex, yIndex+1)*MAP_HEIGHT_SCALE;
-	Real height4 = getHeight(xIndex+1, yIndex+1)*MAP_HEIGHT_SCALE;
+	Real height1 = getHeight(xIndex, yIndex)*m_heightScale;
+	Real height2 = getHeight(xIndex+1, yIndex)*m_heightScale;
+	Real height3 = getHeight(xIndex, yIndex+1)*m_heightScale;
+	Real height4 = getHeight(xIndex+1, yIndex+1)*m_heightScale;
 	Real minZ = height1;
 	if (minZ > height2) minZ = height2;
 	if (minZ > height3) minZ = height3;

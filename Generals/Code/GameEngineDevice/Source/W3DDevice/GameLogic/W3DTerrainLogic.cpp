@@ -158,8 +158,11 @@ Bool W3DTerrainLogic::loadMap( AsciiString filename , Bool query )
 				if (maxHt<cur) maxHt = cur;
 			}
 		}
-		m_mapMinZ = minHt * MAP_HEIGHT_SCALE;
-		m_mapMaxZ = maxHt * MAP_HEIGHT_SCALE;
+		// GeneralsX @feature the map's height scale (a version 5 HeightMapData chunk), for TerrainLogic's own sites
+		m_heightScaleK = terrainHeightMap->getHeightScaleK();
+		m_heightScale = terrainHeightMap->getHeightScale();
+		m_mapMinZ = minHt * m_heightScale;
+		m_mapMaxZ = maxHt * m_heightScale;
 		//release temporary object used for loading height values
 		REF_PTR_RELEASE(terrainHeightMap);
 	}

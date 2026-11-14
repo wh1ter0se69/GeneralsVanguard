@@ -56,6 +56,9 @@ enum WaypointID CPP_11(: Int);
 
 #define MAP_XY_FACTOR			(10.0f)	 //How wide and tall each height map square is in world space.
 #define MAP_HEIGHT_SCALE	(MAP_XY_FACTOR/16.0f)		//divide all map heights by 8.
+// GeneralsX @feature A version 5 HeightMapData chunk multiplies MAP_HEIGHT_SCALE by an integer k for that map
+// (WorldHeightMap::getHeightScale). k = 1 is every older map.
+#define MAP_HEIGHT_SCALE_K_MAX	8
 
 // m_flags bit values.
 enum {

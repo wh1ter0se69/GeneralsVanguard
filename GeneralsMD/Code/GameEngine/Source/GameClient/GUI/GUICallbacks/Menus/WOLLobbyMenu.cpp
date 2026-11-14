@@ -59,6 +59,13 @@
 #include "GameClient/MessageBox.h"
 #include "GameClient/Mouse.h"
 #include "GameClient/Display.h"
+#include "GameClient/DisplayString.h"
+#include "GameClient/DisplayStringManager.h"
+#include "GameClient/GameFont.h"
+#include "GameClient/Image.h"
+#include "GameClient/GadgetRadioButton.h"
+#include <algorithm>
+#include <vector>
 #include "GameNetwork/GameSpyOverlay.h"
 #include "GameClient/GameWindowTransitions.h"
 
@@ -90,6 +97,7 @@
 // is not digested; see the long block by relayFriendIndexByNick for what it can and cannot do
 // from this screen.
 #include "GameClient/GXLobbyCommands.h"
+#include "GameClient/GXRosterTone.h"
 #include "GameClient/GXPlayerIdentity.h"
 #include "GameClient/GXLoginFlow.h"
 #include "GameClient/GXLobbyPresence.h"
@@ -2806,6 +2814,584 @@ static Int insertPlayerInListbox(const PlayerInfo& info, Color color)
 }
 
 
+// ==============================================================================================
+// GeneralsX @feature THE SECTIONED PLAYER LIST AND ITS TABS.
+//
+// Who is online, in sections - ADMINS and MODERATORS on top whatever they are doing, then IN LOBBY, IN GAME LOBBY, PLAYING
+// and AFK - under four retail tabs: All | Friends | In Game | AFK. The data is the relay's (GXLobbyPresence's GXPLST list:
+// everyone on the relay, at the furthest place the relay sees them); against a relay without it, the same sections are
+// built from this shard's roster, where everyone is IN LOBBY.
+//
+// THE LOOK IS THE GAME'S. The tabs are the Select Map popup's radio buttons - the same mapped images, colours and font,
+// made at runtime from WOLMapSelectMenu.wnd's own draw data, so no .wnd or .big changes. A header is not a row of text in
+// the player colours (the first mockup read as player names): its cells are blank and the stock listbox draw is followed
+// by an overlay - a collapse arrow, the label in small bold capitals, the count apart, a rule to the edge - in the tabs'
+// lavender and frame blue. Clicking a header collapses or opens its section.
+//
+// Row geometry is the stock listbox's own (W3DListBox.cpp drawListBoxText: rows start 4 px down, displayPos scrolled,
+// each row height + 1), so the overlay lands on the rows the listbox drew.
+// ==============================================================================================
+enum GXPresTab { GX_PRES_TAB_ALL = 0, GX_PRES_TAB_FRIENDS, GX_PRES_TAB_INGAME, GX_PRES_TAB_AFK, GX_PRES_TAB_COUNT };
+enum GXPresSection { GX_PRES_SEC_ADMINS = 0, GX_PRES_SEC_MODS, GX_PRES_SEC_LOBBY, GX_PRES_SEC_GAMELOBBY, GX_PRES_SEC_PLAYING,
+	GX_PRES_SEC_AFK, GX_PRES_SEC_COUNT };
+enum { GX_PRES_ROWS_MAX = 256 };
+
+static Int s_presTab = GX_PRES_TAB_ALL;
+static UnsignedInt s_presCollapsed = 0;					///< bit per GXPresSection
+static GameWindow *s_presTabWin[GX_PRES_TAB_COUNT] = { nullptr, nullptr, nullptr, nullptr };
+static GameWinDrawFunc s_presStockDraw = nullptr;
+static Int s_presRowSection[GX_PRES_ROWS_MAX];			///< the section a header row heads, -1 for any other row
+static Int s_presRows = 0;
+static ICoord2D s_presListPos = { 0, 0 };				///< the list's authored place, restored on shutdown
+static ICoord2D s_presListSize = { 0, 0 };
+static GameWindow *s_presList = nullptr;				///< the list gxPresUiInit changed
+static Bool s_presFromTop = FALSE;						///< a new tab opens at its top; a refresh keeps the scroll
+static Bool s_presDirty = FALSE;							///< a header was clicked: refill on the next update, not inside its message
+static GameFont *s_presHdrFont = nullptr;
+static GameFont *s_presCountFont = nullptr;
+static DisplayString *s_presHdrText[GX_PRES_SEC_COUNT] = { nullptr };
+static DisplayString *s_presHdrCount[GX_PRES_SEC_COUNT] = { nullptr };
+
+static const Color GX_PRES_LAVENDER = GameMakeColor( 178, 183, 255, 255 );	// the selected tab's caps
+static const Color GX_PRES_COUNT    = GameMakeColor( 140, 146, 220, 255 );
+static const Color GX_PRES_RULE     = GameMakeColor(  37,  52, 254, 255 );	// the tabs' frame blue
+static const Color GX_PRES_SHADOW   = GameMakeColor(   0,   0,   0, 255 );
+static const Color GX_PRES_BLANK    = GameMakeColor(   0,   0,   0,   0 );
+
+static UnicodeString gxPresSectionLabel( Int s )
+{
+	switch (s)
+	{
+		case GX_PRES_SEC_ADMINS:    return TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresAdmins",    L"ADMINS");
+		case GX_PRES_SEC_MODS:      return TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresMods",      L"MODERATORS");
+		case GX_PRES_SEC_LOBBY:     return TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresLobby",     L"IN LOBBY");
+		case GX_PRES_SEC_GAMELOBBY: return TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresGameLobby", L"IN GAME LOBBY");
+		case GX_PRES_SEC_PLAYING:   return TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresPlaying",   L"PLAYING");
+		default:                    return TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresAfk",       L"AFK");
+	}
+}
+
+static UnicodeString gxPresTabLabel( Int t )
+{
+	switch (t)
+	{
+		case GX_PRES_TAB_ALL:     return TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresTabAll",     L"All");
+		case GX_PRES_TAB_FRIENDS: return TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresTabFriends", L"Friends");
+		case GX_PRES_TAB_INGAME:  return TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresTabInGame",  L"In Game");
+		default:                  return TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresTabAfk",     L"AFK");
+	}
+}
+
+/** One person on the list, from whichever source this refresh has. */
+struct GXPresPerson
+{
+	char        state;		///< 'l' 'g' 'p' 'a' - anything else is shown as IN LOBBY
+	char        role;		///< 'a' 'm' or 0
+	const char *os;
+	UnsignedInt slot;		///< in our shard, 0 = elsewhere (no card to open)
+	UnicodeString nick;
+	Bool        me;
+	Bool        isFriend;
+	Bool        friendByName;
+	Bool        ignored;
+};
+
+static Int gxPresSectionOf( const GXPresPerson &p )
+{
+	if (p.role == 'a') return GX_PRES_SEC_ADMINS;
+	if (p.role == 'm') return GX_PRES_SEC_MODS;
+	switch (p.state)
+	{
+		case 'g': return GX_PRES_SEC_GAMELOBBY;
+		case 'p': return GX_PRES_SEC_PLAYING;
+		case 'a': return GX_PRES_SEC_AFK;
+		default:  return GX_PRES_SEC_LOBBY;
+	}
+}
+
+/** Is `p` on tab `t`? Admins stay on top of All and Friends whatever they are doing; the other two tabs
+	* are places, so an admin is on them only when there. */
+static Bool gxPresOnTab( const GXPresPerson &p, Int t )
+{
+	switch (t)
+	{
+		case GX_PRES_TAB_FRIENDS: return p.isFriend || p.me || p.role == 'a';
+		case GX_PRES_TAB_INGAME:  return p.state == 'g' || p.state == 'p';
+		case GX_PRES_TAB_AFK:     return p.state == 'a';
+		default:                  return TRUE;
+	}
+}
+
+static Bool gxPresNickLess( const GXPresPerson &a, const GXPresPerson &b )
+{
+	return a.nick.compareNoCase(b.nick) < 0;
+}
+
+/** Draw the header overlay on the rows the stock listbox just drew. */
+static void gxPresListDraw( GameWindow *window, WinInstanceData *instData )
+{
+	if (s_presStockDraw != nullptr)
+		s_presStockDraw( window, instData );
+	ListboxData *list = (ListboxData *)window->winGetUserData();
+	if (list == nullptr || TheDisplay == nullptr || list->listData == nullptr)
+		return;
+
+	Int x, y, w, h;
+	window->winGetScreenPosition( &x, &y );
+	window->winGetSize( &w, &h );
+	if (list->slider != nullptr)
+	{
+		Int sw, sh;
+		list->slider->winGetSize( &sw, &sh );
+		w -= sw;
+	}
+	const Int top = y + 4;
+	const Int bottom = y + h - 1;
+	Int rowY = top - list->displayPos;
+	const Int rows = (list->endPos < s_presRows) ? list->endPos : s_presRows;
+	for (Int i = 0; i < rows; ++i)
+	{
+		const Int rowH = list->listData[i].height + 1;
+		const Int sec = s_presRowSection[i];
+		if (sec >= 0 && sec < GX_PRES_SEC_COUNT && rowY + rowH > top && rowY < bottom)
+		{
+			// A header half scrolled out is drawn clipped to the list, like the rows around it.
+			IRegion2D clip;
+			clip.lo.x = x;
+			clip.lo.y = top;
+			clip.hi.x = x + w;
+			clip.hi.y = bottom;
+			const auto inY = [top, bottom]( Int py ) { return py >= top && py <= bottom; };
+			const Int midY = rowY + rowH / 2;
+			const Int pad = (rowH / 6 > 2) ? rowH / 6 : 2;
+			// The arrow: down when open, right when collapsed - a filled triangle of horizontal or vertical lines.
+			const Int a = (rowH * 3 / 10 > 4) ? rowH * 3 / 10 : 4;
+			const Int ax = x + pad;
+			if (BitIsSet( s_presCollapsed, 1u << sec ))
+			{
+				for (Int k = 0; k <= a / 2; ++k)
+				{
+					const Int y0 = (midY - a / 2 + k > top) ? midY - a / 2 + k : top;
+					const Int y1 = (midY + a / 2 - k < bottom) ? midY + a / 2 - k : bottom;
+					if (y0 <= y1)
+						TheDisplay->drawLine( ax + k, y0, ax + k, y1, 1.0f, GX_PRES_LAVENDER );
+				}
+			}
+			else
+			{
+				for (Int k = 0; k <= a / 2; ++k)
+					if (inY( midY - a / 4 + k ))
+						TheDisplay->drawLine( ax + k, midY - a / 4 + k, ax + a - k, midY - a / 4 + k, 1.0f, GX_PRES_LAVENDER );
+			}
+			Int tx = ax + a + pad;
+			Int tw = 0, th = 0;
+			if (s_presHdrText[sec] != nullptr)
+			{
+				s_presHdrText[sec]->getSize( &tw, &th );
+				s_presHdrText[sec]->setClipRegion( &clip );
+				s_presHdrText[sec]->draw( tx, midY - th / 2, GX_PRES_LAVENDER, GX_PRES_SHADOW );
+				tx += tw + pad;
+			}
+			if (s_presHdrCount[sec] != nullptr)
+			{
+				s_presHdrCount[sec]->getSize( &tw, &th );
+				s_presHdrCount[sec]->setClipRegion( &clip );
+				s_presHdrCount[sec]->draw( tx, midY - th / 2, GX_PRES_COUNT, GX_PRES_SHADOW );
+				tx += tw + pad;
+			}
+			const Int right = x + w - pad;
+			if (right > tx && inY( midY ))
+				TheDisplay->drawLine( tx, midY, right, midY, (rowH >= 30) ? 2.0f : 1.0f, GX_PRES_RULE );
+		}
+		rowY += rowH;
+		if (rowY > bottom)
+			break;
+	}
+}
+
+/** The retail tab look, copied from WOLMapSelectMenu.wnd:RadioButtonSystemMaps: draw data slots 0-5. */
+static void gxPresApplyTabLook( GameWindow *b )
+{
+	struct Slot { const char *image; UnsignedByte c[4]; UnsignedByte bc[4]; };
+	static const Slot enabled[3] = {
+		{ "RadioButtonEnabledLeft",   {   1,   1,   1, 160 }, {  47,  55, 168, 255 } },
+		{ "RadioButtonEnabledMiddle", { 128,   0,   0,   0 }, {   0,   0,   0,   0 } },
+		{ "RadioButtonEnabledRight",  { 117,  43,   1, 200 }, { 128, 128, 255, 255 } } };
+	static const Slot disabled[3] = {
+		{ "RadioButtonDisabledLeft",   { 128, 128, 128, 255 }, { 192, 192, 192, 255 } },
+		{ "RadioButtonDisabledMiddle", { 128, 128, 128, 255 }, { 192, 192, 192, 255 } },
+		{ "RadioButtonDisabledRight",  {  64,  64,  64, 255 }, { 254, 254, 254, 255 } } };
+	static const Slot hilite[6] = {
+		enabled[0], enabled[1], enabled[2],
+		{ "RadioButtonHilightedLeft",   {   0,   1,   0, 160 }, {  47,  55, 168, 255 } },
+		{ "RadioButtonHilightedMiddle", {   0, 128,   0,   0 }, { 128, 255, 128, 255 } },
+		{ "RadioButtonHilightedRight",  { 117,  43,   0, 200 }, { 254, 254, 254,   0 } } };
+	const auto img = []( const char *n ) { return TheMappedImageCollection ? TheMappedImageCollection->findImageByName( n ) : nullptr; };
+	const auto col = []( const UnsignedByte *c ) { return GameMakeColor( c[0], c[1], c[2], c[3] ); };
+	for (Int i = 0; i < 3; ++i)
+	{
+		b->winSetEnabledImage( i, img( enabled[i].image ) );
+		b->winSetEnabledColor( i, col( enabled[i].c ) );
+		b->winSetEnabledBorderColor( i, col( enabled[i].bc ) );
+		b->winSetDisabledImage( i, img( disabled[i].image ) );
+		b->winSetDisabledColor( i, col( disabled[i].c ) );
+		b->winSetDisabledBorderColor( i, col( disabled[i].bc ) );
+	}
+	for (Int i = 0; i < 6; ++i)
+	{
+		b->winSetHiliteImage( i, img( hilite[i].image ) );
+		b->winSetHiliteColor( i, col( hilite[i].c ) );
+		b->winSetHiliteBorderColor( i, col( hilite[i].bc ) );
+	}
+	b->winSetEnabledTextColors( GameMakeColor( 255, 255, 255, 255 ), GameMakeColor( 0, 0, 0, 255 ) );
+	b->winSetDisabledTextColors( GameMakeColor( 192, 192, 192, 255 ), GameMakeColor( 64, 64, 64, 255 ) );
+	b->winSetHiliteTextColors( GameMakeColor( 168, 255, 12, 255 ), GameMakeColor( 0, 1, 1, 255 ) );
+}
+
+/** The tabs over the list, the list moved down under them, the header fonts and strings, the draw overlay. Once per entry
+	* to the lobby screen; gxPresUiShutdown undoes what outlives the layout. */
+static void gxPresUiInit( GameWindow *listbox )
+{
+	s_presRows = 0;
+	if (listbox == nullptr || TheWindowManager == nullptr || TheDisplay == nullptr)
+		return;
+
+	GameFont *base = listbox->winGetFont();
+	if (base != nullptr && TheFontLibrary != nullptr)
+	{
+		const Int smallSize = (base->pointSize * 4 / 5 > 6) ? base->pointSize * 4 / 5 : 6;
+		s_presHdrFont = TheFontLibrary->getFont( base->nameString, smallSize, TRUE );
+		s_presCountFont = TheFontLibrary->getFont( base->nameString, smallSize, FALSE );
+	}
+	for (Int s = 0; s < GX_PRES_SEC_COUNT; ++s)
+	{
+		if (TheDisplayStringManager == nullptr)
+			break;
+		s_presHdrText[s] = TheDisplayStringManager->newDisplayString();
+		s_presHdrCount[s] = TheDisplayStringManager->newDisplayString();
+		if (s_presHdrText[s] != nullptr)
+		{
+			s_presHdrText[s]->setFont( s_presHdrFont != nullptr ? s_presHdrFont : base );
+			s_presHdrText[s]->setText( gxPresSectionLabel( s ) );
+		}
+		if (s_presHdrCount[s] != nullptr)
+			s_presHdrCount[s]->setFont( s_presCountFont != nullptr ? s_presCountFont : base );
+	}
+	// Room for a whole relay-wide list (128 people), its six headers and a notice. Retail authors 1000; a modded layout may not.
+	{
+		ListboxData *ld = (ListboxData *)listbox->winGetUserData();
+		if (ld != nullptr && ld->listLength < GXLobbyPresence::GX_PRES_MAX + GX_PRES_SEC_COUNT + 2)
+			GadgetListBoxSetListLength( listbox, GXLobbyPresence::GX_PRES_MAX + GX_PRES_SEC_COUNT + 2 );
+	}
+	if (listbox->winGetDrawFunc() != gxPresListDraw)
+	{
+		s_presStockDraw = listbox->winGetDrawFunc();
+		listbox->winSetDrawFunc( gxPresListDraw );
+	}
+	s_presList = listbox;		// from here on, shutdown has something to undo
+
+	// The tabs take the list's top: the retail tab is 22 high where the list was authored 232 high (800x600).
+	Int lx, ly, lw, lh;
+	listbox->winGetPosition( &lx, &ly );
+	listbox->winGetSize( &lw, &lh );
+	const Int tabH = lh * 22 / 232;
+	const Int gap = (tabH / 8 > 2) ? tabH / 8 : 2;
+	if (tabH < 8 || lw < 64)
+		return;
+	GameWindow *parent = listbox->winGetParent();
+
+	// THE CAPS ARE DRAWN AT THEIR IMAGES' OWN PIXEL WIDTH (W3DRadioButton: only the height stretches), so they are a fixed
+	// ~2 x 27 px whatever the screen, and a label is readable only BETWEEN them. Measured, not assumed: a "half a tab
+	// height each" guess let "In Game" run under the left cap on a 1920x1080 screen.
+	Int capW = 0;
+	if (TheMappedImageCollection != nullptr)
+	{
+		const char *ends[2][2] = { { "RadioButtonEnabledLeft", "RadioButtonHilightedLeft" },
+			{ "RadioButtonEnabledRight", "RadioButtonHilightedRight" } };
+		for (Int side = 0; side < 2; ++side)
+		{
+			Int w = 0;
+			for (Int v = 0; v < 2; ++v)
+			{
+				const Image *im = TheMappedImageCollection->findImageByName( ends[side][v] );
+				if (im != nullptr && im->getImageWidth() > w)
+					w = im->getImageWidth();
+			}
+			capW += w;
+		}
+	}
+	const Int pad = (tabH / 8 > 2) ? tabH / 8 : 2;
+
+	// The largest font, down to three quarters of the list's, at which the widest label fits between the caps of a tab
+	// `perRow` wide; nullptr if none does.
+	GameFont *tabFont = base;
+	Int perRow = GX_PRES_TAB_COUNT;
+	if (base != nullptr && TheFontLibrary != nullptr && TheDisplayStringManager != nullptr)
+	{
+		DisplayString *probe = TheDisplayStringManager->newDisplayString();
+		const auto fitFor = [&]( Int cols, Int minSize ) -> GameFont *
+		{
+			const Int room = (lw - gap * (cols - 1)) / cols - capW - 2 * pad;
+			for (Int size = base->pointSize; probe != nullptr && size >= minSize; --size)
+			{
+				GameFont *f = TheFontLibrary->getFont( base->nameString, size, FALSE );
+				if (f == nullptr)
+					continue;
+				Int widest = 0;
+				for (Int t = 0; t < GX_PRES_TAB_COUNT; ++t)
+				{
+					probe->setFont( f );
+					probe->setText( gxPresTabLabel( t ) );
+					const Int pw = probe->getWidth();
+					widest = (pw > widest) ? pw : widest;
+				}
+				if (widest <= room)
+					return f;
+			}
+			return nullptr;
+		};
+		const Int readable = (base->pointSize * 3 / 4 > 6) ? base->pointSize * 3 / 4 : 6;
+		// One row of four where the labels fit readably (wide screens); two rows of two where they do not (4:3, the iPad).
+		GameFont *f = fitFor( GX_PRES_TAB_COUNT, readable );
+		if (f == nullptr)
+		{
+			perRow = GX_PRES_TAB_COUNT / 2;
+			f = fitFor( perRow, readable );
+			if (f == nullptr)
+				f = fitFor( perRow, 6 );
+			if (f == nullptr)
+				f = TheFontLibrary->getFont( base->nameString, 6, FALSE );	// nothing fits (a modded list, a long translation): smallest, never the list's own
+		}
+		if (f != nullptr)
+			tabFont = f;
+		if (probe != nullptr)
+			TheDisplayStringManager->freeDisplayString( probe );
+	}
+	const Int rows = (GX_PRES_TAB_COUNT + perRow - 1) / perRow;
+	const Int tabW = (lw - gap * (perRow - 1)) / perRow;
+	const Int band = rows * (tabH + gap);
+	if (tabW < 16 || lh - band < tabH * 3)
+		return;
+
+	for (Int t = 0; t < GX_PRES_TAB_COUNT; ++t)
+	{
+		WinInstanceData inst;
+		inst.init();
+		BitSet( inst.m_style, GWS_RADIO_BUTTON | GWS_MOUSE_TRACK );
+		RadioButtonData rd;
+		rd.screen = 0;
+		rd.group = 0x47585054;		// its own group: selecting a tab never unchecks anything else on the screen
+		GameWindow *b = TheWindowManager->gogoGadgetRadioButton( parent, WIN_STATUS_ENABLED | WIN_STATUS_IMAGE,
+			lx + (t % perRow) * (tabW + gap), ly + (t / perRow) * (tabH + gap), tabW, tabH, &inst, &rd, tabFont, FALSE );
+		s_presTabWin[t] = b;
+		if (b == nullptr)
+			continue;
+		b->winSetOwner( listbox->winGetOwner() );		// its clicks reach WOLLobbyMenuSystem, like the list's
+		gxPresApplyTabLook( b );
+		GadgetRadioSetText( b, gxPresTabLabel( t ) );
+		if (t == s_presTab)
+			GadgetRadioSetSelection( b, FALSE );
+	}
+	s_presListPos.x = lx;
+	s_presListPos.y = ly;
+	s_presListSize.x = lw;
+	s_presListSize.y = lh;
+	listbox->winSetPosition( lx, ly + band );
+	listbox->winSetSize( lw, lh - band );
+}
+
+/** Undo gxPresUiInit whole - tabs gone, the list back where and how it was drawn - so a layout that outlives this screen
+	* is never given a second set of tabs or moved twice. */
+static void gxPresUiShutdown( void )
+{
+	for (Int t = 0; t < GX_PRES_TAB_COUNT; ++t)
+	{
+		if (s_presTabWin[t] != nullptr && TheWindowManager != nullptr)
+			TheWindowManager->winDestroy( s_presTabWin[t] );
+		s_presTabWin[t] = nullptr;
+	}
+	if (s_presList != nullptr)
+	{
+		if (s_presStockDraw != nullptr && s_presList->winGetDrawFunc() == gxPresListDraw)
+			s_presList->winSetDrawFunc( s_presStockDraw );
+		if (s_presListSize.y > 0)
+		{
+			s_presList->winSetPosition( s_presListPos.x, s_presListPos.y );
+			s_presList->winSetSize( s_presListSize.x, s_presListSize.y );
+		}
+	}
+	s_presList = nullptr;
+	s_presListSize.x = s_presListSize.y = 0;
+	s_presDirty = FALSE;
+	for (Int s = 0; s < GX_PRES_SEC_COUNT; ++s)
+	{
+		if (TheDisplayStringManager != nullptr)
+		{
+			if (s_presHdrText[s] != nullptr)
+				TheDisplayStringManager->freeDisplayString( s_presHdrText[s] );
+			if (s_presHdrCount[s] != nullptr)
+				TheDisplayStringManager->freeDisplayString( s_presHdrCount[s] );
+		}
+		s_presHdrText[s] = nullptr;
+		s_presHdrCount[s] = nullptr;
+	}
+	s_presStockDraw = nullptr;
+	s_presRows = 0;
+}
+
+/** A tab was clicked: true if it was one of ours. */
+static Bool gxPresTabClicked( GameWindow *control )
+{
+	for (Int t = 0; t < GX_PRES_TAB_COUNT; ++t)
+	{
+		if (control != nullptr && control == s_presTabWin[t])
+		{
+			s_presTab = t;
+			s_presFromTop = TRUE;
+			PopulateLobbyPlayerListbox();
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+/** A row was selected: true if it was a header, which opens or collapses its section instead of selecting anything. */
+static Bool gxPresHeaderClicked( Int row )
+{
+	if (row < 0 || row >= s_presRows || s_presRowSection[row] < 0)
+		return FALSE;
+	s_presCollapsed ^= (1u << s_presRowSection[row]);
+	s_presDirty = TRUE;		// the listbox is still inside its own input handling; refilling it here frees rows under it
+	return TRUE;
+}
+
+/** The colours of the list, for any person (tones in GXRosterTone.h). Colour, not a marker, because the name column wraps
+	* rather than clips. You (green) wins over everything; then ignored (grey, a decision the player made, which nothing
+	* overrides); then friend (blue, dimmer for a name that only looks like one); everyone else white. The role's name
+	* colour overrides all but ignored, so a moderator you befriended is still findable, but never ignored. */
+static void gxPresColors( const GXPresPerson &p, Color *rowColor, Color *nameColor )
+{
+	const unsigned int rgb = gxRosterTone( p.me, p.ignored, p.isFriend, p.friendByName );
+	const Color c = GameMakeColor( (rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, 255 );
+	*rowColor = c;
+	const GXAssertRole role = GXLobbyRoleFromCode( p.role == 'a' ? "a" : (p.role == 'm' ? "m" : "") );
+	*nameColor = p.ignored ? c : GXLobbyRoleNameColor( role, c );
+}
+
+/** Fill the list: tab filter, sections, headers. `people` is this refresh's source, in any order. */
+static void gxPresFill( GameWindow *listbox, std::vector<GXPresPerson> &people, Int notListed )
+{
+	const Int keepTop = s_presFromTop ? 0 : GadgetListBoxGetTopVisibleEntry( listbox );
+	s_presFromTop = FALSE;
+	GadgetListBoxReset( listbox );
+	s_presRows = 0;
+
+	std::vector<GXPresPerson> bySec[GX_PRES_SEC_COUNT];
+	for (size_t i = 0; i < people.size(); ++i)
+		if (gxPresOnTab( people[i], s_presTab ))
+			bySec[gxPresSectionOf( people[i] )].push_back( people[i] );
+
+	Int shown = 0;
+	for (Int s = 0; s < GX_PRES_SEC_COUNT; ++s)
+	{
+		if (bySec[s].empty())
+			continue;
+		std::stable_sort( bySec[s].begin(), bySec[s].end(), gxPresNickLess );
+		// The header row: blank cells the listbox sizes like any other row; gxPresListDraw draws on it.
+		const Int hdr = GadgetListBoxAddEntryText( listbox, UnicodeString(L" "), GX_PRES_BLANK, -1, 1 );
+		if (hdr < 0)
+			break;
+		if (hdr < GX_PRES_ROWS_MAX)
+		{
+			s_presRowSection[hdr] = s;
+			s_presRows = hdr + 1;
+		}
+		if (s_presHdrCount[s] != nullptr)
+		{
+			UnicodeString n;
+			n.format( L"%d", (Int)bySec[s].size() );
+			s_presHdrCount[s]->setText( n );
+		}
+		shown += (Int)bySec[s].size();
+		if (BitIsSet( s_presCollapsed, 1u << s ))
+			continue;
+		for (size_t i = 0; i < bySec[s].size(); ++i)
+		{
+			const GXPresPerson &p = bySec[s][i];
+			Color rowColor, nameColor;
+			gxPresColors( p, &rowColor, &nameColor );
+			const Int row = GadgetListBoxAddEntryText( listbox, relayPlatformLabel( p.os ), rowColor, -1, 0 );
+			if (row < 0)
+				break;
+			GadgetListBoxAddEntryText( listbox, p.nick, nameColor, row, 1 );
+			// The slot rides the row, stamped at render (see the right-click handler); 0 for a player in another room.
+			GadgetListBoxSetItemData( listbox, reinterpret_cast<void *>( static_cast<intptr_t>( p.slot ) ), row, 0 );
+			if (row < GX_PRES_ROWS_MAX)
+			{
+				s_presRowSection[row] = -1;
+				s_presRows = row + 1;
+			}
+		}
+	}
+
+	if (shown == 0 && !people.empty())
+	{
+		UnicodeString none;
+		switch (s_presTab)
+		{
+			case GX_PRES_TAB_FRIENDS: none = TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresNoFriends", L"No friends online"); break;
+			case GX_PRES_TAB_INGAME:  none = TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresNoInGame",  L"Nobody is in a game"); break;
+			case GX_PRES_TAB_AFK:     none = TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresNoAfk",     L"Nobody is away"); break;
+			default: break;
+		}
+		if (!none.isEmpty())
+		{
+			const Int row = GadgetListBoxAddEntryText( listbox, none, GameSpyColor[GSCOLOR_MOTD], -1, 1 );
+			if (row >= 0 && row < GX_PRES_ROWS_MAX)
+			{
+				s_presRowSection[row] = -1;
+				s_presRows = row + 1;
+			}
+		}
+	}
+
+	// The relay lists at most 128 and says how many it found; the rest are not lost silently.
+	if (notListed > 0)
+	{
+		UnicodeString more;
+		more.format( TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayPresMore", L"+%d more online").str(), notListed );
+		const Int row = GadgetListBoxAddEntryText( listbox, more, GameSpyColor[GSCOLOR_MOTD], -1, 1 );
+		if (row >= 0 && row < GX_PRES_ROWS_MAX)
+		{
+			s_presRowSection[row] = -1;
+			s_presRows = row + 1;
+		}
+	}
+
+	// Back to where the reader was, but never past the last full screen: after a collapse the list can be shorter, and a top
+	// row left where it was would hide the sections above it behind empty space.
+	const Int entries = GadgetListBoxGetNumEntries( listbox );
+	ListboxData *ld = (ListboxData *)listbox->winGetUserData();
+	Int top = (keepTop < entries) ? keepTop : entries - 1;
+	if (top > 0 && ld != nullptr && ld->listData != nullptr)
+	{
+		const Int total = ld->listData[entries - 1].listHeight;
+		Int maxTop = 0;
+		for (Int t = entries - 1; t > 0; --t)
+		{
+			const Int rowTop = ld->listData[t - 1].listHeight;
+			if (total - rowTop >= ld->displayHeight)
+			{
+				maxTop = t;
+				break;
+			}
+		}
+		top = (top < maxTop) ? top : maxTop;
+	}
+	if (top > 0)
+		GadgetListBoxSetTopVisibleEntry( listbox, top );
+}
+
 void PopulateLobbyPlayerListbox()
 {
 
@@ -2817,110 +3403,106 @@ void PopulateLobbyPlayerListbox()
 	// next refresh, so the UI never blocks. Players are named by virtual IP (last octet = room slot).
 	if (s_relayLobby)
 	{
-		GadgetListBoxReset(listboxLobbyPlayers);
-
-		if (TheLAN != nullptr)
+		if (TheLAN == nullptr)
 		{
-			gxLobbyRequestRoster();
+			GadgetListBoxReset(listboxLobbyPlayers);
+			s_presRows = 0;
+			return;
+		}
+		gxLobbyRequestRoster();
 
-			UnsignedInt ips[GX_ROOM_SLOTS];
-			const Int n = gxLobbyRoster(ips, GX_ROOM_SLOTS);
-			if (n > 0)
-				s_relayHeardFromRelay = TRUE;
+		UnsignedInt ips[GX_ROOM_SLOTS];
+		const Int n = gxLobbyRoster(ips, GX_ROOM_SLOTS);
+		if (n > 0)
+			s_relayHeardFromRelay = TRUE;
+		{
+			const Transport *t = relayTransport();
+			if (t != nullptr && t->hasPublishedGameList())
+				s_relayHeardFromRelay = TRUE;	// same relay, so it is reachable and answering
+		}
+
+		// relayMySlot() is the single answer to "which row is me" - see its notes.
+		const UnsignedInt me = relayMySlot();
+
+		// GeneralsX @feature Everyone on the relay when it says so (GXPLST); this shard's roster when not.
+		// Names, platforms and roles come from the relay either way; friend / ignored / you are this client's own.
+		std::vector<GXPresPerson> people;
+		const Bool relayWide = gxHaveLobbyPresence() && TheGXLobbyPresence->hasPresenceList();
+		const Int count = relayWide ? TheGXLobbyPresence->getPresenceCount() : n;
+		for (Int i = 0; i < count; ++i)
+		{
+			GXPresPerson p;
+			AsciiString nick;
+			if (relayWide)
 			{
-				const Transport *t = relayTransport();
-				if (t != nullptr && t->hasPublishedGameList())
-					s_relayHeardFromRelay = TRUE;	// same relay, so it is reachable and answering
-			}
-
-			// The roster stores the last octet (room slot) while m_localVirtualIP is a full address, so compare against
-			// relayMySlot(): the roster here comes from the shared room, not the game transport's session.
-			const UnsignedInt me = relayMySlot();
-
-			for (Int i = 0; i < n; ++i)
-			{
-				// Names go in column 1: WOLCustomLobby.wnd declares 2 columns (widths 10, 90) and column 0 is the icon column.
-				// That column fits two characters and wraps, so it has no marker and "you" is shown by colour.
-				// Show the relay-held nickname when there is one; the relay itself only knows 10.42.0.N.
-				UnicodeString row;
-				const char *nick = gxLobbyRosterNick(i);
-				if (nick != NULL && nick[0] != '\0')
+				p.state = TheGXLobbyPresence->getPresenceState(i);
+				p.role  = TheGXLobbyPresence->getPresenceRole(i);
+				p.os    = TheGXLobbyPresence->getPresenceOS(i);
+				p.slot  = TheGXLobbyPresence->getPresenceSlot(i);
+				nick    = TheGXLobbyPresence->getPresenceNick(i);
+				if (nick.isEmpty())
+					nick.format("P%d", (Int)p.slot);	// unnamed, in our room: the roster's own fallback
+				// Our room's rows act through the ROSTER (the card checks its name, the colours its slot), and the two
+				// answers arrive on their own clocks. A row keeps its slot only while the roster names the same player in it;
+				// otherwise it is shown as the relay-wide list has it, with no slot - never one player's name with another's
+				// role or state - until the two agree again.
+				if (p.slot != 0)
 				{
-					UnicodeString wideNick;
-					wideNick.translate(AsciiString(nick));
-					row.format(L"%ls", wideNick.str());
+					Bool inRoster = FALSE;
+					const char *rn = relayRosterNickForSlot(p.slot, &inRoster);
+					AsciiString rosterNick;
+					if (rn != NULL && rn[0] != '\0')
+						rosterNick = rn;
+					else
+						rosterNick.format("P%d", (Int)p.slot);
+					if (!inRoster || rosterNick.compare(nick) != 0)
+						p.slot = 0;
 				}
+			}
+			else
+			{
+				// The relay-held nickname when there is one, else P<slot>.
+				const char *rn = gxLobbyRosterNick(i);
+				const char *role = gxLobbyRosterRole(i);
+				p.state = 'l';
+				p.role  = (role != NULL && (role[0] == 'a' || role[0] == 'm')) ? role[0] : '\0';
+				p.os    = gxLobbyRosterOS(i);
+				p.slot  = ips[i];
+				if (rn != NULL && rn[0] != '\0')
+					nick = rn;
 				else
-				{
-					row.format(L"P%d", (Int)ips[i]);
-				}
-
-				// Friends and ignored players are coloured, not labelled: the column is too narrow. "you" wins, then
-				// ignored, then friend; a confirmed friend is brighter than a name that merely looks like one.
-				// Literals, not GSCOLOR_PLAYER_BUDDY: that comes from multiplayer.ini in INIZH.big (a data rollout).
-				// Light azure, not pure blue: the lobby background is dark. Stay clear of green, grey and red.
-				Color rowColor = GameSpyColor[GSCOLOR_PLAYER_NORMAL];
-				Bool friendByName = FALSE;
-				if (ips[i] == me)
-					rowColor = GameMakeColor( 120, 255, 120, 255 );
-				else if (relaySlotIsIgnored(ips[i]))
-					rowColor = GameMakeColor( 110, 110, 110, 255 );
-				else if (relaySlotIsFriend(ips[i], &friendByName))
-					rowColor = friendByName ? GameMakeColor(  95, 150, 205, 255 )
-					                        : GameMakeColor( 105, 190, 255, 255 );
-
-				// OS tag in the icon column (column 0): text, not a logo, since an image would go into a .big.
-				// Two characters is the hard ceiling (overflow wraps and makes the row taller); "iP" sits at the limit.
-				// The column-0 call must create the row (row == -1 allocates); thread its index into column 1.
-				const char *os = gxLobbyRosterOS(i);
-				const UnicodeString osTag = relayPlatformLabel(os);
-
-				// GeneralsX: The role's NAME colour, and this is the
-				// surface that can carry it. ListboxChat is COLUMNS: 1, so a chat row has exactly
-				// one colour and the spec's "purple name with light-green text" cannot both live
-				// there. ListboxPlayers is COLUMNS: 2 and ListEntryCell already holds a Color per
-				// cell, so the name colour lands here and the text colour lands on the chat row.
-				//
-				// It OVERRIDES the friend colour rather than the other way round, because a
-				// moderator you have befriended is still the person you need to be able to find in
-				// this list. The ignored-grey above still wins, since that is a decision the player
-				// made about somebody and it must not be overridden by anything.
-				const GXAssertRole slotRole =
-					GXLobbyRoleFromCode(gxLobbyRosterRole(i));
-				const Color nameColor = relaySlotIsIgnored(ips[i])
-					? rowColor
-					: GXLobbyRoleNameColor(slotRole, rowColor);
-
-				const Int rowIndex = GadgetListBoxAddEntryText(listboxLobbyPlayers, osTag, rowColor, -1, 0);
-				GadgetListBoxAddEntryText(listboxLobbyPlayers, row, nameColor, rowIndex, 1);
-				// GeneralsX: The room slot rides the row, STAMPED AT
-				// RENDER - the right-click handler must never resolve a row index against a
-				// roster that may have refreshed underneath the click. Info rows below carry no
-				// item-data, so they can never grow a menu.
-				// GeneralsX: 64-bit safe pointer cast, as elsewhere in this file
-				GadgetListBoxSetItemData(listboxLobbyPlayers,
-					reinterpret_cast<void *>(static_cast<intptr_t>(ips[i])), rowIndex, 0);
+					nick.format("P%d", (Int)ips[i]);
 			}
-
-			// GeneralsX: Do not answer before the relay has.
-			//
-			// The roster is a round trip. For the first few seconds after entering the lobby we
-			// have asked and not yet heard, and saying "Nobody else here yet" in that window is
-			// simply wrong - it was reported as the lobby looking empty until a manual refresh.
-			// Same mistake the game list made with "No lobbies available at this moment", and the
-			// same fix: say what is actually true, which is that we are still asking.
-			if (n == 0 && !s_relayHeardFromRelay)
+			p.nick.translate(nick);
+			p.me = (p.slot != 0 && p.slot == me);
+			p.ignored = (p.slot != 0) ? relaySlotIsIgnored(p.slot) : FALSE;
+			p.friendByName = FALSE;
+			if (p.slot != 0)
+				p.isFriend = relaySlotIsFriend(p.slot, &p.friendByName);
+			else
 			{
-				GadgetListBoxAddEntryText(listboxLobbyPlayers,
-					TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayLobbySearching", L"Checking who's here..."),
-					GameSpyColor[GSCOLOR_MOTD], -1, 1);
+				// Not in our room: no card was ever swapped through it, so the name is all there is - the rule the
+				// friends' games filter already uses (relayHostIsFriend).
+				p.isFriend = (relayFriendIndexByNick(nick.str()) >= 0) ? TRUE : FALSE;
+				p.friendByName = TRUE;
 			}
-			else if (n == 0)
-			{
-				GadgetListBoxAddEntryText(listboxLobbyPlayers,
-					TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayLobbyNoPlayers", L"Nobody else here yet"),
-					GameSpyColor[GSCOLOR_MOTD], -1, 1);
-			}
+			people.push_back(p);
+		}
+		const Int notListed = relayWide ? TheGXLobbyPresence->getPresenceTotal() - TheGXLobbyPresence->getPresenceCount() : 0;
+		gxPresFill(listboxLobbyPlayers, people, notListed);
+
+		// Do not answer before the relay has: "Checking" until it has, then "Nobody".
+		if (people.empty() && !s_relayHeardFromRelay)
+		{
+			GadgetListBoxAddEntryText(listboxLobbyPlayers,
+				TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayLobbySearching", L"Checking who's here..."),
+				GameSpyColor[GSCOLOR_MOTD], -1, 1);
+		}
+		else if (people.empty())
+		{
+			GadgetListBoxAddEntryText(listboxLobbyPlayers,
+				TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayLobbyNoPlayers", L"Nobody else here yet"),
+				GameSpyColor[GSCOLOR_MOTD], -1, 1);
 		}
 		return;
 	}
@@ -3143,6 +3725,13 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 	listboxLobbyPlayers = TheWindowManager->winGetWindowFromId(parent, listboxLobbyPlayersID);
 	listboxLobbyPlayers->winSetTooltipFunc(playerTooltip);
 	relayFixPlayerListColumns(listboxLobbyPlayers);
+	// The sectioned list's tabs and header overlay, and the relay-wide list asked for while this screen is up.
+	if (s_relayLobby)
+	{
+		gxPresUiInit(listboxLobbyPlayers);
+		if (TheGXLobbyPresence != NULL)
+			TheGXLobbyPresence->setPresenceListWanted(TRUE);
+	}
 	relayClaimPersistedNickname();		// so a returning player is named without typing /nickname
 
 	listboxLobbyChatID = TheNameKeyGenerator->nameToKey("WOLCustomLobby.wnd:ListboxChat");
@@ -3425,6 +4014,9 @@ void WOLLobbyMenuShutdown( WindowLayout *layout, void *userData )
 		TheGameSpyPeerMessageQueue->addRequest(req);
 	}
 
+	gxPresUiShutdown();
+	if (TheGXLobbyPresence != NULL)
+		TheGXLobbyPresence->setPresenceListWanted(FALSE);	// the idle report goes on (game setup), the list does not
 	listboxLobbyChat = nullptr;
 	listboxLobbyPlayers = nullptr;
 	GXLobbyChatRowReset();		// the box is going away; nothing may be continued into the next one
@@ -4370,6 +4962,15 @@ static UnsignedInt gxLobbyRosterPrint( void )
 			print = (print ^ 0xFFu) * 16777619u;	// field terminator
 		}
 	}
+	// GeneralsX @feature The relay-wide list too: a GXPLST that changes only a state, a role or a count leaves this
+	// shard's roster as it was, and would otherwise wait for the 5 s timer.
+	if (gxHaveLobbyPresence())
+	{
+		const UnsignedInt gen = TheGXLobbyPresence->getPresenceGeneration();
+		for (Int shift = 0; shift < 32; shift += 8)
+			print = (print ^ ((gen >> shift) & 0xFFu)) * 16777619u;
+		print = (print ^ (TheGXLobbyPresence->hasPresenceList() ? 1u : 0u)) * 16777619u;
+	}
 	return (print ^ (s_relayHeardFromRelay ? 1u : 0u)) * 16777619u;
 }
 
@@ -4597,6 +5198,13 @@ void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 	// (GXBuddyOverlayPump): F5 opens it in the game room and in a match, where this screen is gone.
 
 	gxDrainSignOut();	// GeneralsX: see above
+
+	if (s_presDirty && listboxLobbyPlayers != nullptr)
+	{
+		s_presDirty = FALSE;
+		GadgetListBoxSetSelected(listboxLobbyPlayers, -1);
+		PopulateLobbyPlayerListbox();
+	}
 
 		if(justEntered)
 	{
@@ -5349,6 +5957,8 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 			{
 				GameWindow *control = (GameWindow *)mData1;
 				Int controlID = control->winGetWindowId();
+				if (s_relayLobby && controlID == listboxLobbyPlayersID && gxPresHeaderClicked((Int)mData2))
+					break;
 				if ( controlID == GetGameListBoxID() )
 				{
 					int rowSelected = mData2;
@@ -5413,6 +6023,9 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 				Int controlID = control->winGetWindowId();
 
 				if (HandleSortButton((NameKeyType)controlID))
+					break;
+
+				if (s_relayLobby && gxPresTabClicked(control))
 					break;
 
 				// GeneralsX: ButtonEmote is the SEND button on this screen.

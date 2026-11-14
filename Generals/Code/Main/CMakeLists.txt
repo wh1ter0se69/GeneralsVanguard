@@ -143,6 +143,9 @@ if(MSVC)
     target_sources(g_generals PRIVATE
         RTS.RC
     )
+    # GeneralsX: rc.exe reads app.manifest through RTS.RC's RT_MANIFEST line, which no dependency scan sees: without this
+    # an incremental build keeps the OLD manifest. RTS.RC must rebuild when app.manifest changes.
+    set_source_files_properties(RTS.RC PROPERTIES OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/app.manifest)
 endif()
 
 # Strip debug symbols to separate file for MinGW Release builds

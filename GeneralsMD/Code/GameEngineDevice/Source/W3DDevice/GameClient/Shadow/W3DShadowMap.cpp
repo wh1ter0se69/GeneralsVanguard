@@ -300,8 +300,8 @@ namespace
 			}
 			s_scan.map = hm;
 			s_scan.age = 0;
-			s_scan.lo = n ? float(mn) * MAP_HEIGHT_SCALE : *lo;
-			s_scan.hi = n ? float(mx) * MAP_HEIGHT_SCALE : *hi;
+			s_scan.lo = n ? float(mn) * hm->getHeightScale() : *lo;
+			s_scan.hi = n ? float(mx) * hm->getHeightScale() : *hi;
 		}
 		*lo = s_scan.lo < *lo ? s_scan.lo : *lo;
 		*hi = s_scan.hi > *hi ? s_scan.hi : *hi;

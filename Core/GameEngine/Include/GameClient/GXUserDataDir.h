@@ -130,7 +130,7 @@ inline bool gxUserDataDirFromEnv(std::string &dir, std::string &line)
 #ifdef _WIN32
 	const HANDLE err = GetStdHandle(STD_ERROR_HANDLE);
 	if (err == NULL || err == INVALID_HANDLE_VALUE)
-		MessageBoxA(NULL, line.c_str(), "GeneralsX", MB_ICONERROR | MB_OK | MB_SETFOREGROUND);
+		MessageBoxA(NULL, line.c_str(), "Generals Vanguard", MB_ICONERROR | MB_OK | MB_SETFOREGROUND);
 #endif
 	std::_Exit(2);
 }

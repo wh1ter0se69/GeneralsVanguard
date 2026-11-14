@@ -62,6 +62,7 @@
 #include "GameClient/Display.h"
 #include "GameClient/TerrainVisual.h"
 #include "GameClient/GXUserDataDir.h"	// GeneralsX: GX_USERDATA_DIR
+#include "WWLib/gxproductdir.h"	// GeneralsX: GeneralsVanguard or GeneralsX
 
 #include "GameNetwork/FirewallHelper.h"
 
@@ -1558,8 +1559,10 @@ AsciiString GlobalData::BuildUserDataPathFromRegistry()
 		// GeneralsX's own folder, Documents\GeneralsX\GeneralsZH\, so it shares no Options.ini or MapCache.ini with
 		// retail Zero Hour or the Generals Online client. WinMain.cpp copies the player's data across once
 		// (GXUserDataMigrate.h). Win32 CreateDirectory makes ONE level, so the parent Documents\GeneralsX must be
-		// created first.
-		myDocumentsDirectory.concat("GeneralsX\\");
+		// created first. The parent is Documents\GeneralsVanguard or Documents\GeneralsX by gxproductdir.h's rule, which
+		// gxlaunch.c and the launcher (gxio release.rs) follow too.
+		myDocumentsDirectory.concat(gxProductDirName(myDocumentsDirectory.str()));
+		myDocumentsDirectory.concat('\\');
 		CreateDirectory(myDocumentsDirectory.str(), nullptr);
 		myDocumentsDirectory.concat("GeneralsZH\\");
 	}
@@ -1571,7 +1574,8 @@ AsciiString GlobalData::BuildUserDataPathFromRegistry()
 	{
 		const char* home = getenv("HOME");
 		if (home) {
-			std::filesystem::path path = std::filesystem::path(home) / "Library" / "Application Support" / "GeneralsX" / "GeneralsZH" / "";
+			const std::filesystem::path support = std::filesystem::path(home) / "Library" / "Application Support";
+			std::filesystem::path path = support / gxProductDirName(support) / "GeneralsZH" / "";
 			std::filesystem::create_directories(path);
 			userDataDir = path.string().c_str();
 		} else {
@@ -1594,7 +1598,7 @@ AsciiString GlobalData::BuildUserDataPathFromRegistry()
 			path = "./";
 		}
 
-		path = path / "GeneralsX" / "GeneralsZH" / "";
+		path = path / gxProductDirName(path) / "GeneralsZH" / "";
 		std::filesystem::create_directories(path);
 		userDataDir = path.string().c_str();
 	}

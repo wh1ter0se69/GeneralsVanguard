@@ -135,6 +135,7 @@ static Bool gxWaterLiveRiverAt(Real x, Real y, Real lv)
 static void gxWaterLiveScanFoamCells(Int i0, Int j0, Int i1, Int j1)
 {
 	WorldHeightMap *map = TheTerrainRenderObject->getMap();
+	const Real heightScale = map->getHeightScale();	// GeneralsX @feature the map's own height scale
 	const Int border = map->getBorderSizeInline();
 	const Int w = map->getXExtent();
 	const Int h = map->getYExtent();
@@ -159,7 +160,7 @@ static void gxWaterLiveScanFoamCells(Int i0, Int j0, Int i1, Int j1)
 		{
 			const size_t at = (size_t)(j - ej0) * vw + (i - ei0);
 			level[at] = TheWaterRenderObj->getWaterHeight((i - border) * MAP_XY_FACTOR, (j - border) * MAP_XY_FACTOR);
-			dry[at] = (level[at] <= INVALID_WATER_HEIGHT || MAP_HEIGHT_SCALE * map->getHeight(i, j) >= level[at]) ? 1 : 0;
+			dry[at] = (level[at] <= INVALID_WATER_HEIGHT || heightScale * map->getHeight(i, j) >= level[at]) ? 1 : 0;
 		}
 	// Dilate "dry" by R in both directions (separable max): nearShore[v] = some dry vertex within R cells of v.
 	std::vector<UnsignedByte> rows((size_t)vw * (size_t)vh), nearShore((size_t)vw * (size_t)vh);
@@ -207,7 +208,7 @@ static void gxWaterLiveScanFoamCells(Int i0, Int j0, Int i1, Int j1)
 			for (Int k = 0; k < 4; ++k)
 			{
 				GxFoamCorner &c = cell.c[k];
-				c.ground = MAP_HEIGHT_SCALE * map->getHeight(i + kDi[k], j + kDj[k]);
+				c.ground = heightScale * map->getHeight(i + kDi[k], j + kDj[k]);
 				const Real d = lv - c.ground;
 				minD = (d < minD) ? d : minD;
 				maxD = (d > maxD) ? d : maxD;
@@ -232,8 +233,8 @@ static void gxWaterLiveScanFoamCells(Int i0, Int j0, Int i1, Int j1)
 				const Int xl = (vx > 0) ? vx - 1 : vx, xr = (vx < w - 1) ? vx + 1 : vx;
 				const Int yd = (vy > 0) ? vy - 1 : vy, yu = (vy < h - 1) ? vy + 1 : vy;
 				float hx = 0.0f, hy = 0.0f;
-				const float dhx = MAP_HEIGHT_SCALE * (map->getHeight(xr, vy) - map->getHeight(xl, vy));
-				const float dhy = MAP_HEIGHT_SCALE * (map->getHeight(vx, yu) - map->getHeight(vx, yd));
+				const float dhx = heightScale * (map->getHeight(xr, vy) - map->getHeight(xl, vy));
+				const float dhy = heightScale * (map->getHeight(vx, yu) - map->getHeight(vx, yd));
 				gxWaterLiveUphill(dhx, (xr - xl) * MAP_XY_FACTOR, dhy, (yu - yd) * MAP_XY_FACTOR, &hx, &hy);
 				c.ux = hx;
 				c.uy = hy;
@@ -243,9 +244,9 @@ static void gxWaterLiveScanFoamCells(Int i0, Int j0, Int i1, Int j1)
 					for (Int cj = vy - 1; cj <= vy; ++cj)
 						if (ci >= 0 && cj >= 0 && ci < w - 1 && cj < h - 1)
 						{
-							const float s = gxWaterLiveCellSlope(MAP_HEIGHT_SCALE * map->getHeight(ci, cj),
-								MAP_HEIGHT_SCALE * map->getHeight(ci + 1, cj), MAP_HEIGHT_SCALE * map->getHeight(ci + 1, cj + 1),
-								MAP_HEIGHT_SCALE * map->getHeight(ci, cj + 1), MAP_XY_FACTOR);
+							const float s = gxWaterLiveCellSlope(heightScale * map->getHeight(ci, cj),
+								heightScale * map->getHeight(ci + 1, cj), heightScale * map->getHeight(ci + 1, cj + 1),
+								heightScale * map->getHeight(ci, cj + 1), MAP_XY_FACTOR);
 							slope = (s > slope || !(s == s)) ? s : slope;
 						}
 				const size_t sv = (size_t)vy * (size_t)w + (size_t)vx;

@@ -826,6 +826,19 @@ public:
 	// adapter query to DXVK's interface and decides in CreateDevice). nullptr = today's path.
 	typedef IDirect3D8 *(*InterfaceWrapHook)(IDirect3D8 *dxvk);
 	static InterfaceWrapHook Interface_Wrap_Hook;
+	// GeneralsX: compatibility graphics. On a PC with no Vulkan, WinMain (gxPickD3D) hands over the Direct3DCreate8 of the
+	// d3d8to9 compiled into the x64 exe; Init then loads no D3D8.DLL and the device is Windows' own d3d9 underneath. Set
+	// before Init. Render-only: nothing the simulation reads may depend on it.
+	typedef IDirect3D8 *(WINAPI *Direct3DCreate8Fn)(UINT sdkVersion);
+	static void Set_Direct3DCreate8_Override(Direct3DCreate8Fn fn, const char *reason) { Create8Override = fn; Create8OverrideReason = reason; }
+	static bool Is_Compat_D3D9() { return Create8Override != nullptr; }
+	static const char *Compat_D3D9_Reason() { return Create8OverrideReason != nullptr ? Create8OverrideReason : ""; }	///< GXD3DBackend.h's word
+	static Direct3DCreate8Fn Create8Override;
+	static const char *Create8OverrideReason;
+	// GeneralsX: compatibility graphics' crash marker (WinMain gxDeviceStage, GXD3DBackend.h): stage 0 just before Init brings
+	// the D3D8 library and interface up, stage 1 once Create_Device has a device. A start that never reaches 1 leaves its marker.
+	typedef void (*DeviceStageHook)(int stage);
+	static DeviceStageHook Device_Stage_Hook;
 	/// Returns the display format - added by TR for video playback - not part of W3D
 	static WW3DFormat	getBackBufferFormat();
 	static bool Reset_Device(bool reload_assets=true);

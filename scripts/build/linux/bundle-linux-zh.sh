@@ -508,17 +508,26 @@ fi
 #
 # Sibling first, because that is the layout the tarball's own instructions describe, then the
 # conventional user path the Linux deploy script uses. An operator-set value always wins.
+#
+# GeneralsX @feature 13/11/2026 The home folder is ~/GeneralsVanguard from the rename on and ~/GeneralsX before it, as in
+# the macOS run.sh: ~/GeneralsVanguard/GeneralsZH when it holds a non-empty INIZH.big, else ~/GeneralsX/GeneralsZH as
+# before, else an existing (empty) ~/GeneralsVanguard/GeneralsZH.
 if [[ -z "${CNC_GENERALS_ZH_PATH:-}" ]]; then
-    for _zh in "${SCRIPT_DIR}/../GeneralsZH" "${SCRIPT_DIR}/../GeneralsMD" "${HOME}/GeneralsX/GeneralsZH"; do
+    _home_zh="${HOME}/GeneralsX/GeneralsZH"
+    if [[ -s "${HOME}/GeneralsVanguard/GeneralsZH/INIZH.big" || ( ! -d "${_home_zh}" && -d "${HOME}/GeneralsVanguard/GeneralsZH" ) ]]; then
+        _home_zh="${HOME}/GeneralsVanguard/GeneralsZH"
+    fi
+    for _zh in "${SCRIPT_DIR}/../GeneralsZH" "${SCRIPT_DIR}/../GeneralsMD" "${_home_zh}"; do
         if [[ -d "${_zh}" ]]; then
             export CNC_GENERALS_ZH_PATH="${_zh}/"
             break
         fi
     done
-    unset _zh
+    unset _zh _home_zh
 fi
 if [[ -z "${CNC_GENERALS_ZH_PATH:-}" ]]; then
-    echo "GeneralsX: no Zero Hour data found next to this folder or at ~/GeneralsX/GeneralsZH." >&2
+    echo "Generals Vanguard: no Zero Hour data found next to this folder or at ~/GeneralsVanguard/GeneralsZH" >&2
+    echo "           (or ~/GeneralsX/GeneralsZH)." >&2
     echo "           Extract this tarball beside your GeneralsZH/ folder, or set" >&2
     echo "           CNC_GENERALS_ZH_PATH to it. Starting anyway - the engine will look in \$PWD." >&2
 fi
@@ -591,11 +600,25 @@ fi
 # a map is (re)installed when its <Name>.map is missing or its bytes differ; only the shipped folder's own regular files
 # are written, the .map last, each through a fresh temp file and a rename; nothing is deleted; a symlink or a folder without
 # <Name>.map is skipped. The folder is the one the ENGINE reads (GlobalData.cpp + GXUserDataDir.h: GX_USERDATA_DIR, else
-# $XDG_DATA_HOME, else ~/.local/share, then GeneralsX/GeneralsZH). A failure is one line and never stops the game.
+# $XDG_DATA_HOME, else ~/.local/share, then GeneralsVanguard or GeneralsX by gx_product_dir, then GeneralsZH). A failure is
+# one line and never stops the game.
 # scripts/build/test-runsh-shipped-maps.sh runs this text in a tarball-shaped tree.
 # The temp is a FRESH file from mktemp (created exclusively, never an existing name), so a symlink planted at a predictable
 # name can never be written through and two launches sharing one user folder cannot write into
 # each other's temp. A folder sitting at the target's name is refused: mv would move the file INTO it and call that done.
+# GeneralsX @feature 13/11/2026 GeneralsVanguard or GeneralsX under $1, the engine's rule (WWLib gxproductdir.h): a
+# GeneralsVanguard holding an entry whose name does not start with '.', else GeneralsX when it is a folder, else an
+# empty GeneralsVanguard, else GeneralsX (created as before). Nothing here creates the new name.
+gx_product_dir() {
+    # find, not a glob: a HOME or XDG_DATA_HOME holding [ ] * ? would be read as a pattern (review rename-r1 r2). -H
+    # follows a GeneralsVanguard that is itself a symlink, as the engine's directory_iterator does (review rename-r1 r3).
+    if [[ -n "$(find -H "$1/GeneralsVanguard" -mindepth 1 -maxdepth 1 ! -name '.*' -print -quit 2>/dev/null)" ]] \
+        || [[ ! -d "$1/GeneralsX" && -d "$1/GeneralsVanguard" ]]; then
+        printf '%s\n' "$1/GeneralsVanguard"
+    else
+        printf '%s\n' "$1/GeneralsX"
+    fi
+}
 gx_put_shipped_file() {  # <file> <dest folder>: a fresh temp beside the target, then a rename over it
     local dst="${2}/${1##*/}" tmp
     if [[ ! -d "${dst}" ]] && tmp="$(mktemp "${dst}.gxtmp.XXXXXX" 2>/dev/null)"; then
@@ -620,9 +643,9 @@ gx_install_shipped_maps() {
     elif [[ -n "${XDG_DATA_HOME+x}" ]]; then
         # Set but empty, the engine resolves a cwd-relative folder; do not guess which.
         [[ -n "${XDG_DATA_HOME}" ]] || return 0
-        ud="${XDG_DATA_HOME}/GeneralsX/GeneralsZH"
+        ud="$(gx_product_dir "${XDG_DATA_HOME}")/GeneralsZH"
     elif [[ -n "${HOME:-}" ]]; then
-        ud="${HOME}/.local/share/GeneralsX/GeneralsZH"
+        ud="$(gx_product_dir "${HOME}/.local/share")/GeneralsZH"
     else
         return 0
     fi

@@ -78,6 +78,7 @@ static void drawFramerateBar();
 #include "GameClient/Drawable.h"
 #include "GameClient/GameText.h"
 #include "GameClient/GraphDraw.h"
+#include "GameClient/GXGraphicsSettings.h"	// GeneralsX: demoteUpscaler in compatibility graphics
 #include "GameClient/Line2D.h"
 #include "GameClient/Mouse.h"
 #include "GameClient/GlobalLanguage.h"
@@ -1551,10 +1552,19 @@ void W3DDisplay::init()
 				conf.concat(callerConf);
 			}
 #ifdef _WIN32
+			// GeneralsX: compatibility graphics has no DXVK to read it: the anisotropy level reaches only the samplers
+			// the engine itself sets anisotropic, and the ground stays as the driver filters it.
+			if (DX8Wrapper::Is_Compat_D3D9())
+			{
+				conf = "(compatibility graphics: not set)";
+				// and no upscaler: they need the native renderer, and a classic scaled pass would only cost an old GPU frames
+				GXGraphics::demoteUpscaler("compat-graphics");
+			}
 			// DXVK reads GetEnvironmentVariableW, not the CRT copy - into MAX_PATH, and a longer value reads as unset.
-			if (conf.getLength() >= MAX_PATH)
+			else if (conf.getLength() >= MAX_PATH)
 				fprintf(stderr, "[GXIMAGE] WARNING: DXVK_CONFIG is %d characters; DXVK on Windows ignores %d or more\n", conf.getLength(), MAX_PATH);
-			SetEnvironmentVariableA("DXVK_CONFIG", conf.str());
+			if (!DX8Wrapper::Is_Compat_D3D9())
+				SetEnvironmentVariableA("DXVK_CONFIG", conf.str());
 #else
 			setenv("DXVK_CONFIG", conf.str(), 1);
 #endif

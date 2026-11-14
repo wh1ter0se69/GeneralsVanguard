@@ -17,6 +17,7 @@
 */
 
 #include "registryini.h"
+#include "gxproductdir.h"	// GeneralsX: GeneralsVanguard or GeneralsX
 
 #include <ctype.h>
 #include <errno.h>
@@ -87,27 +88,30 @@ namespace {
 	#ifdef _WIN32
 		const char *appData = getenv("APPDATA");
 		if (appData != nullptr && appData[0] != '\0') {
-			return std::string(appData) + "\\GeneralsX";
+			return std::string(appData) + "\\" + gxProductDirName(appData);
 		}
 
 		const char *userProfile = getenv("USERPROFILE");
 		if (userProfile != nullptr && userProfile[0] != '\0') {
-			return std::string(userProfile) + "\\AppData\\Roaming\\GeneralsX";
+			const std::string roaming = std::string(userProfile) + "\\AppData\\Roaming";
+			return roaming + "\\" + gxProductDirName(roaming);
 		}
 	#else
 		const char *home = getenv("HOME");
 		#ifdef __APPLE__
 			if (home != nullptr && home[0] != '\0') {
-				return std::string(home) + "/Library/Application Support/GeneralsX";
+				const std::string support = std::string(home) + "/Library/Application Support";
+				return support + "/" + gxProductDirName(support);
 			}
 		#else
 			const char *xdgConfigHome = getenv("XDG_CONFIG_HOME");
 			if (xdgConfigHome != nullptr && xdgConfigHome[0] != '\0') {
-				return std::string(xdgConfigHome) + "/GeneralsX";
+				return std::string(xdgConfigHome) + "/" + gxProductDirName(xdgConfigHome);
 			}
 
 			if (home != nullptr && home[0] != '\0') {
-				return std::string(home) + "/.config/GeneralsX";
+				const std::string config = std::string(home) + "/.config";
+				return config + "/" + gxProductDirName(config);
 			}
 		#endif
 	#endif

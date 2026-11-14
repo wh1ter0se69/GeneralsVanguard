@@ -239,6 +239,7 @@ public:
 		Note that this DOES take weapon attack range into account.
 	*/
 	Bool chooseBestWeaponForTarget(const Object* obj, const Object* victim, WeaponChoiceCriteria criteria, CommandSourceType cmdSource);
+	static Int gxVictimAntiMask(const Object* victim);	///< the anti mask a weapon needs to target victim (the one weapon choice uses)
 
 	Weapon* getWeaponInWeaponSlot(WeaponSlotType wslot) const;
 

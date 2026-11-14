@@ -27,6 +27,7 @@
 // gxDiagSanitize as a backstop, and an Options.ini value only leaves as a number or a known word (gxDiagOptionValue).
 
 #include "PreRTS.h"
+#define DEFINE_GUI_COMMAND_NAMES	// TheGuiCommandNames (ControlBar.h): INPUT names a command type by its name
 
 #include "GameClient/GXReplayDiag.h"
 #include "GameClient/GXReplayDiagFormat.h"
@@ -36,6 +37,15 @@
 #include "GameClient/GXGraphicsSettings.h"
 
 #include "Common/FramePacer.h"
+#include "Common/MessageStream.h"
+#include "GameClient/ControlBar.h"
+#include "GameClient/Gadget.h"		// GWS_ENTRY_FIELD
+#include "GameClient/GameWindow.h"
+#include "GameClient/GameWindowManager.h"
+#include "GameClient/HotKey.h"
+#include "GameClient/InGameUI.h"
+#include "GameClient/KeyDefs.h"
+#include "GameClient/Mouse.h"
 #include "Common/GameEngine.h"
 #include "Common/GameLOD.h"
 #include "Common/GlobalData.h"
@@ -46,6 +56,7 @@
 #include "GameNetwork/networkutil.h"	// TheGxNetRetries, TheGxNetRecvDrops: read only
 #include "gitinfo.h"
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -67,7 +78,7 @@ const char *const s_graphicsKeys[] =
 	"AnisotropyLevel", "AntiAliasing", "BuildingOcclusion", "DynamicLOD", "ExtraAnimations", "FPSLimit", "Gamma", "HeatEffects",
 	"IdealStaticGameLOD", "MaxParticleCount", "Resolution", "ShowSoftWaterEdge", "ShowTrees", "StaticGameLOD",
 	"TerrainDrawDistanceScale", "TextureFilter", "TextureReduction", "UseCloudMap", "UseLightMap", "UseShadowDecals",
-	"UseShadowVolumes", "GXAlphaToCoverage", "GXFogInterpolation", "GXFrameGen", "GXFxLight", "GXGround", "GXLodDetector",
+	"UseShadowVolumes", "GXAlphaToCoverage", "GXFogInterpolation", "GXFrameGen", "GXFxLight", "GXGraphicsBackend", "GXGround", "GXLodDetector",
 	"GXLookGovernor", "GXLookGovernorFps", "GXReflex", "GXRemastered", "GXRenderScale", "GXRenderer", "GXShadowMap",
 	"GXTextureFilterPicked", "GXUpscaleQuality", "GXUpscaleSharpness", "GXUpscaler", "GXWaterClear", "GXWaterClearStrength",
 	"GXWaterLive", "GXWaterLiveStrength", "GXWaterRA3",
@@ -104,7 +115,25 @@ GXReplayTelControlFn s_samplerControl = NULL;	///< phase 2: the device layer's s
 uint32_t s_osLastSeq = 0;
 bool s_osHaveSeq = false;
 long long s_osNotBeforeNs = 0;	///< when the loop last resumed (gxReplayTelSuspend) or a load ended: no OS snapshot begun before it fills a row
-int s_testSpinMs = 0, s_testSpinFromS = 0, s_testSpinForS = 0;	///< GX_TEST_INSTRUMENTS + GX_TEL_TEST_SPIN_*: a known load ON the main thread
+int s_testSpinMs = 0, s_testSpinFromS = 0, s_testSpinForS = 0;
+
+// INPUT (kind 5): written from this level up, so by default (perf) and at full; "off" writes none.
+const GxTelLevel GX_TEL_INPUT_LEVEL = GX_TEL_PERF;
+bool s_inputOn = false;
+GxTelInputRing *s_inRing = NULL;	///< allocated once, at the first recording that writes INPUT
+GxTelKeyGuard s_inGuard;
+uint8_t s_inLetters[32];			///< every letter a command button answers to, rebinds included: a press of anything else is not recorded
+bool s_inPassOpen = true;			///< the next entry starts an input pass (GX_TEL_IN_F_PASS)
+bool s_inPassText = false;			///< this pass holds a text-owned key action: its clicks keep the context from before it
+int s_inRecordsThisWindow = 0;
+enum { GX_TEL_IN_CLICKS = GX_TEL_INPUT_RING };	///< as many as the ring holds: a click that got a slot is always tracked, however many queue in one pass
+const void *s_inClickMsg[ GX_TEL_IN_CLICKS ];	///< this pass's click messages and their ring slots, for the world marker
+unsigned s_inClickSlot[ GX_TEL_IN_CLICKS ];
+int s_inClickCount = 0;
+ICoord2D s_inDownPos[2];
+bool s_inDouble[2] = { false, false };
+bool s_inTestRedGuard = false;		///< GX_TEST_INSTRUMENTS + GX_TEL_TEST_RED_GUARD=1: identities near text are written (fail arm)
+bool s_inTestRedLetters = false;	///< GX_TEST_INSTRUMENTS + GX_TEL_TEST_RED_LETTERS=1: a press of any letter is recorded (fail arm)	///< GX_TEST_INSTRUMENTS + GX_TEL_TEST_SPIN_*: a known load ON the main thread
 
 /// GameEngine::takeLogicTickNs (take-and-reset). GxTelPerf drains it at every close, so the window and its rows share every tick.
 void takeTicks( long long &sum, long long &max )
@@ -395,6 +424,7 @@ void startTelWindow( const GXDiagIter &it, bool dropTicks )
 {
 	gxTelPerfStartWindow( s_tel, it, dropTicks );
 	gxTelBatchBegin( s_batch, GX_TEL_PERF_ROW_BYTES, it.logicFrame, msSinceStart( it.nowNs ), 0, 0 );
+	s_inRecordsThisWindow = 0;
 	if( dropTicks )
 	{
 		s_netBase = TheNetwork != NULL;
@@ -445,6 +475,289 @@ void writeBatch( const GXDiagIter &it, bool last )
 			(int)( 15 + n * 4 ), it.logicFrame, dropped, s_slowIo.worstWriteNs / 1000 );
 }
 
+/// A command type by its name, which does not move between builds as the ordinal can.
+uint16_t commandHash( Int type )
+{
+	return type >= 0 && type < (Int)GUI_COMMAND_NUM_COMMANDS ? gxTelNameHash( TheGuiCommandNames[ type ] ) : 0;
+}
+
+/// A meta action by its name. getCommandTypeAsString names every meta except these two, which it reports as "UnknownMessage".
+uint16_t metaHash( Int meta )
+{
+	switch( (GameMessage::Type)meta )
+	{
+		case GameMessage::MSG_META_TOGGLE_HUD_OVERLAY: return gxTelNameHash( "MSG_META_TOGGLE_HUD_OVERLAY" );
+		case GameMessage::MSG_META_TOGGLE_GAME_HUD: return gxTelNameHash( "MSG_META_TOGGLE_GAME_HUD" );
+		default: return gxTelNameHash( GameMessage::getCommandTypeAsString( (GameMessage::Type)meta ) );
+	}
+}
+
+bool entryFocusedNow( void )
+{
+	GameWindow *w = TheWindowManager != NULL ? TheWindowManager->winGetFocus() : NULL;
+	return w != NULL && BitIsSet( w->winGetStyle(), GWS_ENTRY_FIELD );
+}
+
+/// The selection, cursor mode and pending command as they are now.
+void stampContext( GxTelInputEntry &e )
+{
+	e.sel = GX_TEL_U8_UNKNOWN;
+	e.mode = 0;
+	e.pending = 0;
+	if( TheInGameUI != NULL )
+	{
+		e.sel = gxTelNarrowU8( TheInGameUI->getSelectCount() );
+		e.mode = (uint8_t)( ( TheInGameUI->isInAttackMoveToMode() ? GX_TEL_IN_M_ATTACKMOVE : 0 )
+			| ( TheInGameUI->isInForceAttackMode() ? GX_TEL_IN_M_FORCEATTACK : 0 )
+			| ( TheInGameUI->isInForceMoveToMode() ? GX_TEL_IN_M_FORCEMOVE : 0 )
+			| ( TheInGameUI->isInWaypointMode() ? GX_TEL_IN_M_WAYPOINT : 0 )
+			| ( TheInGameUI->isInPreferSelectionMode() ? GX_TEL_IN_M_PREFERSEL : 0 )
+			| ( TheInGameUI->getPendingPlaceType() != NULL ? GX_TEL_IN_M_PLACING : 0 ) );
+		const CommandButton *pending = TheInGameUI->getGUICommand();
+		e.pending = pending != NULL ? commandHash( (Int)pending->getCommandType() ) : 0;
+	}
+}
+
+/// One entry, stamped with the context as it is now - except a text-owned key's, whose context could tell which action it was.
+/// Returns its ring slot, -1 when dropped.
+int pushInput( uint8_t code, uint8_t flags, uint16_t what )
+{
+	GxTelInputEntry e;
+	e.frame = TheGameLogic != NULL ? TheGameLogic->getFrame() : 0;
+	e.code = code;
+	e.flags = (uint8_t)( flags | ( s_inPassOpen ? GX_TEL_IN_F_PASS : 0 ) );
+	e.what = what;
+	e.sel = GX_TEL_U8_UNKNOWN;
+	e.mode = 0;
+	e.pending = 0;
+	if( !( flags & GX_TEL_IN_F_TEXT ) )
+		stampContext( e );
+	else
+		s_inPassText = true;
+	const unsigned before = s_inRing->count;
+	gxTelInputPush( *s_inRing, e );
+	if( s_inRing->count == before )
+		return -1;
+	s_inPassOpen = false;
+	return (int)( ( s_inRing->head + s_inRing->count - 1 ) % GX_TEL_INPUT_RING );
+}
+
+static_assert( (int)GX_HOTKEY_FIRED == (int)GX_TEL_IN_HK_FIRED && (int)GX_HOTKEY_DISABLED == (int)GX_TEL_IN_HK_DISABLED
+	&& (int)GX_HOTKEY_HIDDEN == (int)GX_TEL_IN_HK_HIDDEN && (int)GX_HOTKEY_NOTHING == (int)GX_TEL_IN_HK_NOTHING,
+	"HotKey.h outcomes are the INPUT entry's hotkey result bits" );
+
+/// TheGXInputKeyObserver (HotKey.h): a key's game action. The key and its letter only decide what is written; neither is written.
+void onInputKey( Int code, Int what, Int result, Int key, Int letter )
+{
+	if( !s_inputOn )
+		return;
+	if( code == GX_INPUT_HOTKEY && result == GX_HOTKEY_NOTHING && !s_inTestRedLetters && !gxTelGuardBit( s_inLetters, letter ) )
+		return;	// no command button answers to this key anywhere: not a game hotkey, no entry
+	const bool text = !s_inTestRedGuard && gxTelGuardWithhold( s_inGuard, key );
+	const uint8_t entryCode = code == GX_INPUT_HOTKEY ? GX_TEL_IN_HOTKEY : GX_TEL_IN_META;
+	if( text )
+		pushInput( entryCode, GX_TEL_IN_F_TEXT, 0 );
+	else
+		pushInput( entryCode, code == GX_INPUT_HOTKEY ? (uint8_t)result : 0, code == GX_INPUT_HOTKEY ? commandHash( what ) : metaHash( what ) );
+}
+
+/// TheGXFocusObserver (GameWindowManager.h).
+void onInputFocus( Bool entryField )
+{
+	if( s_inputOn )
+		gxTelGuardFocus( s_inGuard, entryField != FALSE );
+}
+
+/// One INPUT record from the ring. Inside the slow-I/O cooldown nothing is written and what waits is counted as dropped.
+void writeInputBatch( long long nowNs, bool last )
+{
+	s_inClickCount = 0;	// slots are reused from here on
+	if( !gxTelSlowIoWrites( s_slowIo, nowNs, last ) )
+	{
+		s_inRing->dropped += s_inRing->count;
+		s_inRing->head = ( s_inRing->head + s_inRing->count ) % GX_TEL_INPUT_RING;
+		s_inRing->count = 0;
+		return;
+	}
+	GxTelBatch b;
+	const unsigned taken = gxTelInputFill( *s_inRing, b, msSinceStart( nowNs ), 0 );
+	if( taken == 0 )
+		return;
+	int32_t words[ GX_DIAG_MAX_WORDS ];
+	const int n = gxDiagBuildRecord( words, GX_DIAG_KIND_INPUT, 0, 1, b.data, b.len );
+	const long long t0 = (long long)gxPerfMonoNs();
+	TheRecorder->writeDiagRecord( (const Int *)words, (UnsignedByte)n );
+	const long long t1 = (long long)gxPerfMonoNs();
+	gxTelSlowIoWrote( s_slowIo, t1, t1 - t0 );
+	++s_inRecordsThisWindow;
+	if( s_writeTiming )
+		fprintf( stderr, "[GXTEL] write_us=%lld kind=5 rows=%u bytes=%d frame=%u waiting=%u dropped=%u\n", ( t1 - t0 ) / 1000, taken,
+			(int)( 15 + n * 4 ), TheGameLogic != NULL ? TheGameLogic->getFrame() : 0, s_inRing->count, s_inRing->dropped );
+}
+
+/// At a window's close: what waits, up to the window's four records; the recording's last window writes everything left.
+void drainInput( long long nowNs, bool last )
+{
+	if( !s_inputOn )
+		return;
+	while( s_inRing->count > 0 && ( last || s_inRecordsThisWindow < GX_TEL_INPUT_RECORDS_PER_WINDOW ) )
+		writeInputBatch( nowNs, last );
+}
+
+/// Once per loop iteration: the guard's sample, a new input pass, and a burst write when a record's worth waits.
+void sampleInput( long long nowNs )
+{
+	if( !s_inputOn )
+		return;
+	gxTelGuardSample( s_inGuard, entryFocusedNow() );
+	s_inPassOpen = true;
+	s_inPassText = false;
+	s_inClickCount = 0;
+	if( s_inRing->count >= (unsigned)GX_TEL_INPUT_PER_RECORD && s_inRecordsThisWindow < GX_TEL_INPUT_RECORDS_PER_WINDOW
+		&& s_window.primed && s_rows < GX_DIAG_MAX_ROWS )
+		writeInputBatch( nowNs, false );
+}
+
+void startInput( void )
+{
+	if( s_inRing == NULL )
+		s_inRing = new GxTelInputRing;
+	gxTelInputRingInit( *s_inRing );
+	gxTelGuardInit( s_inGuard );
+	s_inPassOpen = true;
+	s_inPassText = false;
+	s_inRecordsThisWindow = 0;
+	s_inClickCount = 0;
+	s_inDouble[0] = s_inDouble[1] = false;
+	memset( s_inLetters, 0, sizeof( s_inLetters ) );
+	int letters = 0;
+	if( TheControlBar != NULL && TheHotKeyManager != NULL )
+	{
+		for( const CommandButton *b = TheControlBar->getCommandButtons(); b != NULL; b = b->getNext() )
+		{
+			const AsciiString key = TheHotKeyManager->getCommandButtonHotKey( b->getName(), b->getTextLabel() );
+			const int c = key.isEmpty() ? 0 : tolower( (unsigned char)key.str()[0] );
+			if( c > 0 && !gxTelGuardBit( s_inLetters, c ) )
+			{
+				gxTelGuardSet( s_inLetters, c, true );
+				++letters;
+			}
+		}
+	}
+	s_inTestRedGuard = s_inTestRedLetters = false;
+#ifdef GX_TEST_INSTRUMENTS
+	const char *redGuard = getenv( "GX_TEL_TEST_RED_GUARD" ), *redLetters = getenv( "GX_TEL_TEST_RED_LETTERS" );
+	s_inTestRedGuard = redGuard != NULL && strcmp( redGuard, "1" ) == 0;
+	s_inTestRedLetters = redLetters != NULL && strcmp( redLetters, "1" ) == 0;
+	fprintf( stderr, "[GXTELIN] start letters=%d red_guard=%d red_letters=%d\n", letters, (int)s_inTestRedGuard, (int)s_inTestRedLetters );
+#endif
+	(void)letters;
+	s_inputOn = true;
+	TheGXInputKeyObserver = onInputKey;
+	TheGXFocusObserver = onInputFocus;
+}
+
+void stopInput( void )
+{
+	s_inputOn = false;
+	TheGXInputKeyObserver = NULL;
+	TheGXFocusObserver = NULL;
+}
+
+/// Watches the stream and changes nothing: every message is kept. Role 0 (before the window system): raw keys for the guard, raw
+/// button releases as clicks, marked UI until shown otherwise. Role 1 (after the windows, the HUDs and the hotkeys, before the
+/// translators that act on a click): a click that got this far reached the world, and its context is taken again here - a hotkey in
+/// the same pass may have armed a command since role 0 saw it. Role 2 (after every translator that can make an order): what this
+/// client sends.
+class GXReplayInputTranslator : public GameMessageTranslator
+{
+public:
+	GXReplayInputTranslator( int role ) : m_role( role ) {}
+	virtual GameMessageDisposition translateGameMessage( const GameMessage *msg ) override;
+private:
+	int m_role;
+};
+
+GameMessageDisposition GXReplayInputTranslator::translateGameMessage( const GameMessage *msg )
+{
+	if( !s_inputOn || msg == NULL )
+		return KEEP_MESSAGE;
+	const GameMessage::Type t = msg->getType();
+	if( m_role == 2 )
+	{
+		if( t > GameMessage::MSG_BEGIN_NETWORK_MESSAGES && t < GameMessage::MSG_END_NETWORK_MESSAGES
+			&& t != GameMessage::MSG_LOGIC_CRC && t != GameMessage::MSG_SET_REPLAY_CAMERA )
+			pushInput( GX_TEL_IN_ORDER, 0, (uint16_t)t );
+		return KEEP_MESSAGE;
+	}
+	const bool left = t == GameMessage::MSG_RAW_MOUSE_LEFT_BUTTON_UP;
+	const bool up = left || t == GameMessage::MSG_RAW_MOUSE_RIGHT_BUTTON_UP;
+	if( m_role == 1 )
+	{
+		for( int i = 0; up && i < s_inClickCount; ++i )
+			if( s_inClickMsg[i] == (const void *)msg )
+			{
+				GxTelInputEntry &e = s_inRing->e[ s_inClickSlot[i] ];
+				e.flags &= (uint8_t)~GX_TEL_IN_CK_UI;
+				if( !s_inPassText )	// a text-owned key in this pass may have armed what the click would show
+					stampContext( e );
+			}
+		return KEEP_MESSAGE;
+	}
+	switch( t )
+	{
+		case GameMessage::MSG_RAW_KEY_DOWN:
+		case GameMessage::MSG_RAW_KEY_UP:
+		{
+			const Int state = msg->getArgument( 1 )->integer;
+			gxTelGuardKey( s_inGuard, msg->getArgument( 0 )->integer, ( state & KEY_STATE_DOWN ) != 0, ( state & KEY_STATE_AUTOREPEAT ) != 0,
+				entryFocusedNow() );
+			break;
+		}
+		case GameMessage::MSG_RAW_MOUSE_LEFT_BUTTON_DOWN:
+		case GameMessage::MSG_RAW_MOUSE_LEFT_DOUBLE_CLICK:
+		case GameMessage::MSG_RAW_MOUSE_RIGHT_BUTTON_DOWN:
+		case GameMessage::MSG_RAW_MOUSE_RIGHT_DOUBLE_CLICK:
+		{
+			const int b = ( t == GameMessage::MSG_RAW_MOUSE_LEFT_BUTTON_DOWN || t == GameMessage::MSG_RAW_MOUSE_LEFT_DOUBLE_CLICK ) ? 0 : 1;
+			s_inDownPos[b] = msg->getArgument( 0 )->pixel;
+			s_inDouble[b] = t == GameMessage::MSG_RAW_MOUSE_LEFT_DOUBLE_CLICK || t == GameMessage::MSG_RAW_MOUSE_RIGHT_DOUBLE_CLICK;
+			break;
+		}
+		case GameMessage::MSG_RAW_MOUSE_LEFT_BUTTON_UP:
+		case GameMessage::MSG_RAW_MOUSE_RIGHT_BUTTON_UP:
+		{
+			const int b = left ? 0 : 1;
+			const ICoord2D pos = msg->getArgument( 0 )->pixel;
+			const Int mods = msg->getArgument( 1 )->integer;
+			const Int tol = TheMouse != NULL ? TheMouse->m_dragTolerance : 0;
+			uint8_t flags = GX_TEL_IN_CK_UI;
+			if( s_inDouble[b] )
+				flags |= GX_TEL_IN_CK_DOUBLE;
+			if( abs( pos.x - s_inDownPos[b].x ) >= tol || abs( pos.y - s_inDownPos[b].y ) >= tol )
+				flags |= GX_TEL_IN_CK_DRAG;
+			if( mods & KEY_STATE_SHIFT )
+				flags |= GX_TEL_IN_CK_SHIFT;
+			if( mods & KEY_STATE_CONTROL )
+				flags |= GX_TEL_IN_CK_CTRL;
+			if( mods & KEY_STATE_ALT )
+				flags |= GX_TEL_IN_CK_ALT;
+			s_inDouble[b] = false;
+			const int w = TheDisplay != NULL ? (int)TheDisplay->getWidth() : 0, h = TheDisplay != NULL ? (int)TheDisplay->getHeight() : 0;
+			const int slot = pushInput( left ? GX_TEL_IN_CLICK_L : GX_TEL_IN_CLICK_R, flags, gxTelQuantisePos( pos.x, pos.y, w, h ) );
+			if( slot >= 0 && s_inClickCount < GX_TEL_IN_CLICKS )
+			{
+				s_inClickMsg[ s_inClickCount ] = (const void *)msg;
+				s_inClickSlot[ s_inClickCount++ ] = (unsigned)slot;
+			}
+			break;
+		}
+		default:
+			break;
+	}
+	return KEEP_MESSAGE;
+}
+
 void closeWindow( const GXDiagIter &it, int extraFlags )
 {
 	closeRow( it, ( extraFlags & GX_DIAG_FLAG_SUSPENDED ) ? GX_TEL_F_SUSPENDED : 0 );
@@ -466,6 +779,7 @@ void closeWindow( const GXDiagIter &it, int extraFlags )
 	const int n = gxDiagBuildRecord( words, GX_DIAG_KIND_WINDOW, s_rows, 0, row, sizeof( row ) );
 	TheRecorder->writeDiagRecord( (const Int *)words, (UnsignedByte)n );
 	writeBatch( it, ( extraFlags & GX_DIAG_FLAG_MATCH_END ) != 0 );
+	drainInput( it.nowNs, ( extraFlags & GX_DIAG_FLAG_MATCH_END ) != 0 );
 	++s_rows;
 }
 
@@ -542,6 +856,7 @@ void gxReplayDiagRecordingStarted( void )
 {
 	if( TheRecorder == NULL || !TheRecorder->isWritingFile() )
 		return;
+	stopInput();
 	s_window.primed = false;
 	s_rows = 0;
 	s_suspended = false;
@@ -573,6 +888,8 @@ void gxReplayDiagRecordingStarted( void )
 #endif
 	if( s_samplerControl != NULL )
 		s_samplerControl( 1 );	// after the off gate: off starts no thread either
+	if( s_level >= GX_TEL_INPUT_LEVEL )
+		startInput();
 	buildBody( prefs );
 	s_startCrc = gxDiagCrc32( s_text, s_textLen );
 	writeSnapshot( "start" );
@@ -583,7 +900,10 @@ void gxReplayDiagRecordingEnding( void )
 	if( s_samplerControl != NULL )
 		s_samplerControl( 0 );	// a flag store: the sampler idles at its next wake, nothing here waits for it
 	if( TheRecorder == NULL || !TheRecorder->isWritingFile() || s_level == GX_TEL_OFF )
+	{
+		stopInput();
 		return;
+	}
 	if( gxTelWindowToClose( s_window ) )
 	{
 		// The time since the last sample belongs to this window. On the clear path this runs inside GameLogic::update, so the tick in
@@ -593,6 +913,7 @@ void gxReplayDiagRecordingEnding( void )
 		gxDiagWindowIter( s_window, it );
 		closeWindow( it, GX_DIAG_FLAG_MATCH_END );
 	}
+	stopInput();
 	s_window.primed = false;
 	OptionPreferences prefs;
 	buildBody( prefs );
@@ -624,6 +945,7 @@ void gxReplayDiagSample( void )
 	}
 #endif
 	const GXDiagIter it = readIter();
+	sampleInput( it.nowNs );
 	// The load, its progress barrier and its fade are one enormous iteration; frame 0 is not a hitch (GXPerfReport.h).
 	if( gxPerfRestartWindow( s_window.primed, s_window.lastFrame ) )
 	{
@@ -647,6 +969,11 @@ void gxReplayDiagSample( void )
 GxTelLevel gxReplayTelemetryLevel( void )
 {
 	return s_level;
+}
+
+GameMessageTranslator *gxNewReplayInputTranslator( int role )
+{
+	return MSGNEW( "GameClientSubsystem" ) GXReplayInputTranslator( role );
 }
 
 void gxReplayTelSuspend( bool suspended )

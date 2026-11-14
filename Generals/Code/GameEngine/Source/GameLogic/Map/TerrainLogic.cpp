@@ -975,6 +975,8 @@ TerrainLogic::TerrainLogic()
 	m_bridgeDamageStatesChanged = FALSE;
 	m_mapDX = 0;
 	m_mapDY = 0;
+	m_heightScaleK = 1;
+	m_heightScale = MAP_HEIGHT_SCALE;
 
 
 }
@@ -2734,11 +2736,11 @@ void TerrainLogic::flattenTerrain(Object *obj)
 			}
 			if (numSamples == 0) return;
 			Real avgHeight = totalHeight/numSamples;
-			Int rawDataHeight = REAL_TO_INT_FLOOR(0.5f + avgHeight/MAP_HEIGHT_SCALE);
+			Int rawDataHeight = REAL_TO_INT_FLOOR(0.5f + avgHeight/m_heightScale);
 
 			// Compare to the height at the building's origin, because setRawMapHeight will only lower,
 			// not raise.  jba
-			Int centerHeight = REAL_TO_INT_FLOOR(getGroundHeight(pos->x, pos->y)/MAP_HEIGHT_SCALE);
+			Int centerHeight = REAL_TO_INT_FLOOR(getGroundHeight(pos->x, pos->y)/m_heightScale);
 			if (rawDataHeight>centerHeight) rawDataHeight = centerHeight;
 
 			for (i=iMin.x; i<=iMax.x; i++) {
@@ -2827,7 +2829,7 @@ void TerrainLogic::flattenTerrain(Object *obj)
 			}
 			if (numSamples == 0) return;
 			Real avgHeight = totalHeight/numSamples;
-			Int rawDataHeight = REAL_TO_INT_FLOOR(0.5f + avgHeight/MAP_HEIGHT_SCALE);
+			Int rawDataHeight = REAL_TO_INT_FLOOR(0.5f + avgHeight/m_heightScale);
 			for (i=iMin.x; i<=iMax.x; i++) {
 				for (j=iMin.y; j<=iMax.y; j++) {
 					Vector3	testPt(i*MAP_XY_FACTOR, j*MAP_XY_FACTOR, 0);
@@ -2923,6 +2925,7 @@ void TerrainLogic::createCraterInTerrain(Object *obj)
 
 
         Real displacementAmount = radius * (1.0f - distance / radius );
+        displacementAmount /= (Real)m_heightScaleK;	// GeneralsX @feature in height bytes: the same world depth at any k
 
         Int targetHeight = MAX( 1, TheTerrainVisual->getRawMapHeight( &gridPos ) - displacementAmount );
 

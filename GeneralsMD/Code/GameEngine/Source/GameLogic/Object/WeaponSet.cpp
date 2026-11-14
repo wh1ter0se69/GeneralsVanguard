@@ -449,6 +449,12 @@ static Int getVictimAntiMask(const Object* victim)
 }
 
 //-------------------------------------------------------------------------------------------------
+Int WeaponSet::gxVictimAntiMask(const Object* victim)
+{
+	return getVictimAntiMask(victim);
+}
+
+//-------------------------------------------------------------------------------------------------
 void WeaponSet::weaponSetOnWeaponBonusChange(const Object *source)
 {
 	for( Int i = 0; i < WEAPONSLOT_COUNT;	i++ )

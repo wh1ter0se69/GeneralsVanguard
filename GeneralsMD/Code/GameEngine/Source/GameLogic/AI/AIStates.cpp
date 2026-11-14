@@ -2466,6 +2466,52 @@ static Bool canPursue(Object *source, Weapon *weapon, Object *victim)
 }
 
 //----------------------------------------------------------------------------------------------------------
+// GeneralsX @bugfix A human player's unit on an attack-move does not take an airborne aircraft that none of its anti-air
+// weapons can reach yet: it keeps moving and takes the aircraft once one can. Before, the attack-move's own target scan sent
+// the whole army after a passing jet it could not catch, every unit re-asking for a path to it several times a second. The
+// computer player already never chases aircraft (AIAttackApproachTargetState::onEnter).
+static Bool gxHumanSkipsAirTarget(const Object *owner, const Object *victim)
+{
+	if (owner == nullptr || victim == nullptr || !victim->isKindOf(KINDOF_AIRCRAFT) || !victim->isAirborneTarget())
+		return false;
+	const Player *player = owner->getControllingPlayer();
+	if (player == nullptr || player->getPlayerType() != PLAYER_HUMAN)
+		return false;
+	for (Int slot = 0; slot < WEAPONSLOT_COUNT; ++slot)
+	{
+		const Weapon *weapon = owner->getWeaponInWeaponSlot((WeaponSlotType)slot);
+		if (weapon != nullptr && (weapon->getAntiMask() & WeaponSet::gxVictimAntiMask(victim)) != 0
+				&& (weapon->isWithinAttackRange(owner, victim) || weapon->isTooClose(owner, victim)))	// too close is not out of reach
+			return false;
+	}
+	return true;
+}
+
+// The attack-move target scans pass this to the enemy search, so a nearer aircraft they would skip does not hide a
+// ground target in range. Human-owned units only: an AI unit's search is left exactly as it was.
+class PartitionFilterGxReachableAirTarget : public PartitionFilter
+{
+	const Object *m_owner;
+public:
+	PartitionFilterGxReachableAirTarget(const Object *owner) : m_owner(owner) {}
+	virtual Bool allow(Object *objOther) override { return !gxHumanSkipsAirTarget(m_owner, objOther); }
+#if defined(RTS_DEBUG)
+	virtual const char* debugGetName() override { return "PartitionFilterGxReachableAirTarget"; }
+#endif
+};
+
+static PartitionFilter *gxReachableAirFilterFor(const Object *owner, PartitionFilterGxReachableAirTarget &filter)
+{
+	const Player *player = owner != nullptr ? owner->getControllingPlayer() : nullptr;
+	return (player != nullptr && player->getPlayerType() == PLAYER_HUMAN) ? &filter : nullptr;
+}
+
+static Bool gxIsAttackMoveState(AIStateType type)
+{
+	return type == AI_ATTACK_MOVE_TO || type == AI_ATTACKFOLLOW_WAYPOINT_PATH_AS_INDIVIDUALS || type == AI_ATTACKFOLLOW_WAYPOINT_PATH_AS_TEAM;
+}
+
+//----------------------------------------------------------------------------------------------------------
 /**
  * Compute a valid spot to fire our weapon from.
  * Result in m_goalPosition.
@@ -2681,6 +2727,11 @@ StateReturnType AIAttackApproachTargetState::onEnter()
 					{
 						return STATE_FAILURE;
 					}
+				}
+				// GeneralsX @bugfix an attack-move's aircraft that flew out of range is not chased (gxHumanSkipsAirTarget)
+				if (gxIsAttackMoveState(ai->getAIStateType()) && gxHumanSkipsAirTarget(source, victim))
+				{
+					return STATE_FAILURE;
 				}
 			} else {
 				// Computer player.  Don't chase aircraft, unless we're hunting. jba [8/27/2003]
@@ -3716,11 +3767,14 @@ StateReturnType AIAttackMoveToState::update()
 		}
 
 		Object* nextObjectToAttack;
-		nextObjectToAttack = ai->getNextMoodTarget( !forceRetargetThisFrame, false );
+		PartitionFilterGxReachableAirTarget airFilter(getMachineOwner());
+		nextObjectToAttack = ai->getNextMoodTarget( !forceRetargetThisFrame, false, gxReachableAirFilterFor(getMachineOwner(), airFilter) );
 		// a watched row unit / AA team member takes no aircraft by its own mood here either; the watch's
 		// assignment is its only air target
 		if (nextObjectToAttack && getMachineOwner()->getControllingPlayer() && getMachineOwner()->getControllingPlayer()->getAIPlayer()
 				&& getMachineOwner()->getControllingPlayer()->getAIPlayer()->gxAirWatchTeamMemberSkips(getMachineOwner(), nextObjectToAttack))
+			nextObjectToAttack = nullptr;
+		if (gxHumanSkipsAirTarget(getMachineOwner(), nextObjectToAttack))	// GeneralsX @bugfix keep moving until it is in range
 			nextObjectToAttack = nullptr;
 		if (nextObjectToAttack != nullptr)
 		{
@@ -4565,12 +4619,15 @@ StateReturnType AIAttackFollowWaypointPathState::update()
 		Object* nextObjectToAttack;
 		{
 
-			nextObjectToAttack = ai->getNextMoodTarget( !forceRetargetThisFrame, false );
+			PartitionFilterGxReachableAirTarget airFilter(getMachineOwner());
+			nextObjectToAttack = ai->getNextMoodTarget( !forceRetargetThisFrame, false, gxReachableAirFilterFor(getMachineOwner(), airFilter) );
 		}
 		// a watched row unit / AA team member takes no aircraft by its own mood here either; the watch's
 		// assignment is its only air target
 		if (nextObjectToAttack && getMachineOwner()->getControllingPlayer() && getMachineOwner()->getControllingPlayer()->getAIPlayer()
 				&& getMachineOwner()->getControllingPlayer()->getAIPlayer()->gxAirWatchTeamMemberSkips(getMachineOwner(), nextObjectToAttack))
+			nextObjectToAttack = nullptr;
+		if (gxHumanSkipsAirTarget(getMachineOwner(), nextObjectToAttack))	// GeneralsX @bugfix keep moving until it is in range
 			nextObjectToAttack = nullptr;
 		if (nextObjectToAttack != nullptr)
 		{

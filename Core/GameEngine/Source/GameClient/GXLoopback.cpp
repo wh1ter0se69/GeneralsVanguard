@@ -234,7 +234,7 @@ bool formField(const char *body, const char *key, char *out, size_t outCap)
 // self-contained because it is served by a socket in a game, not by a web server: no stylesheet to
 // fetch, no font to load, nothing that can fail.
 const char *const BODY_OK =
-	"<!doctype html><meta charset=utf-8><title>Signed in - GeneralsX</title>"
+	"<!doctype html><meta charset=utf-8><title>Signed in - Generals Vanguard</title>"
 	"<meta name=viewport content=\"width=device-width,initial-scale=1\">"
 	"<style>"
 	"body{margin:0;background:#0a0a0b;color:#f2f2f4;"
@@ -250,7 +250,7 @@ const char *const BODY_OK =
 	"Consolas,monospace;letter-spacing:-.03em}"
 	"p{margin:0;color:#9c9ca6;font-size:15.5px}"
 	"</style>"
-	"<main><p class=e>GeneralsX / sign in</p><h1>Signed in</h1>"
+	"<main><p class=e>Generals Vanguard / sign in</p><h1>Signed in</h1>"
 	"<p>You can close this tab. The game has your account.</p></main>";
 
 /*

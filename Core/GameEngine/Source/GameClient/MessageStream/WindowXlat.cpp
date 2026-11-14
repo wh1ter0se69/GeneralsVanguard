@@ -57,6 +57,7 @@
 #include "GameClient/Display.h"
 #include "GameClient/GadgetComboBox.h"
 #include "GameClient/HotKey.h"
+#include "GameClient/GXInputIdle.h"
 
 
 // DEFINES ////////////////////////////////////////////////////////////////////
@@ -168,8 +169,33 @@ WindowTranslator::~WindowTranslator()
 /** Window translator that monitors raw input messages on the stream and
 	* acts on anything relevant to the windowing system */
 //=============================================================================
+// GeneralsX @feature Feed the AFK clock (GXInputIdle.h) from real input only: a button, the wheel, a key
+// press, or the cursor actually moving - a position message for an unmoved cursor is not the player.
+static void gxNoteInput( const GameMessage *msg )
+{
+	static ICoord2D s_lastPos = { -1, -1 };
+	const GameMessage::Type t = msg->getType();
+	if (t == GameMessage::MSG_RAW_MOUSE_POSITION)
+	{
+		const ICoord2D pos = msg->getArgument( 0 )->pixel;
+		if (pos.x == s_lastPos.x && pos.y == s_lastPos.y)
+			return;
+		const Bool first = (s_lastPos.x == -1 && s_lastPos.y == -1);
+		s_lastPos = pos;
+		if (first)
+			return;			// where the cursor starts is not a movement
+	}
+	else if (!(t > GameMessage::MSG_RAW_MOUSE_BEGIN && t < GameMessage::MSG_RAW_MOUSE_END) && t != GameMessage::MSG_RAW_KEY_DOWN)
+	{
+		return;
+	}
+	GXInputIdleTouch( timeGetTime() );
+}
+
 GameMessageDisposition WindowTranslator::translateGameMessage(const GameMessage *msg)
 {
+	gxNoteInput( msg );
+
 	GameMessageDisposition disp = KEEP_MESSAGE;
 	Bool forceKeepMessage = FALSE;
 	WinInputReturnCode returnCode = WIN_INPUT_NOT_USED;

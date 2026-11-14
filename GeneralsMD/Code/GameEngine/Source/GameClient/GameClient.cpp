@@ -338,6 +338,10 @@ void GameClient::init()
 		TheDrawGroupInfo->m_fontIsBold = TheGlobalLanguageData->m_drawGroupInfoFont.bold;
 	}
 
+	// GeneralsX @bugfix [GXINIT] BREADCRUMBS. Nothing in GameClient::init
+	// printed before the display, so a player's log that ended at "initSubsystem('TheGameClient')" could not
+	// say which of these steps it died in. One line per step, outside every GX-SIMID region.
+	fprintf(stderr, "[GXINIT] GameClient: %s\n", "display strings"); fflush(stderr);
 	// create the display string factory
 	TheDisplayStringManager = createDisplayStringManager();
 	if( TheDisplayStringManager )	{
@@ -345,6 +349,7 @@ void GameClient::init()
 		TheDisplayStringManager->setName("TheDisplayStringManager");
 	}
 
+	fprintf(stderr, "[GXINIT] GameClient: %s\n", "keyboard"); fflush(stderr);
 	if (!TheGlobalData->m_headless)
 	{
 		// create the keyboard
@@ -380,6 +385,9 @@ void GameClient::init()
 		// GeneralsX: The open player Tab board owns the mouse over itself, ahead of the windows
 		// Passes everything when no board is up.
 		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( gxNewSpectatorHudBoardGate(),     9 );
+		// GeneralsX @feature Replay telemetry's INPUT observers (GXReplayDiag.h): raw keys and clicks before the windows, the clicks
+		// that reached the world after the hotkeys (26), the orders after every translator that makes one (995). Each keeps every message.
+		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( gxNewReplayInputTranslator( 0 ),     9 );
 		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( MSGNEW("GameClientSubsystem") WindowTranslator,     10 );
 	// GeneralsX: The replay strip draws over the spectator HUD, so it takes the mouse first: the same
 	// priority as the HUD below, attached ahead of it (equal priorities keep attach order). After the windows, so chat still wins.
@@ -390,6 +398,7 @@ void GameClient::init()
 		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( gxNewSpectatorHudTranslator(),     11 );
 		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( MSGNEW("GameClientSubsystem") MetaEventTranslator,	20 );
 		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( MSGNEW("GameClientSubsystem") HotKeyTranslator,	25 );
+		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( gxNewReplayInputTranslator( 1 ),	26 );
 		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( MSGNEW("GameClientSubsystem") PlaceEventTranslator,	30 );
 		m_translators[ m_numTranslators++ ] = TheMessageStream->attachTranslator( MSGNEW("GameClientSubsystem") GUICommandTranslator, 40 );
 		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( MSGNEW("GameClientSubsystem") SelectionTranslator,	50 );
@@ -401,6 +410,7 @@ void GameClient::init()
 		// GeneralsX: A spectator's selection orders stop here (GXSpectatorHud.inl OrderGate): after every
 		// translator that can make one, before the dispatcher hands the stream to the network. Passes everything else.
 		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( gxNewSpectatorHudOrderGate(),		990 );
+		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( gxNewReplayInputTranslator( 2 ),		995 );
 
 		//
 		// the client message translator should probably remain as the last reaction of the
@@ -412,17 +422,20 @@ void GameClient::init()
 
 	}
 
+	fprintf(stderr, "[GXINIT] GameClient: %s\n", "fonts"); fflush(stderr);
 	// create the font library
 	TheFontLibrary = createFontLibrary();
 	if( TheFontLibrary )
 		TheFontLibrary->init();
 
+	fprintf(stderr, "[GXINIT] GameClient: %s\n", "mouse"); fflush(stderr);
 	// create the mouse
 	TheMouse = TheGlobalData->m_headless ? NEW MouseDummy : createMouse();
 	TheMouse->parseIni();
 	TheMouse->initCursorResources();
  	TheMouse->setName("TheMouse");
 
+	fprintf(stderr, "[GXINIT] GameClient: %s\n", "display"); fflush(stderr);
 	// instantiate the display
 	// GX-SIMID-BEGIN the simulation reads this - resources/gitinfo/simsourcedigest_watcher.cmake
 	TheDisplay = createGameDisplay();
@@ -439,6 +452,7 @@ void GameClient::init()
  		TheDisplay->setName("TheDisplay");
 	}
 	// GX-SIMID-END
+	fprintf(stderr, "[GXINIT] GameClient: %s\n", "windows and menus"); fflush(stderr);
 
 	TheHeaderTemplateManager = MSGNEW("GameClientSubsystem") HeaderTemplateManager;
 	if(TheHeaderTemplateManager){
@@ -2431,6 +2445,123 @@ static void gxTestEnterQueueScript( CommandTranslator *xlat )
 	while( s_at < (Int)s_steps.size() && TheGameLogic->getFrame() >= s_steps[ s_at ].frame )
 		gxEnterqStep( xlat, s_steps[ s_at++ ].what );
 }
+
+// GeneralsX @test GX_TEL_TEST_INPUT="<frame>:<step>,..." - replay telemetry's INPUT test driver, a TEST INSTRUMENT. It posts the raw
+// messages the keyboard and mouse would, so the real translators handle them. Steps: k<key> a key's press and release, d<key> /
+// u<key> press / release only - <key> is a, g, j or ; by name (this build's KEY_ values are not DirectInput's numbers), L / R a left / right click at 50% x 40% of the screen, D a left press there and release
+// at 60% x 50% (a drag), S select every vehicle but a dozer this player owns (as a box select would: selection + MSG_CREATE_SELECTED_GROUP),
+// x deselect all, c camera to the map's centre, F open the chat box, f close it. One "[GXTELIN] step" line each.
+static void gxTelTestKey( Int key, Bool down )
+{
+	GameMessage *m = TheMessageStream->appendMessage( down ? GameMessage::MSG_RAW_KEY_DOWN : GameMessage::MSG_RAW_KEY_UP );
+	m->appendIntegerArgument( key );
+	m->appendIntegerArgument( down ? KEY_STATE_DOWN : KEY_STATE_UP );
+}
+
+static void gxTelTestMouse( GameMessage::Type t, Real fx, Real fy )
+{
+	ICoord2D p;
+	p.x = (Int)( fx * TheDisplay->getWidth() );
+	p.y = (Int)( fy * TheDisplay->getHeight() );
+	GameMessage *m = TheMessageStream->appendMessage( t );
+	m->appendPixelArgument( p );
+	m->appendIntegerArgument( 0 );
+	m->appendIntegerArgument( 0 );
+}
+
+static void gxTelTestStep( const AsciiString &what )
+{
+	const char c = what.isEmpty() ? 0 : what.getCharAt( 0 );
+	const char k = what.getLength() > 1 ? what.getCharAt( 1 ) : 0;
+	const Int key = k == 'a' ? KEY_A : k == 'g' ? KEY_G : k == 'j' ? KEY_J : k == ';' ? KEY_SEMICOLON : KEY_NONE;
+	switch( c )
+	{
+		case 'k': gxTelTestKey( key, TRUE ); gxTelTestKey( key, FALSE ); break;
+		case 'd': gxTelTestKey( key, TRUE ); break;
+		case 'u': gxTelTestKey( key, FALSE ); break;
+		case 'L':
+			gxTelTestMouse( GameMessage::MSG_RAW_MOUSE_LEFT_BUTTON_DOWN, 0.5f, 0.4f );
+			gxTelTestMouse( GameMessage::MSG_RAW_MOUSE_LEFT_BUTTON_UP, 0.5f, 0.4f );
+			break;
+		case 'R':
+			gxTelTestMouse( GameMessage::MSG_RAW_MOUSE_RIGHT_BUTTON_DOWN, 0.5f, 0.4f );
+			gxTelTestMouse( GameMessage::MSG_RAW_MOUSE_RIGHT_BUTTON_UP, 0.5f, 0.4f );
+			break;
+		case 'D':
+			gxTelTestMouse( GameMessage::MSG_RAW_MOUSE_LEFT_BUTTON_DOWN, 0.5f, 0.4f );
+			gxTelTestMouse( GameMessage::MSG_RAW_MOUSE_LEFT_BUTTON_UP, 0.6f, 0.5f );
+			break;
+		case 'S':
+		{
+			GameMessage *group = nullptr;
+			Int n = 0;
+			const Player *local = ThePlayerList->getLocalPlayer();
+			for( Object *o = TheGameLogic->getFirstObject(); o; o = o->getNextObject() )
+			{
+				Drawable *d = o->getDrawable();
+				if( o->getControllingPlayer() != local || !o->isKindOf( KINDOF_VEHICLE ) || o->isKindOf( KINDOF_DOZER ) || o->isEffectivelyDead()
+					|| d == nullptr )
+					continue;
+				if( group == nullptr )
+				{
+					TheInGameUI->deselectAllDrawables();
+					group = TheMessageStream->appendMessage( GameMessage::MSG_CREATE_SELECTED_GROUP );
+					group->appendBooleanArgument( TRUE );
+				}
+				TheInGameUI->selectDrawable( d );
+				group->appendObjectIDArgument( o->getID() );
+				++n;
+			}
+			fprintf( stderr, "[GXTELIN] selected %d\n", n );
+			break;
+		}
+		case 'x': TheInGameUI->deselectAllDrawables(); break;
+		case 'c':
+		{
+			Region3D extent;
+			TheTerrainLogic->getExtent( &extent );
+			Coord3D centre;
+			centre.x = ( extent.lo.x + extent.hi.x ) * 0.5f;
+			centre.y = ( extent.lo.y + extent.hi.y ) * 0.5f;
+			centre.z = 0.0f;
+			TheTacticalView->lookAt( &centre );
+			break;
+		}
+		case 'F': ShowInGameChat( TRUE ); break;
+		case 'f': HideInGameChat( TRUE ); break;
+		default: break;
+	}
+	fprintf( stderr, "[GXTELIN] step frame=%u %s\n", TheGameLogic->getFrame(), what.str() );
+	fflush( stderr );
+}
+
+static void gxTelTestInputScript()
+{
+	struct Step { UnsignedInt frame; AsciiString what; };
+	static std::vector<Step> s_steps;
+	static Int s_at = -1;
+	if( s_at < 0 )
+	{
+		s_at = 0;
+		AsciiString list( getenv( "GX_TEL_TEST_INPUT" ) ? getenv( "GX_TEL_TEST_INPUT" ) : "" ), entry, frame;
+		while( list.nextToken( &entry, "," ) )
+		{
+			Step s;
+			if( entry.nextToken( &frame, ":" ) && entry.isNotEmpty() )
+			{
+				s.frame = (UnsignedInt)atoi( frame.str() );
+				s.what = entry.str() + ( entry.getCharAt( 0 ) == ':' ? 1 : 0 );
+				s.what.trim();
+				s_steps.push_back( s );
+			}
+		}
+	}
+	if( s_steps.empty() || TheGameLogic == nullptr || !TheGameLogic->isInGame() || TheGameLogic->isLoadingMap() || ThePlayerList == nullptr
+		|| ThePlayerList->getLocalPlayer() == nullptr || TheInGameUI == nullptr || TheDisplay == nullptr || TheTacticalView == nullptr )
+		return;
+	while( s_at < (Int)s_steps.size() && TheGameLogic->getFrame() >= s_steps[ s_at ].frame )
+		gxTelTestStep( s_steps[ s_at++ ].what );
+}
 #endif
 
 // GeneralsX: translate this update's input and queue the orders on the network BEFORE the draw and its blocking
@@ -2476,6 +2607,7 @@ void GameClient::update()
 #if defined(GX_TEST_INSTRUMENTS)
 	gxTestRevealScript();
 	gxTestEnterQueueScript( m_commandTranslator );
+	gxTelTestInputScript();
 	gxTestCheatScript();
 #endif
 	const Bool paceEmitted = gxPaceSample();

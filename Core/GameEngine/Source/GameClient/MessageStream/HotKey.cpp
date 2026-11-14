@@ -86,6 +86,12 @@ Bool GXKeyTraceEnabled()
 	return s_on != 0;
 }
 
+GXInputKeyObserverFn TheGXInputKeyObserver = nullptr;
+
+// What the last executeHotKey did, for TheGXInputKeyObserver.
+static Int s_gxHotKeyResult = GX_HOTKEY_NOTHING;
+static Int s_gxHotKeyCommand = 0;
+
 // Every window in the hotkey map was bound by ControlBar::setControlCommand, so its gadget data is the CommandButton.
 static const char *gxHotKeyWindowCommand( const GameWindow *win )
 {
@@ -140,6 +146,8 @@ GameMessageDisposition HotKeyTranslator::translateGameMessage(const GameMessage 
 		uKey.concat(key);
 		AsciiString aKey;
 		aKey.translate(uKey);
+		s_gxHotKeyResult = GX_HOTKEY_NOTHING;
+		s_gxHotKeyCommand = 0;
 		if(TheHotKeyManager && TheHotKeyManager->executeHotKey(aKey))
 			disp = DESTROY_MESSAGE;
 		else if( GXKeyTraceEnabled() )
@@ -148,6 +156,9 @@ GameMessageDisposition HotKeyTranslator::translateGameMessage(const GameMessage 
 				msg->getArgument(0)->integer, aKey.str(), keyState );
 			fflush( stderr );
 		}
+		if( TheGXInputKeyObserver )
+			TheGXInputKeyObserver( GX_INPUT_HOTKEY, s_gxHotKeyCommand, s_gxHotKeyResult, msg->getArgument(0)->integer,
+				aKey.isEmpty() ? 0 : tolower( (unsigned char)aKey.str()[0] ) );
 	}
 	return disp;
 }
@@ -291,6 +302,9 @@ Bool HotKeyManager::executeHotKey( const AsciiString& keyIn )
 	GameWindow *win = hk->m_win;
 	if( !win )
 		return FALSE;
+	const CommandButton *gxCommand = (const CommandButton *)GadgetButtonGetData( win );
+	s_gxHotKeyCommand = gxCommand ? (Int)gxCommand->getCommandType() : 0;
+	s_gxHotKeyResult = GX_HOTKEY_HIDDEN;
 	if( GXKeyTraceEnabled() )
 	{
 		fprintf( stderr, "[GXKEY] hotkey: '%s' -> %s hidden=%d enabled=%d%s\n", key.str(), gxHotKeyWindowCommand( win ),
@@ -301,8 +315,10 @@ Bool HotKeyManager::executeHotKey( const AsciiString& keyIn )
 	}
 	if( !BitIsSet( win->winGetStatus(), WIN_STATUS_HIDDEN ) )
 	{
+		s_gxHotKeyResult = GX_HOTKEY_DISABLED;
 		if( BitIsSet( win->winGetStatus(), WIN_STATUS_ENABLED ) )
  		{
+ 			s_gxHotKeyResult = GX_HOTKEY_FIRED;
  			TheWindowManager->winSendSystemMsg( win->winGetParent(), GBM_SELECTED, (WindowMsgData)win, win->winGetWindowId() );
 
  			// here we make the same click sound that the GUI uses when you click a button

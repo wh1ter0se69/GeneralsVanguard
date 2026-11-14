@@ -334,23 +334,29 @@ $manifest | Set-Content -Encoding UTF8 (Join-Path $patchStage "optional.txt")
 # GeneralsXPatch\ShippedMaps\<Name>\, carried by the OPTIONAL tier (never required - maps are outside
 # dataID). The engine's overlay scan matches "*.big" only, so they are inert here; the launcher copies them
 # into <userdata>\Maps (gxio shippedmaps.rs). Refuses a .map that does not hash to the listed value.
+# A row's optional third column names the SOURCE folder under scripts\test\maps when it differs from the shipped
+# name: its files are staged as <Name>\<Name>.<ext> (lib-overlay.sh gx_overlay_stage_shipped_maps does the same).
 $mapsList = Join-Path $PSScriptRoot "..\overlay-maps.txt"
 $mapsSrc  = Join-Path $PSScriptRoot "..\..\test\maps"
 $shippedMaps = @()
 foreach ($line in (Get-Content -LiteralPath $mapsList)) {
     $l = ($line -split '#')[0].Trim()
     if ($l -eq "") { continue }
-    $f = $l -split '\|', 2
-    if ($f.Count -ne 2) { Remove-Item -Recurse -Force $stage; throw "malformed line in ${mapsList}: $l" }
-    $mapFile = Join-Path (Join-Path $mapsSrc $f[0]) ($f[0] + ".map")
-    if (-not (Test-Path -LiteralPath $mapFile)) { Remove-Item -Recurse -Force $stage; throw "shipped map $($f[0]): $mapFile is missing" }
+    $f = $l -split '\|', 3
+    if ($f.Count -lt 2 -or $f.Count -gt 3) { Remove-Item -Recurse -Force $stage; throw "malformed line in ${mapsList}: $l" }
+    $mapName = $f[0].Trim()
+    $mapSrc  = if ($f.Count -eq 3 -and $f[2].Trim() -ne "") { $f[2].Trim() } else { $mapName }
+    $mapFile = Join-Path (Join-Path $mapsSrc $mapSrc) ($mapSrc + ".map")
+    if (-not (Test-Path -LiteralPath $mapFile)) { Remove-Item -Recurse -Force $stage; throw "shipped map ${mapName}: $mapFile is missing" }
     $got = (Get-FileHash -LiteralPath $mapFile -Algorithm SHA256).Hash.ToLower()
-    if ($got -ne $f[1].Trim().ToLower()) { Remove-Item -Recurse -Force $stage; throw "shipped map $($f[0]): .map sha256 $got is not the $($f[1]) overlay-maps.txt lists" }
-    $mapDst = Join-Path $patchStage ("ShippedMaps\" + $f[0])
+    if ($got -ne $f[1].Trim().ToLower()) { Remove-Item -Recurse -Force $stage; throw "shipped map ${mapName}: .map sha256 $got is not the $($f[1]) overlay-maps.txt lists" }
+    $mapDst = Join-Path $patchStage ("ShippedMaps\" + $mapName)
     New-Item -ItemType Directory -Force -Path $mapDst | Out-Null
-    foreach ($m in (Get-ChildItem -LiteralPath (Join-Path $mapsSrc $f[0]) -File)) {
-        Copy-Item -LiteralPath $m.FullName -Destination $mapDst -Force
-        $shippedMaps += ("GeneralsXPatch\ShippedMaps\" + $f[0] + "\" + $m.Name)
+    foreach ($m in (Get-ChildItem -LiteralPath (Join-Path $mapsSrc $mapSrc) -File)) {
+        $dstName = $m.Name
+        if ($dstName.StartsWith($mapSrc + ".")) { $dstName = $mapName + $dstName.Substring($mapSrc.Length) }
+        Copy-Item -LiteralPath $m.FullName -Destination (Join-Path $mapDst $dstName) -Force
+        $shippedMaps += ("GeneralsXPatch\ShippedMaps\" + $mapName + "\" + $dstName)
     }
 }
 if ($shippedMaps.Count -eq 0) { Remove-Item -Recurse -Force $stage; throw "overlay-maps.txt lists no map" }

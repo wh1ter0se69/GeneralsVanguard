@@ -77,6 +77,8 @@
 #include "GameClient/GXWaterClear.h"	// GeneralsX: clearer water: the glue is GXWaterClearGlue.inl, at the end
 #include "GameClient/GXWaterLive.h"	// GeneralsX: live water: the glue is GXWaterLiveGlue.inl, at the end
 #include "GameClient/GXWaterRA3.h"	// GeneralsX: RA3 water: the glue is GXWaterRA3Glue.inl, at the end
+#include "GXWaterCull.h"	// GeneralsX @perf: the water cull's one decision (water patches the camera cannot see)
+static const CameraClass *s_gxWaterCullCam = nullptr;	// GeneralsX @perf: Render()'s camera while renderWater runs (the water cull)
 
 // GeneralsX: Live water (GXWaterLiveGlue.inl, included at the end of this file).
 static void gxWaterLiveAcquire();
@@ -1776,7 +1778,9 @@ void WaterRenderObjClass::Render(RenderInfoClass & rinfo)
 		case WATER_TYPE_0_TRANSLUCENT:
 		case WATER_TYPE_3_GRIDMESH:
 			//Draw the water surface as a bunch of alpha blended tiles covering areas where water is visible
+			s_gxWaterCullCam = &rinfo.Camera;	// GeneralsX @perf: the water cull's camera, for this call only
 			renderWater();
+			s_gxWaterCullCam = nullptr;
 			// GeneralsX: Live water's shoreline foam, over the water surface (GXWaterLiveGlue.inl).
 			gxWaterLiveDrawFoam(m_disableRiver, m_waterNoiseTexture, m_waterSparklesTexture, m_whiteTexture);
 			if (!m_drawingRiver || m_disableRiver) {
@@ -1938,7 +1942,9 @@ void WaterRenderObjClass::Render(RenderInfoClass & rinfo)
 
 				ShaderClass::Invalidate();	//reset shading system so it forces full state set.
 
+				s_gxWaterCullCam = &rinfo.Camera;	// GeneralsX @perf: the water cull's camera, for this call only
 				renderWater();
+				s_gxWaterCullCam = nullptr;
 			}
 			break;
 
@@ -2352,6 +2358,69 @@ Matrix4x4 matProj, matView, matWW3D;
 #define FEATHER_THICKNESS   (4.0f)
 
 //-------------------------------------------------------------------------------------------------
+// GeneralsX @perf THE WATER CULL (GXWaterCull.h). renderWater walked every water
+// area of the map and built every patch's grid on the CPU - twice with RA3 water - visible or not: on the crater maps (a lake of
+// four quarter-map polygons under the whole map) that was half of every frame on Classic and 80% on the native renderer
+// A patch, or a whole river, that lies wholly outside one plane of the camera's frustum is now
+// skipped together with its RA3 pass. The camera comes from Render() through this file-static, because renderWater's signature
+// is in W3DWater.h, which the simulation digest reads whole; no camera recorded = no cull. Render-only: nothing here is read by the
+// simulation. GX_WATER_CULL=0 turns it off in a GX_TEST_INSTRUMENTS build only (the A/B's control arm): a player build always culls
+// and reads no switch (the GX_* allow-list).
+static unsigned s_gxWaterCullDrawn = 0, s_gxWaterCullSkipped = 0, s_gxWaterCullCalls = 0;
+enum { GXWATERCULL_MAX_POINTS = 256 };	// Trade-off: a polygon with more points is simply drawn; raise it if a map ever needs more
+static const float kGxWaterCullMarginXY = 8.0f;	// every grid vertex is a bilinear blend of the patch's corners
+static const float kGxWaterCullMarginZ = 20.0f;	// the feather layers and their wave move z by at most a few units
+
+static Bool gxWaterCullOn()
+{
+	static Int s_on = -1;
+	if (s_on < 0)
+	{
+#if defined(GX_TEST_INSTRUMENTS)
+		const char *env = getenv("GX_WATER_CULL");
+#else
+		const char *env = nullptr;	// a player build always culls
+#endif
+		s_on = (env != nullptr && env[0] == '0') ? 0 : 1;
+		fprintf(stderr, "[GXWATER] cull %s%s\n", s_on ? "on" : "off", env != nullptr ? " (GX_WATER_CULL)" : "");
+		fflush(stderr);
+	}
+	return s_on != 0;
+}
+
+// True when the n points (n <= GXWATERCULL_MAX_POINTS) cannot be seen by the recorded camera; counts the decision.
+static Bool gxWaterCullSkip(const float (*pts)[3], Int n)
+{
+	Bool skip = FALSE;
+	if (s_gxWaterCullCam != nullptr && gxWaterCullOn() && n > 0 && n <= GXWATERCULL_MAX_POINTS)
+	{
+		const FrustumClass &f = s_gxWaterCullCam->Get_Frustum();
+		float planes[6][4];
+		for (Int i = 0; i < 6; ++i)
+		{
+			planes[i][0] = f.Planes[i].N.X;
+			planes[i][1] = f.Planes[i].N.Y;
+			planes[i][2] = f.Planes[i].N.Z;
+			planes[i][3] = f.Planes[i].D;
+		}
+		skip = gxWaterPatchOutside(planes, pts, n, kGxWaterCullMarginXY, kGxWaterCullMarginZ) ? TRUE : FALSE;
+	}
+	if (skip) ++s_gxWaterCullSkipped; else ++s_gxWaterCullDrawn;
+	return skip;
+}
+
+// With GX_GFX, the proof that it culls: patches and rivers drawn vs skipped, every 600 renderWater calls.
+static void gxWaterCullReport()
+{
+	static const Bool s_line = getenv("GX_GFX") != nullptr;
+	if (!s_line || ++s_gxWaterCullCalls < 600)
+		return;
+	fprintf(stderr, "[GXWCULL] calls=%u drawn=%u skipped=%u\n", s_gxWaterCullCalls, s_gxWaterCullDrawn, s_gxWaterCullSkipped);
+	fflush(stderr);
+	s_gxWaterCullCalls = s_gxWaterCullDrawn = s_gxWaterCullSkipped = 0;
+}
+
+//-------------------------------------------------------------------------------------------------
 /** Renders (draws) the water surface.*/
 //-------------------------------------------------------------------------------------------------
 void WaterRenderObjClass::renderWater()
@@ -2360,6 +2429,25 @@ void WaterRenderObjClass::renderWater()
 		if (pTrig->isWaterArea()) {
 			if (pTrig->getNumPoints()>2) {
 				if (pTrig->isRiver()) {
+					// GeneralsX @perf: a river no point of which the camera can see is skipped with its RA3 pass (the water cull)
+					{
+						float rp[GXWATERCULL_MAX_POINTS][3];
+						const Int rn = pTrig->getNumPoints();
+						for (Int r = 0; r < rn && r < GXWATERCULL_MAX_POINTS; ++r)
+						{
+							const ICoord3D *q = pTrig->getPoint(r);
+							rp[r][0] = (float)q->x; rp[r][1] = (float)q->y; rp[r][2] = (float)q->z;
+						}
+						if (gxWaterCullSkip(rp, rn))
+						{
+							// drawRiverWater's bookkeeping, kept when its geometry is skipped: it sets m_drawingRiver, which stops Render()
+							// drawing the water-grid mesh. Its only other early return is the 16-bit index
+							// overflow (> ~21,846 points), which a river the cull judges (<= GXWATERCULL_MAX_POINTS) cannot reach.
+							if (!m_disableRiver)
+								m_drawingRiver = true;
+							continue;
+						}
+					}
 					drawRiverWater(pTrig);
 					// GeneralsX: RA3 water's motion on rivers: this river once more, ADDED, from buffers of
 					// its own (drawRiverWater's are released by now) - the sheen and the sky x Fresnel, faded at the banks, the ripples
@@ -2382,6 +2470,15 @@ void WaterRenderObjClass::renderWater()
 					points[1].Set(pt1.x, pt1.y, pt1.z);
 					points[2].Set(pt2.x, pt2.y, pt2.z);
 					points[3].Set(pt3.x, pt3.y, pt3.z);
+
+					// GeneralsX @perf: a patch the camera cannot see is skipped with its RA3 pass and its feather layers (the water cull)
+					{
+						const float cp[4][3] = {
+							{ points[0].X, points[0].Y, points[0].Z }, { points[1].X, points[1].Y, points[1].Z },
+							{ points[2].X, points[2].Y, points[2].Z }, { points[3].X, points[3].Y, points[3].Z } };
+						if (gxWaterCullSkip(cp, 4))
+							continue;
+					}
 
 					if ( TheGlobalData->m_featherWater )
 					{
@@ -2411,7 +2508,7 @@ void WaterRenderObjClass::renderWater()
 			}
 		}
 	}
-
+	gxWaterCullReport();
 }
 
 //-------------------------------------------------------------------------------------------------

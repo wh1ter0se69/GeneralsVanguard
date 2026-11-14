@@ -31,6 +31,16 @@ if(WIN32)
     endif()
 endif()
 
+# GeneralsX: compatibility graphics - d3d8to9 compiled into the x64 exe, picked at startup when the PC has no Vulkan
+# (WinMain.cpp gxPickD3D, Dependencies/d3d8to9). Here and not in cmake/ or Core/: those CMake files are digested
+# (resources/gitinfo/simsourcedigest_watcher.cmake) and a change there would split the lobby. The only x86 Windows
+# preset is mingw-w64-i686, so MSVC x64 is every Windows build that ships.
+if(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/Dependencies/d3d8to9 ${CMAKE_BINARY_DIR}/gx_d3d8to9)
+    target_link_libraries(z_generals PRIVATE gx_d3d8to9)
+    target_compile_definitions(z_generals PRIVATE GX_COMPAT_D3D9=1)
+endif()
+
 # Cross-platform core libraries
 target_link_libraries(z_generals PRIVATE
     core_profile_legacy
@@ -142,6 +152,9 @@ if(MSVC)
     target_sources(z_generals PRIVATE
         RTS.RC
     )
+    # GeneralsX: rc.exe reads app.manifest through RTS.RC's RT_MANIFEST line, which no dependency scan sees: without this
+    # an incremental build keeps the OLD manifest. RTS.RC must rebuild when app.manifest changes.
+    set_source_files_properties(RTS.RC PROPERTIES OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/app.manifest)
 endif()
 
 # Strip debug symbols to separate file for MinGW Release builds

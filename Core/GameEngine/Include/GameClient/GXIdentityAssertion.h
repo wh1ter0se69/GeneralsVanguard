@@ -71,7 +71,8 @@ enum
 	// Both directions, and generous on purpose. Two machines nobody controls agreeing to within a
 	// minute is a weaker assumption than it looks, and the failure mode of getting this wrong is
 	// "this player cannot log in and has no idea why". tools/master/gxtoken.js uses the same 60 s
-	// for the same reason. A wrong clock still plays - it simply plays unauthenticated.
+	// for the same reason. A wrong clock cannot sign in: sign-in is required on the public relay. The refusal says so
+	// (GXLoginClockText.h), and the server mints with iat 27 h in the past so a slow clock still verifies.
 	GX_ASSERTION_SKEW_S       = 60,
 
 	// 30 days. An assertion has to survive a plane trip with no internet, so it cannot be minted

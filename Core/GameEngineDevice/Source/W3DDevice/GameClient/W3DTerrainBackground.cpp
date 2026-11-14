@@ -167,7 +167,7 @@ void W3DTerrainBackground::doPartialUpdate(const IRegion2D &partialRange, WorldH
 			if (m_curNumTerrainVertices >= m_vertexTerrainSize) return;
 			curVb->diffuse = (0<<24)|TheTerrainRenderObject->getStaticDiffuse(i,j);
 			Vector3 pos;
-			pos.Z = ((float)m_map->getHeight(i,j)*MAP_HEIGHT_SCALE);
+			pos.Z = ((float)m_map->getHeight(i,j)*m_map->getHeightScale());
 			pos.X = (i)*MAP_XY_FACTOR - m_map->getBorderSizeInline()*MAP_XY_FACTOR;
 			pos.Y = (j)*MAP_XY_FACTOR - m_map->getBorderSizeInline()*MAP_XY_FACTOR;
 			curVb->u1 = (float)(i-minX)/(float)(m_width);
@@ -523,7 +523,7 @@ void W3DTerrainBackground::doTesselatedUpdate(const IRegion2D &partialRange, Wor
 				Vector3 pos;
 				Int k = i<limitX?i:limitX;
 				Int l = j<limitY?j:limitY;
-				pos.Z = ((float)m_map->getHeight(k,l)*MAP_HEIGHT_SCALE);
+				pos.Z = ((float)m_map->getHeight(k,l)*m_map->getHeightScale());
 				pos.X = (i)*MAP_XY_FACTOR - m_map->getBorderSizeInline()*MAP_XY_FACTOR;
 				pos.Y = (j)*MAP_XY_FACTOR - m_map->getBorderSizeInline()*MAP_XY_FACTOR;
 				curVb->u1 = (float)(i-minX)/(float)(m_width);
@@ -567,7 +567,7 @@ void W3DTerrainBackground::doTesselatedUpdate(const IRegion2D &partialRange, Wor
 			Vector3 pos;
 			Int k = i<limitX?i:limitX;
 			Int l = j<limitY?j:limitY;
-			pos.Z = ((float)m_map->getHeight(k,l)*MAP_HEIGHT_SCALE);
+			pos.Z = ((float)m_map->getHeight(k,l)*m_map->getHeightScale());
 			pos.X = (i)*MAP_XY_FACTOR - m_map->getBorderSizeInline()*MAP_XY_FACTOR;
 			pos.Y = (j)*MAP_XY_FACTOR - m_map->getBorderSizeInline()*MAP_XY_FACTOR;
 			bounds.Add_Point(pos);

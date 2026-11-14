@@ -704,6 +704,9 @@ IDirect3D8 *					DX8Wrapper::D3DInterface								= nullptr;
 IDirect3DDevice8 *			DX8Wrapper::D3DDevice									= nullptr;
 DX8Wrapper::DeviceWrapHook	DX8Wrapper::Device_Wrap_Hook							= nullptr;
 DX8Wrapper::InterfaceWrapHook	DX8Wrapper::Interface_Wrap_Hook						= nullptr;
+DX8Wrapper::Direct3DCreate8Fn	DX8Wrapper::Create8Override							= nullptr;
+const char *						DX8Wrapper::Create8OverrideReason					= nullptr;
+DX8Wrapper::DeviceStageHook		DX8Wrapper::Device_Stage_Hook						= nullptr;
 IDirect3DSurface8 *			DX8Wrapper::CurrentRenderTarget						= nullptr;
 IDirect3DSurface8 *			DX8Wrapper::CurrentDepthBuffer						= nullptr;
 IDirect3DSurface8 *			DX8Wrapper::DefaultRenderTarget						= nullptr;
@@ -1073,6 +1076,8 @@ size_t Ring_Done() { return DX8Ring::Mode == 1 ? s_done.load(std::memory_order_a
 // to the exe) has no such affinity. Unknown counts as native.
 bool Ring_Native_D3D8()
 {
+	if (DX8Wrapper::Is_Compat_D3D9())
+		return true;	// compatibility graphics: Windows' own d3d9 under d3d8to9, a device created without MULTITHREADED
 	HMODULE m = GetModuleHandleA("d3d8.dll");
 	char path[MAX_PATH] = { 0 };
 	if (!m || !GetModuleFileNameA(m, path, MAX_PATH)) return true;
@@ -1211,7 +1216,8 @@ void DX8Ring::Begin_Record()
 	if (Mode == 1 && !s_thread) {
 #if defined(_WIN32)
 		if (Ring_Native_D3D8()) {
-			fprintf(stderr, "[GXRING] native d3d8.dll: the render thread needs DXVK - direct path\n");
+			fprintf(stderr, DX8Wrapper::Is_Compat_D3D9() ? "[GXRING] compatibility graphics: the render thread needs DXVK - direct path\n"
+				: "[GXRING] native d3d8.dll: the render thread needs DXVK - direct path\n");
 			Mode = 0;
 			return;
 		}
@@ -1434,9 +1440,12 @@ bool DX8Wrapper::Init(void * hwnd, bool lite)
 	Invalidate_Cached_Render_States();
 
 	if (!lite) {
+		if (Device_Stage_Hook != nullptr)
+			Device_Stage_Hook(0);
 		// GeneralsX: Platform-specific DLL/SO/DYLIB loading (Phase 5: macOS)
 #ifdef _WIN32
-		D3D8Lib = LoadLibrary("D3D8.DLL");
+		// GeneralsX: compatibility graphics - d3d8to9 is inside the exe (Set_Direct3DCreate8_Override): no D3D8.DLL at all.
+		D3D8Lib = Is_Compat_D3D9() ? nullptr : LoadLibrary("D3D8.DLL");
 #elif defined(__APPLE__)
 		fprintf(stderr, "DEBUG: DX8Wrapper::Init() - Loading libdxvk_d3d8.dylib (Apple)...\n");
 		// iOS confines dlopen to the app bundle; bare names don't resolve there, so
@@ -1486,13 +1495,13 @@ bool DX8Wrapper::Init(void * hwnd, bool lite)
 		}
 #endif
 
-		if (D3D8Lib == nullptr) {
+		if (D3D8Lib == nullptr && !Is_Compat_D3D9()) {
 			fprintf(stderr, "ERROR: DX8Wrapper::Init() - Failed to load D3D8 library\n");
 			return false;	// Return false at this point if init failed
 		}
 
 		fprintf(stderr, "DEBUG: DX8Wrapper::Init() - Getting Direct3DCreate8 function pointer...\n");
-		Direct3DCreate8Ptr = (Direct3DCreate8Type) GetProcAddress(D3D8Lib, "Direct3DCreate8");
+		Direct3DCreate8Ptr = Is_Compat_D3D9() ? Create8Override : (Direct3DCreate8Type) GetProcAddress(D3D8Lib, "Direct3DCreate8");
 		if (Direct3DCreate8Ptr == nullptr) {
 			fprintf(stderr, "ERROR: DX8Wrapper::Init() - Failed to get Direct3DCreate8 function\n");
 			return false;
@@ -1875,7 +1884,22 @@ bool DX8Wrapper::Create_Device()
 	** Initialize all subsystems
 	*/
 	Do_Onetime_Device_Dependent_Inits();
+	if (Device_Stage_Hook != nullptr)
+		Device_Stage_Hook(1);
 	return true;
+}
+
+// GeneralsX: [GXRESET] - one stderr line per device reset (the first 16, then every 256th). A lost device or a resolution
+// change is otherwise invisible in a release log, and compatibility graphics (native Direct3D 9) has to show it came back.
+static void gxNoteReset(const char *how, long hr)
+{
+	static unsigned int s_resets = 0;
+	++s_resets;
+	if (s_resets <= 16 || (s_resets & 255) == 0)
+	{
+		fprintf(stderr, "[GXRESET] n=%u %s hr=0x%08lx%s\n", s_resets, how, (unsigned long)hr, DX8Wrapper::Is_Compat_D3D9() ? " compat" : "");
+		fflush(stderr);
+	}
 }
 
 bool DX8Wrapper::Reset_Device(bool reload_assets)
@@ -1885,6 +1909,32 @@ bool DX8Wrapper::Reset_Device(bool reload_assets)
 	WWDEBUG_SAY(("Resetting device."));
 	DX8_THREAD_ASSERT();
 	if ((IsInitted) && (D3DDevice != nullptr)) {
+		// GeneralsX: release the texture references the wrapper keeps for its redundant-state check (Textures[]) BEFORE
+		// Reset. They are references this program holds, and native Direct3D 9 (compatibility graphics) refuses Reset
+		// while one keeps a D3DPOOL_DEFAULT texture alive: the game stays black after an alt-tab in exclusive fullscreen.
+		// Invalidate_Cached_Render_States below released them only after Reset. The device's own bindings are dropped too,
+		// as Release_Device does, but only while the device accepts calls: after a failed Reset (this is retried every
+		// frame) native D3D9 allows nothing but TestCooperativeLevel, Reset and Release, and Reset clears its bindings itself.
+		const bool deviceAcceptsCalls = _Get_D3D_Device8()->TestCooperativeLevel() == D3D_OK;
+		for (unsigned a=0;a<MAX_TEXTURE_STAGES;++a)
+		{
+			if (deviceAcceptsCalls) {
+				DX8CALL(SetTexture(a,nullptr));
+			}
+			if (Textures[a] != nullptr) {
+				Textures[a]->Release();
+				Textures[a] = nullptr;
+			}
+		}
+		if (deviceAcceptsCalls)
+		{
+			for (unsigned i=0;i<MAX_VERTEX_STREAMS;++i)
+			{
+				DX8CALL(SetStreamSource(i,nullptr,0));
+			}
+			DX8CALL(SetIndices(nullptr,0));
+		}
+
 		// Release all non-MANAGED stuff
 		WW3D::_Invalidate_Textures();
 
@@ -1925,11 +1975,13 @@ bool DX8Wrapper::Reset_Device(bool reload_assets)
 			Gx_Capture_Forget();	// the device's material / projection / texture matrices are its defaults now, or unknown
 			if (hr != D3D_OK) {
 				Gx_Truth_Forget();
+				gxNoteReset("failed", (long)hr);
 				return false;	//reset failed.
 			}
 		}
 		else {
 			Gx_Truth_Forget();
+			gxNoteReset("lost", (long)hr);
 			return false;	//device is lost and can't be reset.
 		}
 		Gx_Truth_Reseed();	// Reset restored DXVK's default state (no-op unless the L2 check tracks the device truth)
@@ -1950,6 +2002,7 @@ bool DX8Wrapper::Reset_Device(bool reload_assets)
 		// propagating it would report a failed reset on healthy machines. Pillarbox_Setup logs its own failures.
 		Pillarbox_Setup(ResolutionWidth, ResolutionHeight);
 		WWDEBUG_SAY(("Device reset completed"));
+		gxNoteReset("ok", 0);
 		return true;
 	}
 	WWDEBUG_SAY(("Device reset failed"));
@@ -2338,6 +2391,10 @@ bool DX8Wrapper::Set_Render_Device(int dev, int width, int height, int bits, int
 	_PresentParameters.Flags=0;											// We're not going to lock the backbuffer
 
 	_PresentParameters.FullScreen_PresentationInterval = D3DPRESENT_INTERVAL_DEFAULT;
+	// GeneralsX: compatibility graphics presents exclusive fullscreen immediately, as DXVK does here (dxvk.conf
+	// presentInterval = 0): a vsynced double buffer would halve a 45 fps old GPU to 30. The engine's own FPS cap paces it.
+	if (Is_Compat_D3D9())
+		_PresentParameters.FullScreen_PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 	_PresentParameters.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
 
 	/*
@@ -2456,6 +2513,10 @@ bool DX8Wrapper::Set_Render_Device(int dev, int width, int height, int bits, int
 	/*
 	** Check the devices support for the requested MSAA mode then setup the multi sample type
 	*/
+	// GeneralsX: compatibility graphics renders without MSAA. Its pillarbox resolve is a multisampled CopyRects through
+	// d3d8to9 - the fragile path - and the GPUs that need this mode cannot afford the samples anyway.
+	if (Is_Compat_D3D9())
+		MultiSampleAntiAliasing = D3DMULTISAMPLE_NONE;
 	// GeneralsX: Step DOWN to the highest level the GPU supports (8 -> 4 -> 2) instead
 	// of dropping straight to none. Apple GPUs have no 8x through MoltenVK, so "MSAA 8x" there used to mean
 	// no anti-aliasing at all while the launcher promised the card "may lower the level it gets".

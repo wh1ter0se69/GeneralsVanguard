@@ -348,6 +348,7 @@ mapped into this VB.
 //=============================================================================
 Int HeightMapRenderObjClass::updateVB(DX8VertexBufferClass	*pVB, VERTEX_FORMAT *data, Int x0, Int y0, Int x1, Int y1, Int originX, Int originY, WorldHeightMap *pMap, RefRenderObjListIterator *pLightsIterator)
 {
+	const Real heightScale = pMap ? pMap->getHeightScale() : MAP_HEIGHT_SCALE;	// GeneralsX @feature the map's own height scale
 	Int i,j;
 	Vector3 lightRay[MAX_GLOBAL_LIGHTS];
 	Int xCoord, yCoord;
@@ -412,8 +413,8 @@ Int HeightMapRenderObjClass::updateVB(DX8VertexBufferClass	*pVB, VERTEX_FORMAT *
 				pMap->getAlphaUVData(mapX, mapY, UA, VA, alpha, &flipForBlend);
 
 				//top-left sample
-				l2r.Set(2*MAP_XY_FACTOR,0,MAP_HEIGHT_SCALE*(pMap->getDisplayHeight(mapX+cellOffset, mapY) - pMap->getDisplayHeight(un0, mapY)));
-				n2f.Set(0,2*MAP_XY_FACTOR,MAP_HEIGHT_SCALE*(pMap->getDisplayHeight(mapX, (mapY+cellOffset)) - pMap->getDisplayHeight(mapX, vn0)));
+				l2r.Set(2*MAP_XY_FACTOR,0,heightScale*(pMap->getDisplayHeight(mapX+cellOffset, mapY) - pMap->getDisplayHeight(un0, mapY)));
+				n2f.Set(0,2*MAP_XY_FACTOR,heightScale*(pMap->getDisplayHeight(mapX, (mapY+cellOffset)) - pMap->getDisplayHeight(mapX, vn0)));
 
 #ifdef ALLOW_TEMPORARIES
 				normalAtTexel= Normalize(Vector3::Cross_Product(l2r,n2f));
@@ -423,7 +424,7 @@ Int HeightMapRenderObjClass::updateVB(DX8VertexBufferClass	*pVB, VERTEX_FORMAT *
 
 				vb->x=xCoord;
 				vb->y=yCoord;
-				vb->z=  ((float)pMap->getDisplayHeight(mapX, mapY))*MAP_HEIGHT_SCALE;
+				vb->z=  ((float)pMap->getDisplayHeight(mapX, mapY))*heightScale;
 				vb->x = ADJUST_FROM_INDEX_TO_REAL(vb->x);
 				vb->y = ADJUST_FROM_INDEX_TO_REAL(vb->y);
 				vb->u1=U[0];
@@ -434,8 +435,8 @@ Int HeightMapRenderObjClass::updateVB(DX8VertexBufferClass	*pVB, VERTEX_FORMAT *
 				vb++;
 
 				//top-right sample
-				l2r.Set(2*MAP_XY_FACTOR,0,MAP_HEIGHT_SCALE*(pMap->getDisplayHeight(up1 , mapY ) - pMap->getDisplayHeight(mapX , mapY )));
-				n2f.Set(0,2*MAP_XY_FACTOR,MAP_HEIGHT_SCALE*(pMap->getDisplayHeight(mapX+cellOffset , (mapY+cellOffset) ) - pMap->getDisplayHeight(mapX+cellOffset , vn0 )));
+				l2r.Set(2*MAP_XY_FACTOR,0,heightScale*(pMap->getDisplayHeight(up1 , mapY ) - pMap->getDisplayHeight(mapX , mapY )));
+				n2f.Set(0,2*MAP_XY_FACTOR,heightScale*(pMap->getDisplayHeight(mapX+cellOffset , (mapY+cellOffset) ) - pMap->getDisplayHeight(mapX+cellOffset , vn0 )));
 
 #ifdef ALLOW_TEMPORARIES
 				normalAtTexel= Normalize(Vector3::Cross_Product(l2r,n2f));
@@ -445,7 +446,7 @@ Int HeightMapRenderObjClass::updateVB(DX8VertexBufferClass	*pVB, VERTEX_FORMAT *
 
 				vb->x=xCoord+cellOffset;
 				vb->y=yCoord;
-				vb->z=  ((float)pMap->getDisplayHeight(mapX+cellOffset, mapY))*MAP_HEIGHT_SCALE;
+				vb->z=  ((float)pMap->getDisplayHeight(mapX+cellOffset, mapY))*heightScale;
 				vb->x = ADJUST_FROM_INDEX_TO_REAL(vb->x);
 				vb->y = ADJUST_FROM_INDEX_TO_REAL(vb->y);
 				vb->u1=U[1];
@@ -456,8 +457,8 @@ Int HeightMapRenderObjClass::updateVB(DX8VertexBufferClass	*pVB, VERTEX_FORMAT *
 				vb++;
 
 				//bottom-right sample
-				l2r.Set(2*MAP_XY_FACTOR,0,MAP_HEIGHT_SCALE*(pMap->getDisplayHeight(up1 , (mapY+cellOffset) ) - pMap->getDisplayHeight(mapX , (mapY+cellOffset) )));
-				n2f.Set(0,2*MAP_XY_FACTOR,MAP_HEIGHT_SCALE*(pMap->getDisplayHeight(mapX+cellOffset , vp1 ) - pMap->getDisplayHeight(mapX+cellOffset , mapY )));
+				l2r.Set(2*MAP_XY_FACTOR,0,heightScale*(pMap->getDisplayHeight(up1 , (mapY+cellOffset) ) - pMap->getDisplayHeight(mapX , (mapY+cellOffset) )));
+				n2f.Set(0,2*MAP_XY_FACTOR,heightScale*(pMap->getDisplayHeight(mapX+cellOffset , vp1 ) - pMap->getDisplayHeight(mapX+cellOffset , mapY )));
 
 #ifdef ALLOW_TEMPORARIES
 				normalAtTexel= Normalize(Vector3::Cross_Product(l2r,n2f));
@@ -471,7 +472,7 @@ Int HeightMapRenderObjClass::updateVB(DX8VertexBufferClass	*pVB, VERTEX_FORMAT *
 				} else {
 					vb->y=yCoord+cellOffset;
 				}
-				vb->z=  ((float)pMap->getDisplayHeight(mapX+cellOffset, mapY+cellOffset))*MAP_HEIGHT_SCALE;
+				vb->z=  ((float)pMap->getDisplayHeight(mapX+cellOffset, mapY+cellOffset))*heightScale;
 				vb->x = ADJUST_FROM_INDEX_TO_REAL(vb->x);
 				vb->y = ADJUST_FROM_INDEX_TO_REAL(vb->y);
 				vb->u1=U[2];
@@ -482,8 +483,8 @@ Int HeightMapRenderObjClass::updateVB(DX8VertexBufferClass	*pVB, VERTEX_FORMAT *
 				vb++;
 
 				//bottom-left sample
-				l2r.Set(2*MAP_XY_FACTOR,0,MAP_HEIGHT_SCALE*(pMap->getDisplayHeight(mapX+cellOffset , (mapY+cellOffset) ) - pMap->getDisplayHeight(un0 , (mapY+cellOffset) )));
-				n2f.Set(0,2*MAP_XY_FACTOR,MAP_HEIGHT_SCALE*(pMap->getDisplayHeight(mapX , vp1 ) - pMap->getDisplayHeight(mapX , mapY )));
+				l2r.Set(2*MAP_XY_FACTOR,0,heightScale*(pMap->getDisplayHeight(mapX+cellOffset , (mapY+cellOffset) ) - pMap->getDisplayHeight(un0 , (mapY+cellOffset) )));
+				n2f.Set(0,2*MAP_XY_FACTOR,heightScale*(pMap->getDisplayHeight(mapX , vp1 ) - pMap->getDisplayHeight(mapX , mapY )));
 
 #ifdef ALLOW_TEMPORARIES
 				normalAtTexel= Normalize(Vector3::Cross_Product(l2r,n2f));
@@ -502,7 +503,7 @@ Int HeightMapRenderObjClass::updateVB(DX8VertexBufferClass	*pVB, VERTEX_FORMAT *
 				} else {
 					vb->y=yCoord+cellOffset;
 				}
-				vb->z=  ((float)pMap->getDisplayHeight(mapX, mapY+cellOffset))*MAP_HEIGHT_SCALE;
+				vb->z=  ((float)pMap->getDisplayHeight(mapX, mapY+cellOffset))*heightScale;
 				vb->x = ADJUST_FROM_INDEX_TO_REAL(vb->x);
 				vb->y = ADJUST_FROM_INDEX_TO_REAL(vb->y);
 				vb->u1=U[3];
@@ -592,6 +593,7 @@ The vertex locations and texture coords are unchanged.
 */
 Int HeightMapRenderObjClass::updateVBForLight(DX8VertexBufferClass	*pVB, VERTEX_FORMAT *data, Int x0, Int y0, Int x1, Int y1, Int originX, Int originY, W3DDynamicLight *pLights[], Int numLights)
 {
+	const Real heightScale = m_map ? m_map->getHeightScale() : MAP_HEIGHT_SCALE;	// GeneralsX @feature the map's own height scale
 
 #if (OPTIMIZED_HEIGHTMAP_LIGHTING)	// (gth) if optimizations are enabled, jump over to the "optimized" version of this function.
 	return updateVBForLightOptimized( pVB, data, x0, y0, x1, y1, originX, originY, pLights, numLights );
@@ -704,8 +706,8 @@ Int HeightMapRenderObjClass::updateVBForLight(DX8VertexBufferClass	*pVB, VERTEX_
 				Vector3 lightRay(0,0,0);
 
 				//top-left sample
-				l2r.Set(2*MAP_XY_FACTOR,0,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(mapX+1, mapY) - m_map->getDisplayHeight(un0, mapY)));
-				n2f.Set(0,2*MAP_XY_FACTOR,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(mapX, (mapY+1)) - m_map->getDisplayHeight(mapX, vn0)));
+				l2r.Set(2*MAP_XY_FACTOR,0,heightScale*(m_map->getDisplayHeight(mapX+1, mapY) - m_map->getDisplayHeight(un0, mapY)));
+				n2f.Set(0,2*MAP_XY_FACTOR,heightScale*(m_map->getDisplayHeight(mapX, (mapY+1)) - m_map->getDisplayHeight(mapX, vn0)));
 
 #ifdef ALLOW_TEMPORARIES
 				normalAtTexel= Normalize(Vector3::Cross_Product(l2r,n2f));
@@ -717,8 +719,8 @@ Int HeightMapRenderObjClass::updateVBForLight(DX8VertexBufferClass	*pVB, VERTEX_
 				vb++;	vbMirror++;
 
 				//top-right sample
-				l2r.Set(2*MAP_XY_FACTOR,0,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(up1 , mapY ) - m_map->getDisplayHeight(mapX , mapY )));
-				n2f.Set(0,2*MAP_XY_FACTOR,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(mapX+1 , (mapY+1) ) - m_map->getDisplayHeight(mapX+1 , vn0 )));
+				l2r.Set(2*MAP_XY_FACTOR,0,heightScale*(m_map->getDisplayHeight(up1 , mapY ) - m_map->getDisplayHeight(mapX , mapY )));
+				n2f.Set(0,2*MAP_XY_FACTOR,heightScale*(m_map->getDisplayHeight(mapX+1 , (mapY+1) ) - m_map->getDisplayHeight(mapX+1 , vn0 )));
 
 #ifdef ALLOW_TEMPORARIES
 				normalAtTexel= Normalize(Vector3::Cross_Product(l2r,n2f));
@@ -730,8 +732,8 @@ Int HeightMapRenderObjClass::updateVBForLight(DX8VertexBufferClass	*pVB, VERTEX_
 				vb++;	vbMirror++;
 
 				//bottom-right sample
-				l2r.Set(2*MAP_XY_FACTOR,0,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(up1 , (mapY+1) ) - m_map->getDisplayHeight(mapX , (mapY+1) )));
-				n2f.Set(0,2*MAP_XY_FACTOR,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(mapX+1 , vp1 ) - m_map->getDisplayHeight(mapX+1 , mapY )));
+				l2r.Set(2*MAP_XY_FACTOR,0,heightScale*(m_map->getDisplayHeight(up1 , (mapY+1) ) - m_map->getDisplayHeight(mapX , (mapY+1) )));
+				n2f.Set(0,2*MAP_XY_FACTOR,heightScale*(m_map->getDisplayHeight(mapX+1 , vp1 ) - m_map->getDisplayHeight(mapX+1 , mapY )));
 
 #ifdef ALLOW_TEMPORARIES
 				normalAtTexel= Normalize(Vector3::Cross_Product(l2r,n2f));
@@ -743,8 +745,8 @@ Int HeightMapRenderObjClass::updateVBForLight(DX8VertexBufferClass	*pVB, VERTEX_
 				vb++;	vbMirror++;
 
 				//bottom-left sample
-				l2r.Set(2*MAP_XY_FACTOR,0,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(mapX+1 , (mapY+1) ) - m_map->getDisplayHeight(un0 , (mapY+1) )));
-				n2f.Set(0,2*MAP_XY_FACTOR,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(mapX , vp1 ) - m_map->getDisplayHeight(mapX , mapY )));
+				l2r.Set(2*MAP_XY_FACTOR,0,heightScale*(m_map->getDisplayHeight(mapX+1 , (mapY+1) ) - m_map->getDisplayHeight(un0 , (mapY+1) )));
+				n2f.Set(0,2*MAP_XY_FACTOR,heightScale*(m_map->getDisplayHeight(mapX , vp1 ) - m_map->getDisplayHeight(mapX , mapY )));
 
 #ifdef ALLOW_TEMPORARIES
 				normalAtTexel= Normalize(Vector3::Cross_Product(l2r,n2f));
@@ -764,6 +766,7 @@ Int HeightMapRenderObjClass::updateVBForLight(DX8VertexBufferClass	*pVB, VERTEX_
 
 Int HeightMapRenderObjClass::updateVBForLightOptimized(DX8VertexBufferClass	*pVB, VERTEX_FORMAT *data, Int x0, Int y0, Int x1, Int y1, Int originX, Int originY, W3DDynamicLight *pLights[], Int numLights)
 {
+	const Real heightScale = m_map ? m_map->getHeightScale() : MAP_HEIGHT_SCALE;	// GeneralsX @feature the map's own height scale
 	Int i,j,k;
 	Int vn0,un0,vp1,up1;
 	Vector3 l2r,n2f,normalAtTexel;
@@ -870,8 +873,8 @@ Int HeightMapRenderObjClass::updateVBForLightOptimized(DX8VertexBufferClass	*pVB
 
 				// top-left sample -> only compute when i==0 and j==0
 				if ((i==x0) && (j==y0)) {
-					l2r.Set(2*MAP_XY_FACTOR,0,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(mapX+1, mapY) - m_map->getDisplayHeight(un0, mapY)));
-					n2f.Set(0,2*MAP_XY_FACTOR,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(mapX, (mapY+1)) - m_map->getDisplayHeight(mapX, vn0)));
+					l2r.Set(2*MAP_XY_FACTOR,0,heightScale*(m_map->getDisplayHeight(mapX+1, mapY) - m_map->getDisplayHeight(un0, mapY)));
+					n2f.Set(0,2*MAP_XY_FACTOR,heightScale*(m_map->getDisplayHeight(mapX, (mapY+1)) - m_map->getDisplayHeight(mapX, vn0)));
 					Vector3::Normalized_Cross_Product(l2r, n2f, &normalAtTexel);
 					doTheDynamicLight(vb, vbMirror, &lightRay, &normalAtTexel, pLights, numLights);
 				}
@@ -879,8 +882,8 @@ Int HeightMapRenderObjClass::updateVBForLightOptimized(DX8VertexBufferClass	*pVB
 
 				//top-right sample -> compute when j==0, then copy to (right,0)
 				if (j==y0) {
-					l2r.Set(2*MAP_XY_FACTOR,0,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(up1 , mapY ) - m_map->getDisplayHeight(mapX , mapY )));
-					n2f.Set(0,2*MAP_XY_FACTOR,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(mapX+1 , (mapY+1) ) - m_map->getDisplayHeight(mapX+1 , vn0 )));
+					l2r.Set(2*MAP_XY_FACTOR,0,heightScale*(m_map->getDisplayHeight(up1 , mapY ) - m_map->getDisplayHeight(mapX , mapY )));
+					n2f.Set(0,2*MAP_XY_FACTOR,heightScale*(m_map->getDisplayHeight(mapX+1 , (mapY+1) ) - m_map->getDisplayHeight(mapX+1 , vn0 )));
 					Vector3::Normalized_Cross_Product(l2r, n2f, &normalAtTexel);
 					light_copy = doTheDynamicLight(vb, vbMirror, &lightRay, &normalAtTexel, pLights, numLights);
 
@@ -892,8 +895,8 @@ Int HeightMapRenderObjClass::updateVBForLightOptimized(DX8VertexBufferClass	*pVB
 				vb++;	vbMirror++;
 
 				//bottom-right sample -> always compute, then copy to (right,3), (down,1), (down+right,0)
-				l2r.Set(2*MAP_XY_FACTOR,0,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(up1 , (mapY+1) ) - m_map->getDisplayHeight(mapX , (mapY+1) )));
-				n2f.Set(0,2*MAP_XY_FACTOR,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(mapX+1 , vp1 ) - m_map->getDisplayHeight(mapX+1 , mapY )));
+				l2r.Set(2*MAP_XY_FACTOR,0,heightScale*(m_map->getDisplayHeight(up1 , (mapY+1) ) - m_map->getDisplayHeight(mapX , (mapY+1) )));
+				n2f.Set(0,2*MAP_XY_FACTOR,heightScale*(m_map->getDisplayHeight(mapX+1 , vp1 ) - m_map->getDisplayHeight(mapX+1 , mapY )));
 				Vector3::Normalized_Cross_Product(l2r, n2f, &normalAtTexel);
 				light_copy = doTheDynamicLight(vb, vbMirror, &lightRay, &normalAtTexel, pLights, numLights);
 
@@ -916,8 +919,8 @@ Int HeightMapRenderObjClass::updateVBForLightOptimized(DX8VertexBufferClass	*pVB
 
 				//bottom-left sample -> compute when i==0, otherwise copy from (left,2)
 				if (i==x0) {
-					l2r.Set(2*MAP_XY_FACTOR,0,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(mapX+1 , (mapY+1) ) - m_map->getDisplayHeight(un0 , (mapY+1) )));
-					n2f.Set(0,2*MAP_XY_FACTOR,MAP_HEIGHT_SCALE*(m_map->getDisplayHeight(mapX , vp1 ) - m_map->getDisplayHeight(mapX , mapY )));
+					l2r.Set(2*MAP_XY_FACTOR,0,heightScale*(m_map->getDisplayHeight(mapX+1 , (mapY+1) ) - m_map->getDisplayHeight(un0 , (mapY+1) )));
+					n2f.Set(0,2*MAP_XY_FACTOR,heightScale*(m_map->getDisplayHeight(mapX , vp1 ) - m_map->getDisplayHeight(mapX , mapY )));
 					Vector3::Normalized_Cross_Product(l2r, n2f, &normalAtTexel);
 					light_copy = doTheDynamicLight(vb, vbMirror, &lightRay, &normalAtTexel, pLights, numLights);
 
@@ -1696,7 +1699,7 @@ static Bool check(const FrustumClass & frustum, WorldHeightMap *pMap, Int x, Int
 		return(true);
 	}
 	Int height = pMap->getHeight(x, y);
-	Vector3 loc((x-pMap->getBorderSizeInline())*MAP_XY_FACTOR, (y-pMap->getBorderSizeInline())*MAP_XY_FACTOR, height*MAP_HEIGHT_SCALE);
+	Vector3 loc((x-pMap->getBorderSizeInline())*MAP_XY_FACTOR, (y-pMap->getBorderSizeInline())*MAP_XY_FACTOR, height*pMap->getHeightScale());
 	if (CollisionMath::Overlap_Test(frustum,loc) == CollisionMath::INSIDE) {
 		if (x<visMinX) visMinX=x;
 		if (x>visMaxX) visMaxX=x;
@@ -1837,6 +1840,10 @@ void HeightMapRenderObjClass::updateCenter(CameraClass *camera, const Vector3 *c
 			}
 		}
 		intersectionZ = (float)minHt;
+		// GeneralsX @feature The lowest height byte stands in for world Z here. On a map with a height scale multiplier above 1
+		// the bytes reach far higher, so it takes the real world Z of that byte (k = 1 keeps the value as it was).
+		if (m_map->getHeightScaleK() > 1)
+			intersectionZ = minHt * m_map->getHeightScale();
 	//	float aspect = camera->Get_Aspect_Ratio();
 
 		Vector2 min,max;
@@ -2351,6 +2358,7 @@ void HeightMapRenderObjClass::renderTerrainPass(CameraClass *pCamera)
 blended together.  Used primarily for corner cases where 3 different textures meet.*/
 void HeightMapRenderObjClass::renderExtraBlendTiles()
 {
+	const Real heightScale = m_map->getHeightScale();	// GeneralsX @feature the map's own height scale
 	Int vertexCount = 0;
 	Int indexCount = 0;
 	Int xExtent = m_map->getXExtent();
@@ -2416,10 +2424,10 @@ void HeightMapRenderObjClass::renderExtraBlendTiles()
 
 				Int idx = x+y*xExtent;
 
-				Real p0=data[idx]*MAP_HEIGHT_SCALE;
-				Real p1=data[idx+1]*MAP_HEIGHT_SCALE;
-				Real p2=data[idx + 1 + xExtent]*MAP_HEIGHT_SCALE;
-				Real p3=data[idx + xExtent]*MAP_HEIGHT_SCALE;
+				Real p0=data[idx]*heightScale;
+				Real p1=data[idx+1]*heightScale;
+				Real p2=data[idx + 1 + xExtent]*heightScale;
+				Real p3=data[idx + xExtent]*heightScale;
 				if (cliffState && abs(p0-p2) > abs(p1-p3))	//cliffs sometimes force a flip
 					flipState = TRUE;
 

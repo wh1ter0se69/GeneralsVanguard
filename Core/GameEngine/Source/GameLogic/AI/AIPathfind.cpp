@@ -27,6 +27,7 @@
 // Author: Michael S. Booth, October 2001
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
+#include <algorithm>
 #include <chrono>	// GeneralsX: A* search probe only - see the GXPathSearchProbe block below.
 
 #include "GameLogic/AIPathfind.h"
@@ -5123,6 +5124,9 @@ void Pathfinder::reset()
 	m_gxHumanHead = 0;
 	m_gxHumanTail = 0;
 	m_gxAiStarved = false;
+	m_gxAiCursor = 0;
+	m_gxAiPlanLen = 0;
+	m_gxAiPlanNext = 0;
 #endif
 	m_queuePRHead = 0;
 	m_queuePRTail = 0;
@@ -7450,22 +7454,24 @@ void Pathfinder::processPathfindQueue()
 	// one search can overrun the whole budget, so "the AI keeps a third" needs a carry: when
 	// the AI lane was served nothing last pass while it had requests, it goes FIRST this pass (one request), then the usual
 	// order. Under back-to-back overruns the lanes alternate; the per-pass cost bound is the same as before.
+	// Within the AI lane the players take turns (gxPlanAiLane); the human lane stays first come, first served.
 	Int aiServed = 0;
-	if (m_gxAiStarved) {
-		while (aiServed == 0 && m_queuePRTail != m_queuePRHead) {
-			if (gxServeOne(m_queuedPathfindRequests, m_queuePRHead, m_queuePRTail, pathsFound)) ++aiServed;
-		}
+	gxPlanAiLane();
+	if (m_gxAiStarved && gxServeRoundRobin(pathsFound)) {
+		++aiServed;
 	}
 	const Int humanShare = (Int)((PATHFIND_CELLS_PER_FRAME * 2) / 3);
 	while (m_cumulativeCellsAllocated < humanShare && m_gxHumanTail != m_gxHumanHead) {
 		gxServeOne(m_gxHumanRequests, m_gxHumanHead, m_gxHumanTail, pathsFound);
 	}
 #endif
+#if RTS_ZEROHOUR
+	while (m_cumulativeCellsAllocated < PATHFIND_CELLS_PER_FRAME && gxServeRoundRobin(pathsFound)) {
+		++aiServed;
+	}
+#else
 	while (m_cumulativeCellsAllocated < PATHFIND_CELLS_PER_FRAME &&
 		m_queuePRTail!=m_queuePRHead) {
-#if RTS_ZEROHOUR
-		if (gxServeOne(m_queuedPathfindRequests, m_queuePRHead, m_queuePRTail, pathsFound)) ++aiServed;
-#else
 		Object *obj = TheGameLogic->findObjectByID(m_queuedPathfindRequests[m_queuePRHead]);
 		m_queuedPathfindRequests[m_queuePRHead] = INVALID_ID;
 		if (obj) {
@@ -7479,12 +7485,13 @@ void Pathfinder::processPathfindQueue()
 		if (m_queuePRHead >= PATHFIND_QUEUE_LEN) {
 			m_queuePRHead = 0;
 		}
-#endif
 	}
+#endif
 #if RTS_ZEROHOUR
 	while (m_cumulativeCellsAllocated < PATHFIND_CELLS_PER_FRAME && m_gxHumanTail != m_gxHumanHead) {
 		gxServeOne(m_gxHumanRequests, m_gxHumanHead, m_gxHumanTail, pathsFound);
 	}
+	gxCompactAiLane();
 	m_gxAiStarved = (aiServed == 0 && m_queuePRTail != m_queuePRHead);
 #endif
 	if (pathsFound > 0) {
@@ -7532,6 +7539,75 @@ Bool Pathfinder::gxServeOne( ObjectID *ring, Int &head, Int tail, Int &pathsFoun
 		head = 0;
 	}
 	return served;
+}
+
+// GeneralsX: AI-LANE ROUND ROBIN. A pass serves the AI lane's players in turn, in player-index order from m_gxAiCursor, one
+// request per player per turn, each player's oldest first, so one player's flood of requests cannot delay every other player's
+// paths. The cursor moves past each served player and carries over to the next pass, so a pass that ends on one overrunning
+// search resumes at the next player. The player is the requester's controlling player (simulation state every peer holds
+// identically). The order is planned once per pass (a request queued during the pass waits for the next one), so a pass that
+// serves many cheap or cancelled requests costs work linear in the lane.
+static Int gxAiLanePlayer( Object *obj )
+{
+	const Player *owner = obj->getControllingPlayer();
+	const Int player = owner != nullptr ? owner->getPlayerIndex() : 0;
+	return (player >= 0 && player < MAX_PLAYER_COUNT) ? player : 0;
+}
+
+void Pathfinder::gxPlanAiLane()
+{
+	Int turn[MAX_PLAYER_COUNT];
+	for (Int p = 0; p < MAX_PLAYER_COUNT; ++p) {
+		turn[p] = 0;
+	}
+	m_gxAiPlanLen = 0;
+	m_gxAiPlanNext = 0;
+	for (Int r = m_queuePRHead; r != m_queuePRTail; r = (r + 1) % PATHFIND_QUEUE_LEN) {
+		Object *obj = TheGameLogic->findObjectByID(m_queuedPathfindRequests[r]);
+		if (obj == nullptr || obj->getAIUpdateInterface() == nullptr) {
+			continue;
+		}
+		const Int player = gxAiLanePlayer(obj);
+		const Int dist = (player - m_gxAiCursor + MAX_PLAYER_COUNT) % MAX_PLAYER_COUNT;
+		// key: the player's turn, then its distance from the cursor, then the slot; unique, so the sorted order is exact
+		m_gxAiPlan[m_gxAiPlanLen++] = (turn[player]++ * MAX_PLAYER_COUNT + dist) * PATHFIND_QUEUE_LEN + r;
+	}
+	std::sort(m_gxAiPlan, m_gxAiPlan + m_gxAiPlanLen);
+}
+
+Bool Pathfinder::gxServeRoundRobin( Int &pathsFound )
+{
+	while (m_gxAiPlanNext < m_gxAiPlanLen) {
+		const Int slot = m_gxAiPlan[m_gxAiPlanNext++] % PATHFIND_QUEUE_LEN;
+		Object *obj = TheGameLogic->findObjectByID(m_queuedPathfindRequests[slot]);
+		m_queuedPathfindRequests[slot] = INVALID_ID;	// out of the lane before doPathfind, which may queue it again (at the tail)
+		if (obj == nullptr || obj->getAIUpdateInterface() == nullptr) {
+			continue;	// gone, or moved to the human lane (its slot was emptied), since the plan
+		}
+		m_gxAiCursor = (gxAiLanePlayer(obj) + 1) % MAX_PLAYER_COUNT;
+		obj->getAIUpdateInterface()->doPathfind(this);
+		pathsFound++;
+		return true;
+	}
+	return false;
+}
+
+void Pathfinder::gxCompactAiLane()
+{
+	Int w = m_queuePRHead;
+	for (Int r = m_queuePRHead; r != m_queuePRTail; r = (r + 1) % PATHFIND_QUEUE_LEN) {
+		Object *obj = TheGameLogic->findObjectByID(m_queuedPathfindRequests[r]);
+		if (obj != nullptr && obj->getAIUpdateInterface() != nullptr) {
+			m_queuedPathfindRequests[w] = m_queuedPathfindRequests[r];
+			w = (w + 1) % PATHFIND_QUEUE_LEN;
+		}
+	}
+	for (Int r = w; r != m_queuePRTail; r = (r + 1) % PATHFIND_QUEUE_LEN) {
+		m_queuedPathfindRequests[r] = INVALID_ID;
+	}
+	m_queuePRTail = w;
+	m_gxAiPlanLen = 0;
+	m_gxAiPlanNext = 0;
 }
 #endif
 
@@ -13049,6 +13125,7 @@ void Pathfinder::crc( Xfer *xfer )
 		xfer->xferInt(&m_gxHumanHead);
 		xfer->xferInt(&m_gxHumanTail);
 		xfer->xferBool(&m_gxAiStarved);
+		xfer->xferInt(&m_gxAiCursor);
 	}
 #endif
 
@@ -13130,6 +13207,9 @@ void Pathfinder::gxXferQueue( Xfer *xfer )
 			xfer->xferObjectID( &m_queuedPathfindRequests[i] );
 		m_queuePRHead = 0;
 		m_queuePRTail = count;
+#if RTS_ZEROHOUR
+		m_gxAiCursor = 0;	// a version 1 or 2 block has no cursor; version 3 reads it after the human lane
+#endif
 	}
 	fprintf( stderr, "[GXPQ] %s n=%d\n", xfer->getXferMode() == XFER_SAVE ? "save" : "load", count );
 }
@@ -13162,6 +13242,16 @@ void Pathfinder::gxXferHumanQueue( Xfer *xfer )
 	xfer->xferBool( &m_gxAiStarved );	// the lane carry (processPathfindQueue)
 }
 
+// GeneralsX: the AI lane's round-robin cursor, after the human lane in the same block (GXPathfindQueueState version 3).
+void Pathfinder::gxXferAiCursor( Xfer *xfer )
+{
+	xfer->xferInt( &m_gxAiCursor );
+	if (m_gxAiCursor < 0 || m_gxAiCursor >= MAX_PLAYER_COUNT) {
+		DEBUG_CRASH(( "GXPathfindQueue: invalid AI lane cursor %d", m_gxAiCursor ));
+		throw SC_INVALID_DATA;
+	}
+}
+
 #endif
 class GXPathfindQueueState : public Snapshot
 {
@@ -13170,7 +13260,8 @@ protected:
 #if RTS_ZEROHOUR
 	/** Version Info:
 		* 1: Initial version - Int count, then count ObjectIDs, the queue head first
-		* 2: GeneralsX: - then the human-order lane the same way */
+		* 2: GeneralsX: - then the human-order lane the same way
+		* 3: GeneralsX: - then the AI lane's round-robin cursor, Int */
 #else
 	/** Version Info:
 		* 1: Initial version - Int count, then count ObjectIDs, the queue head first */
@@ -13178,7 +13269,7 @@ protected:
 	virtual void xfer( Xfer *xfer ) override
 	{
 #if RTS_ZEROHOUR
-		XferVersion currentVersion = 2;
+		XferVersion currentVersion = 3;
 #else
 		XferVersion currentVersion = 1;
 #endif
@@ -13188,6 +13279,8 @@ protected:
 #if RTS_ZEROHOUR
 		if (version >= 2)
 			TheAI->pathfinder()->gxXferHumanQueue( xfer );
+		if (version >= 3)
+			TheAI->pathfinder()->gxXferAiCursor( xfer );	// older saves load with the cursor Pathfinder::reset gave it, 0
 #endif
 	}
 	virtual void loadPostProcess() override {}

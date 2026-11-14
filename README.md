@@ -70,8 +70,8 @@ the game binary is still `GeneralsXZH`, and files and install folders keep the `
   simulation changes must replay to identical per-frame CRCs; speed changes are measured A/B.
 
 This repository holds the source of each published release as one snapshot commit, tagged with its version. The
-current tag, `v0.9.73`, is the source of the 0.9.73 release and was cut from development commit
-`046894a397e044d8493ed2e57406d4264b16aa22`; [SOURCE.md](SOURCE.md) lists exactly what differs from that commit.
+current tag, `v0.9.74`, is the source of the 0.9.74 release and was cut from development commit
+`7c6a2ad43a0f00b7cf9511a340ef06c3f721d38f`; [SOURCE.md](SOURCE.md) lists exactly what differs from that commit.
 Downloads and release notes: [wh1ter0se.dev/generals](https://wh1ter0se.dev/generals) and
 [wh1ter0se.dev/generals/changes](https://wh1ter0se.dev/generals/changes).
 
@@ -116,19 +116,19 @@ Most of this code is not ours, and the projects it comes from did the foundation
 
 ### Lines of code by origin
 
-Engine C/C++ in `v0.9.73` (`Core/`, `Generals/`, `GeneralsMD/`, `Dependencies/`), each line counted toward the
+Engine C/C++ in `v0.9.74` (`Core/`, `Generals/`, `GeneralsMD/`, `Dependencies/`), each line counted toward the
 earliest project that already has it:
 
 | Engine C/C++ | Lines | Share |
 |---|---:|---:|
-| EA's 2003 release | 1,408,246 | 71.3% |
-| TheSuperHackers | 216,230 | 10.9% |
-| Fighter19 / fbraz3 / ammaarreshi, not in upstream | 27,044 | 1.4% |
-| This fork | 323,492 | 16.4% |
-| **Total** | **1,975,012** | |
+| EA's 2003 release | 1,408,086 | 71.0% |
+| TheSuperHackers | 216,232 | 10.9% |
+| Fighter19 / fbraz3 / ammaarreshi, not in upstream | 26,981 | 1.4% |
+| This fork | 333,194 | 16.8% |
+| **Total** | **1,984,493** | |
 
 Of this fork's lines, 45,529 are vendored third-party code, 30,576 are generated shader bytecode and 34,867 are
-tests; 212,520 are hand-written engine code. Method, the commits compared and the command to reproduce it:
+tests; 222,222 are hand-written engine code. Method, the commits compared and the command to reproduce it:
 [docs/LINES_BY_ORIGIN.md](docs/LINES_BY_ORIGIN.md).
 
 ## How it is built
@@ -190,7 +190,7 @@ untouched; packaging and the installer are in `scripts/build/windows/`. The Gene
 separate program and is not part of this repository; the game builds and runs without it. The Windows updater's source
 (`GeneralsXUpdate.exe`) is: `scripts/build/windows/launcher/`.
 
-A game built from the `v0.9.73` tag cannot play with the published 0.9.73: publishing edited comments in files the
+A game built from the `v0.9.74` tag cannot play with the published 0.9.74: publishing edited comments in files the
 simulation's source id is computed from, so the two refuse each other. [SOURCE.md](SOURCE.md) has the numbers and
 how to check that only comments differ; from the next release on, the tag is the tree the binaries were built from.
 

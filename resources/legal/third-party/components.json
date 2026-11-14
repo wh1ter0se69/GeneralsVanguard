@@ -900,7 +900,26 @@
     "d3d8.dll",
     "d3d9.dll"
    ],
-   "note": "The native renderer (builds with GX_RENDER_NATIVE: macOS and Windows x64) also compiles ADAPTED DXVK source into the executable: DXVK 3.0's fixed-function GLSL and DXVK 2.6's CPU matrix arithmetic, altered as recorded in GXRender/third_party/SOURCE.txt and GXRender/Pipeline/shaders/SOURCE.txt."
+   "note": "The native renderer (builds with GX_RENDER_NATIVE: macOS and Windows x64) also compiles ADAPTED DXVK source into the executable: DXVK 3.0's fixed-function GLSL and DXVK 2.6's CPU matrix arithmetic, altered as recorded in GXRender/third_party/SOURCE.txt and GXRender/Pipeline/shaders/SOURCE.txt. The Windows x64 executable also compiles DXVK 2.6's D3D8 vertex-shader translation (src/d3d8/d3d8_shader.cpp), adapted in Dependencies/d3d8to9/source/gx_shader_tokens.cpp (d3d8to9 patch 0003) with the notice kept."
+  },
+  {
+   "id": "d3d8to9",
+   "name": "d3d8to9 (Direct3D 8 to Direct3D 9 translator, patched)",
+   "version": "1.16.0 (commit 255338f6)",
+   "license": "BSD-2-Clause",
+   "url": "https://github.com/crosire/d3d8to9",
+   "copyright": [
+    "Copyright (C) 2015 Patrick Mours"
+   ],
+   "platforms": [
+    "windows"
+   ],
+   "where": "compiled into generalszh.exe (compatibility graphics, used when a PC has no Vulkan driver)",
+   "texts": [
+    "d3d8to9.txt"
+   ],
+   "files": [],
+   "note": "Vendored in Dependencies/d3d8to9 with five patches (SOURCE.txt, patches/): Windows' own d3d9.dll loaded from System32 by full path, no log file, message box or browser; x64 handle tables for shaders and state blocks (upstream stores pointers in 32-bit handles); shaders translated without D3DX; CopyRects without D3DX and truthful shader caps. Built into the executable, so no payload file of its own; this entry is written by hand."
   },
   {
    "id": "libdisplay-info",

@@ -61,6 +61,39 @@ IDI_ApplicationIcon     ICON    DISCARDABLE     "GENERALS.ICO"
 // Add manifest to specify that the app is DPI aware and prevent forced scaling by the system
 1 24 "app.manifest"
 
+// GeneralsX @feature 13/11/2026 generalszh.exe's name in Task Manager and Explorer (FileDescription is the line Task
+// Manager shows); without a version resource it showed the bare file name. The file stays generalszh.exe: updaters, the
+// stop signal and the idle alarm find the game by it. Same shape as GeneralsXUpdate.exe's (gxlaunch.rc).
+#include <winver.h>
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION     1,0,0,0
+ PRODUCTVERSION  1,0,0,0
+ FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+ FILEFLAGS       0
+ FILEOS          VOS_NT_WINDOWS32
+ FILETYPE        VFT_APP
+ FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName",      "Generals Vanguard"
+            VALUE "FileDescription",  "Generals Vanguard"
+            VALUE "FileVersion",      "1.0.0.0"
+            VALUE "InternalName",     "generalszh"
+            VALUE "OriginalFilename", "generalszh.exe"
+            VALUE "ProductName",      "Generals Vanguard"
+            VALUE "ProductVersion",   "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END
+
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

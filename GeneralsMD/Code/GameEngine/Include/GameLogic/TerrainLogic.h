@@ -313,6 +313,8 @@ public:
 
   void flattenTerrain(Object *obj);  ///< Flatten the terrain under a building.
   void createCraterInTerrain(Object *obj);  ///< Flatten the terrain under a building.
+	Real getHeightScale() const { return m_heightScale; }	///< GeneralsX: world units per height byte on this map
+	Int getHeightScaleK() const { return m_heightScaleK; }	///< GeneralsX: the map's height scale multiplier, 1 for older maps
 
 protected:
 
@@ -340,6 +342,8 @@ protected:
 	UnsignedByte	*m_mapData;									///< array of height samples
 	Int	m_mapDX;															///< width of map samples
 	Int	m_mapDY;															///< height of map samples
+	Int m_heightScaleK;													///< GeneralsX: the map's height scale multiplier k (WorldHeightMap::getHeightScaleK)
+	Real m_heightScale;													///< GeneralsX: MAP_HEIGHT_SCALE * k, set with the map
 
 	VecICoord2D m_boundaries;
 	Int m_activeBoundary;

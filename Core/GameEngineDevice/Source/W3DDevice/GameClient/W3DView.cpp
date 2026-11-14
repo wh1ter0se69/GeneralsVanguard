@@ -1040,6 +1040,11 @@ void W3DView::updateCameraClipPlanes(const Matrix3D &transform)
 
 		// Final far plane
 		farZ = std::max(projectedDistanceToCenter + projectedRadiusToEdge, 0.0f);
+
+		// GeneralsX @feature The bound above sits at the lowest ground and has no height. A map with a height scale
+		// multiplier (k > 1) can rise hundreds of units above it, so its height range is projected too.
+		if (heightMap->getHeightScaleK() > 1)
+			farZ += fabs((TheTerrainRenderObject->getMaxHeight() - minZ) * camDir.Z);
 	}
 	else
 	{

@@ -38,6 +38,7 @@ class AIGroup;
 class AIStateMachine;
 class AttackPriorityInfo;
 class DamageInfo;
+class PartitionFilter;
 class DozerAIInterface;
 class Object;
 class Path;
@@ -546,7 +547,7 @@ public:
 	///< States should call this with calledByAI set true to prevent them from checking every frame
 	///< States that are doing idle checks should call with calledDuringIdle set true so that they check their
 
-	Object *getNextMoodTarget( Bool calledByAI, Bool calledDuringIdle );
+	Object *getNextMoodTarget( Bool calledByAI, Bool calledDuringIdle, PartitionFilter *extraFilter = nullptr );	///< extraFilter: one more filter for the enemy search
 	UnsignedInt getNextMoodCheckTime() const { return m_nextMoodCheckTime; }
 
 	// This function will return a combination of MoodMatrixParameter flags.
@@ -578,6 +579,7 @@ public:
 	void setIgnoreCollisionTime(Int frames) { m_ignoreCollisionsUntil = TheGameLogic->getFrame() + frames; }
 
 	void setQueueForPathTime(Int frames);
+	Int gxQuickRepathHold(Int retailFrames);	///< the hold for a path request made within 3 frames of the last path
 
 	// For the attack move, that switches from move to attack, and the attack is CMD_FROM_AI,
 	// while the move is the original command source.  John A.
@@ -711,6 +713,7 @@ private:
 	Coord3D			m_requestedDestination;
 	Coord3D			m_requestedDestination2;
 	UnsignedInt	m_pathTimestamp;						///< time of path construction
+	UnsignedInt	m_gxQuickRunStart;					///< first frame of the current run of quick path re-requests, 0 = none; not saved, like m_pathTimestamp
 	ObjectID		m_ignoreObstacleID;					///< ignore this obstacle when pathfinding
 	Real				m_pathExtraDistance;				///< If we are following a waypoint path, there will be extra distance beyond the current path.
 	ICoord2D		m_pathfindGoalCell;					///< Cell we are moving towards.

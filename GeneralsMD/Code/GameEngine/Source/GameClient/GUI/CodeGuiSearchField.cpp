@@ -33,14 +33,11 @@
 #include "GameClient/GameWindow.h"
 #include "GameClient/GameWindowManager.h"
 #include "GameClient/GadgetTextEntry.h"
+#include "GameClient/DisplayString.h"
+#include "GameClient/DisplayStringManager.h"
 
 //-------------------------------------------------------------------------------------------------
-// Carried over verbatim from the SkirmishMapSelectMenu implementation this was extracted from, so
-// that screen keeps the geometry it was verified with. See the note in create() for why they are
-// not the stock lobby-label sizes.
-static const Int CODEGUI_SEARCH_LABEL_POINTS = 10;
-static const Int CODEGUI_SEARCH_ENTRY_POINTS = 12;
-static const Short CODEGUI_SEARCH_MAX_LEN		 = 32;
+static const Short CODEGUI_SEARCH_MAX_LEN = 32;
 
 //-------------------------------------------------------------------------------------------------
 CodeGuiSearchField::CodeGuiSearchField()
@@ -98,9 +95,18 @@ Bool CodeGuiSearchField::create( GameWindow *listbox, CodeGuiSearchFieldChangedF
 	// Int-only arithmetic throughout: TheDisplay->getWidth() is UnsignedInt and Lib/BaseType.h
 	// replaces the min/max macros with template<typename T> T max(T,T), so mixing Int and
 	// UnsignedInt is a hard compile error. CodeGuiScale*/CodeGuiAtLeast are Int-only for this.
-	const Int fieldH = CodeGuiAtLeast( CodeGuiScaleY( 21 ), 21 );
+	// The row height and the X button's width come from ONE authored 21x21 square, mapped as the parser
+	// maps EA's own X (PopupJoinGame.wnd:ButtonCancel): stretched per axis in the default layout like
+	// every retail control, square in the uniform one. The row also never gets shorter than the entry's
+	// own face needs - the image draw starts the text 5 px below the top edge - and the X keeps the
+	// square's mapped aspect at whatever height the row ends up.
+	Int squareX = 0, squareY = 0, squareW = 0, squareH = 0;
+	CodeGuiMapAuthoredRect( 0, 0, 21, 21, &squareX, &squareY, &squareW, &squareH );
+	GameFont *entryFont = CodeGuiTemplateFont( "TextEntry" );
+	const Int entryTextH = ( entryFont != nullptr ) ? TheWindowManager->winFontHeight( entryFont ) : 0;
+	const Int fieldH = CodeGuiAtLeast( CodeGuiAtLeast( squareH, 21 ), entryTextH + 2 * 5 );
 	const Int gap    = CodeGuiAtLeast( CodeGuiScaleY( 4 ), 3 );
-	const Int clearW = CodeGuiAtLeast( CodeGuiScaleX( 21 ), 21 );
+	const Int clearW = CodeGuiAtLeast( CodeGuiAtLeast( squareW, 21 ), ( fieldH * squareW ) / CodeGuiAtLeast( squareH, 1 ) );
 
 	// Refuse to shrink the list into uselessness on a tiny backbuffer.
 	if( lh <= ( fieldH + gap ) * 2 || lw <= ( clearW + gap ) * 3 )
@@ -109,26 +115,32 @@ Bool CodeGuiSearchField::create( GameWindow *listbox, CodeGuiSearchFieldChangedF
 	Int entryX = lx;
 	Int entryW = lw - clearW - gap;
 
-	// A bare box with no caption reads as broken, so label it when there is room to spare.
-	//
-	// Caption and typed text are BOLD by request. Note this is
-	// heavier than the stock lobby labels it sits near: "GUI:Players" carries
-	// HEADERTEMPLATE = "MinorTitle", and HeaderTemplate.ini defines MinorTitle as Arial 14 Bold=No
-	// (the template overrides the window's own FONT= line in GameWindowManagerScript.cpp). Its heft
-	// on screen is point size plus the black text border, not weight. Flip the two flags below to
-	// FALSE to sit flush with the stock look.
-	const Int labelW = CodeGuiAtLeast( CodeGuiScaleX( 48 ), 40 );
+	// A bare box with no caption reads as broken, so label it when there is room to spare. Wide
+	// enough for the caption in its own face plus the static text's 7 px margin at each end.
+	Int labelW = CodeGuiAtLeast( CodeGuiScaleX( 48 ), 40 );
+	GameFont *labelFont = CodeGuiTemplateFont( "LabelRegular" );
+	if( labelFont != nullptr && labelText != nullptr && TheDisplayStringManager != nullptr )
+	{
+		DisplayString *probe = TheDisplayStringManager->newDisplayString();
+		if( probe != nullptr )
+		{
+			Int textW = 0, textH = 0;
+			probe->setFont( labelFont );
+			probe->setText( UnicodeString( labelText ) );
+			probe->getSize( &textW, &textH );
+			TheDisplayStringManager->freeDisplayString( probe );
+			labelW = CodeGuiAtLeast( labelW, textW + 2 * 7 );
+		}
+	}
 	if( entryW - labelW - gap >= CodeGuiAtLeast( CodeGuiScaleX( 120 ), 80 ) )
 	{
-		m_label = CodeGuiLabel( listParent, lx, ly, labelW, fieldH, nullptr, labelText, FALSE,
-														CODEGUI_SEARCH_LABEL_POINTS, TRUE );
+		m_label = CodeGuiRetailLabel( listParent, lx, ly, labelW, fieldH, nullptr, labelText );
 		entryX += labelW + gap;
 		entryW -= labelW + gap;
 	}
 
-	m_entry = CodeGuiTextEntry( listParent, entryX, ly, entryW, fieldH,
-															entryIdName, CODEGUI_SEARCH_MAX_LEN,
-															CODEGUI_SEARCH_ENTRY_POINTS, TRUE );
+	m_entry = CodeGuiRetailTextEntry( listParent, entryX, ly, entryW, fieldH,
+																		entryIdName, CODEGUI_SEARCH_MAX_LEN );
 	if( m_entry == nullptr )
 		return FALSE;
 
@@ -136,8 +148,8 @@ Bool CodeGuiSearchField::create( GameWindow *listbox, CodeGuiSearchFieldChangedF
 
 	// The iOS soft keyboard's backspace has not been proven to reach KEY_BACKSPACE, so give the
 	// field a way to empty itself that only needs a tap.
-	m_clear = CodeGuiButton( listParent, lx + lw - clearW, ly, clearW, fieldH,
-													 clearIdName, L"X", L"Clear the search" );
+	m_clear = CodeGuiRetailCloseButton( listParent, lx + lw - clearW, ly, clearW, fieldH,
+																			clearIdName, L"Clear the search" );
 
 	// Take the row's space out of the listbox. winSetSize fires GGM_RESIZED, which
 	// GadgetListBoxSystem handles by repositioning the up/down buttons and the slider and

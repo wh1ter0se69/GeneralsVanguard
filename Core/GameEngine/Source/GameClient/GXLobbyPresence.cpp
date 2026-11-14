@@ -28,6 +28,7 @@
 #include "Common/OptionPreferences.h"
 #include "GameClient/GXRelayList.h"			// S1-3: the lobby-entry refresh of the signed relay list
 #include "GameClient/GXNickname.h"		// gxNormalizeNickname - see setNickname
+#include "GameClient/GXInputIdle.h"		// GXInputIdleSeconds - see sendPresence
 #include "GameNetwork/GXRelaySay.h"		// the operator's GXSAY sender token
 #include "GameNetwork/GXRelayIdentityWire.h"	// GX_FENCED_UNACKED_MAX, shared with the lobby transport
 #include "GameNetwork/networkutil.h"		// ResolveIP
@@ -68,6 +69,10 @@ namespace
 	const char GX_TAG_PLAT[]  = "GXPLAT";
 	const char GX_TAG_ROOM[]  = "GXROOM";
 	const char GX_TAG_MEMB[]  = "GXMEMB";
+	// GeneralsX @feature The relay-wide player list - see sendPresence and relay.js PRES_TAG.
+	const char GX_TAG_PRES[]  = "GXPRES";
+	const char GX_TAG_PLST[]  = "GXPLST";
+	const char GX_RELAY_PRES_WORD[] = "pres1";
 	// The goodbye. See sendLeave() and relay.js BYE_TAG.
 	const char GX_TAG_BYE[]   = "GXBYE";
 	const char GX_TAG_CHT[]   = "GXCHT";
@@ -177,6 +182,14 @@ GXLobbyPresence::GXLobbyPresence()
 	m_relayRecordsMatch = FALSE;
 	clearRelaySeats34();
 	clearRelayHw();
+	clearRelayPres1();
+	m_presWanted = FALSE;
+	m_nextPresMs = 0;
+	m_presCount = 0;
+	m_presTotal = 0;
+	m_presAtMs = 0;
+	m_presGen = 0;
+	clearPresence();
 	m_reclaimLeft = 0;
 }
 
@@ -255,6 +268,7 @@ Bool GXLobbyPresence::acquireRelayAddr( void )
 	m_relayPort = prefs.getRelayPort();
 	clearRelaySeats34();	// a relay endpoint that may have changed has said nothing yet (relaySaidSeats34)
 	clearRelayHw();
+	clearRelayPres1();
 	return TRUE;
 }
 
@@ -277,6 +291,7 @@ void GXLobbyPresence::openSocket( void )
 	m_relayPort = prefs.getRelayPort();
 	clearRelaySeats34();
 	clearRelayHw();
+	clearRelayPres1();
 	if (m_relayAddr == 0 || m_relayAddr == INADDR_NONE)
 	{
 		giveUp(timeGetTime());
@@ -339,6 +354,7 @@ void GXLobbyPresence::closeSocket( void )
 	clearRelaySeats34();
 	// ...and the hardware words and what this socket sent: the next membership is asked again.
 	clearRelayHw();
+	clearRelayPres1();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -617,6 +633,7 @@ void GXLobbyPresence::sendBye( const char *room )
 void GXLobbyPresence::clearSlotSpace( void )
 {
 	m_rosterCount = 0;
+	clearPresence();
 	m_chatHead    = 0;
 	m_chatTail    = 0;
 	m_peerHead    = 0;
@@ -810,6 +827,202 @@ const char *GXLobbyPresence::getRosterRole( Int i ) const
 }
 
 //-------------------------------------------------------------------------------------------------
+// GeneralsX @feature The relay-wide player list. See the header and relay.js PRES_TAG.
+//-------------------------------------------------------------------------------------------------
+namespace
+{
+	// A list older than three asks is not shown as current: the relay stopped answering, or this client stopped asking.
+	const UnsignedInt GX_PRES_STALE_MS = 12000;
+
+	Bool gxPresNickOk( const char *n )
+	{
+		// relay.js NICK_RE: [A-Za-z0-9_.-]{1,20}. Anything else is not a name this relay sends - drop the entry.
+		const size_t len = strlen(n);
+		if (len == 0 || len > 20)
+			return FALSE;
+		for (size_t i = 0; i < len; ++i)
+		{
+			const char c = n[i];
+			if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '.' || c == '-'))
+				return FALSE;
+		}
+		return TRUE;
+	}
+
+	Bool gxPresDigits( const char *t, Int maxLen, UnsignedInt *out )
+	{
+		const size_t len = strlen(t);
+		if (len == 0 || len > (size_t)maxLen)
+			return FALSE;
+		UnsignedInt v = 0;
+		for (size_t i = 0; i < len; ++i)
+		{
+			if (t[i] < '0' || t[i] > '9')
+				return FALSE;
+			v = v * 10u + (UnsignedInt)(t[i] - '0');
+		}
+		*out = v;
+		return TRUE;
+	}
+}
+
+void GXLobbyPresence::setPresenceListWanted( Bool want )
+{
+	if (want && !m_presWanted)
+		m_nextPresMs = timeGetTime();		// ask on the next update, not up to 4 s later
+	m_presWanted = want;
+}
+
+Bool GXLobbyPresence::hasPresenceList( void ) const
+{
+	return m_state == STATE_ADMITTED && relaySaidPres1() && m_presAtMs != 0
+		&& (UnsignedInt)(timeGetTime() - m_presAtMs) <= GX_PRES_STALE_MS;
+}
+
+char GXLobbyPresence::getPresenceState( Int i ) const
+{
+	return (i >= 0 && i < m_presCount) ? m_pres[i].state : '\0';
+}
+
+char GXLobbyPresence::getPresenceRole( Int i ) const
+{
+	return (i >= 0 && i < m_presCount) ? m_pres[i].role : '\0';
+}
+
+const char *GXLobbyPresence::getPresenceOS( Int i ) const
+{
+	return (i >= 0 && i < m_presCount) ? m_pres[i].os : "";
+}
+
+UnsignedInt GXLobbyPresence::getPresenceSlot( Int i ) const
+{
+	return (i >= 0 && i < m_presCount) ? m_pres[i].slot : 0;
+}
+
+const char *GXLobbyPresence::getPresenceNick( Int i ) const
+{
+	return (i >= 0 && i < m_presCount) ? m_pres[i].nick : "";
+}
+
+void GXLobbyPresence::clearPresence( void )
+{
+	if (m_presCount != 0 || m_presAtMs != 0)
+		++m_presGen;
+	m_presCount      = 0;
+	m_presTotal      = 0;
+	m_presAtMs       = 0;
+	m_presBuildCount = 0;
+	m_presBuildSeq   = -1;
+	m_presDoneSeq    = -1;
+	m_presBuildPages = 0;
+	m_presBuildTotal = 0;
+	m_presBuildGot   = 0;
+}
+
+void GXLobbyPresence::sendPresence( UnsignedInt now )
+{
+	if (m_sock == NULL || m_myAddress == 0 || m_room.isEmpty())
+		return;
+	char line[96];
+	const Int len = snprintf(line, sizeof(line), "%s %s %u %d", GX_TAG_PRES, m_room.str(),
+		(unsigned)GXInputIdleSeconds(now), m_presWanted ? 1 : 0);
+	if (len <= 0 || len >= (Int)sizeof(line))
+		return;
+	m_sock->Write((const unsigned char *)line, len, m_relayAddr, m_relayPort);
+}
+
+// "<seq> <page> <pages> <total> <entry> ...", NUL-terminated and writable. A page whose header does not parse is dropped
+// whole; an entry that does not parse is dropped alone. Pages of one seq are kept apart from any other seq's, and the
+// list is published only when every page of its seq has arrived, in page order, so the screen never shows half of one
+// answer spliced onto half of another.
+void GXLobbyPresence::parsePresencePage( char *body, UnsignedInt now )
+{
+	char *save = NULL;
+	const char *seqT   = strtok_r(body, " ", &save);
+	const char *pageT  = strtok_r(NULL, " ", &save);
+	const char *pagesT = strtok_r(NULL, " ", &save);
+	const char *totalT = strtok_r(NULL, " ", &save);
+	UnsignedInt seq = 0, page = 0, pages = 0, total = 0;
+	if (seqT == NULL || pageT == NULL || pagesT == NULL || totalT == NULL
+		|| !gxPresDigits(seqT, 5, &seq) || seq > 65535u || !gxPresDigits(pageT, 1, &page) || !gxPresDigits(pagesT, 1, &pages)
+		|| !gxPresDigits(totalT, 6, &total) || pages < 1 || pages > GX_PRES_PAGES_MAX || page < 1 || page > pages)
+		return;
+
+	// A late copy of the answer just shown must not make an old list look fresh - but only while that answer is itself
+	// recent: a relay that restarts numbers its answers from 1 again, and an old number must not block a new answer.
+	if ((Int)seq == m_presDoneSeq && m_presAtMs != 0 && (UnsignedInt)(now - m_presAtMs) <= GX_PRES_STALE_MS)
+		return;
+	// A different seq starts a new build. No "older than" test: the relay's numbering restarts with it, and a page of an
+	// older answer arriving late costs at most that one refresh.
+	if (m_presBuildSeq != (Int)seq || m_presBuildPages != (Int)pages)
+	{
+		m_presBuildSeq   = (Int)seq;
+		m_presBuildPages = (Int)pages;
+		m_presBuildCount = 0;
+		m_presBuildGot   = 0;
+	}
+	m_presBuildTotal = (Int)total;
+	const UnsignedInt bit = 1u << (page - 1);
+	if (m_presBuildGot & bit)
+		return;				// a duplicate page
+	m_presBuildGot |= bit;
+
+	for (char *e = strtok_r(NULL, " ", &save); e != NULL; e = strtok_r(NULL, " ", &save))
+	{
+		if (m_presBuildCount >= GX_PRES_MAX)
+			break;
+		// Exactly five fields; the empty ones (role, plat, slot) are legal, so split by hand rather than with strtok.
+		char *f[5];
+		Int nf = 0;
+		f[nf++] = e;
+		for (char *c = e; *c != '\0' && nf <= 5; ++c)
+		{
+			if (*c == '|')
+			{
+				*c = '\0';
+				if (nf < 5)
+					f[nf] = c + 1;
+				++nf;
+			}
+		}
+		if (nf != 5 || strlen(f[0]) != 1 || strlen(f[1]) > 1 || strlen(f[2]) >= GX_LOBBY_OS_MAX)
+			continue;
+		UnsignedInt slot = 0;
+		if (f[3][0] != '\0' && (!gxPresDigits(f[3], 3, &slot) || slot > 255u))
+			continue;
+		// A player with no name is sent only from our own room, with its slot, and shown as P<slot> like the roster does.
+		if (f[4][0] == '\0' ? slot == 0 : !gxPresNickOk(f[4]))
+			continue;
+		PresEntry &out = m_presBuild[m_presBuildCount++];
+		out.state = f[0][0];
+		out.role  = (f[1][0] == 'a' || f[1][0] == 'm') ? f[1][0] : '\0';	// an unknown role is a player, as on the roster
+		strncpy(out.os, f[2], GX_LOBBY_OS_MAX - 1);
+		out.os[GX_LOBBY_OS_MAX - 1] = '\0';
+		out.slot = slot;
+		out.page = (Int)page;
+		strncpy(out.nick, f[4], GX_LOBBY_NICK_MAX - 1);
+		out.nick[GX_LOBBY_NICK_MAX - 1] = '\0';
+	}
+
+	if (m_presBuildGot != (1u << m_presBuildPages) - 1u)
+		return;
+
+	m_presCount = 0;
+	for (Int p = 1; p <= m_presBuildPages; ++p)
+		for (Int i = 0; i < m_presBuildCount; ++i)
+			if (m_presBuild[i].page == p)
+				m_pres[m_presCount++] = m_presBuild[i];
+	m_presTotal = m_presBuildTotal;
+	m_presAtMs  = (now == 0) ? 1 : now;
+	m_presDoneSeq = m_presBuildSeq;
+	++m_presGen;
+	m_presBuildCount = 0;
+	m_presBuildGot   = 0;
+	m_presBuildPages = 0;
+	// m_presBuildSeq is kept: it is what tells a late page of this answer from the next one.
+}
+
+//-------------------------------------------------------------------------------------------------
 void GXLobbyPresence::parseMembers( const char *body )
 {
 	m_rosterCount = 0;
@@ -939,6 +1152,9 @@ Bool GXLobbyPresence::handleDatagram( const char *buf, Int len, UnsignedInt from
 		m_relayHw = ours && gxRelayFlagsHave(sp, GX_HW_WORD) ? TRUE : FALSE;
 		m_relayHwAsk = ours && gxRelayFlagsHave(sp, GX_HW_ASK) ? TRUE : FALSE;
 		maybeSendHw(timeGetTime());
+		m_relayPres1 = gxRelayFlagsHave(sp, GX_RELAY_PRES_WORD) ? TRUE : FALSE;	// see relaySaidPres1
+		m_relayPres1Addr = fromAddr;
+		m_relayPres1Port = fromPort;
 		return TRUE;
 	}
 
@@ -1030,6 +1246,19 @@ Bool GXLobbyPresence::handleDatagram( const char *buf, Int len, UnsignedInt from
 		if (m_state != STATE_ADMITTED || m_room.isEmpty() || strcmp(sp, m_room.str()) != 0)
 			return TRUE;			// a roster for a room we are not in is still ours - swallow it (rule S: ADMITTED only)
 		parseMembers(ids);
+		return TRUE;
+	}
+
+	// "GXPLST <room> <seq> <page> <pages> <total> <state>|<role>|<plat>|<slot>|<nick> ..." - see parsePresencePage
+	if (strcmp(tag, GX_TAG_PLST) == 0)
+	{
+		char *rest = strchr(sp, ' ');
+		if (rest == NULL)
+			return TRUE;
+		*rest++ = '\0';
+		if (m_state != STATE_ADMITTED || m_room.isEmpty() || strcmp(sp, m_room.str()) != 0)
+			return TRUE;			// rule S: ADMITTED only, and only for the shard we are in - its slots are this room's
+		parsePresencePage(rest, timeGetTime());
 		return TRUE;
 	}
 
@@ -1238,6 +1467,11 @@ void GXLobbyPresence::update( void )
 			{
 				requestRoster();
 				m_nextRosterMs = now + GX_ROSTER_MS;
+			}
+			if (relaySaidPres1() && gxDue(now, m_nextPresMs))
+			{
+				sendPresence(now);
+				m_nextPresMs = now + GX_ROSTER_MS;
 			}
 			return;
 	}

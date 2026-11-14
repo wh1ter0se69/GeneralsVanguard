@@ -178,6 +178,46 @@ GameWindow *CodeGuiComboBox( GameWindow *parent,
 														 Int maxChars,
 														 Bool isEditable );
 
+// Retail-look factories: each builds its gadget the way the .wnd parser builds the named retail control (the shipped
+// gadget art, the HEADERTEMPLATE font from the installed HeaderTemplate.ini, that control's text colours). The plain
+// factories above keep the CodeGui palette, which only the Debug overlay should wear. Missing art falls back to the
+// plain factory: the image draw funcs do not null-check every piece.
+
+/// The face a .wnd control with HEADERTEMPLATE = `templateName` gets, as the parser picks it in the active
+/// layout mode. nullptr if the template is not installed.
+GameFont *CodeGuiTemplateFont( const char *templateName );
+
+/// An 800x600 authored rect (the .wnd SCREENRECT corners) mapped to screen pixels the way the parser maps
+/// a top-level control's, in the active layout mode.
+void CodeGuiMapAuthoredRect( Int loX, Int loY, Int hiX, Int hiY, Int *x, Int *y, Int *width, Int *height );
+
+/// A caption like PopupJoinGame.wnd's "GUI:Password" label: LabelRegular, left-justified with the
+/// parser's 7-pixel margin, vertically centred, hover tint.
+GameWindow *CodeGuiRetailLabel( GameWindow *parent,
+																Int x, Int y, Int width, Int height,
+																const char *idName,
+																const WideChar *text );
+
+/// A text box like PopupJoinGame.wnd:TextEntryGamePassword: the TextEntry art and template.
+GameWindow *CodeGuiRetailTextEntry( GameWindow *parent,
+																		Int x, Int y, Int width, Int height,
+																		const char *idName,
+																		Short maxTextLen );
+
+/// A text button like MainMenu.wnd:ButtonUSARecentSave: the three-piece Buttons-* art (left end, repeating middle,
+/// right end per state) and the ButtonSmall template.
+GameWindow *CodeGuiRetailButton( GameWindow *parent,
+																 Int x, Int y, Int width, Int height,
+																 const char *idName,
+																 const WideChar *label,
+																 const WideChar *tooltip = nullptr );
+
+/// EA's X button, as PopupJoinGame.wnd:ButtonCancel: the Xbutton art and ButtonSmall template.
+GameWindow *CodeGuiRetailCloseButton( GameWindow *parent,
+																			Int x, Int y, Int width, Int height,
+																			const char *idName,
+																			const WideChar *tooltip = nullptr );
+
 // Per-index control columns authored in a .wnd. A binding loop that runs past the authored rows would null-crash
 // (GadgetComboBoxGetEditBox has no null check). CodeGuiRowsEnsure creates the missing "File.wnd:Control%d" rows under
 // the same parent, copying the authored look; call it BEFORE the binding loops.

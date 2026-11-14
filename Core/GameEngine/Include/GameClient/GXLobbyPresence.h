@@ -147,6 +147,29 @@ public:
 	const char *getRosterNick( Int i ) const;
 	const char *getRosterOS( Int i ) const;
 	const char *getRosterRole( Int i ) const;
+
+	/// GeneralsX @feature THE RELAY-WIDE PLAYER LIST (relay.js PRES_TAG): everyone online, once each, with
+	/// what the relay sees them doing - 'l' lobby, 'g' a game's room, 'p' in a match, 'a' AFK - their role ('a', 'm' or none),
+	/// platform tag, slot in OUR shard (0 = elsewhere) and shown name. Asked for only from a relay whose latest GXCAPS said
+	/// 'pres1' (relaySaidPres1, re-read from every GXCAPS like seats34), on the roster's cadence; the same datagram reports this
+	/// client's input-idle seconds, so it is sent with want=0 when the list is not on screen. Pages are assembled by seq and
+	/// published only whole; the last whole list stays until a newer one replaces it or the membership ends.
+	enum { GX_PRES_MAX = 128 };
+	enum { GX_PRES_PAGES_MAX = 4 };
+	Bool relaySaidPres1( void ) const
+	{
+		return m_relayPres1 && m_relayPres1Addr == m_relayAddr && m_relayPres1Port == m_relayPort;
+	}
+	void setPresenceListWanted( Bool want );
+	Bool hasPresenceList( void ) const;			///< a whole list from a pres1 relay, no older than three asks
+	Int  getPresenceCount( void ) const { return m_presCount; }
+	Int  getPresenceTotal( void ) const { return m_presTotal; }	///< everybody the relay found; > count when it left some out
+	UnsignedInt getPresenceGeneration( void ) const { return m_presGen; }	///< moves on every publish: the list's repaint trigger
+	char getPresenceState( Int i ) const;
+	char getPresenceRole( Int i ) const;
+	const char *getPresenceOS( Int i ) const;
+	UnsignedInt getPresenceSlot( Int i ) const;
+	const char *getPresenceNick( Int i ) const;
 	Int  getRosterCount( void ) const { return m_rosterCount; }
 
 	/// Publish the name we want shown beside our address. Kept across a re-acquire.
@@ -212,6 +235,9 @@ private:
 	void  discardPending( void );	///< drop everything queued on the socket - resume(), after a match
 	Bool  handleDatagram( const char *buf, Int len, UnsignedInt fromAddr, UnsignedShort fromPort );
 	void  parseMembers( const char *body );
+	void  sendPresence( UnsignedInt now );		///< "GXPRES <room> <idleSeconds> <want>"
+	void  parsePresencePage( char *body, UnsignedInt now );	///< one GXPLST page, after "<room> "
+	void  clearPresence( void );			///< the published list and any half-built one
 	const char *shardRoom( Int index ) const;
 
 	/// Queue a private line that arrived addressed to us. Separated from handleDatagram so the
@@ -247,6 +273,33 @@ private:
 	Bool          m_hwHaveFacts;
 	void clearRelayHw( void ) { m_relayHw = FALSE; m_relayHwAsk = FALSE; m_hwHaveFacts = FALSE; gxHwGateReset( m_hwGate ); }
 	void maybeSendHw( UnsignedInt now );
+	Bool          m_relayPres1;			///< the latest GXCAPS said 'pres1' - see relaySaidPres1
+	UnsignedInt   m_relayPres1Addr;		///< ...and came from this relay endpoint
+	UnsignedShort m_relayPres1Port;
+	void clearRelayPres1( void ) { m_relayPres1 = FALSE; m_relayPres1Addr = 0; m_relayPres1Port = 0; }
+	struct PresEntry
+	{
+		char        state;
+		char        role;
+		char        os[GX_LOBBY_OS_MAX];
+		UnsignedInt slot;
+		Int         page;
+		char        nick[GX_LOBBY_NICK_MAX];
+	};
+	Bool          m_presWanted;
+	UnsignedInt   m_nextPresMs;
+	PresEntry     m_pres[GX_PRES_MAX];		///< the published list, in the relay's order
+	Int           m_presCount;
+	Int           m_presTotal;
+	UnsignedInt   m_presAtMs;				///< when it was published, 0 = never
+	UnsignedInt   m_presGen;
+	PresEntry     m_presBuild[GX_PRES_MAX];	///< pages of one seq being assembled
+	Int           m_presBuildCount;
+	Int           m_presBuildSeq;			///< -1 = nothing being assembled
+	Int           m_presDoneSeq;			///< the seq last published, -1 = none: a late duplicate of it is not a new answer
+	Int           m_presBuildPages;
+	Int           m_presBuildTotal;
+	UnsignedInt   m_presBuildGot;			///< bit (page - 1) per page received
 	AsciiString   m_nick;
 	/// The signed identity, or empty for nobody signed in. A fixed buffer owned here, not an
 	/// AsciiString - see GXLobbyIdentity.h for why only that can be cleared on sign-out.

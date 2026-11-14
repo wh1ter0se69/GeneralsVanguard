@@ -52,6 +52,9 @@
 #include "GameClient/Gadget.h"
 #include "GameClient/GameText.h"
 #include "GameClient/HeaderTemplate.h"
+#include "GameClient/DisplayString.h"
+#include "GameClient/DisplayStringManager.h"
+#include "GameClient/CodeGui.h"			// the wordmark and update button sit in EA's 800x600 rects
 #include "GameClient/MapUtil.h"
 #include "GameClient/Shell.h"
 #include "GameClient/ShellHooks.h"
@@ -592,12 +595,14 @@ GameWindow *win = nullptr;
 }
 
 // GeneralsX: Print fixed project watermark in optional main-menu LabelVersion widget.
+// The wordmark is drawn the way EA draws its own version line, OptionsMenu.wnd:LabelVersion: the LabelSmall
+// template, centred in that label's rect at the foot of the screen, white with a black border.
 static void initLabelVersion()
 {
 	NameKeyType versionID = TheNameKeyGenerator->nameToKey( "MainMenu.wnd:LabelVersion" );
 	GameWindow *labelVersion = TheWindowManager->winGetWindowFromId( nullptr, versionID );
 	UnicodeString creditText;
-	creditText.translate("GeneralsX - Multiplatform C&C Generals");
+	creditText.translate("Generals Vanguard");
 
 	if (labelVersion)
 	{
@@ -607,39 +612,43 @@ static void initLabelVersion()
 
 	if (!fallbackCreditLabel && TheWindowManager && parentMainMenu)
 	{
-		if (TheDisplay)
+		WinInstanceData instData;
+		TextData textData;
+		instData.init();
+		memset(&textData, 0, sizeof(textData));
+
+		// The values the .wnd parser gives every static text, with EA's CENTERED: 1.
+		textData.centered = TRUE;
+		textData.centeredVertically = TRUE;
+		textData.leftMargin = 7;
+		textData.topMargin = 7;
+
+		// No hover tint: EA's version line turns dark green under the cursor, and this line is not a control.
+		instData.m_style = GWS_STATIC_TEXT;
+		instData.m_textLabelString = "GeneralsXCreditLabel";
+
+		// LabelVersion's SCREENRECT (152,560)-(632,578), mapped from 800x600 as the parser maps it.
+		Int x, y, width, height;
+		CodeGuiMapAuthoredRect(152, 560, 632, 578, &x, &y, &width, &height);
+
+		GameFont *font = CodeGuiTemplateFont("LabelSmall");
+		if (font == nullptr)
+			font = TheWindowManager->winFindFont("Arial", 8, FALSE);
+
+		fallbackCreditLabel = TheWindowManager->gogoGadgetStaticText(parentMainMenu,
+			WIN_STATUS_ENABLED,
+			x, y,
+			width, height,
+			&instData,
+			&textData,
+			font,
+			FALSE);
+
+		if (fallbackCreditLabel)
 		{
-			WinInstanceData instData;
-			TextData textData;
-			instData.init();
-			memset(&textData, 0, sizeof(textData));
-			textData.centered = 0;
-
-			instData.m_style = GWS_STATIC_TEXT | GWS_MOUSE_TRACK;
-			instData.m_textLabelString = "GeneralsXCreditLabel";
-
-			const Int width = 560;
-			const Int height = 28;
-			const Int x = 8;
-			const Int y = TheDisplay->getHeight() - height - 8;
-
-			// GeneralsX: Fallback credit label when MainMenu.wnd lacks LabelVersion.
-			fallbackCreditLabel = TheWindowManager->gogoGadgetStaticText(parentMainMenu,
-				WIN_STATUS_ENABLED,
-				x, y,
-				width, height,
-				&instData,
-				&textData,
-				nullptr,
-				FALSE);
-
-			if (fallbackCreditLabel)
-			{
-				// GeneralsX: Keep fallback watermark subtle and aligned to bottom-left target placement.
-				fallbackCreditLabel->winSetFont(TheWindowManager->winFindFont("Arial", 12, FALSE));
-				fallbackCreditLabel->winSetEnabledTextColors(GameMakeColor(255, 220, 60, 255), GameMakeColor(0, 0, 0, 0));
-				GadgetStaticTextSetText(fallbackCreditLabel, creditText);
-			}
+			fallbackCreditLabel->winSetEnabledTextColors(GameMakeColor(255, 255, 255, 240), GameMakeColor(0, 0, 0, 255));
+			fallbackCreditLabel->winSetDisabledTextColors(GameMakeColor(192, 192, 192, 255), GameMakeColor(64, 64, 64, 255));
+			GadgetStaticTextSetText(fallbackCreditLabel, creditText);
 		}
 	}
 }
@@ -1110,39 +1119,41 @@ void MainMenuUpdate( WindowLayout *layout, void *userData )
 		{
 			s_updateLatestTag = latestTag;
 
-			const Int btnW = 260;
-			const Int btnH = 26;
-			const Int margin = 8;
-			const Int x = TheDisplay->getWidth()  - btnW - margin;
-			const Int y = TheDisplay->getHeight() - btnH - margin;
+			// EA's small main-menu button (MainMenu.wnd:ButtonUSARecentSave's art and template), 150x24 in the
+			// bottom-right corner of the 800x600 canvas.
+			Int x, y, btnW, btnH;
+			CodeGuiMapAuthoredRect(800 - 8 - 150, 600 - 8 - 24, 800 - 8, 600 - 8, &x, &y, &btnW, &btnH);
 
-			WinInstanceData instData;
-			instData.init();
-			BitSet(instData.m_style, GWS_PUSH_BUTTON | GWS_MOUSE_TRACK);
+			UnicodeString tipText;
+			tipText.format(L"Update available: %hs - click to download", latestTag);
+			UnicodeString displayText;
+			displayText.format(L"Update available: %hs", latestTag);
 
-			UnicodeString btnText;
-			btnText.format(L"Update available: %hs - click to download", latestTag);
-			instData.setTooltipText(btnText);
-
-			AsciiString labelKey = "GeneralsXUpdateNotify";
-			instData.m_textLabelString = labelKey;
-
-			updateNotifyButton = TheWindowManager->gogoGadgetPushButton(
-				parentMainMenu,
-				WIN_STATUS_ENABLED,
-				x, y, btnW, btnH,
-				&instData, nullptr, TRUE);
-
-			if (updateNotifyButton)
+			// The label must stay on one line: a long tag widens the button leftwards, keeping its corner.
+			GameFont *btnFont = CodeGuiTemplateFont("ButtonSmall");
+			DisplayString *probe = (btnFont != nullptr && TheDisplayStringManager != nullptr) ? TheDisplayStringManager->newDisplayString() : nullptr;
+			if (probe != nullptr)
 			{
-				GameFont* font = TheWindowManager->winFindFont("Arial", 10, FALSE);
-				if (font)
-					updateNotifyButton->winSetFont(font);
-
-				UnicodeString displayText;
-				displayText.format(L"Update available: %hs", latestTag);
-				GadgetButtonSetText(updateNotifyButton, displayText);
+				Int textW = 0, textH = 0;
+				probe->setFont(btnFont);
+				probe->setText(displayText);
+				probe->getSize(&textW, &textH);
+				TheDisplayStringManager->freeDisplayString(probe);
+				const Int need = textW + btnH;		// half a button height clear at each end
+				if (need > btnW)
+				{
+					x -= need - btnW;
+					btnW = need;
+					if (x < 0)
+					{
+						btnW += x;
+						x = 0;
+					}
+				}
 			}
+
+			updateNotifyButton = CodeGuiRetailButton(parentMainMenu, x, y, btnW, btnH,
+				"GeneralsXUpdateNotify", displayText.str(), tipText.str());
 		}
 	}
 #endif
@@ -1888,8 +1899,8 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 			else if( controlID == getUpdateID )
 			{
 #ifdef SAGE_UPDATE_CHECK
-				// GeneralsX: Open GitHub releases page instead of legacy GameSpy patch download
-				SDL_OpenURL("https://github.com/fbraz3/GeneralsX/releases");
+				// GeneralsX: Open the download page instead of legacy GameSpy patch download
+				SDL_OpenURL("https://wh1ter0se.dev/generals/download/");
 #else
 				StartDownloadingPatches();
 #endif
@@ -1897,8 +1908,8 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 #ifdef SAGE_UPDATE_CHECK
 			else if( updateNotifyButton != nullptr && control == updateNotifyButton )
 			{
-				// GeneralsX: Dynamic update button click -> open releases page
-				SDL_OpenURL("https://github.com/fbraz3/GeneralsX/releases");
+				// GeneralsX: Dynamic update button click -> open the download page
+				SDL_OpenURL("https://wh1ter0se.dev/generals/download/");
 			}
 #endif
 			else if( controlID == exitID )

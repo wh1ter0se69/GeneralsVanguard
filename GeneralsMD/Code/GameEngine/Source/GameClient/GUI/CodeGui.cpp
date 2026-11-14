@@ -53,6 +53,9 @@
 #include "GameClient/GameWindow.h"
 #include "GameClient/GameWindowManager.h"
 #include "GameClient/GameWindowTransitions.h"		// a cloned row inherits its template's animation
+#include "GameClient/HeaderTemplate.h"					// retail-look factories take the .wnd templates' fonts
+#include "GameClient/GameFont.h"								// TheFontLibrary - a template face rebuilt for the uniform layout
+#include "GameClient/LayoutScale.h"							// the parser's own rect and font scaling
 #include "GameClient/WinInstanceData.h"
 #include "GameClient/WindowLayout.h"
 
@@ -791,6 +794,301 @@ GameWindow *CodeGuiComboBox( GameWindow *parent, Int x, Int y, Int width, Int he
 	combo->winSetDisabledTextColors( s_theme.textDisabled, s_theme.textShadow );
 
 	return combo;
+}
+
+//-------------------------------------------------------------------------------------------------
+// Retail-look factories. See the block comment in CodeGui.h.
+//-------------------------------------------------------------------------------------------------
+
+/** The font a .wnd control with this HEADERTEMPLATE gets, or the CodeGui face if the template is absent. */
+static GameFont *codeGuiTemplateFont( GameWindow *parent, const char *templateName, Int fallbackPoints )
+{
+	GameFont *font = CodeGuiTemplateFont( templateName );
+	return font != nullptr ? font : codeGuiFont( parent, fallbackPoints );
+}
+
+//-------------------------------------------------------------------------------------------------
+GameFont *CodeGuiTemplateFont( const char *templateName )
+{
+	if( TheHeaderTemplateManager == nullptr || templateName == nullptr )
+		return nullptr;
+
+	const AsciiString name( templateName );
+	GameFont *font = TheHeaderTemplateManager->getFontFromTemplate( name );
+
+	// Under GX_UI_LAYOUT=uniform the .wnd parser rebuilds a template's face from its authored size at
+	// the layout's own factor (the smaller axis scale from 800x600, times the dial), capped at 100.
+	HeaderTemplate *ht = TheHeaderTemplateManager->findHeaderTemplate( name );
+	if( font != nullptr && ht != nullptr && TheFontLibrary != nullptr && LayoutScaleActiveMode() == LAYOUT_SCALE_UNIFORM )
+	{
+		const Real xScale = (Real)CodeGuiScreenW() / 800.0f;
+		const Real yScale = (Real)CodeGuiScreenH() / 600.0f;
+		const Real factor = ( xScale < yScale ? xScale : yScale ) * LayoutScaleClampDial( LayoutScaleActiveDial() );
+		Int pt = REAL_TO_INT_FLOOR( (Real)ht->m_point * factor );
+		if( pt < 1 )
+			pt = 1;
+		if( pt > 100 )
+			pt = 100;
+		GameFont *scaled = TheFontLibrary->getFont( ht->m_fontName, pt, ht->m_bold );
+		if( scaled != nullptr )
+			font = scaled;
+	}
+	return font;
+}
+
+//-------------------------------------------------------------------------------------------------
+void CodeGuiMapAuthoredRect( Int loX, Int loY, Int hiX, Int hiY, Int *x, Int *y, Int *width, Int *height )
+{
+	LayoutScaleContext ctx;
+	ctx.createW	 = 800;
+	ctx.createH	 = 600;
+	ctx.displayW = CodeGuiScreenW();
+	ctx.displayH = CodeGuiScreenH();
+	ctx.mode		 = LayoutScaleActiveMode();
+	ctx.uiScale	 = LayoutScaleActiveDial();
+
+	LayoutRect authored, mapped;
+	authored.loX = loX;
+	authored.loY = loY;
+	authored.hiX = hiX;
+	authored.hiY = hiY;
+	LayoutScaleMapRect( ctx, authored, &mapped );
+
+	*x			= mapped.loX;
+	*y			= mapped.loY;
+	*width	= mapped.hiX - mapped.loX;
+	*height = mapped.hiY - mapped.loY;
+}
+
+/** TRUE when every named mapped image is in the installed data. */
+static Bool codeGuiHasImages( const char * const *names, Int count )
+{
+	for( Int i = 0; i < count; i++ )
+	{
+		if( TheWindowManager->winFindImage( names[ i ] ) == nullptr )
+			return FALSE;
+	}
+	return TRUE;
+}
+
+//-------------------------------------------------------------------------------------------------
+GameWindow *CodeGuiRetailLabel( GameWindow *parent, Int x, Int y, Int width, Int height,
+																const char *idName, const WideChar *text )
+{
+	if( TheWindowManager == nullptr )
+		return nullptr;
+
+	WinInstanceData instData;
+	TextData				textData;
+	instData.init();
+	memset( &textData, 0, sizeof( textData ) );
+
+	// The values parseStaticTextData gives every .wnd static text; there is no .wnd token for them.
+	textData.centered						= FALSE;
+	textData.centeredVertically = TRUE;
+	textData.leftMargin					= 7;
+	textData.topMargin					= 7;
+
+	instData.m_style	= GWS_STATIC_TEXT | GWS_MOUSE_TRACK;
+	instData.m_status = WIN_STATUS_ENABLED;
+	if( idName )
+		instData.m_id = (Int)TheNameKeyGenerator->nameToKey( idName );
+
+	// No background: the retail label's draw data is fully transparent, the same as leaving it unset.
+	GameWindow *lbl = TheWindowManager->gogoGadgetStaticText(
+												parent, WIN_STATUS_ENABLED,
+												x, y, width, height,
+												&instData, &textData,
+												codeGuiTemplateFont( parent, "LabelRegular", 10 ),
+												FALSE );
+	if( lbl == nullptr )
+		return nullptr;
+
+	codeGuiSetId( lbl, idName );
+
+	lbl->winSetEnabledTextColors ( GameMakeColor( 255, 255, 255, 255 ), GameMakeColor(	0,	 0,	 0, 255 ) );
+	lbl->winSetDisabledTextColors( GameMakeColor( 192, 192, 192, 255 ), GameMakeColor( 64,	64,	64, 255 ) );
+	lbl->winSetHiliteTextColors	 ( GameMakeColor( 128, 128, 255, 255 ), GameMakeColor(	0,	 0, 128, 255 ) );
+
+	if( text )
+		GadgetStaticTextSetText( lbl, UnicodeString( text ) );
+
+	return lbl;
+}
+
+//-------------------------------------------------------------------------------------------------
+GameWindow *CodeGuiRetailTextEntry( GameWindow *parent, Int x, Int y, Int width, Int height,
+																		const char *idName, Short maxTextLen )
+{
+	if( TheWindowManager == nullptr )
+		return nullptr;
+
+	// W3DGadgetTextEntryImageDraw reads all four pieces of the current state without a null check.
+	static const char * const s_entryArt[] =
+	{
+		"TextEntryEnabledLeftEnd",	"TextEntryEnabledRightEnd",	 "TextEntryEnabledRepeatingCenter",	 "TextEntryEnabledSmallRepeatingCenter",
+		"TextEntryDisabledLeftEnd", "TextEntryDisabledRightEnd", "TextEntryDisabledRepeatingCenter", "TextEntryDisabledSmallRepeatingCenter",
+		"TextEntryHiliteLeftEnd",		"TextEntryHiliteRightEnd",	 "TextEntryHiliteRepeatingCenter",	 "TextEntryHiliteSmallRepeatingCenter"
+	};
+	if( !codeGuiHasImages( s_entryArt, (Int)( sizeof( s_entryArt ) / sizeof( s_entryArt[ 0 ] ) ) ) )
+		return CodeGuiTextEntry( parent, x, y, width, height, idName, maxTextLen );
+
+	WinInstanceData instData;
+	EntryData				entryData;
+	instData.init();
+	memset( &entryData, 0, sizeof( entryData ) );		// see CodeGuiTextEntry: inspected before the memcpy
+	entryData.maxTextLen = ( maxTextLen > 1 ) ? maxTextLen : (Short)32;
+	entryData.aSCIIOnly	 = FALSE;
+
+	instData.m_style	= GWS_ENTRY_FIELD | GWS_MOUSE_TRACK;
+	instData.m_status = WIN_STATUS_ENABLED | WIN_STATUS_IMAGE;
+	if( idName )
+		instData.m_id = (Int)TheNameKeyGenerator->nameToKey( idName );
+
+	// defaultVisual TRUE installs the TextEntry art and the slot colours the retail .wnd authors;
+	// WIN_STATUS_IMAGE picks the image draw func.
+	GameFont *font = codeGuiTemplateFont( parent, "TextEntry", 10 );
+	GameWindow *entry = TheWindowManager->gogoGadgetTextEntry(
+													parent, WIN_STATUS_ENABLED | WIN_STATUS_IMAGE,
+													x, y, width, height,
+													&instData, &entryData,
+													font,
+													TRUE );
+	if( entry == nullptr )
+		return nullptr;
+
+	codeGuiSetId( entry, idName );
+
+	entry->winSetEnabledTextColors ( GameMakeColor( 254, 254, 254, 255 ), GameMakeColor(	0,	 0,	 0, 255 ) );
+	entry->winSetDisabledTextColors( GameMakeColor( 192, 192, 192, 255 ), GameMakeColor( 64,	64,	64, 255 ) );
+	entry->winSetHiliteTextColors	 ( GameMakeColor( 168, 255,	12, 255 ), GameMakeColor(	1,	 1,	 1, 255 ) );
+
+	if( font )
+		GadgetTextEntrySetFont( entry, font );
+	GadgetTextEntrySetText( entry, UnicodeString::TheEmptyString );
+
+	return entry;
+}
+
+//-------------------------------------------------------------------------------------------------
+GameWindow *CodeGuiRetailButton( GameWindow *parent, Int x, Int y, Int width, Int height,
+																 const char *idName, const WideChar *label, const WideChar *tooltip )
+{
+	if( TheWindowManager == nullptr )
+		return nullptr;
+
+	// Slot numbers are the ones the three-piece getters in GadgetPushButton.h read.
+	struct Piece { Int state; Int slot; const char *image; };		// state 0 enabled, 1 disabled, 2 hilite
+	static const Piece s_pieces[] =
+	{
+		{ 0, 0, "Buttons-Left" },						{ 0, 5, "Buttons-Middle" },						{ 0, 6, "Buttons-Right" },
+		{ 1, 0, "Buttons-Disabled-Left" },	{ 1, 5, "Buttons-Disabled-Middle" },	{ 1, 6, "Buttons-Disabled-Right" },
+		{ 2, 0, "Buttons-HiLite-Left" },		{ 2, 5, "Buttons-HiLite-Middle" },		{ 2, 6, "Buttons-HiLite-Right" },
+		{ 2, 1, "Buttons-Pushed-Left" },		{ 2, 3, "Buttons-Pushed-Middle" },		{ 2, 4, "Buttons-Pushed-Right" }
+	};
+	const Int pieceCount = (Int)( sizeof( s_pieces ) / sizeof( s_pieces[ 0 ] ) );
+	for( Int i = 0; i < pieceCount; i++ )
+	{
+		if( TheWindowManager->winFindImage( s_pieces[ i ].image ) == nullptr )
+			return CodeGuiButton( parent, x, y, width, height, idName, label, tooltip );
+	}
+
+	WinInstanceData instData;
+	instData.init();
+	instData.m_style	= GWS_PUSH_BUTTON | GWS_MOUSE_TRACK;
+	instData.m_status = WIN_STATUS_ENABLED | WIN_STATUS_IMAGE;
+	if( idName )
+		instData.m_id = (Int)TheNameKeyGenerator->nameToKey( idName );
+	if( tooltip )
+		instData.setTooltipText( UnicodeString( tooltip ) );
+
+	GameWindow *btn = TheWindowManager->gogoGadgetPushButton(
+												parent, WIN_STATUS_ENABLED | WIN_STATUS_IMAGE,
+												x, y, width, height,
+												&instData,
+												codeGuiTemplateFont( parent, "ButtonSmall", 10 ),
+												TRUE );
+	if( btn == nullptr )
+		return nullptr;
+
+	codeGuiSetId( btn, idName );
+
+	// Only the slots the retail button authors; the rest are NoImage there. The draw func picks the
+	// three-piece path from the middle enabled image at draw time.
+	for( Int i = 0; i < MAX_DRAW_DATA; i++ )
+	{
+		btn->winSetEnabledImage( i, nullptr );
+		btn->winSetDisabledImage( i, nullptr );
+		btn->winSetHiliteImage( i, nullptr );
+	}
+	for( Int i = 0; i < pieceCount; i++ )
+	{
+		const Image *image = TheWindowManager->winFindImage( s_pieces[ i ].image );
+		if( s_pieces[ i ].state == 0 )
+			btn->winSetEnabledImage( s_pieces[ i ].slot, image );
+		else if( s_pieces[ i ].state == 1 )
+			btn->winSetDisabledImage( s_pieces[ i ].slot, image );
+		else
+			btn->winSetHiliteImage( s_pieces[ i ].slot, image );
+	}
+
+	btn->winSetEnabledTextColors ( GameMakeColor( 255, 255, 255, 255 ), GameMakeColor(	0,	 0,	 0, 255 ) );
+	btn->winSetDisabledTextColors( GameMakeColor(	62,	64,	92, 255 ), GameMakeColor( 31,	32,	47, 255 ) );
+	btn->winSetHiliteTextColors	 ( GameMakeColor( 186, 255,	12, 255 ), GameMakeColor(	0,	 2,	 0, 255 ) );
+
+	if( label )
+		GadgetButtonSetText( btn, UnicodeString( label ) );
+
+	return btn;
+}
+
+//-------------------------------------------------------------------------------------------------
+GameWindow *CodeGuiRetailCloseButton( GameWindow *parent, Int x, Int y, Int width, Int height,
+																			const char *idName, const WideChar *tooltip )
+{
+	if( TheWindowManager == nullptr )
+		return nullptr;
+
+	const Image *enabled	= TheWindowManager->winFindImage( "XbuttonEnabled" );
+	const Image *pushed		= TheWindowManager->winFindImage( "XbuttonPushed" );
+	const Image *hilite		= TheWindowManager->winFindImage( "XbuttonHilite" );
+	const Image *disabled = TheWindowManager->winFindImage( "XbuttonDisabled" );
+	if( enabled == nullptr || pushed == nullptr || hilite == nullptr || disabled == nullptr )
+		return CodeGuiButton( parent, x, y, width, height, idName, L"X", tooltip );
+
+	WinInstanceData instData;
+	instData.init();
+	instData.m_style	= GWS_PUSH_BUTTON | GWS_MOUSE_TRACK;
+	instData.m_status = WIN_STATUS_ENABLED | WIN_STATUS_IMAGE;
+	if( idName )
+		instData.m_id = (Int)TheNameKeyGenerator->nameToKey( idName );
+	if( tooltip )
+		instData.setTooltipText( UnicodeString( tooltip ) );
+
+	GameWindow *btn = TheWindowManager->gogoGadgetPushButton(
+												parent, WIN_STATUS_ENABLED | WIN_STATUS_IMAGE,
+												x, y, width, height,
+												&instData,
+												codeGuiTemplateFont( parent, "ButtonSmall", 10 ),
+												TRUE );
+	if( btn == nullptr )
+		return nullptr;
+
+	codeGuiSetId( btn, idName );
+
+	// The image slots ButtonCancel authors; its disabled-selected slot is NoImage.
+	GadgetButtonSetEnabledImage					( btn, enabled );
+	GadgetButtonSetEnabledSelectedImage	( btn, pushed );
+	GadgetButtonSetHiliteImage					( btn, hilite );
+	GadgetButtonSetHiliteSelectedImage	( btn, pushed );
+	GadgetButtonSetDisabledImage				( btn, disabled );
+	GadgetButtonSetDisabledSelectedImage( btn, nullptr );
+
+	btn->winSetEnabledTextColors ( GameMakeColor( 255, 255, 255, 255 ), GameMakeColor(	0,	 0,	 0, 255 ) );
+	btn->winSetDisabledTextColors( GameMakeColor(	62,	64,	92, 255 ), GameMakeColor( 31,	32,	47, 255 ) );
+	btn->winSetHiliteTextColors	 ( GameMakeColor( 186, 255,	12, 255 ), GameMakeColor(	0,	 2,	 0, 255 ) );
+
+	return btn;
 }
 
 //-------------------------------------------------------------------------------------------------

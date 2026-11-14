@@ -181,6 +181,14 @@ static void gxReplayDiagDeviceFacts( GXReplayDiagPutFn put )
 	}
 
 #if defined( _WIN32 )
+	// Compatibility graphics: the d3d8to9 inside the exe on Windows' own d3d9 - no d3d8.dll is loaded at all - and why.
+	if( DX8Wrapper::Is_Compat_D3D9() )
+	{
+		put( "render.backend", "d3d8to9-compat" );
+		put( "render.backend_reason", DX8Wrapper::Compat_D3D9_Reason() );
+	}
+	else
+	{
 	// Windows loads whichever d3d8.dll comes first: DXVK's beside the exe, or its own. Only the answer leaves here, never the path.
 	char dll[ MAX_PATH ] = "";
 	HMODULE d3d8 = GetModuleHandleA( "d3d8.dll" );
@@ -191,6 +199,7 @@ static void gxReplayDiagDeviceFacts( GXReplayDiagPutFn put )
 		for( char *c = dll; *c != 0; ++c )
 			*c = (char)tolower( (unsigned char)*c );
 		put( "render.backend", ( strstr( dll, "\\system32\\" ) != NULL || strstr( dll, "\\syswow64\\" ) != NULL ) ? "d3d8-native" : "d3d8-dxvk" );
+	}
 	}
 #elif defined( SAGE_USE_MOLTENVK )
 	put( "render.backend", "d3d8-dxvk-moltenvk" );

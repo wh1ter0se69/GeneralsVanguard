@@ -367,6 +367,11 @@ inline GameWinTooltipFunc GameWindowManager::getDefaultTooltip() { return GameWi
 
 // EXTERN /////////////////////////////////////////////////////////////////////////////////////////
 extern GameWindowManager *TheWindowManager;			///< singleton extern definition
+
+// GeneralsX @feature Replay telemetry's text-box guard (GXReplayDiagFormat.h): told each time keyboard focus moves; entryField: the new
+// focus is a text box. Null unless a recording installs it.
+typedef void (*GXFocusObserverFn)( Bool entryField );
+extern GXFocusObserverFn TheGXFocusObserver;
 extern UnsignedInt WindowLayoutCurrentVersion;  ///< current version of our window layouts
 
 // this function lets us generically pass button selections to our parent, we may

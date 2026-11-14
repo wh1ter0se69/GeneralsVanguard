@@ -28,6 +28,8 @@
 
 /*
 ** Reusable search field (caption, text entry, clear button) that shrinks a listbox to make room; state is per object.
+** The three controls are EA's own from PopupJoinGame.wnd (the password caption, its text entry, the X button), built
+** by the CodeGuiRetail* factories so the row matches the retail controls around it.
 ** The object does NOT own its windows: they are children of the listbox's parent and die with the layout.
 ** Call reset() from GWM_DESTROY and again before create(); the engine can free the windows behind its back.
 ** Both id names must be unique process-wide (e.g. "SkirmishMapSelectMenu.wnd:TextEntryMapSearch").

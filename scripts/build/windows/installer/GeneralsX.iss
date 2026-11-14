@@ -60,6 +60,12 @@ PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesInstallIn64BitMode=x64compatible
 ArchitecturesAllowed=x64compatible
 UninstallDisplayName=Generals Vanguard
+; OVERWRITE, NOT INNO'S DEFAULT append. With append, a Setup run over an
+; install made by an older Setup ADDS to that install's unins000.dat, and the old log still carries the
+; `filesandordirs {app}` entry that deleted a player-chosen folder whole - so upgrading would have kept the very
+; bug this Setup fixes. This Setup's log names everything Inno itself must remove (its [Files], [Icons], its
+; uninstall key); the payload goes by gxfiles.txt, so nothing an older log recorded is lost by starting afresh.
+UninstallLogMode=overwrite
 ; The game's own icon, on the downloaded file itself. A blank generic exe in a downloads folder is
 ; the shape people are right to be suspicious of - and this installer is already unsigned, so it
 ; needs every honest signal it can carry. Same .ico the launcher embeds, so the file a person
@@ -108,17 +114,19 @@ Type: files; Name: "{userdesktop}\GeneralsX.lnk"; Tasks: desktopicon
 Source: "..\..\..\..\LICENSE.md"; DestDir: "{app}"
 Source: "..\..\..\..\THIRD_PARTY_NOTICES.txt"; DestDir: "{app}"
 
-; THE UNINSTALLER ONLY REMOVES WHAT [Files] INSTALLED, AND [Files] INSTALLS ONLY LICENSE.md HERE.
+; THERE IS DELIBERATELY NO [UninstallDelete] FOR {app}, AND PUTTING ONE BACK WOULD BE A REGRESSION.
 ;
-; The payload is downloaded and unpacked by code, so Inno has no record of any of it - uninstalling
-; removed the shortcuts and left ~86 MB of engine, launcher and staged game data on the disk. {app}
-; is ours entirely and is documented as safe to delete, so it goes wholesale.
+; It used to be `Type: filesandordirs; Name: "{app}"`, on the
+; reasoning that {app} is ours entirely. It is not: DisableDirPage=no lets a player install into a
+; folder of their own, and an install into C:\Games made Add/Remove Programs delete everything in
+; C:\Games. The payload is unpacked by code, so Inno's own log knows none of it; ownership is
+; recorded instead, in {app}\gxfiles.txt (see GX_RECORD below), and the uninstaller deletes only
+; what that record names. {app} itself goes only if it is then empty - Inno's own rule for a
+; folder it created - so a player's file left in it keeps the folder.
 ;
 ; The game's user data is NOT touched. Documents\GeneralsX\GeneralsZH holds the player's maps,
 ; replays, settings and GeneralsX identity, and an older engine's Options.ini is shared with retail
 ; and with Generals Online. Deleting either would take things the player did not ask to lose.
-[UninstallDelete]
-Type: filesandordirs; Name: "{app}"
 
 [Icons]
 Name: "{group}\Generals Vanguard"; Filename: "{app}\GeneralsXLauncher.exe"; WorkingDir: "{app}"
@@ -133,6 +141,28 @@ Filename: "{app}\GeneralsXLauncher.exe"; Description: "Start Generals Vanguard";
 // otherwise, at compile time.
 function GetTickCount(): DWORD;
   external 'GetTickCount@kernel32.dll stdcall';
+// Re-read just before the uninstaller walks into a folder (SweepOwned), not trusted from the listing.
+function GetFileAttributesW(lpFileName: String): DWORD;
+  external 'GetFileAttributesW@kernel32.dll stdcall';
+
+// ------------------------------------------------------------------------------------------------
+// What GeneralsX owns in {app}
+//
+// THE UNINSTALLER DELETES ONLY WHAT THIS RECORD NAMES. {app} is
+// whatever folder the player picked, so "everything in it" is not ours to delete (see the note where
+// [UninstallDelete] used to be). gxfiles.txt lists, one '/'-separated path per line relative to
+// {app}, every file the payload unpacked (tar -t of the same zip), every file this script writes or
+// copies in, and - appended by GeneralsXUpdate.exe (gxlaunch.c record_stage) - every file an update
+// places later. GX_RUNTIME_* below are the few names the launcher and engine create at run time.
+//
+// Lines that could leave {app} (a drive, a leading slash, a '..' component) are ignored, never
+// obeyed: a damaged or planted record can only make the uninstaller delete less.
+// ------------------------------------------------------------------------------------------------
+const
+  GX_RECORD = 'gxfiles.txt';
+  GX_RECORD_HEADER = 'gxfiles 1';
+  FILE_ATTRIBUTE_DIRECTORY_ = $10;
+  FILE_ATTRIBUTE_REPARSE_POINT_ = $400;
 
 var
   DownloadPage: TDownloadWizardPage;
@@ -146,6 +176,11 @@ var
   // payload is extracted, which happens in a different procedure entirely.
   AppliedPayloadName: String;
   AppliedPayloadSha: String;
+  // The uninstaller's view of gxfiles.txt: lower-cased keys, sorted, so IndexOf is a binary search
+  // over ~20,000 names rather than a scan per file.
+  OwnedFiles: TStringList;
+  OwnedDirs: TStringList;
+  UninstallKept: Integer;
 
 // ------------------------------------------------------------------------------------------------
 // Speaking the launcher's dialect
@@ -235,6 +270,270 @@ begin
     Delete(Result, 1, Pos('/', Result));
   while Pos('\', Result) > 0 do
     Delete(Result, 1, Pos('\', Result));
+end;
+
+// ------------------------------------------------------------------------------------------------
+// gxfiles.txt - reading, writing, and the one rule for what may go
+// ------------------------------------------------------------------------------------------------
+
+// A record line as a lookup key: '/' separators whatever wrote it (tar lists a zip made on Windows
+// with either), no leading './', lower case because NTFS compares names that way. A trailing '/'
+// (tar's mark for a directory) is kept here and handled by the caller.
+function RecordKey(const Line: String): String;
+begin
+  Result := Trim(Line);
+  StringChangeEx(Result, '\', '/', True);
+  while Copy(Result, 1, 2) = './' do
+    Delete(Result, 1, 2);
+  Result := LowerCase(Result);
+end;
+
+// True only for a path that stays inside {app}. Everything else is ignored, never obeyed.
+function RecordKeyOk(const K: String): Boolean;
+begin
+  Result := (K <> '') and (Pos(':', K) = 0) and (Copy(K, 1, 1) <> '/') and
+            (Pos('//', K) = 0) and (Pos('/../', '/' + K + '/') = 0) and
+            (Pos('/./', '/' + K + '/') = 0) and (K <> '..') and (K <> '.');
+end;
+
+// One record line into the sets. Every folder above a listed file is ours to remove WHEN EMPTY, and
+// only then: RemoveDir refuses a folder with anything left in it.
+procedure AddOwned(const Line: String);
+var
+  K: String;
+  I: Integer;
+  IsDir: Boolean;
+begin
+  // Copy rather than K[Length(K)]: no reliance on short-circuit evaluation when K is empty.
+  K := RecordKey(Line);
+  if Copy(K, 1, 1) = '#' then
+    Exit;               // a comment row, e.g. the '# setup' mark below
+  IsDir := Copy(K, Length(K), 1) = '/';
+  while Copy(K, Length(K), 1) = '/' do
+    K := Copy(K, 1, Length(K) - 1);
+  if not RecordKeyOk(K) then
+    Exit;
+  if IsDir then
+    OwnedDirs.Add(K)
+  else
+    OwnedFiles.Add(K);
+  for I := Length(K) downto 1 do
+    if K[I] = '/' then
+      OwnedDirs.Add(Copy(K, 1, I - 1));
+end;
+
+// Created by the launcher, the updater or the engine while the game is used, so never in a payload.
+// gxwork is the updater's own staging folder and is ours whole; *.gxold is a file an update renamed
+// aside because it was in use (gxlaunch.c OLD_SUFFIX).
+function IsRuntimeFile(const K: String): Boolean;
+begin
+  Result := (K = 'gxlaunch.log') or (K = 'gxlaunch.ini') or (K = 'gxwork.lock') or
+            (K = 'gxmanifest.txt') or (K = 'gxmanifest.tmp') or
+            (K = 'gxinstalled.txt') or (K = 'gxinstalled.tmp') or
+            (K = 'generalsx.cmd') or (K = 'gxfiles.txt') or
+            (K = 'generalszh.dxvk-cache') or (K = 'generalszh.dxvk-ffkeys') or
+            (K = 'generalszh_d3d9.log') or (K = 'generalszh_dxgi.log') or
+            (Copy(K, 1, 7) = 'gxwork/');
+end;
+
+// <name>.gxold is the updater's renamed copy of <name> (gxlaunch.c place_file), so it is ours only when
+// <name> is (a player's own Mods\x.gxold is not). <pack>.big.off is a listed pack the launcher switched off
+// (compatibility graphics on a 4 GB PC, the HD options), ours only when <pack>.big is listed.
+function IsOwnedFile(const K: String): Boolean;
+begin
+  Result := (OwnedFiles.IndexOf(K) >= 0) or IsRuntimeFile(K);
+  if (not Result) and (Length(K) > 6) and (Copy(K, Length(K) - 5, 6) = '.gxold') then
+    Result := OwnedFiles.IndexOf(Copy(K, 1, Length(K) - 6)) >= 0;
+  if (not Result) and (Length(K) > 8) and (Copy(K, Length(K) - 7, 8) = '.big.off') then
+    Result := OwnedFiles.IndexOf(Copy(K, 1, Length(K) - 4)) >= 0;
+end;
+
+function IsOwnedDir(const K: String): Boolean;
+begin
+  Result := (OwnedDirs.IndexOf(K) >= 0) or (K = 'gxwork') or (Copy(K, 1, 7) = 'gxwork/');
+end;
+
+procedure NewOwnedSets();
+begin
+  OwnedFiles := TStringList.Create;
+  OwnedFiles.Sorted := True;
+  OwnedFiles.Duplicates := dupIgnore;
+  OwnedDirs := TStringList.Create;
+  OwnedDirs.Sorted := True;
+  OwnedDirs.Duplicates := dupIgnore;
+end;
+
+// False when there is no record this installer or GeneralsXUpdate.exe wrote: the header must be the
+// first line exactly, or the file is read as no record at all - never as a list to obey.
+function LoadOwnedRecord(const App: String): Boolean;
+var
+  Lines: TArrayOfString;
+  I: Integer;
+begin
+  Result := False;
+  if not LoadStringsFromFile(AddBackslash(App) + GX_RECORD, Lines) then
+    Exit;
+  if (GetArrayLength(Lines) = 0) or (Trim(Lines[0]) <> GX_RECORD_HEADER) then
+    Exit;
+  for I := 1 to GetArrayLength(Lines) - 1 do
+    AddOwned(Lines[I]);
+  Result := True;
+end;
+
+// Every file and folder under Abs, as Rel/<name> lines (a folder as Rel/<name>/) - what an xcopy /E of Abs
+// is about to put in {app}, empty folders included. xcopy without /b copies THROUGH a link,
+// so the listing does too; it only reads, and stops at a depth no real Data folder has, so
+// a junction loop in the player's folder cannot run away.
+procedure ListTree(const Abs, Rel: String; Into: TStringList; Depth: Integer);
+var
+  F: TFindRec;
+begin
+  if Depth > 64 then
+    Exit;
+  Into.Add(Rel + '/');
+  if FindFirst(AddBackslash(Abs) + '*', F) then
+  try
+    repeat
+      if (F.Name <> '.') and (F.Name <> '..') then
+      begin
+        if (F.Attributes and FILE_ATTRIBUTE_DIRECTORY_) <> 0 then
+          ListTree(AddBackslash(Abs) + F.Name, Rel + '/' + F.Name, Into, Depth + 1)
+        else
+          Into.Add(Rel + '/' + F.Name);
+      end;
+    until not FindNext(F);
+  finally
+    FindClose(F);
+  end;
+end;
+
+// Appends to the record, writing its header first when there is none. An install over an existing
+// one MERGES: the updater has been appending what it placed since, and all of that is still ours.
+procedure AppendRecord(const App: String; Lines: TStringList);
+var
+  Path: String;
+  Existing: TArrayOfString;
+  Rows: TArrayOfString;
+  I: Integer;
+begin
+  Path := AddBackslash(App) + GX_RECORD;
+  if not (LoadStringsFromFile(Path, Existing) and (GetArrayLength(Existing) > 0) and
+          (Trim(Existing[0]) = GX_RECORD_HEADER)) then
+    if not SaveStringToFile(Path, GX_RECORD_HEADER + #13#10, False) then
+      RaiseException('Generals Vanguard: could not write ' + Path);
+  SetArrayLength(Rows, Lines.Count);
+  for I := 0 to Lines.Count - 1 do
+    Rows[I] := Lines[I];
+  if not SaveStringsToFile(Path, Rows, True) then
+    RaiseException('Generals Vanguard: could not write ' + Path);
+end;
+
+// True when Dir holds nothing at all.
+function DirIsEmpty(const Dir: String): Boolean;
+var
+  F: TFindRec;
+begin
+  Result := True;
+  if FindFirst(AddBackslash(Dir) + '*', F) then
+  try
+    repeat
+      if (F.Name <> '.') and (F.Name <> '..') then
+      begin
+        Result := False;
+        Exit;
+      end;
+    until not FindNext(F);
+  finally
+    FindClose(F);
+  end;
+end;
+
+// An earlier GeneralsX install, which this one may update in place. Anything else that is not empty
+// is somebody's folder, and unpacking ~20,000 files into it could overwrite theirs. One file name is
+// not enough to say so: a record with its header, or the three files every install has.
+function IsOurInstallFolder(const Dir: String): Boolean;
+var
+  Lines: TArrayOfString;
+begin
+  Result := LoadStringsFromFile(AddBackslash(Dir) + GX_RECORD, Lines);
+  if Result then
+    Result := (GetArrayLength(Lines) > 0) and (Trim(Lines[0]) = GX_RECORD_HEADER);
+  if not Result then
+    Result := FileExists(AddBackslash(Dir) + 'GeneralsXLauncher.exe') and
+              FileExists(AddBackslash(Dir) + 'generalszh.exe') and
+              FileExists(AddBackslash(Dir) + 'GeneralsX.cmd');
+end;
+
+function InstallDirRefusal(const Dir: String): String;
+begin
+  Result := '';
+  if DirExists(Dir) and (not DirIsEmpty(Dir)) and (not IsOurInstallFolder(Dir)) then
+    Result := 'That folder already holds other files:' + #13#10 + Dir + #13#10#13#10 +
+              'Generals Vanguard needs a folder of its own, so that uninstalling it can never take ' +
+              'anything else. Choose an empty folder, or a new one - for example ' +
+              AddBackslash(Dir) + 'GeneralsVanguard.';
+end;
+
+// Removes from Abs (relative path Rel, '' for {app} itself) every file the record or the runtime
+// list names, then every listed folder that is empty after that. Nothing is followed through a
+// junction or symbolic link: a listed link is removed as a link, an unlisted one is not touched.
+procedure SweepOwned(const Abs, Rel: String);
+var
+  F: TFindRec;
+  Names: TArrayOfString;
+  Attrs: array of Cardinal;
+  N, I: Integer;
+  Child, K: String;
+begin
+  N := 0;
+  if FindFirst(AddBackslash(Abs) + '*', F) then
+  try
+    repeat
+      if (F.Name <> '.') and (F.Name <> '..') then
+      begin
+        SetArrayLength(Names, N + 1);
+        SetArrayLength(Attrs, N + 1);
+        Names[N] := F.Name;
+        Attrs[N] := F.Attributes;
+        N := N + 1;
+      end;
+    until not FindNext(F);
+  finally
+    FindClose(F);
+  end;
+
+  // Listed first, deleted after: a directory is never changed while it is being read.
+  for I := 0 to N - 1 do
+  begin
+    Child := AddBackslash(Abs) + Names[I];
+    if Rel = '' then
+      K := LowerCase(Names[I])
+    else
+      K := Rel + '/' + LowerCase(Names[I]);
+    if (Attrs[I] and FILE_ATTRIBUTE_REPARSE_POINT_) <> 0 then
+    begin
+      // Never removed, never followed. Nothing Setup or the updater places is a link - tar
+      // unpacks files, xcopy copies through links - so a junction or symlink here is the player's, even at
+      // a recorded path; it stays, and so does the folder around it.
+    end
+    else if (Attrs[I] and FILE_ATTRIBUTE_DIRECTORY_) <> 0 then
+    begin
+      // A folder swapped for a junction since it was listed is not walked into.
+      if (GetFileAttributesW(Child) and FILE_ATTRIBUTE_REPARSE_POINT_) = 0 then
+        SweepOwned(Child, K);
+      if IsOwnedDir(K) then
+        RemoveDir(Child);         // only succeeds when empty
+    end
+    else if IsOwnedFile(K) then
+      DeleteFile(Child);
+
+    if FileExists(Child) or DirExists(Child) then
+      if IsOwnedFile(K) then
+      begin
+        UninstallKept := UninstallKept + 1;
+        Log('gxuninstall: could not remove ' + Child);
+      end;
+  end;
 end;
 
 // ------------------------------------------------------------------------------------------------
@@ -542,9 +841,20 @@ end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
 var
-  PayloadUrl, PayloadSha: String;
+  PayloadUrl, PayloadSha, Refusal: String;
 begin
   Result := True;
+
+  if CurPageID = wpSelectDir then
+  begin
+    Refusal := InstallDirRefusal(WizardDirValue);
+    if Refusal <> '' then
+    begin
+      MsgBox(Refusal, mbError, MB_OK);
+      Result := False;
+    end;
+    Exit;
+  end;
 
   if CurPageID = GameDirPage.ID then
   begin
@@ -653,6 +963,12 @@ begin
   end;
 end;
 
+// The same refusal as the folder page, for an install that never showed it (/DIR= on a silent one).
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+begin
+  Result := InstallDirRefusal(RemoveBackslashUnlessRoot(ExpandConstant('{app}')));
+end;
+
 // ------------------------------------------------------------------------------------------------
 // Applying
 // ------------------------------------------------------------------------------------------------
@@ -661,6 +977,9 @@ var
   ResultCode: Integer;
   Cmd: String;
   GameDir: String;
+  Listed: TArrayOfString;
+  Rec: TStringList;
+  I: Integer;
 begin
   if CurStep <> ssPostInstall then
     Exit;
@@ -684,6 +1003,19 @@ begin
   Exec(ExpandConstant('{sys}\tar.exe'),
        ExpandConstant('-x -f "{tmp}\payload.zip" -C "{app}"'),
        '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
+  // And what it placed, from the same zip, for gxfiles.txt. The
+  // listing goes to {tmp}, whose path cmd.exe cannot misread: {app} is never on this command line.
+  // No list means an uninstaller that cannot tell its own files from the player's, so the install
+  // stops here rather than carrying on without one.
+  DeleteFile(ExpandConstant('{tmp}\gxlist.txt'));
+  if (not Exec(ExpandConstant('{cmd}'),
+               '/c ""' + ExpandConstant('{sys}\tar.exe') + '" -t -f "' + ExpandConstant('{tmp}\payload.zip') +
+                 '" > "' + ExpandConstant('{tmp}\gxlist.txt') + '""',
+               '', SW_HIDE, ewWaitUntilTerminated, ResultCode)) or (ResultCode <> 0) or
+     (not LoadStringsFromFile(ExpandConstant('{tmp}\gxlist.txt'), Listed)) or
+     (GetArrayLength(Listed) = 0) then
+    RaiseException('Generals Vanguard: could not list the files in the download, so uninstalling could not tell them from yours');
 
   // GeneralsX @bugfix wh1ter0se 12/08/2026 RECORD WHAT WE JUST PLACED.
   //
@@ -817,4 +1149,112 @@ begin
          'cd /d "%~dp0"' + #13#10 +
          'start "" generalszh.exe %*' + #13#10;
   SaveStringToFile(ExpandConstant('{app}\GeneralsX.cmd'), Cmd, False);
+
+  // Everything above, as gxfiles.txt rows: the payload's list, this procedure's own files, and the
+  // retail scripts and cursors exactly as xcopy just copied them.
+  Rec := TStringList.Create;
+  try
+    // The mark the launcher reads (gxio uninstall layout, SETUP_MARK) to know that the uninstaller
+    // in this folder is one that takes only recorded files. An install whose record has no such row
+    // was made by an older Setup, whose uninstaller still deletes {app} whole.
+    Rec.Add('# setup {#AppVersion}');
+    for I := 0 to GetArrayLength(Listed) - 1 do
+      if Trim(Listed[I]) <> '' then
+        Rec.Add(Trim(Listed[I]));
+    Rec.Add('GeneralsX.cmd');
+    Rec.Add('gxinstalled.txt');
+    Rec.Add(GX_RECORD);
+    Rec.Add('LICENSE.md');
+    Rec.Add('THIRD_PARTY_NOTICES.txt');
+    if DirExists(AddBackslash(GameDir) + 'Data\Scripts') then
+      ListTree(AddBackslash(GameDir) + 'Data\Scripts', 'Data/Scripts', Rec, 0);
+    if DirExists(AddBackslash(GameDir) + 'Data\Cursors') then
+      ListTree(AddBackslash(GameDir) + 'Data\Cursors', 'Data/Cursors', Rec, 0);
+    AppendRecord(RemoveBackslashUnlessRoot(ExpandConstant('{app}')), Rec);
+    Log('gxsetup: recorded ' + IntToStr(Rec.Count) + ' paths in ' + GX_RECORD);
+  finally
+    Rec.Free;
+  end;
+end;
+
+// ------------------------------------------------------------------------------------------------
+// Uninstalling: only what gxfiles.txt and the runtime list name, then only folders left empty.
+// Inno itself then removes its own files, the shortcuts, the Add/Remove entry, and {app} if - and
+// only if - nothing is left in it.
+// ------------------------------------------------------------------------------------------------
+function LeftInApp(const App: String): Integer;
+var
+  F: TFindRec;
+begin
+  Result := 0;
+  if FindFirst(AddBackslash(App) + '*', F) then
+  try
+    repeat
+      // unins000.exe/.dat are Inno's, and still on disk while it finishes.
+      if (F.Name <> '.') and (F.Name <> '..') and (LowerCase(Copy(F.Name, 1, 5)) <> 'unins') then
+        Result := Result + 1;
+    until not FindNext(F);
+  finally
+    FindClose(F);
+  end;
+end;
+
+// The shortcuts every release before the rename made. UninstallLogMode=overwrite drops the older log that named them,
+// and [InstallDelete] keeps the old desktop one when the player unticks the new one, so this uninstaller removes them
+// itself - each only while it still points at this install's launcher: a shortcut of that name aimed anywhere else stays.
+procedure RemoveOldShortcut(const Lnk, App: String);
+var
+  Shell, Sc: Variant;
+  Target: String;
+begin
+  if not FileExists(Lnk) then
+    Exit;
+  Target := '';
+  try
+    Shell := CreateOleObject('WScript.Shell');
+    Sc := Shell.CreateShortcut(Lnk);
+    Target := Sc.TargetPath;
+  except
+    Log('gxuninstall: could not read ' + Lnk);
+  end;
+  if CompareText(Target, AddBackslash(App) + 'GeneralsXLauncher.exe') = 0 then
+  begin
+    if DeleteFile(Lnk) then
+      Log('gxuninstall: removed ' + Lnk);
+  end
+  else
+    Log('gxuninstall: kept ' + Lnk + ' (it points at ' + Target + ')');
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  App: String;
+begin
+  App := RemoveBackslashUnlessRoot(ExpandConstant('{app}'));
+  if CurUninstallStep = usUninstall then
+  begin
+    NewOwnedSets();
+    UninstallKept := 0;
+    if LoadOwnedRecord(App) then
+      Log('gxuninstall: ' + GX_RECORD + ' names ' + IntToStr(OwnedFiles.Count) + ' files')
+    else
+      Log('gxuninstall: no ' + GX_RECORD + ' in ' + App + ' - only the runtime names are removed');
+    SweepOwned(App, '');
+    Log('gxuninstall: ' + IntToStr(UninstallKept) + ' of our files could not be removed');
+  end
+  else if CurUninstallStep = usPostUninstall then
+  begin
+    RemoveOldShortcut(ExpandConstant('{autoprograms}\GeneralsX\GeneralsX.lnk'), App);
+    RemoveDir(ExpandConstant('{autoprograms}\GeneralsX'));   // only succeeds when empty
+    RemoveOldShortcut(ExpandConstant('{userdesktop}\GeneralsX.lnk'), App);
+    if DirExists(App) and (LeftInApp(App) > 0) then
+    begin
+      Log('gxuninstall: kept ' + App + ' - ' + IntToStr(LeftInApp(App)) + ' entries are not the game''s or could not be removed');
+      if not UninstallSilent then
+        MsgBox('Generals Vanguard has been removed.' + #13#10#13#10 +
+               'This folder was kept because it still holds files Generals Vanguard did not install ' +
+               '(or could not remove while they were in use):' + #13#10 + App,
+               mbInformation, MB_OK);
+    end;
+  end;
 end;

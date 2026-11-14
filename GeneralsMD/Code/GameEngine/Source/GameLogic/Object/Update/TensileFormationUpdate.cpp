@@ -126,7 +126,9 @@ TensileFormationUpdate::TensileFormationUpdate( Thing *thing, const ModuleData *
 	m_linksInited = FALSE;
 	m_motionlessCounter = 0;
 	m_life = 0;
-	m_lowestSlideElevation = 255.0f;
+	// GeneralsX @feature Above any terrain: 255 world units clears the retail 159, and a map with a height scale multiplier k
+	// rises k times higher (255.0f exactly at k = 1).
+	m_lowestSlideElevation = 255.0f * (Real)(TheTerrainLogic ? TheTerrainLogic->getHeightScaleK() : 1);
 
 	for ( int t = 0; t < 4; ++t)
 	{

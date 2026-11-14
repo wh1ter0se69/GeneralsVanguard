@@ -670,11 +670,11 @@ Bool gateSaveLoad( const AsciiString &filename, GameWinMsgBoxFunc retry )
 	if( !scan.hasIdentity )
 	{
 		fprintf( stderr, "[SAVELOAD] refused '%s': it does not say which build made it, so it is a save from the original game "
-			"or a very old GeneralsX, whose layout this build cannot read (this is %s)\n", filename.str(), mine.str() );
+			"or a very old Generals Vanguard (GeneralsX), whose layout this build cannot read (this is %s)\n", filename.str(), mine.str() );
 		MessageBoxOk(
 			TheGameText->FETCH_OR_SUBSTITUTE( "GUI:SaveGameLoadFailedTitle", L"CANNOT LOAD SAVE" ),
 			TheGameText->FETCH_OR_SUBSTITUTE( "GUI:SaveGameRetail",
-				L"This save was made by the original game (or a much older GeneralsX). Saves from the original game cannot be loaded by GeneralsX." ),
+				L"This save was made by the original game (or a much older Generals Vanguard). Saves from the original game cannot be loaded by Generals Vanguard." ),
 			nullptr );
 		return TRUE;
 	}
@@ -688,7 +688,7 @@ Bool gateSaveLoad( const AsciiString &filename, GameWinMsgBoxFunc retry )
 	made.translate( shortIdentity( scan.identity ) );
 	here.translate( shortIdentity( mine ) );
 	body.format( TheGameText->FETCH_OR_SUBSTITUTE( "GUI:SaveGameOtherBuild",
-		L"This save was made by a different GeneralsX build (%ls; this is %ls). It may not work.\n\nLoad it anyway?" ),
+		L"This save was made by a different Generals Vanguard build (%ls; this is %ls). It may not work.\n\nLoad it anyway?" ),
 		made.str(), here.str() );
 
 	s_warnedFile = filename;

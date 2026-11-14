@@ -39,6 +39,7 @@
 #include "GameClient/GadgetPushButton.h"
 #include "GameClient/GameWindow.h"
 #include "GameClient/GameWindowManager.h"
+#include "GameClient/Shell.h"
 #include "GameClient/WinInstanceData.h"
 
 //-------------------------------------------------------------------------------------------------
@@ -437,6 +438,22 @@ void DebugFloatButtonDestroy( void )
 }
 
 //-------------------------------------------------------------------------------------------------
+/** The score screen owns the whole display, and the button in its default top-right corner sat on
+	* the "Supplies Collected" column header. Hidden while the shell holds that screen, back the frame
+	* the screen is gone. Reads the shell stack rather than keeping a flag of its own: the pop's
+	* fade-out and the campaign's immediate pop both count, with no hook in ScoreScreen.cpp. */
+//-------------------------------------------------------------------------------------------------
+static void debugFloatFollowScoreScreen( void )
+{
+	if( s_hostPanel == nullptr || TheShell == nullptr )
+		return;
+
+	const Bool scoreUp = TheShell->findScreenByFilename( "Menus/ScoreScreen.wnd" ) != nullptr;
+	if( s_hostPanel->winIsHidden() != scoreUp )
+		s_hostPanel->winHide( scoreUp );
+}
+
+//-------------------------------------------------------------------------------------------------
 void DebugFloatButtonUpdate( void )
 {
 	// The same gate as Create(), and it is NOT redundant: the branch below rebuilds the overlay
@@ -450,6 +467,7 @@ void DebugFloatButtonUpdate( void )
 		// Covers a Create that ran before TheDisplay was usable, and a rebuild after anything that
 		// walked the whole window list out from under us (see GWM_DESTROY below).
 		debugFloatBuild();
+		debugFloatFollowScoreScreen();		// the match-end reset rebuilds it under the score screen
 		return;
 	}
 
@@ -490,6 +508,8 @@ void DebugFloatButtonUpdate( void )
 		s_tab				= nullptr;
 		debugFloatBuild();
 	}
+
+	debugFloatFollowScoreScreen();
 }
 
 //-------------------------------------------------------------------------------------------------

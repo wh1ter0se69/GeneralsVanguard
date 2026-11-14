@@ -77,6 +77,7 @@
 #include "gitinfo.h"
 #include "GameClient/GXEnvAllowList.h"  // GeneralsX: shipped builds ignore every GX_* not on the list
 #include "GameClient/GXUserDataDir.h"  // GX_USERDATA_DIR (iOS Options.ini seed)
+#include "WWLib/gxproductdir.h"  // GeneralsX: GeneralsVanguard or GeneralsX
 #include "GameLogic/GXHookTimer.h"  // GX_HOOK_FLUSH_ALL before _exit (test-instruments builds)
 #include "SDL3GameEngine.h"
 
@@ -412,13 +413,19 @@ int main(int argc, char* argv[])
 			const char *home = getenv("HOME");
 #if defined(__APPLE__)
 			if (home != nullptr && *home != '\0')
-				dxvkDir = std::string(home) + "/Library/Application Support/GeneralsX/GeneralsZH/";
+			{
+				const std::string support = std::string(home) + "/Library/Application Support";
+				dxvkDir = support + "/" + gxProductDirName(support) + "/GeneralsZH/";
+			}
 #else
 			const char *xdg = getenv("XDG_DATA_HOME");
 			if (xdg != nullptr && *xdg != '\0')
-				dxvkDir = std::string(xdg) + "/GeneralsX/GeneralsZH/";
+				dxvkDir = std::string(xdg) + "/" + gxProductDirName(xdg) + "/GeneralsZH/";
 			else if (home != nullptr && *home != '\0')
-				dxvkDir = std::string(home) + "/.local/share/GeneralsX/GeneralsZH/";
+			{
+				const std::string share = std::string(home) + "/.local/share";
+				dxvkDir = share + "/" + gxProductDirName(share) + "/GeneralsZH/";
+			}
 #endif
 		}
 		if (!dxvkDir.empty())
@@ -569,7 +576,10 @@ int main(int argc, char* argv[])
 				// Written into GX_USERDATA_DIR's folder when it applies (GameClient/GXUserDataDir.h), the one GlobalData uses.
 				std::string userDataDir;
 				if (!gxUserDataDirOverride(userDataDir))
-					userDataDir = std::string(home) + "/Library/Application Support/GeneralsX/GeneralsZH/";
+				{
+					const std::string support = std::string(home) + "/Library/Application Support";
+					userDataDir = support + "/" + gxProductDirName(support) + "/GeneralsZH/";
+				}
 				const std::string optionsPath = userDataDir + "Options.ini";
 				if (access(optionsPath.c_str(), F_OK) != 0 && access("DefaultOptions.ini", R_OK) == 0) {
 					std::error_code fsError;

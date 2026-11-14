@@ -491,7 +491,7 @@ Int W3DProjectedShadowManager::renderProjectedTerrainShadow(W3DProjectedShadow *
 				{
 					pvVertices->x=(float)i*MAP_XY_FACTOR;
 					pvVertices->y=ycoord;
-					pvVertices->z=(float)hmap->getHeight(i,j)*MAP_HEIGHT_SCALE;
+					pvVertices->z=(float)hmap->getHeight(i,j)*hmap->getHeightScale();
 					pvVertices++;
 				}
 			}
@@ -1123,7 +1123,7 @@ void W3DProjectedShadowManager::queueDecal(W3DProjectedShadow *shadow)
 					{
 						hmapVertex.X=(float)(i-borderSize)*MAP_XY_FACTOR;
 						// GeneralsX: Use MAX macro (cross-platform)
-						hmapVertex.Z=MAX((float)hmap->getHeight(i,j)*MAP_HEIGHT_SCALE,layerHeight);
+						hmapVertex.Z=MAX((float)hmap->getHeight(i,j)*hmap->getHeightScale(),layerHeight);
 						pvVertices->x=hmapVertex.X;
 						pvVertices->y=hmapVertex.Y;
 						pvVertices->z=hmapVertex.Z;
@@ -1142,7 +1142,7 @@ void W3DProjectedShadowManager::queueDecal(W3DProjectedShadow *shadow)
 				for (i=startX; i <= endX; i++)
 				{
 					hmapVertex.X=(float)(i-borderSize)*MAP_XY_FACTOR;
-					hmapVertex.Z=(float)hmap->getHeight(i,j)*MAP_HEIGHT_SCALE+0.01f * MAP_XY_FACTOR;
+					hmapVertex.Z=(float)hmap->getHeight(i,j)*hmap->getHeightScale()+0.01f * MAP_XY_FACTOR;
 					pvVertices->x=hmapVertex.X;
 					pvVertices->y=hmapVertex.Y;
 					pvVertices->z=hmapVertex.Z;

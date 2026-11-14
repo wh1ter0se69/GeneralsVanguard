@@ -59,6 +59,8 @@
 #include "WorldBuilderView.h"
 #include "MapPreview.h"
 
+static Bool PeekHeightScaleK(DataChunkInput &file, DataChunkInfo *info, void *userData);	// GeneralsX @feature below
+
 // Can't currently have multiple open... jba.
 #define notONLY_ONE_AT_A_TIME
 
@@ -314,8 +316,26 @@ void CWorldBuilderDoc::Serialize(CArchive& ar)
 		WorldHeightMapEdit *pOldHeightMap = m_heightMap;
 		CString pth = ar.GetFile()->GetFilePath();
 		CachedFileInputStream theInputStream;
+		Bool refusedHeightScale = false;
 		if (theInputStream.open(AsciiString((const char *)pth)))
 		try {
+			// GeneralsX @feature WorldBuilder draws and saves heights at the retail scale only. A map with a height scale
+			// multiplier above 1 (HeightMapData version 5) is refused here, before anything of the open document is
+			// replaced, rather than shown flat and saved back flat.
+			{
+				Int heightScaleK = 1;
+				DataChunkInput peek(&theInputStream);
+				if (peek.isValidFileType()) {
+					peek.registerParser( "HeightMapData", AsciiString::TheEmptyString, PeekHeightScaleK );
+					peek.parse(&heightScaleK);
+				}
+				theInputStream.absoluteSeek(0);
+				if (heightScaleK != 1) {
+					AfxMessageBox("This map's terrain is drawn taller than the retail scale (HeightMapData version 5). WorldBuilder cannot edit it.");
+					refusedHeightScale = true;
+					throw(ERROR_CORRUPT_FILE_FORMAT);
+				}
+			}
 
 			WbApp()->selectPointerTool();
 			PolygonTrigger::deleteTriggers();
@@ -414,6 +434,11 @@ void CWorldBuilderDoc::Serialize(CArchive& ar)
 
 		} catch(...) {
 			m_heightMap = pOldHeightMap;
+		}
+		// GeneralsX @bugfix The catch-all above returns normally, which MFC reads as a successful open of the refused file
+		// (a later Save would write over it). A user exception fails the open; the message box already said why.
+		if (refusedHeightScale) {
+			AfxThrowUserException();
 		}
 
 		// note - mHeight map has ref count of 1.
@@ -759,6 +784,33 @@ BOOL CWorldBuilderDoc::DoSave(LPCTSTR lpszPathName, BOOL bReplace)
 	return TRUE;        // success
 }
 
+
+/** GeneralsX @feature Reads only the height scale multiplier k of a HeightMapData chunk (version 5 keeps it between the
+	boundaries and dataSize), into the Int userData points to; any other version leaves it alone. A version above 5 reads as -1. */
+static Bool PeekHeightScaleK(DataChunkInput &file, DataChunkInfo *info, void *userData)
+{
+	Int *heightScaleK = (Int *)userData;
+	if (info->version > K_HEIGHT_MAP_VERSION_5) {
+		*heightScaleK = -1;
+		return true;
+	}
+	if (info->version < K_HEIGHT_MAP_VERSION_5) {
+		return true;
+	}
+	file.readInt();	// width
+	file.readInt();	// height
+	file.readInt();	// border
+	const Int numBorders = file.readInt();
+	if (numBorders < 0 || numBorders > (Int)file.getChunkDataSizeLeft() / (Int)(2 * sizeof(Int))) {
+		throw ERROR_CORRUPT_FILE_FORMAT;
+	}
+	for (Int i = 0; i < numBorders; ++i) {
+		file.readInt();
+		file.readInt();
+	}
+	*heightScaleK = file.readInt();
+	return true;
+}
 
 /**
 * CWorldBuilderDoc::ParseWaypointDataChunk - read a waypoint chunk.
