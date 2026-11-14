@@ -82,7 +82,8 @@ static GameWindow *winMapWindow = nullptr;
 // HOST ONLY: in a staging room only the host may change the map, which is why
 // WOLGameSetupMenuInit's !TheGameSpyInfo->amIHost() branch disables ButtonSelectMap. A client's
 // list is read-only, so it gets no field at all rather than a greyed one.
-static CodeGuiSearchField wolMapSearchField;
+// GeneralsX: with the filters above it (CodeGuiMapFilters), remembered per picker.
+static CodeGuiMapFilters wolMapSearchField( "Online" );
 static Bool wolMapSearchUsesSystemMaps = TRUE;
 
 static void NullifyControls()
@@ -151,8 +152,7 @@ static void repopulateWOLMapList( void )
 	// const char* into a MapCache key (MapUtil.cpp), safe only while the cache is not modified
 	// under a live listbox. Rebuilding it per keystroke would dangle every row, and both
 	// GLM_SELECTED and buttonOK dereference that pointer.
-	populateMapListbox( mapList, wolMapSearchUsesSystemMaps, TRUE, TheGameSpyGame->getMap(),
-											wolMapSearchField.getFilter() );
+	wolMapSearchField.populate( mapList, wolMapSearchUsesSystemMaps, TRUE, TheGameSpyGame->getMap() );
 
 	// populateMapListbox always asks for row 0 when the map it wanted is missing, and
 	// GadgetListBoxSystem's GLM_SET_SELECTION bails out before notifying the owner when row 0 has
@@ -265,15 +265,17 @@ void WOLMapSelectMenuInit( WindowLayout *layout, void *userData )
 
 		// Only the host may change the map. This is the same predicate WOLGameSetupMenuInit uses to
 		// leave ButtonSelectMap enabled; a client gets no field, not a disabled one.
-		if( TheGameSpyInfo->amIHost() )
-		{
-			wolMapSearchField.create( mapList, wolMapSearchChanged,
-																"WOLMapSelectMenu.wnd:TextEntryMapSearch",
-																"WOLMapSelectMenu.wnd:ButtonMapSearchClear" );
-		}
-
+		// The cache first: the filters offer only the player counts and sources it holds.
 		if (TheMapCache)
 			TheMapCache->updateCache();		// the only updateCache; never once per keystroke
+		if( TheGameSpyInfo->amIHost() )
+		{
+			// The drop-downs wear the setup screen's own team box, hidden under this overlay.
+			GameWindow *comboTemplate = TheWindowManager->winGetWindowFromId( nullptr,
+				TheNameKeyGenerator->nameToKey( "GameSpyGameOptionsMenu.wnd:ComboBoxTeam0" ) );
+			wolMapSearchField.create( mapList, comboTemplate, wolMapSearchChanged, "WOLMapSelectMenu.wnd:",
+																!usesSystemMapDir, TheGameSpyGame->getMap() );
+		}
 		repopulateWOLMapList();
 	}
 
@@ -473,6 +475,7 @@ WindowMsgHandledType WOLMapSelectMenuSystem( GameWindow *window, UnsignedInt msg
 		// WOLMapSelectMenuParent — the window this callback is bound to. No .wnd change involved.
 		case GEM_UPDATE_TEXT:
 		case GEM_EDIT_DONE:
+		case GCM_SELECTED:		// GeneralsX: the filter drop-downs
 		{
 			wolMapSearchField.handleSystemMsg( msg, (GameWindow *)mData1 );
 			break;
@@ -509,6 +512,7 @@ WindowMsgHandledType WOLMapSelectMenuSystem( GameWindow *window, UnsignedInt msg
 				if (TheMapCache)
 					TheMapCache->updateCache();
 				wolMapSearchUsesSystemMaps = TRUE;
+				wolMapSearchField.setUserMaps( !wolMapSearchUsesSystemMaps );
 				repopulateWOLMapList();		// keeps any active search text applied
 				CustomMatchPreferences pref;
 				pref.setUsesSystemMapDir(TRUE);
@@ -519,6 +523,7 @@ WindowMsgHandledType WOLMapSelectMenuSystem( GameWindow *window, UnsignedInt msg
 				if (TheMapCache)
 					TheMapCache->updateCache();
 				wolMapSearchUsesSystemMaps = FALSE;
+				wolMapSearchField.setUserMaps( !wolMapSearchUsesSystemMaps );
 				repopulateWOLMapList();
 				CustomMatchPreferences pref;
 				pref.setUsesSystemMapDir(FALSE);

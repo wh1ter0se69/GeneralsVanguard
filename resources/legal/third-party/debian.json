@@ -188,9 +188,9 @@
   ],
   "homepage": "https://www.gnu.org/software/libc/libc.html",
   "source": "glibc",
-  "source_version": "2.39-0ubuntu8.9",
+  "source_version": "2.39-0ubuntu8.12",
   "text": "d3c95b56fa33",
-  "version": "2.39-0ubuntu8.9"
+  "version": "2.39-0ubuntu8.12"
  },
  "libcairo-gobject2": {
   "files": [

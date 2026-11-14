@@ -1368,6 +1368,29 @@ GameWindow *CodeGuiButtonLike( GameWindow *tmpl, GameWindow *parent, const char 
 }
 
 //-------------------------------------------------------------------------------------------------
+GameWindow *CodeGuiComboBoxLike( GameWindow *tmpl, GameWindow *parent, const char *idName,
+																 Int x, Int y, Int width, Int height, Int listLength )
+{
+	if( tmpl == nullptr || parent == nullptr || !BitIsSet( tmpl->winGetStyle(), GWS_COMBO_BOX ) )
+		return nullptr;
+
+	// The open list's row count comes from the template, as codeGuiCloneRow reads it. maxChars does not: the authored
+	// team/colour boxes allow 16, and an item longer than that would be cut in the edit field.
+	const ComboBoxData *tmplData = (const ComboBoxData *)tmpl->winGetUserData();
+	GameWindow *combo = CodeGuiComboBox( parent, x, y, width, height, idName,
+																			 tmplData ? tmplData->maxDisplay : 5, 64, FALSE );
+	if( combo == nullptr )
+		return nullptr;
+
+	GameWindow *list = GadgetComboBoxGetListBox( combo );
+	if( list != nullptr )
+		GadgetListBoxSetListLength( list, CodeGuiAtLeast( listLength, 1 ) );
+
+	codeGuiAdoptLook( combo, tmpl );
+	return combo;
+}
+
+//-------------------------------------------------------------------------------------------------
 /** The smallest face this will ever step a row down to. Below this the glyphs stop being readable,
 	* and a row whose text is too small to read is no better than one whose text overflows. */
 //-------------------------------------------------------------------------------------------------

@@ -76,7 +76,8 @@ static NameKeyType buttonMapStartPositionID[MAX_SLOTS] = { NAMEKEY_INVALID,NAMEK
 // HOST ONLY: in a LAN lobby only the host may change the map, which is why
 // LanGameOptionsMenuInit's !TheLAN->AmIHost() branch disables ButtonSelectMap. A client's list is
 // read-only, so it gets no field at all rather than a greyed one.
-static CodeGuiSearchField lanMapSearchField;
+// GeneralsX: with the filters above it (CodeGuiMapFilters), remembered per picker.
+static CodeGuiMapFilters lanMapSearchField( "LAN" );
 static Bool lanMapSearchUsesSystemMaps = TRUE;
 
 
@@ -147,8 +148,7 @@ static void repopulateLanMapList( void )
 	// const char* into a MapCache key (MapUtil.cpp), safe only while the cache is not modified
 	// under a live listbox. Rebuilding it per keystroke would dangle every row, and both
 	// GLM_SELECTED and buttonOK dereference that pointer.
-	populateMapListbox( mapList, lanMapSearchUsesSystemMaps, TRUE, TheLAN->GetMyGame()->getMap(),
-											lanMapSearchField.getFilter() );
+	lanMapSearchField.populate( mapList, lanMapSearchUsesSystemMaps, TRUE, TheLAN->GetMyGame()->getMap() );
 
 	// populateMapListbox always asks for row 0 when the map it wanted is missing, and
 	// GadgetListBoxSystem's GLM_SET_SELECTION bails out before notifying the owner when row 0 has
@@ -247,15 +247,17 @@ void LanMapSelectMenuInit( WindowLayout *layout, void *userData )
 
 		// Only the host may change the map. This is the same predicate LanGameOptionsMenuInit uses
 		// to leave ButtonSelectMap enabled; a client gets no field, not a disabled one.
-		if( TheLAN->AmIHost() )
-		{
-			lanMapSearchField.create( mapList, lanMapSearchChanged,
-																"LanMapSelectMenu.wnd:TextEntryMapSearch",
-																"LanMapSelectMenu.wnd:ButtonMapSearchClear" );
-		}
-
+		// The cache first: the filters offer only the player counts and sources it holds.
 		if (TheMapCache)
 			TheMapCache->updateCache();		// the only updateCache; never once per keystroke
+		if( TheLAN->AmIHost() )
+		{
+			// The drop-downs wear the setup screen's own team box, hidden under this overlay.
+			GameWindow *comboTemplate = TheWindowManager->winGetWindowFromId( nullptr,
+				TheNameKeyGenerator->nameToKey( "LanGameOptionsMenu.wnd:ComboBoxTeam0" ) );
+			lanMapSearchField.create( mapList, comboTemplate, lanMapSearchChanged, "LanMapSelectMenu.wnd:",
+																!usesSystemMapDir, TheLAN->GetMyGame()->getMap() );
+		}
 		repopulateLanMapList();
 	}
 }
@@ -406,6 +408,7 @@ WindowMsgHandledType LanMapSelectMenuSystem( GameWindow *window, UnsignedInt msg
 		// LanMapSelectMenuParent — the window this callback is bound to. No .wnd change involved.
 		case GEM_UPDATE_TEXT:
 		case GEM_EDIT_DONE:
+		case GCM_SELECTED:		// GeneralsX: the filter drop-downs
 		{
 			lanMapSearchField.handleSystemMsg( msg, (GameWindow *)mData1 );
 			break;
@@ -429,6 +432,7 @@ WindowMsgHandledType LanMapSelectMenuSystem( GameWindow *window, UnsignedInt msg
 				if (TheMapCache)
 					TheMapCache->updateCache();
 				lanMapSearchUsesSystemMaps = TRUE;
+				lanMapSearchField.setUserMaps( !lanMapSearchUsesSystemMaps );
 				repopulateLanMapList();		// keeps any active search text applied
 				LANPreferences pref;
 				pref["UseSystemMapDir"] = "yes";
@@ -439,6 +443,7 @@ WindowMsgHandledType LanMapSelectMenuSystem( GameWindow *window, UnsignedInt msg
 				if (TheMapCache)
 					TheMapCache->updateCache();
 				lanMapSearchUsesSystemMaps = FALSE;
+				lanMapSearchField.setUserMaps( !lanMapSearchUsesSystemMaps );
 				repopulateLanMapList();
 				LANPreferences pref;
 				pref["UseSystemMapDir"] = "no";

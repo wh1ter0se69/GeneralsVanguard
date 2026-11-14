@@ -29,7 +29,9 @@
 
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+#include <algorithm>	// GeneralsX: std::stable_sort, the pickers' sort orders
 #include <cstdint>
+#include <vector>
 #include <wctype.h>	// GeneralsX: towlower, for the case-insensitive map name filter
 
 #include "Common/crc.h"
@@ -59,6 +61,7 @@
 #include "GameClient/GameWindowManager.h"
 #include "GameClient/GadgetListBox.h"
 #include "GameClient/MapUtil.h"
+#include "GameClient/MapListFilter.h"	// GeneralsX: the map pickers' filters (client-only, outside the digest)
 #include "GameClient/MapCacheCredibility.h"
 #include "GameLogic/GameLogic.h"
 #include "GameLogic/FPUControl.h"
@@ -1006,14 +1009,18 @@ Bool WouldMapTransfer( const AsciiString& mapName )
 typedef std::set<UnicodeString, rts::less_than_nocase<UnicodeString>/**/> MapNameList;
 typedef std::map<UnicodeString, AsciiString> MapDisplayToFileNameList;
 
-static void buildMapListForNumPlayers(MapNameList &outMapNames, MapDisplayToFileNameList &outFileNames, Int numPlayers)
+// GeneralsX: `extra` drops the maps a picker filter rejects BEFORE the one-map-per-name merge below, so a rejected map can
+// never stand in for a same-named one the filter wants; with nothing rejected the list is the old one.
+static void buildMapListForNumPlayers(MapNameList &outMapNames, MapDisplayToFileNameList &outFileNames, Int numPlayers,
+	const MapListFilter *extra = nullptr)
 {
 	MapCache::iterator it = TheMapCache->begin();
 
 	for (; it != TheMapCache->end(); ++it)
 	{
 		const MapMetaData &mapData = it->second;
-		if (mapData.m_numPlayers == numPlayers)
+		if (mapData.m_numPlayers == numPlayers
+			&& (extra == nullptr || extra->accept == nullptr || extra->accept(it->first, mapData, extra->ctx)))
 		{
 			outMapNames.insert(it->second.m_displayName);
 			outFileNames[it->second.m_displayName] = it->first;
@@ -1040,6 +1047,8 @@ struct MapListBoxData
 		, selectionIndex(0) // always select *something*
 		, isMultiplayer(false)
 		, filter()
+		, extra(nullptr)
+		, preferFound(false)
 	{
 	}
 
@@ -1058,6 +1067,8 @@ struct MapListBoxData
 	Int selectionIndex;
 	Bool isMultiplayer;
 	UnicodeString filter;
+	const MapListFilter *extra;	///< GeneralsX: the pickers' filters; nullptr = keep every map
+	Bool preferFound;						///< GeneralsX: extra->prefer was listed and is the selection
 };
 
 //-------------------------------------------------------------------------------------------------
@@ -1098,8 +1109,10 @@ static Bool addMapToMapListbox(
 	const AsciiString& mapName,
 	const MapMetaData& mapMetaData)
 {
-	const Bool mapOk = mapName.startsWithNoCase(mapDir.str()) && lbData.isMultiplayer == mapMetaData.m_isMultiplayer && !mapMetaData.m_displayName.isEmpty()
-		&& mapNameMatchesFilter(mapMetaData.m_displayName, lbData.filter);
+	const Bool kindOk = (lbData.extra != nullptr && lbData.extra->bothKinds) || lbData.isMultiplayer == mapMetaData.m_isMultiplayer;
+	const Bool mapOk = mapName.startsWithNoCase(mapDir.str()) && kindOk && !mapMetaData.m_displayName.isEmpty()
+		&& mapNameMatchesFilter(mapMetaData.m_displayName, lbData.filter)
+		&& (lbData.extra == nullptr || lbData.extra->accept == nullptr || lbData.extra->accept(mapName, mapMetaData, lbData.extra->ctx));
 
 	if (mapOk)
 	{
@@ -1165,9 +1178,15 @@ static Bool addMapToMapListbox(
 		index = GadgetListBoxAddEntryText( lbData.listbox, mapDisplayName, lbData.color, index, lbData.numColumns-1 );
 		DEBUG_ASSERTCRASH(index >= 0, ("Expects valid index"));
 
-		if (mapName == lbData.mapToSelect)
+		if (mapName == lbData.mapToSelect && !lbData.preferFound)
 		{
 			lbData.selectionIndex = index;
+		}
+		// GeneralsX: the row the player had picked before a filter changed outranks the game's map.
+		if (lbData.extra != nullptr && !lbData.extra->prefer.isEmpty() && mapName == lbData.extra->prefer)
+		{
+			lbData.selectionIndex = index;
+			lbData.preferFound = true;
 		}
 
 		// now set the char* as the item data.  this works because the map cache isn't being
@@ -1184,9 +1203,13 @@ static Bool addMapToMapListbox(
 }
 
 //-------------------------------------------------------------------------------------------------
-static Bool addMapCollectionToMapListbox(
-	MapListBoxData& lbData,
-	const AsciiString& mapDir,
+// GeneralsX: The rows are gathered first and added second, so the pickers can re-order them
+// (MapListFilter.h). Gathered in the retail order - by player count, then by display name, one
+// map per name and count - which MAPLIST_SORT_PLAYERS keeps untouched.
+typedef std::vector<MapCache::iterator> MapRowList;
+
+static void collectMapRows(
+	MapRowList& rows,
 	const MapNameList& mapNames,
 	const MapDisplayToFileNameList& fileNames)
 {
@@ -1210,29 +1233,44 @@ static Bool addMapCollectionToMapListbox(
 
 		MapCache::iterator mapCacheIt = TheMapCache->find(asciiMapName);
 		DEBUG_ASSERTCRASH(mapCacheIt != TheMapCache->end(), ("Map '%s' not found in map cache.", mapNameIt->str()));
-		/*
-		if (it != TheMapCache->end())
-		{
-			DEBUG_LOG(("populateMapListbox(): looking at %s (displayName = %ls), mp = %d (== %d?) mapDir=%s (ok=%d)",
-				it->first.str(), it->second.m_displayName.str(), it->second.m_isMultiplayer, isMultiplayer,
-				mapDir.str(), it->first.startsWith(mapDir.str())));
-		}
-		*/
-
-		const Bool ok = addMapToMapListbox(lbData, mapDir, mapCacheIt->first, mapCacheIt->second);
-
-		if (!ok)
-			return false;
+		if (mapCacheIt != TheMapCache->end())
+			rows.push_back(mapCacheIt);
 	}
+}
 
-	return true;
+//-------------------------------------------------------------------------------------------------
+static UnsignedInt64 mapRowTime(const MapMetaData& md)
+{
+	return ((UnsignedInt64)md.m_timestamp.m_highTimeStamp << 32) | (UnsignedInt64)md.m_timestamp.m_lowTimeStamp;
+}
+
+static bool mapRowIsSolo(const MapCache::iterator& row)
+{
+	return !row->second.m_isMultiplayer;
+}
+
+static bool mapRowByName(const MapCache::iterator& a, const MapCache::iterator& b)
+{
+	const Int byName = a->second.m_displayName.compareNoCase(b->second.m_displayName);
+	if (byName != 0)
+		return byName < 0;
+	return a->second.m_numPlayers < b->second.m_numPlayers;
+}
+
+static bool mapRowByNewest(const MapCache::iterator& a, const MapCache::iterator& b)
+{
+	const UnsignedInt64 ta = mapRowTime(a->second);
+	const UnsignedInt64 tb = mapRowTime(b->second);
+	if (ta != tb)
+		return ta > tb;
+	return mapRowByName(a, b);
 }
 
 //-------------------------------------------------------------------------------------------------
 /** Load the listbox with all the map files available to play */
 //-------------------------------------------------------------------------------------------------
-Int populateMapListboxNoReset( GameWindow *listbox, Bool useSystemMaps, Bool isMultiplayer, AsciiString mapToSelect,
-	UnicodeString filter )
+static Int populateMapListboxRows( GameWindow *listbox, Bool useSystemMaps, Bool isMultiplayer, AsciiString mapToSelect,
+	UnicodeString filter, const MapListFilter *extra )
 {
 	if(!TheMapCache)
 		return -1;
@@ -1241,6 +1279,7 @@ Int populateMapListboxNoReset( GameWindow *listbox, Bool useSystemMaps, Bool isM
 		return -1;
 
 	MapListBoxData lbData;
+	lbData.extra = extra;
 	lbData.listbox = listbox;
 	lbData.numLength = GadgetListBoxGetListLength( listbox );
 	lbData.numColumns = GadgetListBoxGetNumColumns( listbox );
@@ -1281,16 +1320,28 @@ Int populateMapListboxNoReset( GameWindow *listbox, Bool useSystemMaps, Bool isM
 	// add: the list is no longer capped at the layout's length, and per-add layout is O(maps^2).
 	GadgetListBoxBeginBulkAdd(listbox);
 
+	MapRowList rows;
 	for (; curNumPlayersInMap <= MAX_SLOTS; ++curNumPlayersInMap)
 	{
-		buildMapListForNumPlayers(mapNames, fileNames, curNumPlayersInMap);
+		buildMapListForNumPlayers(mapNames, fileNames, curNumPlayersInMap, extra);
 
-		const Bool ok = addMapCollectionToMapListbox(lbData, mapDir, mapNames, fileNames);
+		collectMapRows(rows, mapNames, fileNames);
 
 		mapNames.clear();
 		fileNames.clear();
+	}
 
-		if (!ok)
+	const MapListSort sort = (extra != nullptr) ? extra->sort : MAPLIST_SORT_PLAYERS;
+	if (sort == MAPLIST_SORT_PLAYERS && extra != nullptr && extra->bothKinds)
+		std::stable_partition(rows.begin(), rows.end(), mapRowIsSolo);
+	else if (sort == MAPLIST_SORT_NAME)
+		std::stable_sort(rows.begin(), rows.end(), mapRowByName);
+	else if (sort == MAPLIST_SORT_NEWEST)
+		std::stable_sort(rows.begin(), rows.end(), mapRowByNewest);
+
+	for (MapRowList::const_iterator rowIt = rows.begin(); rowIt != rows.end(); ++rowIt)
+	{
+		if (!addMapToMapListbox(lbData, mapDir, (*rowIt)->first, (*rowIt)->second))
 			break;
 	}
 
@@ -1307,7 +1358,14 @@ Int populateMapListboxNoReset( GameWindow *listbox, Bool useSystemMaps, Bool isM
 		Int bottomIndex = GadgetListBoxGetBottomVisibleEntry(listbox);
 		Int rowsOnScreen = bottomIndex - topIndex;
 
-		if (lbData.selectionIndex >= bottomIndex)
+		// GeneralsX: not when every row fits in the box - a short (filtered) list whose selection was its last row
+		// scrolled down and hid its first rows, with empty space under them. A longer list still scrolls, so a selected
+		// last row is never left half under the bottom edge. No ListboxData (headless) = the old behaviour.
+		// The 4: W3DListBox draws the rows from 4 px below the box's top (drawListBoxText y + 4, height - 4).
+		const Int rowTopInset = 4;
+		const ListboxData *listData = (const ListboxData *)listbox->winGetUserData();
+		const Bool listFits = listData != nullptr && listData->totalHeight + rowTopInset <= listData->displayHeight;
+		if (lbData.selectionIndex >= bottomIndex && !listFits)
 		{
 			Int newTop = max( 0, lbData.selectionIndex - max( 1, rowsOnScreen / 2 ) );
 			//The trouble is that rowsOnScreen/2 can be zero if bottom is 1 and top is zero
@@ -1316,6 +1374,29 @@ Int populateMapListboxNoReset( GameWindow *listbox, Bool useSystemMaps, Bool isM
 	}
 
 	return lbData.selectionIndex;
+}
+
+//-------------------------------------------------------------------------------------------------
+/** Load the listbox with all the map files available to play */
+//-------------------------------------------------------------------------------------------------
+Int populateMapListboxNoReset( GameWindow *listbox, Bool useSystemMaps, Bool isMultiplayer, AsciiString mapToSelect,
+	UnicodeString filter )
+{
+	return populateMapListboxRows( listbox, useSystemMaps, isMultiplayer, mapToSelect, filter, nullptr );
+}
+
+//-------------------------------------------------------------------------------------------------
+// GeneralsX: the map pickers' filters, MapListFilter.h.
+Int populateMapListboxFiltered( GameWindow *listbox, Bool useSystemMaps, Bool isMultiplayer, AsciiString mapToSelect,
+	const MapListFilter &filter, Bool reset )
+{
+	if (!TheMapCache || !listbox)
+		return -1;
+
+	if (reset)
+		GadgetListBoxReset( listbox );
+
+	return populateMapListboxRows( listbox, useSystemMaps, isMultiplayer, mapToSelect, filter.search, &filter );
 }
 
 //-------------------------------------------------------------------------------------------------

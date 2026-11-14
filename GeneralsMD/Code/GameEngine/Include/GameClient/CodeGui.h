@@ -273,6 +273,10 @@ GameWindow *CodeGuiTextEntryLike( GameWindow *tmpl, GameWindow *parent, const ch
 																	Int x, Int y, Int width, Int height, Short maxTextLen );
 GameWindow *CodeGuiButtonLike( GameWindow *tmpl, GameWindow *parent, const char *idName,
 															 Int x, Int y, Int width, Int height, const WideChar *label, const WideChar *tooltip );
+/// A pick-only drop-down wearing an authored combo box's art (box, arrow, edit field, list); the list holds
+/// `listLength` rows, not the parser's 10. nullptr if tmpl is null or is not a combo box.
+GameWindow *CodeGuiComboBoxLike( GameWindow *tmpl, GameWindow *parent, const char *idName,
+																 Int x, Int y, Int width, Int height, Int listLength );
 
 //-------------------------------------------------------------------------------------------------
 // Off-stack layout lifecycle. Mirrors Shell::getOptionsLayout / destroyOptionsLayout (Shell.cpp),

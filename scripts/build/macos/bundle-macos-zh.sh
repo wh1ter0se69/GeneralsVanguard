@@ -258,7 +258,9 @@ cat > "${CONTENTS_DIR}/Info.plist" <<'PLIST'
     <key>CFBundleName</key>
     <string>Generals Vanguard ZH</string>
     <key>CFBundleDisplayName</key>
-    <string>Generals Vanguard ZH</string>
+    <string>GeneralsXZH</string>
+    <key>LSHasLocalizedDisplayName</key>
+    <true/>
     <key>CFBundleIdentifier</key>
     <string>com.generalsx.generalsxzh</string>
     <key>CFBundleVersion</key>
@@ -276,6 +278,12 @@ cat > "${CONTENTS_DIR}/Info.plist" <<'PLIST'
 </dict>
 </plist>
 PLIST
+# Rename R2a: Finder, Launchpad and Spotlight call this bundle "Generals Vanguard ZH" without renaming it. macOS shows the
+# localized CFBundleDisplayName only while the file name equals the plain one above (GeneralsXZH.app), so a player's own
+# rename still shows; the bundle, its id and every path that finds it stay GeneralsXZH (measured 14/11/2026 with dummy
+# bundles and URLResourceValues.localizedName).
+mkdir -p "${RESOURCES_DIR}/en.lproj"
+printf '"CFBundleDisplayName" = "Generals Vanguard ZH";\n"CFBundleName" = "Generals Vanguard ZH";\n' > "${RESOURCES_DIR}/en.lproj/InfoPlist.strings"
 
 echo "  Staging files to ${APP_DIR}..."
 

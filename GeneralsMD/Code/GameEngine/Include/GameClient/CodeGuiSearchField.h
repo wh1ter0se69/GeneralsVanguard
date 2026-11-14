@@ -39,11 +39,15 @@
 
 // USER INCLUDES //////////////////////////////////////////////////////////////
 #include "Lib/BaseType.h"
+#include "Common/AsciiString.h"
 #include "Common/UnicodeString.h"
+#include "GameClient/MapListFilter.h"
 
 // FORWARD REFERENCES /////////////////////////////////////////////////////////
 class GameWindow;
 class CodeGuiSearchField;
+class MapMetaData;
+struct GXMapSources;
 
 /// Invoked after the filter string has already been updated. The field is passed in so one
 /// callback can serve several screens; read the new text with getFilter().
@@ -112,5 +116,86 @@ private:
 	GameWindow										*m_clear;			///< the one-tap clear button
 	UnicodeString									 m_filter;		///< live copy of the entry text
 	CodeGuiSearchFieldChangedFunc	 m_onChanged;
+
+};
+
+//-------------------------------------------------------------------------------------------------
+/** GeneralsX @feature 14/11/2026 The map pickers' filters: Players, Source and Sort drop-downs on the "Select Map" title
+	* band (above the search row when a layout has no room there), the search row above the map list, and "No maps match."
+	* with a Clear filters button inside the list when nothing passes.
+	* One object per picker (Skirmish, LAN, Online); each remembers its own choice in <userdata>/MapFilters.ini.
+	*
+	* The drop-downs wear the art of `comboTemplate`, an authored retail combo box (the setup screen's hidden team box);
+	* with no template only the search row is built and no remembered filter applies. Source refines UNOFFICIAL maps
+	* (Generals Vanguard, Downloaded and each launcher category, My maps, GXMapSources.h): under the Official radio it reads
+	* "Official maps" and is disabled. Display only: nothing here touches what a map is or how it joins. */
+//-------------------------------------------------------------------------------------------------
+class CodeGuiMapFilters
+{
+
+public:
+
+	/// `prefsKey` names this picker in MapFilters.ini ("Skirmish", "LAN", "Online"); a string literal.
+	explicit CodeGuiMapFilters( const char *prefsKey );
+	~CodeGuiMapFilters();
+
+	/** Build the filter row and the search row, after TheMapCache->updateCache(). `idPrefix` is the layout's
+		* ("SkirmishMapSelectMenu.wnd:"); the row finds the title and ButtonOK by it. `userMaps` is the radio's state. Remembered filters that would hide
+		* `mapToShow` (the game's current map) are relaxed for this opening, so the picker always shows it. */
+	Bool create( GameWindow *listbox, GameWindow *comboTemplate, CodeGuiSearchFieldChangedFunc onChanged,
+							 const char *idPrefix, Bool userMaps, const AsciiString &mapToShow );
+
+	/// Forget the windows and the search text, as CodeGuiSearchField::reset. Remembered filters stay.
+	void reset( void );
+
+	/// GEM_*, GBM_SELECTED and GCM_SELECTED from the OWNER's system func; TRUE when it was ours. A change calls `onChanged`.
+	Bool handleSystemMsg( UnsignedInt msg, GameWindow *control );
+
+	/// The Official / Unofficial radio moved: refill the Players and Source drop-downs. Does not repopulate.
+	void setUserMaps( Bool userMaps );
+
+	/** populateMapListbox with every filter applied; updates the "No maps match." state. `bothKinds` lists solo and
+		* multiplayer maps together (Skirmish's unofficial list). The row picked before a filter changed stays selected
+		* when it is still listed, else `mapToSelect`. */
+	Int populate( GameWindow *listbox, Bool useSystemMaps, Bool isMultiplayer, const AsciiString &mapToSelect,
+								Bool bothKinds = FALSE );
+
+private:
+
+	enum Source { SOURCE_ANY = 0, SOURCE_VANGUARD, SOURCE_DOWNLOADED, SOURCE_MINE, SOURCE_CATEGORY };
+
+	static Bool acceptRow( const AsciiString &mapPath, const MapMetaData &md, void *ctx );
+	Bool accepts( const AsciiString &lowerPath, const MapMetaData &md ) const;
+	Source classify( const AsciiString &lowerPath, AsciiString *category ) const;
+	Bool isFiltering( void ) const;
+	void fillPlayers( void );
+	void fillSource( void );
+	void fillSort( void );
+	void selectByData( GameWindow *combo, Int data );
+	void readCombos( void );
+	void loadPrefs( void );
+	void savePrefs( void ) const;
+	void clearFilters( void );
+	void updateEmptyState( GameWindow *listbox );
+	void keepSelection( void );
+
+	CodeGuiSearchField							 m_search;
+	const char											*m_prefsKey;
+	CodeGuiSearchFieldChangedFunc		 m_onChanged;
+	GameWindow											*m_players;			///< the three drop-downs; nullptr when there was no template
+	GameWindow											*m_source;
+	GameWindow											*m_sort;
+	GameWindow											*m_emptyLabel;	///< "No maps match."
+	GameWindow											*m_emptyClear;	///< Clear filters
+	GameWindow											*m_listbox;			///< the map list create() was given
+	AsciiString											 m_keep;				///< its picked row, copied before a change repopulates it
+	Bool														 m_quiet;				///< TRUE while code moves a drop-down
+	Bool														 m_userMaps;
+	Int															 m_wantPlayers;	///< 0 = any
+	Source													 m_wantSource;
+	AsciiString											 m_wantCategory;	///< SOURCE_CATEGORY's catalogue id
+	MapListSort											 m_sortOrder;
+	GXMapSources										*m_sources;			///< loaded at create()
+	AsciiString											 m_userMapDir;		///< lowercased, as populateMapListbox builds it
 
 };

@@ -482,10 +482,10 @@ libbz2-1.0 1.0.8-5.1ubuntu0.1
   Source  : bzip2 1.0.8-5.1ubuntu0.1 (Ubuntu source package)
   Files   : libbz2.so.1.0, libbz2.so.1.0.4
   Text    : [L24]
-libc6 2.39-0ubuntu8.9
+libc6 2.39-0ubuntu8.12
   Licences named in its copyright file: see text
   Project : https://www.gnu.org/software/libc/libc.html
-  Source  : glibc 2.39-0ubuntu8.9 (Ubuntu source package)
+  Source  : glibc 2.39-0ubuntu8.12 (Ubuntu source package)
   Files   : libresolv.so.2
   Text    : [L25]
 libcairo-gobject2 1.18.0-3build1

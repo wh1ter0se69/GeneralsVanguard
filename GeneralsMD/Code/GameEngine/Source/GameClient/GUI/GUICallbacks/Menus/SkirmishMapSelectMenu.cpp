@@ -81,7 +81,8 @@ static NameKeyType winMapPreviewID = NAMEKEY_INVALID;
 // GeneralsX: Now a CodeGuiSearchField so the other three map screens get
 // the same row without a copy-paste. The filter string lives inside the object, so two screens can
 // be built at once without sharing it.
-static CodeGuiSearchField mapSearchField;
+// GeneralsX: and now the filters above it (CodeGuiMapFilters): players, source and sort, remembered per picker.
+static CodeGuiMapFilters mapSearchField( "Skirmish" );
 static Bool mapSearchUsesSystemMaps = TRUE;
 
 static void NullifyControls()
@@ -217,15 +218,15 @@ static void repopulateSkirmishMapList( void )
 	// const char* into a MapCache key (MapUtil.cpp), safe only while the cache is not modified
 	// under a live listbox. Rebuilding it per keystroke would dangle every row, and both
 	// GLM_SELECTED and buttonOK dereference that pointer.
-	const UnicodeString &mapSearchFilter = mapSearchField.getFilter();
 	if( mapSearchUsesSystemMaps )
 	{
-		populateMapListbox( mapList, TRUE, TRUE, TheSkirmishGameInfo->getMap(), mapSearchFilter );
+		mapSearchField.populate( mapList, TRUE, TRUE, TheSkirmishGameInfo->getMap() );
 	}
 	else
 	{
-		populateMapListbox( mapList, FALSE, FALSE, TheSkirmishGameInfo->getMap(), mapSearchFilter );
-		populateMapListboxNoReset( mapList, FALSE, TRUE, TheSkirmishGameInfo->getMap(), mapSearchFilter );
+		// Solo and multiplayer user maps in one pass, so a sort orders the whole list; the default order is the old
+		// two calls' (every solo row, then every multiplayer row).
+		mapSearchField.populate( mapList, FALSE, TRUE, TheSkirmishGameInfo->getMap(), TRUE );
 	}
 
 	// populateMapListbox always asks for row 0 when the map it wanted is missing, and
@@ -330,12 +331,15 @@ void SkirmishMapSelectMenuInit( WindowLayout *layout, void *userData )
 		// "SkirmishMapSelectMenuParent", so `parent` is always nullptr here and every
 		// winGetWindowFromId( parent, ... ) in this file silently degrades to a whole-process
 		// search. create() derives the right parent from the listbox itself.
-		mapSearchField.create( mapList, skirmishMapSearchChanged,
-													 "SkirmishMapSelectMenu.wnd:TextEntryMapSearch",
-													 "SkirmishMapSelectMenu.wnd:ButtonMapSearchClear" );
-
+		// The cache first: the filters offer only the player counts and sources it holds.
 		if (TheMapCache)
 			TheMapCache->updateCache();		// the only updateCache; never once per keystroke
+		// The drop-downs wear the setup screen's own team box, hidden under this overlay.
+		GameWindow *comboTemplate = TheWindowManager->winGetWindowFromId( nullptr,
+			TheNameKeyGenerator->nameToKey( "SkirmishGameOptionsMenu.wnd:ComboBoxTeam0" ) );
+		mapSearchField.create( mapList, comboTemplate, skirmishMapSearchChanged, "SkirmishMapSelectMenu.wnd:",
+													 !usesSystemMapDir, TheSkirmishGameInfo->getMap() );
+
 		repopulateSkirmishMapList();
 		mapList->winSetTooltipFunc(mapListTooltipFunc);
 	}
@@ -528,6 +532,7 @@ WindowMsgHandledType SkirmishMapSelectMenuSystem( GameWindow *window, UnsignedIn
 		// .wnd change and no FunctionLexicon row are involved.
 		case GEM_UPDATE_TEXT:
 		case GEM_EDIT_DONE:
+		case GCM_SELECTED:		// GeneralsX: the filter drop-downs
 		{
 			mapSearchField.handleSystemMsg( msg, (GameWindow *)mData1 );
 			break;
@@ -552,6 +557,7 @@ WindowMsgHandledType SkirmishMapSelectMenuSystem( GameWindow *window, UnsignedIn
 				if (TheMapCache)
 					TheMapCache->updateCache();
 				mapSearchUsesSystemMaps = TRUE;
+				mapSearchField.setUserMaps( FALSE );
 				repopulateSkirmishMapList();		// keeps any active search text applied
 				//LANPreferences pref;
 				//pref["UseSystemMapDir"] = "yes";
@@ -562,6 +568,7 @@ WindowMsgHandledType SkirmishMapSelectMenuSystem( GameWindow *window, UnsignedIn
 				if (TheMapCache)
 					TheMapCache->updateCache();
 				mapSearchUsesSystemMaps = FALSE;
+				mapSearchField.setUserMaps( TRUE );
 				repopulateSkirmishMapList();
 				//LANPreferences pref;
 				//pref["UseSystemMapDir"] = "no";
