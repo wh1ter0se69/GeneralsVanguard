@@ -1,6 +1,6 @@
 # Lines of code by origin
 
-Measured on `v0.9.75` with [`scripts/tooling/line-origin.py`](../scripts/tooling/line-origin.py). Each line counts
+Measured on `v0.9.76` with [`scripts/tooling/line-origin.py`](../scripts/tooling/line-origin.py). Each line counts
 toward the earliest of these that already has it (whitespace-only edits keep the older owner, as `git blame -w`
 does): EA's release, TheSuperHackers' mainline (merge base `f51b2804`, or `3fcbbb4d` for fixes ported later), the
 Fighter19 → fbraz3 → ammaarreshi line (`c5c8c4d3`), and otherwise this fork. Engine C/C++ is every `.c .cc .cpp .h
@@ -24,7 +24,7 @@ To reproduce, fetch the base commits (all public) and run the script:
 ```sh
 git fetch https://github.com/TheSuperHackers/GeneralsGameCode 3fcbbb4dcaabb59db23cbdecd2cd7ee93d599248
 git fetch https://github.com/ammaarreshi/Generals-Mac-iOS-iPad c5c8c4d3e757033d9ab464f6bd6e15e91e0e742f
-python3 scripts/tooling/line-origin.py v0.9.75 \
+python3 scripts/tooling/line-origin.py v0.9.76 \
     EA=0a05454d8574207440a5fb15241b98ad0b435590 \
     TheSuperHackers=f51b28047a8f6f1e3e6f227c32aa96e52d360fef,3fcbbb4dcaabb59db23cbdecd2cd7ee93d599248 \
     lineage=c5c8c4d3e757033d9ab464f6bd6e15e91e0e742f

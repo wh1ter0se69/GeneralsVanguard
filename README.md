@@ -70,8 +70,8 @@ the game binary is still `GeneralsXZH`, and files and install folders keep the `
   simulation changes must replay to identical per-frame CRCs; speed changes are measured A/B.
 
 This repository holds the source of each published release as one snapshot commit, tagged with its version. The
-current tag, `v0.9.75`, is the source of the 0.9.75 release and was cut from development commit
-`56d0826ae6412a778d957f0640e026300df6aa67`; [SOURCE.md](SOURCE.md) lists exactly what differs from that commit.
+current tag, `v0.9.76`, is the source of the 0.9.76 release and was cut from development commit
+`ef326c9902b78af52c892eb0679ba3f41b45b40f`; [SOURCE.md](SOURCE.md) lists exactly what differs from that commit.
 Downloads and release notes: [wh1ter0se.dev/generals](https://wh1ter0se.dev/generals) and
 [wh1ter0se.dev/generals/changes](https://wh1ter0se.dev/generals/changes).
 
@@ -116,7 +116,7 @@ Most of this code is not ours, and the projects it comes from did the foundation
 
 ### Lines of code by origin
 
-Engine C/C++ in `v0.9.75` (`Core/`, `Generals/`, `GeneralsMD/`, `Dependencies/`), each line counted toward the
+Engine C/C++ in `v0.9.76` (`Core/`, `Generals/`, `GeneralsMD/`, `Dependencies/`), each line counted toward the
 earliest project that already has it:
 
 | Engine C/C++ | Lines | Share |
@@ -190,7 +190,7 @@ untouched; packaging and the installer are in `scripts/build/windows/`. The Gene
 separate program and is not part of this repository; the game builds and runs without it. The Windows updater's source
 (`GeneralsXUpdate.exe`) is: `scripts/build/windows/launcher/`.
 
-A game built from the `v0.9.75` tag cannot play with the published 0.9.75: publishing edited comments in files the
+A game built from the `v0.9.76` tag cannot play with the published 0.9.76: publishing edited comments in files the
 simulation's source id is computed from, so the two refuse each other. [SOURCE.md](SOURCE.md) has the numbers and
 how to check that only comments differ; from the next release on, the tag is the tree the binaries were built from.
 
