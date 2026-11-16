@@ -1,0 +1,5 @@
+# Code scanning ignores the developer tools; the game and its updater are what ships.
+paths-ignore:
+  - Core/Tools/**
+  - Generals/Code/Tools/**
+  - GeneralsMD/Code/Tools/**

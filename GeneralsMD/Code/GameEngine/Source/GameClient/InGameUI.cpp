@@ -29,6 +29,7 @@
 
 #include "PreRTS.h"
 #include "GameClient/GXTextColor.h"
+#include "GameClient/GXSuperweaponAddPolicy.h"
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
 #endif	// This must go first in EVERY cpp file in the GameEngine
@@ -852,6 +853,7 @@ void InGameUI::objectChangedTeam(const Object *obj, Int oldPlayerIndex, Int newP
 			AsciiString name;
 			const SpecialPowerTemplate *powerTemplate;
 			GXSuperweaponCallState state;
+			Bool addUnlisted;	// a power not listed under the old owner is added only if it would show a public timer
 		};
 		std::vector<Power> powers;
 		for (BehaviorModule** m = obj->getBehaviorModules(); *m; ++m)
@@ -861,15 +863,16 @@ void InGameUI::objectChangedTeam(const Object *obj, Int oldPlayerIndex, Int newP
 				continue;
 
 			const SpecialPowerTemplate *powerTemplate = sp->getSpecialPowerTemplate();
-			powers.push_back( Power{ gxDetachedCopy( powerTemplate->getName() ), powerTemplate, gxSuperweaponCallState( newPlayerIndex, powerTemplate ) } );
+			// only an object the map starts with, and only what SpecialPowerModule's frame-0 add would list: a public timer on a structure
+			// (a unit ability has no "GUI:<power>" label and drew "MISSING:")
+			const Bool addUnlisted = GXSuperweaponAddPolicy::addUnlisted( TheGameLogic->getFrame() == 0, obj->getStatusBits().test( OBJECT_STATUS_UNDER_CONSTRUCTION ),
+				obj->isKindOf( KINDOF_COMMANDCENTER ), obj->isKindOf( KINDOF_STRUCTURE ), powerTemplate->hasPublicTimer() );
+			powers.push_back( Power{ gxDetachedCopy( powerTemplate->getName() ), powerTemplate, gxSuperweaponCallState( newPlayerIndex, powerTemplate ), addUnlisted } );
 		}
 		if (powers.empty())
 			return;	// nothing listed or to list: no queued command
 		const ObjectID id = obj->getID();
-		// a power not listed under the old owner is added only for an object the map starts with
-		const Bool addUnlisted = TheGameLogic->getFrame() == 0 && !obj->getStatusBits().test( OBJECT_STATUS_UNDER_CONSTRUCTION ) &&
-			obj->isKindOf( KINDOF_COMMANDCENTER ) == FALSE;
-		auto apply = [this, id, oldPlayerIndex, newPlayerIndex, powers = std::move( powers ), addUnlisted]()
+		auto apply = [this, id, oldPlayerIndex, newPlayerIndex, powers = std::move( powers )]()
 		{
 			for (const Power& p : powers)
 			{
@@ -879,7 +882,7 @@ void InGameUI::objectChangedTeam(const Object *obj, Int oldPlayerIndex, Int newP
 					s_gxSuperweaponCall = p.state;
 					addSuperweapon(newPlayerIndex, p.name, id, p.powerTemplate);
 				}
-				else if (addUnlisted)
+				else if (p.addUnlisted)
 				{
 					s_gxSuperweaponCall = p.state;
 					addSuperweapon(newPlayerIndex, p.name, id, p.powerTemplate);
