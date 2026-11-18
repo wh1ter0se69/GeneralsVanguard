@@ -51,6 +51,7 @@
 #include "GameClient/GadgetComboBox.h"
 #include "GameClient/GadgetTextEntry.h"
 #include "GameClient/GadgetStaticText.h"
+#include "GameClient/DisplayStringManager.h"		// the seat-number column is as wide as "34" in the row's face
 #include "GameClient/GadgetPushButton.h"
 #include "GameClient/GadgetCheckBox.h"
 #include "GameClient/MapUtil.h"
@@ -1076,9 +1077,316 @@ static void lanOpenNextSlotDropDown( GameInfo *game, Int from )
 		const GameSlot *slot = game->getConstSlot( j );
 		if( slot == nullptr || slot->isHuman() )
 			continue;
+		CodeGuiRowsScrollReveal( combo );		// a seat below the fold scrolls into view first: a parked list takes no keys
 		GadgetComboBoxOpenList( combo );
 		return;
 	}
+}
+
+// GeneralsX: Seat numbers and a seat summary on the game-setup screen.
+//
+// SEAT NUMBERS: "1".."34" in a narrow column at the left edge of every row, in the row's own face. The Players box pays
+// for it: it gives up exactly the column's width plus the gap it already keeps from the Ready box, and moves right with
+// the Ready box, so the Ready box keeps its size and stays beside the name and no other column moves. The authored rows
+// get the column before CodeGuiRowsScrollSetup measures them, as one more seat column, so it scrolls with the rest and
+// the cloned rows cut from row 0 inherit the narrowed Players box; the clones' text is set once they exist.
+//
+// SEAT SUMMARY: under the rows, left of the Starting Money caption, one line each for humans, AI, spectators and the
+// seats taken of MAX_SLOTS; refreshed by lanUpdateSlotList, which every room change funnels through.
+static const char * const LAN_SEAT_NUMBER_ID = "LanGameOptionsMenu.wnd:StaticTextSeatNumber%d";
+static GameWindow *s_seatSummary = nullptr;
+
+static GameWindow *lanFindControl( const char *id )
+{
+	if( parentLanGameOptions == nullptr || id == nullptr )
+		return nullptr;
+	return TheWindowManager->winGetWindowFromId( parentLanGameOptions, TheNameKeyGenerator->nameToKey( id ) );
+}
+
+static GameWindow *lanFindRow( const char *idFormat, Int i )
+{
+	AsciiString id;
+	id.format( idFormat, i );
+	return lanFindControl( id.str() );
+}
+
+/// W3DGadgetStaticTextDraw wraps a static text at its width minus this many device pixels, at every resolution; a label
+/// must be that much wider than its text or hard word wrap (UseHardWordWrap, the no-space scripts) splits a "34" in two.
+enum { LAN_STATIC_TEXT_WRAP_INSET = 10 };
+
+/// Size of `text` in `font`, in device pixels, wrapped at `wrapW` (0 = no wrap); 0 x 0 when nothing can measure (headless).
+static void lanTextSize( GameFont *font, const WideChar *text, Int wrapW, Int *w, Int *h )
+{
+	*w = 0;
+	*h = 0;
+	if( TheDisplayStringManager == nullptr || font == nullptr || text == nullptr )
+		return;
+	DisplayString *ds = TheDisplayStringManager->newDisplayString();
+	if( ds == nullptr )
+		return;
+	ds->setFont( font );
+	if( wrapW > 0 )
+		ds->setWordWrap( wrapW );
+	ds->setText( UnicodeString( text ) );
+	ds->getSize( w, h );
+	TheDisplayStringManager->freeDisplayString( ds );
+}
+
+static Int lanTextWidth( GameFont *font, const WideChar *text )
+{
+	Int w, h;
+	lanTextSize( font, text, 0, &w, &h );
+	return w;
+}
+
+/// Step `win`'s face down, one point at a time (never below 6), until `text` wrapped at the window's width fits the
+/// window's height. The same walk as codeGuiRowFitFont, for a text that is not a row.
+static void lanFitTextToWindow( GameWindow *win, const WideChar *text )
+{
+	GameFont *font = win->winGetFont();
+	if( font == nullptr )
+		return;
+	Int ww, wh;
+	win->winGetSize( &ww, &wh );
+	const Int wrapW = ww - LAN_STATIC_TEXT_WRAP_INSET;
+	for( Int size = font->pointSize; size >= 6; --size )
+	{
+		GameFont *cand = ( size == font->pointSize ) ? font : TheWindowManager->winFindFont( font->nameString, size, font->bold );
+		if( cand == nullptr )
+			continue;
+		Int tw, th;
+		lanTextSize( cand, text, wrapW, &tw, &th );
+		if( tw <= wrapW && th <= wh )
+		{
+			if( cand != font )
+				win->winSetFont( cand );
+			return;
+		}
+	}
+}
+
+static void lanSeatNumbersCreate( void )
+{
+	GameWindow *row0 = lanFindRow( "LanGameOptionsMenu.wnd:ComboBoxPlayer%d", 0 );
+	GameWindow *row1 = lanFindRow( "LanGameOptionsMenu.wnd:ComboBoxPlayer%d", 1 );
+	GameWindow *ready0 = lanFindRow( "LanGameOptionsMenu.wnd:ButtonAccept%d", 0 );
+	GameWindow *header = lanFindControl( "LanGameOptionsMenu.wnd:StaticTextPlayers" );
+	if( row0 == nullptr || row1 == nullptr || ready0 == nullptr || header == nullptr )
+		return;
+	GameWindow *owner = row0->winGetParent();
+	if( owner == nullptr || ready0->winGetParent() != owner || header->winGetParent() != owner )
+		return;
+
+	Int px, py, pw, ph, qx, qy, ax, ay, aw, ah;
+	row0->winGetPosition( &px, &py );
+	row0->winGetSize( &pw, &ph );
+	row1->winGetPosition( &qx, &qy );
+	ready0->winGetPosition( &ax, &ay );
+	ready0->winGetSize( &aw, &ah );
+	const Int pitch = qy - py;
+	if( pitch <= 0 || ph <= 0 )
+		return;
+
+	// As wide as the widest seat number in the row's face, plus the renderer's wrap inset and a hair each side (
+	// lobby-seats: without the inset a hard-wrapping locale splits "34" over two lines).
+	GameFont *font = row0->winGetFont();
+	UnicodeString widest;
+	widest.format( L"%d", (Int)MAX_SLOTS );
+	const Int pad = CodeGuiAtLeast( CodeGuiScaleX( 2 ), 2 );
+	const Int textW = lanTextWidth( font, widest.str() );
+	const Int numW = textW + LAN_STATIC_TEXT_WRAP_INSET + 2 * pad;
+	Int gap = px - ( ax + aw );		// the authored 2 px between the Ready box and the name
+	if( gap < 0 )
+		gap = 0;
+	const Int dx = numW + gap;
+	if( textW <= 0 || dx >= pw / 2 )
+		return;		// nothing measured, or a face so large the names would lose half their box
+
+	// Only the authored rows exist yet; CodeGuiRowsEnsure cuts the rest from row 0, so they inherit the new rects.
+	for( Int i = 0; i < MAX_SLOTS; ++i )
+	{
+		GameWindow *row = lanFindRow( "LanGameOptionsMenu.wnd:ComboBoxPlayer%d", i );
+		if( row != nullptr && row->winGetParent() == owner )
+		{
+			Int x, y, w, h;
+			row->winGetPosition( &x, &y );
+			row->winGetSize( &w, &h );
+			row->winSetPosition( x + dx, y );
+			row->winSetSize( w - dx, h );		// GGM_RESIZED moves the arrow and the edit box with it
+		}
+		GameWindow *ready = lanFindRow( "LanGameOptionsMenu.wnd:ButtonAccept%d", i );
+		if( ready != nullptr && ready->winGetParent() == owner )
+		{
+			Int x, y;
+			ready->winGetPosition( &x, &y );
+			ready->winSetPosition( x + dx, y );
+		}
+	}
+	Int hx, hy;
+	header->winGetPosition( &hx, &hy );
+	header->winSetPosition( hx + dx, hy );		// "Players" stays over the names
+
+	// One label per authored Players row, at the Ready box's old x, in the header's look (NOINPUT, so a click or the
+	// wheel over it falls through to the rows' parent) but the row's face, centred both ways.
+	for( Int i = 0; i < MAX_SLOTS; ++i )
+	{
+		if( lanFindRow( "LanGameOptionsMenu.wnd:ComboBoxPlayer%d", i ) == nullptr )
+			continue;
+		AsciiString id;
+		id.format( LAN_SEAT_NUMBER_ID, i );
+		GameWindow *label = CodeGuiLabelLike( header, owner, id.str(), ax, py + i * pitch, numW, ph, L"" );
+		if( label == nullptr )
+			continue;
+		if( font != nullptr )
+			label->winSetFont( font );
+		TextData *data = (TextData *)label->winGetUserData();
+		if( data != nullptr )
+		{
+			data->centered = TRUE;
+			data->centeredVertically = TRUE;
+			data->leftMargin = 0;
+			data->topMargin = 0;
+		}
+	}
+}
+
+/// After CodeGuiRowsScrollSetup: every row has a label now (the clones were cut from row 0's), so number them. The set-up
+/// may have grown the rows' face (a band taller than the visible cap), so the widest number is fitted against the FINAL
+/// face: a label too narrow for it steps its face down rather than wrapping (lobby-seats).
+static void lanSeatNumbersLabel( void )
+{
+	UnicodeString widest;
+	widest.format( L"%d", (Int)MAX_SLOTS );
+	for( Int i = 0; i < MAX_SLOTS; ++i )
+	{
+		GameWindow *label = lanFindRow( LAN_SEAT_NUMBER_ID, i );
+		if( label == nullptr )
+			continue;
+		lanFitTextToWindow( label, widest.str() );
+		UnicodeString num;
+		num.format( L"%d", i + 1 );
+		GadgetStaticTextSetText( label, num );
+	}
+}
+
+static void lanSeatSummaryUpdate( GameInfo *game )
+{
+	if( s_seatSummary == nullptr || game == nullptr )
+		return;
+	Int humans = 0, ai = 0, spectators = 0;
+	for( Int i = 0; i < MAX_SLOTS; ++i )
+	{
+		const GameSlot *slot = game->getConstSlot( i );
+		if( slot == nullptr )
+			continue;
+		if( slot->isHuman() )
+		{
+			if( slot->isObserver() )
+				++spectators;
+			else
+				++humans;
+		}
+		else if( slot->isAI() )
+			++ai;
+	}
+	GadgetStaticTextSetText( s_seatSummary, TheGameText->FETCH_OR_SUBSTITUTE_FORMAT( "GUI:LobbySeatSummary",
+		L"Humans %d\nAI %d\nSpectators %d\nSeats %d / %d", humans, ai, spectators, humans + ai + spectators, (Int)MAX_SLOTS ) );
+}
+
+/// Built last: it measures the rows, the caption and the chat list where the scroll set-up and the password row left them.
+static void lanSeatSummaryCreate( void )
+{
+	s_seatSummary = nullptr;
+	if( comboBoxPlayer[ 0 ] == nullptr || listboxChatWindowLanGame == nullptr || TheLAN == nullptr )
+		return;
+	GameWindow *owner = comboBoxPlayer[ 0 ]->winGetParent();
+	if( owner == nullptr || listboxChatWindowLanGame->winGetParent() != owner )
+		return;
+	Int ownerW = 0, ownerH = 0;
+	owner->winGetSize( &ownerW, &ownerH );
+
+	// The seat block's left edge and the bottom of its lowest row still inside the owner (the rest are parked off screen).
+	Int left = -1, rowsBottom = -1;
+	for( Int i = 0; i < MAX_SLOTS; ++i )
+	{
+		GameWindow *rows[ 3 ] = { lanFindRow( LAN_SEAT_NUMBER_ID, i ), buttonAccept[ i ], comboBoxPlayer[ i ] };
+		for( Int k = 0; k < 3; ++k )
+		{
+			if( rows[ k ] == nullptr || rows[ k ]->winGetParent() != owner )
+				continue;
+			Int x, y, w, h;
+			rows[ k ]->winGetPosition( &x, &y );
+			rows[ k ]->winGetSize( &w, &h );
+			if( y < 0 || y >= ownerH )
+				continue;
+			if( left < 0 || x < left )
+				left = x;
+			if( y + h > rowsBottom )
+				rowsBottom = y + h;
+		}
+	}
+
+	GameWindow *caption = lanStartingCashCaption();
+	GameWindow *rightEdge = caption != nullptr ? caption : comboBoxStartingCash;
+	if( left < 0 || rowsBottom < 0 || rightEdge == nullptr || rightEdge->winGetParent() != owner )
+		return;
+	Int cx = 0, cy = 0, lx = 0, ly = 0;
+	rightEdge->winGetPosition( &cx, &cy );
+	listboxChatWindowLanGame->winGetPosition( &lx, &ly );
+	const Int gap = CodeGuiAtLeast( CodeGuiScaleY( 4 ), 3 );
+	const Int top = rowsBottom + gap, right = cx - gap;
+	Int bottom = ly - gap;
+
+	// The host's password row sits above the chat: on its grid it is in the Starting Money column and clear of this strip,
+	// but when it falls back to the chat's own left edge it reaches in - so any of its controls that overlaps the strip
+	// horizontally bounds the summary from below (lobby-seats).
+	GameWindow *pwRow[ 4 ] = { s_pwLabel, s_pwEntry, s_pwSetButton, s_pwPrivateCheck };
+	for( Int k = 0; k < 4; ++k )
+	{
+		if( pwRow[ k ] == nullptr || pwRow[ k ]->winGetParent() != owner )
+			continue;
+		Int x, y, w, h;
+		pwRow[ k ]->winGetPosition( &x, &y );
+		pwRow[ k ]->winGetSize( &w, &h );
+		if( x < right && x + w > left && y - gap < bottom )
+			bottom = y - gap;
+	}
+	if( right - left < CodeGuiScaleX( 40 ) || bottom - top < CodeGuiScaleY( 20 ) )
+		return;		// no room on this layout: no summary rather than one over the options
+
+	GameWindow *look = caption != nullptr ? caption : lanFindControl( "LanGameOptionsMenu.wnd:StaticTextPlayers" );
+	s_seatSummary = CodeGuiLabelLike( look, owner, "LanGameOptionsMenu.wnd:StaticTextSeatSummary",
+																		left, top, right - left, bottom - top, L"" );
+	if( s_seatSummary == nullptr )
+		return;
+	// Behind the seat columns, like the password row: created last it would be the head of the owner's child list and
+	// paint over a bottom row's open Players list where that list reaches into the strip (lobby-seats).
+	lanPasswordRowSendBehind( s_seatSummary );
+	if( comboBoxPlayer[ 0 ]->winGetFont() != nullptr )
+		s_seatSummary->winSetFont( comboBoxPlayer[ 0 ]->winGetFont() );		// the rows' face, as grown by the scroll set-up
+	TextData *data = (TextData *)s_seatSummary->winGetUserData();
+	if( data != nullptr )
+	{
+		data->centered = FALSE;
+		data->centeredVertically = FALSE;
+		data->leftMargin = 0;
+		data->topMargin = 0;
+	}
+	// Four lines must fit the strip - a joiner's lobby has no password row, so its chat sits higher and the strip is
+	// shorter. Fitted against the widest counts the lines can carry; a face that cannot fit at 6 pt leaves no summary.
+	lanFitTextToWindow( s_seatSummary, L"Spectators 88\nHumans 88\nAI 88\nSeats 88 / 88" );
+	{
+		Int ww, wh, tw, th;
+		s_seatSummary->winGetSize( &ww, &wh );
+		lanTextSize( s_seatSummary->winGetFont(), L"Spectators 88\nHumans 88\nAI 88\nSeats 88 / 88", ww - LAN_STATIC_TEXT_WRAP_INSET, &tw, &th );
+		if( th > wh || tw > ww - LAN_STATIC_TEXT_WRAP_INSET )
+		{
+			TheWindowManager->winDestroy( s_seatSummary );
+			s_seatSummary = nullptr;
+			return;
+		}
+	}
+	lanSeatSummaryUpdate( TheLAN->GetMyGame() );
 }
 
 static void handleColorSelection(int index)
@@ -1555,6 +1863,8 @@ void lanUpdateSlotList()
 	// pure refresh: gxUpdateStartControl only reads the slot list and never starts anything.
 	gxUpdateStartControl();
 
+	lanSeatSummaryUpdate( TheLAN->GetMyGame() );
+
 	lanSlotMemoryUpdate( TheLAN->GetMyGame() );
 }
 
@@ -1640,6 +1950,8 @@ void InitLanGameGadgets()
 	// so build what the layout lacks BEFORE any row lookup.
 	// Seat columns scroll; rows take one row from the top of the chat history if it keeps the password row plus
 	// LAN_CHAT_KEEP_LINES lines, else the authored eight stay.
+	// The seat-number column is built first, for the authored rows only, so it is measured and cloned like the others.
+	lanSeatNumbersCreate();
 	static const char * const lanSeatColumns[] =
 	{
 		"LanGameOptionsMenu.wnd:ComboBoxPlayer%d",
@@ -1647,6 +1959,7 @@ void InitLanGameGadgets()
 		"LanGameOptionsMenu.wnd:ComboBoxPlayerTemplate%d",
 		"LanGameOptionsMenu.wnd:ComboBoxTeam%d",
 		"LanGameOptionsMenu.wnd:ButtonAccept%d",
+		LAN_SEAT_NUMBER_ID,
 	};
 	enum { LAN_CHAT_KEEP_LINES = 3 };
 	Int chatKeep = 0;
@@ -1658,6 +1971,7 @@ void InitLanGameGadgets()
 	}
 	CodeGuiRowsScrollSetup( parentLanGameOptions, lanSeatColumns, (Int)( sizeof( lanSeatColumns ) / sizeof( lanSeatColumns[ 0 ] ) ), MAX_SLOTS,
 													listboxChatWindowLanGame, 1, chatKeep, listboxChatWindowLanGame );
+	lanSeatNumbersLabel();		// the cloned rows carry no text until now
 	CodeGuiRowsEnsure( parentLanGameOptions, "LanGameOptionsMenu.wnd:ButtonMapStartPosition%d", MAX_SLOTS, CODEGUI_ROWS_FREE );
 
 	for (Int i = 0; i < MAX_SLOTS; i++)
@@ -1748,6 +2062,9 @@ void InitLanGameGadgets()
 	// GeneralsX: Built last, because it measures the chat listbox and then
 	// resizes it - anything that repositions the list after this would leave the row floating.
 	lanPasswordRowCreate();
+
+	// After the password row: the summary ends where the chat list now starts.
+	lanSeatSummaryCreate();
 }
 
 void DeinitLanGameGadgets()
@@ -1755,6 +2072,7 @@ void DeinitLanGameGadgets()
 	// Forget the code-built row FIRST. Its windows are children of the chat listbox's parent and are
 	// torn down with the layout; what must not survive is a dangling pointer into freed memory.
 	lanPasswordRowReset();
+	s_seatSummary = nullptr;
 
 	parentLanGameOptions = nullptr;
 	buttonEmote = nullptr;

@@ -30,11 +30,14 @@
 #include "PreRTS.h"
 #include "GameClient/GXTextColor.h"
 #include "GameClient/GXSuperweaponAddPolicy.h"
+#include "GameClient/GXSuperweaponTimers.h"
+#include "Common/OptionPreferences.h"
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
 #endif	// This must go first in EVERY cpp file in the GameEngine
 
 #include <stdio.h>
+#include <algorithm>	// GeneralsX: std::stable_sort (the superweapon rows)
 
 #define DEFINE_SHADOW_NAMES
 
@@ -446,6 +449,7 @@ SuperweaponInfo::SuperweaponInfo(
 	m_ready(ready),
   m_evaReadyPlayed( evaReadyPlayed ),
 	m_forceUpdateText(false),
+	m_gxLaunchers(0),
 	m_nameDisplayString(nullptr),
 	m_timeDisplayString(nullptr),
 	m_color(c),
@@ -493,10 +497,18 @@ void SuperweaponInfo::setText(const UnicodeString& name, const UnicodeString& ti
 }
 
 // ------------------------------------------------------------------------------------------------
+// GeneralsX: A superweapon time's colour: the players bar's lift (brightenForText, 35% toward white), so a row is the colour of
+// that player's name in the bar and the dark colours read on dark ground (16/11/2026; no text has a shadow or an
+// outline). Near-black keeps its stronger text lift (GXTextColor.h). m_color stays raw.
+static Color gxSwTextColor( Color c )
+{
+	return gxIsNearBlack( c ) ? gxPlayerTextColor( c ) : brightenForText( c );
+}
+
 void SuperweaponInfo::drawName(Int x, Int y, Color color, Color dropColor)
 {
 	if (color == 0)
-		color = gxPlayerTextColor( m_color );	// GeneralsX: Black's near-black raw colour is lifted at DRAW time (GXTextColor.h); m_color stays raw
+		color = gxSwTextColor( m_color );
  	m_nameDisplayString->draw(x - m_nameDisplayString->getWidth(), y, color, dropColor);
 }
 
@@ -504,7 +516,7 @@ void SuperweaponInfo::drawName(Int x, Int y, Color color, Color dropColor)
 void SuperweaponInfo::drawTime(Int x, Int y, Color color, Color dropColor)
 {
 	if (color == 0)
-		color = gxPlayerTextColor( m_color );	// GeneralsX: Black's near-black raw colour is lifted at DRAW time (GXTextColor.h); m_color stays raw
+		color = gxSwTextColor( m_color );
  	m_timeDisplayString->draw(x, y, color, dropColor);
 }
 
@@ -1813,6 +1825,7 @@ static void gxSpectatorHudUpdate();		// the General's button state, once per upd
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 static void gxVoteKickFreeStrings();	// GeneralsX: GXVoteKickHud.inl, included at the end of this file
+static void gxSwMoreFree();	// GeneralsX: the superweapon rows' "+N more" strings, below
 
 InGameUI::~InGameUI()
 {
@@ -1842,6 +1855,7 @@ InGameUI::~InGameUI()
 	// free custom ui strings
 	freeCustomUiResources();
 	gxVoteKickFreeStrings();	// GeneralsX: the vote banner's cached text, before the manager's teardown asserts it empty
+	gxSwMoreFree();
 
 	// delete the array for the drawables
 	delete [] m_placeIcon;
@@ -2844,6 +2858,179 @@ static void gxSwDrawnAdd( Int x0, Int y0, Int x1, Int y1 )
 	s_gxSwDrawn[ 0 ] = min( s_gxSwDrawn[ 0 ], x0 ); s_gxSwDrawn[ 1 ] = min( s_gxSwDrawn[ 1 ], y0 );
 	s_gxSwDrawn[ 2 ] = max( s_gxSwDrawn[ 2 ], x1 ); s_gxSwDrawn[ 3 ] = max( s_gxSwDrawn[ 3 ], y1 );
 }
+// GeneralsX: One superweapon time on a player's row (InGameUI::postDraw): a launcher, or launchers of one power whose time to
+// fire is exactly the same ("x2"). seg = the power's place on the row; label = it carries the power's name (its
+// soonest time); line, x = the line it is drawn on and where on it; nameW, timeW, h = its strings' size this frame. Display
+// state, rebuilt every frame.
+struct GxSwTime { SuperweaponInfo *info; Bool ready; UnsignedInt frame; Int secs; Int launchers; Int seg; Bool label; Int line; Int x; Int nameW; Int timeW; Int h; };
+// One player's row: swTimes[first, first + count), its soonest time, swLines[firstLine, firstLine + lineCount).
+struct GxSwRow { Int group; Int first; Int count; Int soonest; Int firstLine; Int lineCount; };
+// One drawn line of a row (a long row wraps): its size, where it is drawn, FALSE = left out (counted in "+N more").
+struct GxSwLine { Int width; Int height; Int x; Int y; Bool shown; };
+// A ready launcher first (it can fire now), then the earliest ready frame.
+static Bool gxSwSooner( const GxSwTime &a, const GxSwTime &b )
+{
+	if( a.ready != b.ready )
+		return a.ready;
+	return a.frame < b.frame;
+}
+// Sorts one power's times [first, end) soonest first and merges the ones that fire together: all the ready ones, or the
+// same ready frame.
+static void gxSwMergeTimes( std::vector<GxSwTime> &times, Int first )
+{
+	std::stable_sort( times.begin() + first, times.end(), gxSwSooner );
+	Int out = first;
+	for( Int k = first + 1; k < (Int)times.size(); ++k )
+	{
+		if( times[ out ].ready == times[ k ].ready && ( times[ k ].ready || times[ out ].frame == times[ k ].frame ) )
+			times[ out ].launchers += times[ k ].launchers;
+		else
+			times[ ++out ] = times[ k ];
+	}
+	times.resize( out + 1 );
+}
+// The short label on a row ("Nuke 6:00  Uplink 4:00  Scud 4:50"); any other power keeps its retail name.
+static UnicodeString gxSwShortLabel( const SpecialPowerTemplate *power, const AsciiString &templateName )
+{
+	switch( power->getSpecialPowerType() )
+	{
+		case SPECIAL_NEUTRON_MISSILE: case NUKE_SPECIAL_NEUTRON_MISSILE: case SUPW_SPECIAL_NEUTRON_MISSILE:
+			return TheGameText->FETCH_OR_SUBSTITUTE( "GUI:GXSuperweaponShortNuke", L"Nuke" );
+		case SPECIAL_PARTICLE_UPLINK_CANNON: case SUPW_SPECIAL_PARTICLE_UPLINK_CANNON: case LAZR_SPECIAL_PARTICLE_UPLINK_CANNON:
+			return TheGameText->FETCH_OR_SUBSTITUTE( "GUI:GXSuperweaponShortUplink", L"Uplink" );
+		case SPECIAL_SCUD_STORM:
+			return TheGameText->FETCH_OR_SUBSTITUTE( "GUI:GXSuperweaponShortScud", L"Scud" );
+		default:
+			break;
+	}
+	AsciiString strIndex;
+	strIndex.format( "GUI:%s", templateName.str() );
+	return TheGameText->fetch( strIndex.str() );
+}
+// The block's last line, "+N more", in the countdown font; its text is set only when N changes. Freed with the HUD's other
+// cached strings (match end, ~InGameUI).
+static DisplayString *s_gxSwMore = nullptr;
+static Int s_gxSwMoreN = 0;
+static DisplayString *gxSwMore( GameFont *font, Int n )
+{
+	if( s_gxSwMore == nullptr )
+	{
+		if( TheDisplayStringManager == nullptr || ( s_gxSwMore = TheDisplayStringManager->newDisplayString() ) == nullptr )
+			return nullptr;
+		s_gxSwMoreN = 0;
+	}
+	if( s_gxSwMore->getFont() != font )
+		s_gxSwMore->setFont( font );
+	if( s_gxSwMoreN != n )
+	{
+		s_gxSwMore->setText( TheGameText->FETCH_OR_SUBSTITUTE_FORMAT( "GUI:GXSuperweaponMore", L"+%d more", n ) );
+		s_gxSwMoreN = n;
+	}
+	return s_gxSwMore;
+}
+// GeneralsX: Which timers the player wants (Options.ini SuperweaponTimers / SuperweaponTimerSoonSeconds, GXSuperweaponTimers.h)
+// Read at the first countdown frame of each match: the launcher writes the keys between matches. Display state only.
+static GxSwTimersMode s_gxSwMode = GX_SW_TIMERS_ALL;
+static Int s_gxSwSoonSeconds = kGxSwTimerSoonDefault;
+static Bool s_gxSwSettingsRead = FALSE;
+static void gxSwTimersReadSettings()
+{
+	OptionPreferences prefs;
+	OptionPreferences::const_iterator it = prefs.find( "SuperweaponTimers" );
+	s_gxSwMode = gxSwTimersModeParse( it != prefs.end() ? it->second.str() : nullptr );
+	it = prefs.find( "SuperweaponTimerSoonSeconds" );
+	s_gxSwSoonSeconds = gxSwTimerSoonParse( it != prefs.end() ? it->second.str() : nullptr );
+	s_gxSwSettingsRead = TRUE;
+}
+static void gxSwMoreFree()
+{
+	if( s_gxSwMore != nullptr && TheDisplayStringManager != nullptr )
+		TheDisplayStringManager->freeDisplayString( s_gxSwMore );
+	s_gxSwMore = nullptr;
+	s_gxSwMoreN = 0;
+}
+// GeneralsX: What the superweapon shortcut tray draws on the right edge, { x0, y0, x1, y1 }; FALSE = no tray shown. The windows
+// draw after postDraw, so the countdowns end above it. Counted: each
+// shown ButtonCommandN cell with the player look's 2 px frame round it (GXSpectatorHud.inl drawTrayFrames), and any shown
+// window that draws something (gxSwWindowDraws) - retail's ButtonParentN frame art, a fill the player look switched a
+// mod's frame to. Not the see-through parent, the height of the screen, nor a frame switched to draw nothing.
+static void gxSwTrayAdd( GameWindow *w, Int pad, Int r[ 4 ], Bool *found )
+{
+	Int x = 0, y = 0, cw = 0, ch = 0;
+	w->winGetScreenPosition( &x, &y );
+	w->winGetSize( &cw, &ch );
+	if( cw <= 0 || ch <= 0 )
+		return;
+	if( !*found )
+	{
+		r[ 0 ] = x - pad; r[ 1 ] = y - pad; r[ 2 ] = x + cw + pad; r[ 3 ] = y + ch + pad;
+		*found = TRUE;
+		return;
+	}
+	r[ 0 ] = min( r[ 0 ], x - pad ); r[ 1 ] = min( r[ 1 ], y - pad );
+	r[ 2 ] = max( r[ 2 ], x + cw + pad ); r[ 3 ] = max( r[ 3 ], y + ch + pad );
+}
+// As W3DGameWinDefaultDraw decides: an image when WIN_STATUS_IMAGE is set, else a fill or a border, each from the set its state
+// draws (disabled, highlighted, or enabled); nothing when see-through.
+static Bool gxSwWindowDraws( GameWindow *w )
+{
+	const UnsignedInt status = w->winGetStatus();
+	if( status & WIN_STATUS_SEE_THRU )
+		return FALSE;
+	const Bool disabled = !( status & WIN_STATUS_ENABLED );
+	const Bool hilited = !disabled && ( w->winGetInstanceData()->getState() & WIN_STATE_HILITED );
+	if( status & WIN_STATUS_IMAGE )
+		return ( disabled ? w->winGetDisabledImage( 0 ) : hilited ? w->winGetHiliteImage( 0 ) : w->winGetEnabledImage( 0 ) ) != nullptr;
+	const Color fill = disabled ? w->winGetDisabledColor( 0 ) : hilited ? w->winGetHiliteColor( 0 ) : w->winGetEnabledColor( 0 );
+	const Color border = disabled ? w->winGetDisabledBorderColor( 0 ) : hilited ? w->winGetHiliteBorderColor( 0 ) : w->winGetEnabledBorderColor( 0 );
+	return fill != WIN_COLOR_UNDEFINED || border != WIN_COLOR_UNDEFINED;
+}
+static void gxSwTrayIn( GameWindow *first, Int r[ 4 ], Bool *found )
+{
+	for( GameWindow *c = first; c != nullptr; c = c->winGetNext() )
+	{
+		if( c->winIsHidden() )
+			continue;
+		if( strstr( c->winGetInstanceData()->m_decoratedNameString.str(), ":ButtonCommand" ) != nullptr )
+			gxSwTrayAdd( c, 2, r, found );
+		else if( gxSwWindowDraws( c ) )
+			gxSwTrayAdd( c, 0, r, found );
+		gxSwTrayIn( c->winGetChild(), r, found );
+	}
+}
+// GeneralsX: A control-bar window's screen rect { x0, y0, x1, y1 } when it and every parent are shown; FALSE otherwise.
+static Bool gxSwBarWindowRect( NameKeyType key, Int r[ 4 ] )
+{
+	GameWindow *w = TheWindowManager ? TheWindowManager->winGetWindowFromId( nullptr, key ) : nullptr;
+	if( w == nullptr )
+		return FALSE;
+	for( GameWindow *p = w; p != nullptr; p = p->winGetParent() )
+		if( p->winIsHidden() )
+			return FALSE;
+	Int x = 0, y = 0, cw = 0, ch = 0;
+	w->winGetScreenPosition( &x, &y );
+	w->winGetSize( &cw, &ch );
+	r[ 0 ] = x; r[ 1 ] = y; r[ 2 ] = x + cw; r[ 3 ] = y + ch;
+	return cw > 0 && ch > 0;
+}
+// The tray is ControlBar's "<SpecialPowerShortcutWinName>:GenPowersShortcutBarParent" (initSpecialPowershortcutBar): a
+// PlayerTemplate, so a mod, names the layout, never that window.
+static Bool gxSwShortcutTrayRect( Int r[ 4 ] )
+{
+	static const char kParent[] = ":GenPowersShortcutBarParent";
+	const Int kLen = (Int)sizeof( kParent ) - 1;
+	Bool found = FALSE;
+	for( GameWindow *w = TheWindowManager ? TheWindowManager->winGetWindowList() : nullptr; w != nullptr; w = w->winGetNext() )
+	{
+		const AsciiString &name = w->winGetInstanceData()->m_decoratedNameString;
+		if( w->winIsHidden() || name.getLength() < kLen || strcmp( name.str() + name.getLength() - kLen, kParent ) != 0 )
+			continue;
+		if( gxSwWindowDraws( w ) )
+			gxSwTrayAdd( w, 0, r, &found );
+		gxSwTrayIn( w->winGetChild(), r, &found );
+	}
+	return found;
+}
 // GeneralsX: Bottom edge of the top-left readout row (fps/tps/clock) this frame, 0 = none drawn:
 // the retail message list starts under it. File-static, not a member: InGameUI.h stays untouched.
 static Int s_gxHudRowX0 = 0, s_gxHudRowX1 = 0, s_gxHudRowTop = 0, s_gxHudRowBottom = 0;
@@ -3003,6 +3190,8 @@ void InGameUI::reset()
 	}
 	m_skillBannerNext = 0;
 	gxVoteKickFreeStrings();	// GeneralsX: the vote banner's cached text goes back to the manager at every match end
+	gxSwMoreFree();
+	s_gxSwSettingsRead = FALSE;	// GeneralsX: the next match reads the timer setting again
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -5414,30 +5603,39 @@ void InGameUI::postDraw()
 //	Int superweaponCount = 0;
 		// GeneralsX: park the countdowns under the game clock, derived from its anchor: SuperweaponCountdownPosition is an
 		// absolute fraction but the clock is anchored from the RIGHT edge (drawGameTime), so they agree at one resolution
-		// only. startX is the seam: drawName right-aligns to it and drawTime left-aligns from it, a time-column width in
-		// from the clock's right edge.
+		// only. The rows end at the clock's right edge.
 		const Int swLineH = TheGlobalLanguageData->adjustFontSize(m_superweaponNormalPointSize) * 2;
-		// Room for the time text and nothing more. This was three line-heights, which reserved far
-		// more than "3:03" needs and left the whole block hanging well short of the clock's right
-		// edge. One and a half is measured against the widest the countdown gets ("00:00") at the
-		// reduced point size.
-		const Int swTimeColumn = (swLineH * 3) / 2;
 		// m_gameTimeShiftY: the timer's drop under the readout row, the same value drawGameTime draws
 		// the timer with this frame (it is only ever updated after both have drawn).
 		const Coord2D gameTimePos = hudDrawPos(m_gameTimePosition);
-		Int startX = TheDisplay->getWidth() - (Int)gameTimePos.x - swTimeColumn;
-		Int startY = max( (Int)gameTimePos.y + m_gameTimeShiftY + swLineH, gxSpectatorHudTopInset() + swLineH );	// GeneralsX: below the spectator HUD's top bar
+		const Int swRight = TheDisplay->getWidth() - (Int)gameTimePos.x;
+		const Int startY = max( (Int)gameTimePos.y + m_gameTimeShiftY + swLineH, gxSpectatorHudTopInset() );	// GeneralsX: below the spectator HUD's top bar (the inset keeps its own gap under the PLAYERS tab)
 		s_gxSwDrawnOn = FALSE;	// GeneralsX: this frame's rows, below (gxSwDrawnAdd)
 
 		Int bottomMargin = (Int)( (Real)TheTacticalView->getHeight() * 0.82f );
 
-
-
-		Bool marginExceeded = FALSE;
+		// GeneralsX: Superweapon timers, take 2. A 14-player match drew one row per
+		// building (126) down the right edge, under the shortcut tray; take 1's second column sat in the middle of the battlefield.
+		// Now ONE block at the top right, right-aligned to the clock like retail: one row per player in that player's colour,
+		// "Nuke 6:00 6:20  Uplink 4:00  Scud 4:50 x2". Every building keeps its own time; two merge ("x2") only when they fire on
+		// the very same frame, and a shared-timer power is one charge, so one time. Own row first, then allies, then enemies, each
+		// group soonest first. The block is 16 font heights wide (the right 23% at 1080p) and a longer row wraps onto an indented
+		// line of its own colour. Beside the shortcut tray it goes on in the lane left of the tray, down to the
+		// General's button and the right HUD (take 3). Colours are the players bar's (brightenForText). What does not
+		// fit is counted, never drawn elsewhere: the own row and then the soonest rows stay, and a last line "+N more".
+		static std::vector<GxSwTime> swTimes;
+		static std::vector<GxSwRow> swRows;
+		if ( !s_gxSwSettingsRead )
+			gxSwTimersReadSettings();
+		swTimes.clear();
+		swRows.clear();
+		const Color bgColor = GameMakeColor( 0, 0, 0, 255 );
+		Player *swLocal = ThePlayerList->getLocalPlayer();
 
 		for (Int i=0; i<MAX_PLAYER_COUNT; ++i)
 		{
-			Color bgColor = GameMakeColor( 0, 0, 0, 255 );
+			const Int rowFirst = (Int)swTimes.size();
+			Int seg = 0;
 			for (SuperweaponMap::iterator mapIt = m_superweapons[i].begin(); mapIt != m_superweapons[i].end(); ++mapIt)
 			{
 				AsciiString templateName = mapIt->first;
@@ -5468,27 +5666,13 @@ void InGameUI::postDraw()
 					else if( watched->m_launchWatch.fired( gxSuperweaponInUse( launcher, launcherType ) ) )
 						gxAnnounceSuperweaponLaunch( launcher, (Int)launcherType, launcherPower->getSpecialPowerTemplate()->getID() );
 				}
+				const Int segFirst = (Int)swTimes.size();
 				for (SuperweaponList::iterator listIt = mapIt->second.begin(); listIt != mapIt->second.end(); ++listIt)
 				{
 					SuperweaponInfo *info = *listIt;
 					DEBUG_ASSERTCRASH(info, ("No superweapon info!"));
 					if (info && !info->m_hiddenByScript && !info->m_hiddenByScience)
 					{
-						//enforce bottom margin of tactical view
-						if ( startY >= bottomMargin)
-						{
-							UnicodeString ellipsis;
-							ellipsis.format(L"...");
-							info->setText( ellipsis, ellipsis );
-							info->setFont( m_superweaponReadyFont, superweaponCountdownPointSize(m_superweaponNormalPointSize), m_superweaponNormalBold );
-							info->drawTime( startX,	startY, m_superweaponFlashColor, bgColor );
-							gxSwDrawnAdd( startX, startY, startX + info->gxTimeWidth(), startY + (Int)info->getHeight() );
-							// GeneralsX: The ellipsis overwrote this timer's text and font; force a rebuild when it fits again, or a READY timer (whose secs and ready flag never change) stays "...: ..." until it fires.
-							info->m_forceUpdateText = true;
-
-							marginExceeded = TRUE;
-						}
-
 						Object * owningObject = TheGameLogic->findObjectByID(info->m_id);
 						if (owningObject)
 						{
@@ -5582,73 +5766,12 @@ void InGameUI::postDraw()
                     info->m_evaReadyPlayed = false; // Reset Eva for next time
                 }
 
-                // draw the text
-                if ( !m_superweaponHiddenByScript && !marginExceeded )
-                {
-                  // Similarly, only checking timers is not truly indicative of readiness.
- 								  Bool changeBolding = (readySecs != info->m_timestamp) || (isReady != info->m_ready) || info->m_forceUpdateText;
- 								  if (changeBolding)
- 								  {
- 									  if (isReady)
-									  {
-										  // go bold - we're good to go
-										  info->setFont( m_superweaponReadyFont, superweaponCountdownPointSize(m_superweaponReadyPointSize), m_superweaponReadyBold );
-									  }
-									  else
-									  {
-										  // GeneralsX: A forced rebuild also resets the font: the overflow ellipsis leaves ReadyFont on a not-ready timer.
-										  // if we were at 0, we've just fired - kill the bold
-										  if (info->m_timestamp == 0 || info->m_forceUpdateText)
-										  {
-											  info->setFont( m_superweaponNormalFont, superweaponCountdownPointSize(m_superweaponNormalPointSize), m_superweaponNormalBold );
-										  }
-									  }
-
-
-									  info->m_forceUpdateText = false;
- 									  info->m_ready = isReady;
-									  info->m_timestamp = readySecs;
-                    Int min = readySecs/60;
-                    Int sec = readySecs - min*60;
-                    AsciiString strIndex;
-                    strIndex.format("GUI:%s", templateName.str());
-                    UnicodeString name, time;
-                    name.format(L"%ls: ", TheGameText->fetch(strIndex.str()).str());
-                    time.format(L"%d:%2.2d", min, sec);
-                    info->setText(name, time);
-                  }
-
-                  if (isReady)
-								  {
-									  if ( m_superweaponFlashDuration != 0.0f )
-									  {
-										  if ( TheGameLogic->getFrame() >= m_superweaponLastFlashFrame + (Int)(m_superweaponFlashDuration) )
-										  {
-											  m_superweaponUsedFlashColor = !m_superweaponUsedFlashColor;
-											  m_superweaponLastFlashFrame = TheGameLogic->getFrame();
-										  }
-										  info->drawName( startX,
-											  startY, (m_superweaponUsedFlashColor)?0:m_superweaponFlashColor, bgColor );
-										  info->drawTime( startX,
-											  startY, (m_superweaponUsedFlashColor)?0:m_superweaponFlashColor, bgColor );
-									  }
-									  else
-									  {
-										  info->drawName( startX, startY, 0, bgColor );
-										  info->drawTime( startX, startY, 0, bgColor );
-									  }
-								  }
-								  else
-								  {
-									  info->drawName( startX,	startY, 0, bgColor );
-									  info->drawTime( startX, startY, 0, bgColor );
-								  }
-
-								  gxSwDrawnAdd( startX - info->gxNameWidth(), startY, startX + info->gxTimeWidth(), startY + (Int)info->getHeight() );
-								  // increment text spot to next location
-								  startY += info->getHeight();
-
-                }
+                // GeneralsX: every launcher's own time, drawn below once every player's row is known.
+                // Only the times the player's setting shows ("soon": firing within N seconds; "off": none). Eva above and the shared-timer
+                // break below run regardless.
+                const GxSwTime t = { info, isReady, module->getReadyFrame(), readySecs, 1, seg, FALSE, 0, 0, 0, 0, 0 };
+                if ( gxSwTimerShown( s_gxSwMode, isReady, readySecs, s_gxSwSoonSeconds ) )
+                  swTimes.push_back( t );
                 if (info->getSpecialPowerTemplate()->isSharedNSync())
                   break; // Wow, it is almost too easy!
                 // This prevents redundant timers for shared powers/superweapons
@@ -5659,6 +5782,296 @@ void InGameUI::postDraw()
               }
 						}
 					}
+				}
+				if ( (Int)swTimes.size() == segFirst )
+					continue;
+				gxSwMergeTimes( swTimes, segFirst );
+				++seg;
+				if ( m_superweaponHiddenByScript )
+					continue;
+				// Each time's text, rebuilt only when it changed. The label is on every time of the power; only its soonest draws it.
+				for ( Int k = segFirst; k < (Int)swTimes.size(); ++k )
+				{
+					const GxSwTime &t = swTimes[ k ];
+					SuperweaponInfo *info = t.info;
+					// Similarly, only checking timers is not truly indicative of readiness.
+					Bool changeBolding = (t.secs != (Int)info->m_timestamp) || (t.ready != info->m_ready) || (t.launchers != info->m_gxLaunchers) || info->m_forceUpdateText;
+					if (changeBolding)
+					{
+						if (t.ready)
+						{
+							// go bold - we're good to go
+							info->setFont( m_superweaponReadyFont, superweaponCountdownPointSize(m_superweaponReadyPointSize), m_superweaponReadyBold );
+						}
+						else
+						{
+							// GeneralsX: A forced rebuild also resets the font.
+							// if we were at 0, we've just fired - drop the bold
+							if (info->m_timestamp == 0 || info->m_forceUpdateText)
+							{
+								info->setFont( m_superweaponNormalFont, superweaponCountdownPointSize(m_superweaponNormalPointSize), m_superweaponNormalBold );
+							}
+						}
+
+						info->m_forceUpdateText = false;
+						info->m_ready = t.ready;
+						info->m_timestamp = t.secs;
+						info->m_gxLaunchers = t.launchers;
+						Int min = t.secs/60;
+						Int sec = t.secs - min*60;
+						UnicodeString time;
+						if (t.launchers > 1)
+							time.format(L"%d:%2.2d x%d", min, sec, t.launchers);
+						else
+							time.format(L"%d:%2.2d", min, sec);
+						info->setText( gxSwShortLabel( info->getSpecialPowerTemplate(), templateName ), time );
+					}
+				}
+			}
+			if ( (Int)swTimes.size() > rowFirst )
+			{
+				Player *owner = ThePlayerList->getNthPlayer( i );
+				GxSwRow row;
+				row.group = owner == swLocal ? 0 : ( swLocal != nullptr && owner != nullptr && swLocal->getRelationship( owner->getDefaultTeam() ) != ENEMIES ? 1 : 2 );
+				row.first = rowFirst;
+				row.count = (Int)swTimes.size() - rowFirst;
+				row.soonest = rowFirst;
+				for ( Int k = rowFirst + 1; k < (Int)swTimes.size(); ++k )
+					if ( gxSwSooner( swTimes[ k ], swTimes[ row.soonest ] ) )
+						row.soonest = k;
+				row.firstLine = 0;
+				row.lineCount = 0;
+				swRows.push_back( row );
+			}
+		}
+
+		GameFont *swFont = TheFontLibrary->getFont( m_superweaponNormalFont,
+			TheGlobalLanguageData->adjustFontSize( superweaponCountdownPointSize( m_superweaponNormalPointSize ) ), m_superweaponNormalBold );
+		if ( !m_superweaponHiddenByScript && !swRows.empty() && swFont != nullptr && swFont->height > 0 )
+		{
+			const Int fontH = swFont->height;
+			// The block's width. Retail's longest line, "Particle Uplink Cannon: 4:00", is 12 font heights (320 px of a 1920x1080
+			// screen, 27 px rows); one row with all three powers, "Nuke 6:00  Uplink 4:00  Scud 4:50", needs ~15. So 16: 432 px at
+			// 1080p, the right 23% of the screen (accepted it, 16/11/2026).
+			const Int swMaxW = fontH * 16;
+			const Int swLeft = swRight - swMaxW;
+			const Int swGap = max( 2, swLineH / 4 );
+			const Int timeGap = max( 2, fontH / 4 );		// about a space
+			const Int segGap = max( 4, fontH * 2 / 3 );	// about two spaces, between powers
+			const Int indent = fontH;						// a continuation line's hanging indent
+
+			// The strings' sizes, once a frame. A power's label rides with its soonest time; widest = the widest time with its label.
+			Int swWidest = 0;
+			for ( size_t ri = 0; ri < swRows.size(); ++ri )
+			{
+				const GxSwRow &row = swRows[ ri ];
+				Int prevSeg = -1;
+				for ( Int k = row.first; k < row.first + row.count; ++k )
+				{
+					GxSwTime &t = swTimes[ k ];
+					t.label = ( t.seg != prevSeg );
+					prevSeg = t.seg;
+					t.nameW = t.info->gxNameWidth();
+					t.timeW = t.info->gxTimeWidth();
+					t.h = (Int)t.info->getHeight();
+					swWidest = max( swWidest, t.nameW + timeGap + t.timeW );
+				}
+			}
+
+			// The block ends above the General's button and the right HUD (ControlBar.wnd:RightHUD, the top of the bar on the right),
+			// or the retail margin if that is higher. Beside the shortcut tray it narrows: above the tray's top it is the
+			// whole block, below it a lane from the same left edge to a gap short of the tray, never under the tray. No lane when the
+			// widest time with its label would not fit in it: the block then ends above the tray.
+			static const NameKeyType swGeneralKey = TheNameKeyGenerator->nameToKey( "ControlBar.wnd:ButtonGeneral" );
+			static const NameKeyType swRightHudKey = TheNameKeyGenerator->nameToKey( "ControlBar.wnd:RightHUD" );
+			Int swFloor = bottomMargin;
+			Int r[ 4 ];
+			if ( gxSwBarWindowRect( swGeneralKey, r ) && r[ 0 ] < swRight && r[ 2 ] > swLeft && r[ 3 ] > startY )
+				swFloor = min( swFloor, r[ 1 ] - swGap );
+			if ( gxSwBarWindowRect( swRightHudKey, r ) && r[ 0 ] < swRight && r[ 2 ] > swLeft && r[ 3 ] > startY )
+				swFloor = min( swFloor, r[ 1 ] - swGap );
+			Int laneTop = swFloor;			// a line that ends below this is in the lane
+			Int laneRight = swRight;
+			if ( gxSwShortcutTrayRect( r ) && r[ 0 ] < swRight && r[ 2 ] > swLeft && r[ 3 ] > startY )
+			{
+				laneTop = min( swFloor, r[ 1 ] - swGap );
+				if ( r[ 0 ] - segGap - swLeft >= swWidest )
+					laneRight = r[ 0 ] - segGap;
+				else
+					swFloor = laneTop;
+			}
+
+			// Drawn: own row, allies, enemies, each soonest first. Kept when it is too tall: the own row, then the soonest rows.
+			static std::vector<Int> swOrder;
+			static std::vector<Int> swKeep;
+			swOrder.clear();
+			for ( Int ri = 0; ri < (Int)swRows.size(); ++ri )
+				swOrder.push_back( ri );
+			swKeep = swOrder;
+			std::stable_sort( swOrder.begin(), swOrder.end(), [&]( Int a, Int b )
+			{
+				const GxSwRow &ra = swRows[ a ], &rb = swRows[ b ];
+				if ( ra.group != rb.group )
+					return ra.group < rb.group;
+				return gxSwSooner( swTimes[ ra.soonest ], swTimes[ rb.soonest ] );
+			} );
+
+			// One line of a row from swTimes[k]: as many times as fit in cap, at least one. Returns where it ends; *used, *h its size.
+			auto swFill = [&]( const GxSwRow &row, Int k, Int cap, Int *used, Int *h ) -> Int
+			{
+				*used = 0;
+				*h = 0;
+				for ( ; k < row.first + row.count; ++k )
+				{
+					const GxSwTime &t = swTimes[ k ];
+					const Int w = ( t.label ? t.nameW + timeGap : 0 ) + t.timeW;
+					const Int gap = *used == 0 ? 0 : ( t.label ? segGap : timeGap );
+					if ( *used > 0 && *used + gap + w > cap )
+						break;
+					*used += gap + w;
+					*h = max( *h, t.h );
+				}
+				return k;
+			};
+			// Lines, laid out in the drawn order from the top. A line takes the whole block when it ends above laneTop, else the
+			// lane. A row that fits one line is right-aligned to the clock (in the lane: to the lane's right edge). A row that wraps
+			// hangs: its first line starts at the block's left edge and each continuation one indent in from it, filled
+			// to the right edge of where it lands - so a short first line in the narrow lane does not narrow every line after it
+			// (take 3's first pictures: one row took 5 lane lines for 3 lines' worth). A single time wider than its line takes a
+			// line of its own, right-aligned; one wider than the whole block (a long localised name) is clipped at its left edge
+			// (swClip). swShow[row] = how many of its lines are drawn, -1 = all; the rest, and their launchers (an "x2" counts
+			// two), go to "+N more". Returns where the next line would start.
+			static std::vector<GxSwLine> swLines;
+			static std::vector<Int> swShow;
+			swShow.assign( swRows.size(), -1 );
+			Int moreN = 0;
+			auto swLayout = [&]() -> Int
+			{
+				swLines.clear();
+				moreN = 0;
+				Int y = startY;
+				for ( size_t oi = 0; oi < swOrder.size(); ++oi )
+				{
+					GxSwRow &row = swRows[ swOrder[ oi ] ];
+					const Int show = swShow[ swOrder[ oi ] ];
+					row.firstLine = (Int)swLines.size();
+					Int x0 = swLeft;	// the first line's left edge, where its continuations hang from
+					for ( Int k = row.first; k < row.first + row.count; )
+					{
+						const Int n = (Int)swLines.size() - row.firstLine;
+						Int right = swRight, used = 0, h = 0;
+						Int end = swFill( row, k, n == 0 ? swRight - swLeft : swRight - ( x0 + indent ), &used, &h );
+						if ( laneRight != swRight && y + h > laneTop )
+						{
+							right = laneRight;
+							end = swFill( row, k, n == 0 ? laneRight - swLeft : laneRight - ( x0 + indent ), &used, &h );
+						}
+						const Bool wraps = n > 0 || end < row.first + row.count;
+						const Int lineX = !wraps ? right - used : n == 0 ? min( swLeft, right - used ) : min( x0 + indent, right - used );
+						const GxSwLine line = { used, h, lineX, y, show < 0 || n < show };
+						if ( n == 0 )
+							x0 = max( line.x, swLeft );
+						for ( Int x = 0; k < end; ++k )
+						{
+							GxSwTime &t = swTimes[ k ];
+							if ( x > 0 )
+								x += t.label ? segGap : timeGap;
+							t.line = (Int)swLines.size();
+							t.x = x;
+							x += ( t.label ? t.nameW + timeGap : 0 ) + t.timeW;
+							if ( !line.shown )
+								moreN += t.launchers;
+						}
+						if ( line.shown )
+							y += h;
+						swLines.push_back( line );
+					}
+					row.lineCount = (Int)swLines.size() - row.firstLine;
+				}
+				return y;
+			};
+			Int swBottom = swLayout();
+			if ( swBottom > swFloor )
+			{
+				// Too tall: whole rows from the least kept up are left out until the rest fits with room for "+N more"; the
+				// first row left out then keeps the lines that fit.
+				std::stable_sort( swKeep.begin(), swKeep.end(), [&]( Int a, Int b )
+				{
+					const GxSwRow &ra = swRows[ a ], &rb = swRows[ b ];
+					if ( ( ra.group == 0 ) != ( rb.group == 0 ) )
+						return ra.group == 0;
+					return gxSwSooner( swTimes[ ra.soonest ], swTimes[ rb.soonest ] );
+				} );
+				Int m = (Int)swKeep.size();
+				do
+					swShow[ swKeep[ --m ] ] = 0;
+				while ( m > 0 && swLayout() + fontH > swFloor );
+				const Int cut = swKeep[ m ];
+				swShow[ cut ] = -1;
+				swLayout();
+				Int keep = swRows[ cut ].lineCount - 1;
+				for ( ; keep > 0; --keep )
+				{
+					swShow[ cut ] = keep;
+					if ( swLayout() + fontH <= swFloor )
+						break;
+				}
+				swShow[ cut ] = keep;
+				swBottom = swLayout();
+			}
+
+			// A ready time flashes as retail's did: the player's colour and the flash colour, swapping every FlashDuration frames
+			// while a ready time is drawn.
+			Bool anyReady = FALSE;
+			for ( size_t k = 0; k < swTimes.size() && !anyReady; ++k )
+				anyReady = swTimes[ k ].ready && swLines[ swTimes[ k ].line ].shown;
+			if ( anyReady && m_superweaponFlashDuration != 0.0f && TheGameLogic->getFrame() >= m_superweaponLastFlashFrame + (Int)(m_superweaponFlashDuration) )
+			{
+				m_superweaponUsedFlashColor = !m_superweaponUsedFlashColor;
+				m_superweaponLastFlashFrame = TheGameLogic->getFrame();
+			}
+			const Color readyColor = ( m_superweaponFlashDuration != 0.0f && !m_superweaponUsedFlashColor ) ? m_superweaponFlashColor : 0;
+			// Nothing drawn left of the block (only a time wider than the block reaches it). A no-op while the region is unchanged.
+			IRegion2D swClip;
+			swClip.lo.x = swLeft;
+			swClip.lo.y = 0;
+			swClip.hi.x = TheDisplay->getWidth();
+			swClip.hi.y = TheDisplay->getHeight();
+
+			for ( size_t oi = 0; oi < swOrder.size(); ++oi )
+			{
+				const GxSwRow &row = swRows[ swOrder[ oi ] ];
+				for ( Int l = row.firstLine; l < row.firstLine + row.lineCount; ++l )
+				{
+					const GxSwLine &line = swLines[ l ];
+					if ( !line.shown )
+						continue;
+					for ( Int k = row.first; k < row.first + row.count; ++k )
+					{
+						const GxSwTime &t = swTimes[ k ];
+						if ( t.line != l )
+							continue;
+						Int x = line.x + t.x;
+						t.info->gxSetClip( &swClip );
+						if ( t.label )
+						{
+							t.info->drawName( x + t.nameW, line.y, t.ready ? readyColor : 0, bgColor );
+							x += t.nameW + timeGap;
+						}
+						t.info->drawTime( x, line.y, t.ready ? readyColor : 0, bgColor );
+					}
+					gxSwDrawnAdd( max( line.x, swLeft ), line.y, line.x + line.width, line.y + line.height );
+				}
+			}
+			if ( moreN > 0 && swBottom + fontH <= swFloor )
+			{
+				DisplayString *more = gxSwMore( swFont, moreN );
+				if ( more != nullptr )
+				{
+					const Int moreRight = swBottom + fontH <= laneTop ? swRight : laneRight;
+					more->setClipRegion( &swClip );
+					more->draw( moreRight - more->getWidth(), swBottom, m_superweaponFlashColor, bgColor );
+					gxSwDrawnAdd( max( moreRight - more->getWidth(), swLeft ), swBottom, moreRight, swBottom + fontH );
 				}
 			}
 		}

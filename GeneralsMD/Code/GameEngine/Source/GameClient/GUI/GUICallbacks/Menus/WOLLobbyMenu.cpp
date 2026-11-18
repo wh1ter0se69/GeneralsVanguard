@@ -3186,6 +3186,10 @@ static void gxPresUiInit( GameWindow *listbox )
 		s_presTabWin[t] = b;
 		if (b == nullptr)
 			continue;
+		// Take the list's depth, not the front: winCreate prepends, so a new tab would cover ComboBoxGroupRooms' open list,
+		// which retail authors in front of the list. Same move as lanPasswordRowSendBehind (LanGameOptionsMenu.cpp).
+		TheWindowManager->unlinkChildWindow( b );
+		TheWindowManager->insertWindowAheadOf( b, listbox );
 		b->winSetOwner( listbox->winGetOwner() );		// its clicks reach WOLLobbyMenuSystem, like the list's
 		gxPresApplyTabLook( b );
 		GadgetRadioSetText( b, gxPresTabLabel( t ) );

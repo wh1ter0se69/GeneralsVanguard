@@ -2039,6 +2039,28 @@ static void codeGuiRowScrollTo( Int top )
 }
 
 //-------------------------------------------------------------------------------------------------
+void CodeGuiRowsScrollReveal( GameWindow *row )
+{
+	CodeGuiRowScroll &s = s_rowScroll;
+	// The table outlives its screen. A live row under the recorded owner is proof the owner, and so the bar, is live too;
+	// nothing in `s` is dereferenced before that.
+	if( row == nullptr || s.owner == nullptr || row->winGetParent() != s.owner || s.bar == nullptr )
+		return;
+	if( s.bar->winIsHidden() || s.rows <= s.visible )
+		return;
+	for( Int c = 0; c < s.columns; ++c )
+		for( Int i = 0; i < s.rows; ++i )
+			if( s.win[ c ][ i ] == row )
+			{
+				if( i < s.top )
+					codeGuiRowScrollTo( i );
+				else if( i >= s.top + s.visible )
+					codeGuiRowScrollTo( i - s.visible + 1 );
+				return;
+			}
+}
+
+//-------------------------------------------------------------------------------------------------
 /** The scroll bar container's system function: the arrows and the slider report to their owner, which is this. */
 //-------------------------------------------------------------------------------------------------
 static WindowMsgHandledType codeGuiRowScrollSystem( GameWindow *window, UnsignedInt msg,

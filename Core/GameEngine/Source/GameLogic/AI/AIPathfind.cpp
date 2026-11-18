@@ -9481,6 +9481,16 @@ Path *Pathfinder::internal_findHierarchicalPath( Bool isHuman, const LocomotorSu
 					if (!startCell)
 						continue;
 
+					// GeneralsX @bugfix crash-zombie-2: the far end can be the cell being expanded, or the near end itself.
+					// With both ends of a short bridge in one zone block, expanding the end cell made cell == parentCell: just
+					// popped, so on neither list and past the check above, it went back on the open list and was then closed by
+					// putOnClosedList below while still linked there. The closed list broke (one cell reachable of thousands),
+					// the rest kept their open/closed flags and links, and a later search's remove/release walked them into
+					// freed infos - releaseClosedList / prependCells null m_info crashes (0.9.77, zombie map). A bridge
+					// whose far end is this cell, or its own near end, leads nowhere new: skip it, as an already-listed far end is.
+					if (cell == parentCell || cell == startCell)
+						continue;
+
 					if (startCell != parentCell) {
 						if(!startCell->allocateInfo(ndx)) {
 							// TheSuperHackers @info We need to forcefully cleanup dangling pathfinding cells if this failure condition is hit in retail

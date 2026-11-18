@@ -1329,6 +1329,11 @@ private:
 	// PartitionCell: a guard scan reads one mask for each of ~14,000 cells, so a dense array makes skipping cheap, and PartitionCell keeps its size.
 	PartitionOwnerMask*		m_cellOwnerMask;
 	UnsignedInt*		m_cellOwnerCount;	///< [cell index * PARTITION_OWNER_TAGS + tag]
+	// GeneralsX: the same per block of 8 x 8 cells (m_blockMissileCount's grid): the OR of its cells' masks, and per block and tag
+	// how many of its cells carry the tag. A ring walk tests the block first: the cell masks of a 32-player map do not stay in L1, its
+	// few hundred blocks do, and a block without the tag holds no cell with it (gxCellMayHoldOwner).
+	PartitionOwnerMask*		m_blockOwnerMask;
+	UnsignedInt*		m_blockOwnerCount;	///< [block index * PARTITION_OWNER_TAGS + tag]
 	// GeneralsX: per cell (same index as m_cells): how many COIs of missiles
 	// (PartitionData::friend_isMissile) are in it, and in all cells, so iterateMissilesInRange skips every cell holding none.
 	// The same per block of 8 x 8 cells (row-major, m_missileBlockCountX wide), so a scan with none near reads a few blocks.
@@ -1396,6 +1401,8 @@ protected:
 #ifdef FASTER_GCO
 	Int calcMinRadius(const ICoord2D& cur);
 	void calcRadiusVec();
+	void gxRingOnMap(const OffsetVec &offsets, Int cellCenterY, OffsetVec::const_iterator &b, OffsetVec::const_iterator &e) const;
+	Bool gxCellMayHoldOwner(Int cellX, Int cellY, PartitionOwnerMask ownerMask) const;
 	/// GeneralsX: iterateObjectsInRangePure's object-list walk; false (iter untouched) when maxDist stops short of a ring
 	Bool collectInWalkOrder(const Object *obj, Real maxDist, DistanceCalculationType dc, PartitionFilter **filters,
 		SimpleObjectIterator *iter);
@@ -1619,6 +1626,7 @@ public:
 	Bool isClearLineOfSightTerrain(const Object* obj, const Coord3D& objPos, const Object* other, const Coord3D& otherPos);
 
 	/// GeneralsX: intended only for CellAndObjectIntersection and PartitionData - a COI with this owner tag joined / left the cell
+	Int gxBlockOfCellIndex(Int i) const;
 	void friend_addCellOwner(const PartitionCell *cell, Int tag);
 	void friend_removeCellOwner(const PartitionCell *cell, Int tag);
 	/// GeneralsX: intended only for CellAndObjectIntersection - a missile's COI joined / left the cell (m_cellMissileCount)

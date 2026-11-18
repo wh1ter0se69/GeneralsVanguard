@@ -216,7 +216,7 @@ mkdir -p "${GX_PATCH_STAGE}"
 # test, the plain-cp dereference and the "only list what was actually staged" rule all apply to it
 # exactly as they do to a downloaded archive.
 GX_GENERATED_DIR="$(mktemp -d)"
-trap 'rm -rf "${GX_GENERATED_DIR}"' EXIT
+trap 'rm -rf "${STAGE_DIR}" "${GX_GENERATED_DIR}"' EXIT  # one EXIT trap per shell: this replaces the STAGE_DIR one above, so it keeps both
 if [[ -f "${_gx_gen}" ]]; then
     if ! python3 "${_gx_gen}" --dest "${GX_GENERATED_DIR}" "${_gx_gen_dirs[@]}" --quiet; then
         echo "ERROR: could not generate the project's own overlay archives." >&2

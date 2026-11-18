@@ -210,6 +210,8 @@ public:
 	/// HUD's event toasts keep off the countdowns (InGameUI.cpp s_gxSwDrawn).
 	Int gxNameWidth() const { return m_nameDisplayString ? m_nameDisplayString->getWidth() : 0; }
 	Int gxTimeWidth() const { return m_timeDisplayString ? m_timeDisplayString->getWidth() : 0; }
+	/// GeneralsX: clip both strings to a region (the countdown block); a no-op while it is unchanged.
+	void gxSetClip( IRegion2D *region ) { m_nameDisplayString->setClipRegion( region ); m_timeDisplayString->setClipRegion( region ); }
 
 // saved & public
 	AsciiString									m_powerName;
@@ -223,6 +225,7 @@ public:
   Bool                        m_evaReadyPlayed;             ///< Stores if Eva announced superweapon is ready
 // not saved, but public
  	Bool												m_forceUpdateText;
+	Int													m_gxLaunchers;								///< GeneralsX: not saved: the "xN" in this time's text when it was set (launchers firing on the same frame)
 
 };
 

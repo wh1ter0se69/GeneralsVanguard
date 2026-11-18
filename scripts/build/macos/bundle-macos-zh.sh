@@ -500,7 +500,7 @@ mkdir -p "${PATCH_STAGE}"
 # test, the plain-cp dereference and the "only list what was actually staged" rule all apply to it
 # exactly as they do to a downloaded archive.
 GX_GENERATED_DIR="$(mktemp -d)"
-trap 'rm -rf "${GX_GENERATED_DIR}"' EXIT
+trap 'rm -rf "${STAGE_DIR}" "${GX_GENERATED_DIR}"' EXIT  # one EXIT trap per shell: this replaces the STAGE_DIR one above, so it keeps both
 if [[ -f "${_gx_gen}" ]]; then
     if ! python3 "${_gx_gen}" --dest "${GX_GENERATED_DIR}" "${_gx_gen_dirs[@]}" --quiet; then
         echo "ERROR: could not generate the project's own overlay archives." >&2
@@ -1000,10 +1000,10 @@ python3 -I "${PROJECT_ROOT}/scripts/legal/third_party_notices.py" check-path --p
 # downloads, so nothing between staging and `zip` - a permissions pass, a re-copy, a stray earlier
 # file inside STAGE_DIR - can put an unpatched dylib in the shipped archive unnoticed.
 GX_ZIP_VERIFY_DIR="$(mktemp -d)"
-# BOTH directories, because `trap ... EXIT` REPLACES the handler installed at STAGE_DIR's mktemp
-# rather than adding to it. A second trap naming only this directory silently disables the stage
+# EVERY temporary directory (stage, generated overlay, this one), because `trap ... EXIT` REPLACES the
+# handler installed earlier rather than adding to it. A trap naming only this directory silently disables the stage
 # cleanup, and every successful packaging run then leaks a ~90 MB tree under $TMPDIR.
-trap 'rm -rf "${STAGE_DIR}" "${GX_ZIP_VERIFY_DIR}"' EXIT
+trap 'rm -rf "${STAGE_DIR}" "${GX_GENERATED_DIR}" "${GX_ZIP_VERIFY_DIR}"' EXIT
 # BOTH member names: `zip -r` dereferences the unversioned symlink into a second regular file, so
 # the archive carries two independent copies and verifying one says nothing about the other.
 for gx_member in libdxvk_d3d9.0.dylib libdxvk_d3d9.dylib; do

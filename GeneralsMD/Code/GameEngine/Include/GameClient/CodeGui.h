@@ -253,6 +253,13 @@ void CodeGuiRowsScrollSetup( GameWindow *parent, const char * const *idFormats, 
 /// hidden the wheel scrolls nothing. Does nothing on a screen without the bar.
 void CodeGuiRowsScrollShow( Bool show, const char *layoutFilename, const char *parentName );
 
+/// Scroll the seat rows so `row` (one control of a scrolling row) is on screen: a row below the window lands at its
+/// bottom edge, one above at its top. A no-op when the row is already shown, when the rows do not scroll, when the bar is
+/// hidden (a popup over the screen) or when `row` is not one of the rows. For the letter-key chain (lanOpenNextSlotDropDown
+/// and its twins): a row parked off screen cannot take keys - GadgetComboBoxKeyPick refuses a list that is not on screen -
+/// so the chain used to stop at the last visible seat.
+void CodeGuiRowsScrollReveal( GameWindow *row );
+
 /// One more checkbox that is INDISTINGUISHABLE from the authored
 /// checkbox `tmpl` (whose window name is `tmplName`): same art, font, text colours, height and
 /// windowtransitions.ini animation, created under tmpl's own parent at parent-relative (x, y) and

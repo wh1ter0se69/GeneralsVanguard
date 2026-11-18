@@ -548,6 +548,7 @@ static void wolOpenNextSlotDropDown( GameInfo *game, Int from )
 		const GameSlot *slot = game->getConstSlot( j );
 		if( slot == nullptr || slot->isHuman() )
 			continue;
+		CodeGuiRowsScrollReveal( combo );		// a seat below the fold scrolls into view first: a parked list takes no keys
 		GadgetComboBoxOpenList( combo );
 		return;
 	}

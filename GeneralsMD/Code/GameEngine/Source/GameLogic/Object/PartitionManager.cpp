@@ -1583,13 +1583,29 @@ Int PartitionData::getControllingPlayerIndex() const
 }
 
 //-----------------------------------------------------------------------------
+enum { GX_MISSILE_BLOCK_SHIFT = 3 };	// m_blockMissileCount and m_blockOwnerMask: blocks of 8 x 8 cells
+
+//-----------------------------------------------------------------------------
+// GeneralsX: the m_blockOwnerMask block of cell index i, from the index (PartitionCell keeps its x and y as Short, which a grid
+// wider or taller than 32,767 cells would wrap; init() allows up to 2^20 cells in any shape)
+inline Int PartitionManager::gxBlockOfCellIndex(Int i) const
+{
+	return ((i / m_cellCountX) >> GX_MISSILE_BLOCK_SHIFT) * m_missileBlockCountX + ((i % m_cellCountX) >> GX_MISSILE_BLOCK_SHIFT);
+}
+
+//-----------------------------------------------------------------------------
 // GeneralsX: see m_cellOwnerMask
 void PartitionManager::friend_addCellOwner(const PartitionCell *cell, Int tag)
 {
 	const Int i = (Int)(cell - m_cells);
 	DEBUG_ASSERTCRASH(i >= 0 && i < m_totalCellCount && tag >= 0 && tag < PARTITION_OWNER_TAGS, ("bad cell owner"));
 	if (m_cellOwnerCount[i * PARTITION_OWNER_TAGS + tag]++ == 0)
+	{
 		m_cellOwnerMask[i] |= gxOwnerTagBit(tag);
+		const Int b = gxBlockOfCellIndex(i);
+		if (m_blockOwnerCount[b * PARTITION_OWNER_TAGS + tag]++ == 0)
+			m_blockOwnerMask[b] |= gxOwnerTagBit(tag);
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -1598,13 +1614,16 @@ void PartitionManager::friend_removeCellOwner(const PartitionCell *cell, Int tag
 	const Int i = (Int)(cell - m_cells);
 	DEBUG_ASSERTCRASH(i >= 0 && i < m_totalCellCount && tag >= 0 && tag < PARTITION_OWNER_TAGS, ("bad cell owner"));
 	if (--m_cellOwnerCount[i * PARTITION_OWNER_TAGS + tag] == 0)
+	{
 		m_cellOwnerMask[i] &= ~gxOwnerTagBit(tag);
+		const Int b = gxBlockOfCellIndex(i);
+		if (--m_blockOwnerCount[b * PARTITION_OWNER_TAGS + tag] == 0)
+			m_blockOwnerMask[b] &= ~gxOwnerTagBit(tag);
+	}
 }
 
 //-----------------------------------------------------------------------------
 // GeneralsX: see m_cellMissileCount
-enum { GX_MISSILE_BLOCK_SHIFT = 3 };	// m_blockMissileCount: blocks of 8 x 8 cells
-
 void PartitionManager::friend_addCellMissile(const PartitionCell *cell)
 {
 	const Int i = (Int)(cell - m_cells);
@@ -2824,6 +2843,8 @@ PartitionManager::PartitionManager()
 	m_missileCoiCount = 0;
 	m_blockMissileCount = nullptr;
 	m_missileBlockCountX = 0;
+	m_blockOwnerMask = nullptr;
+	m_blockOwnerCount = nullptr;
 	m_maxObjectRadius = 0.0f;
 	m_maxDrift = 0.0f;
 	m_worldExtents.lo.zero();
@@ -2925,6 +2946,11 @@ void PartitionManager::init()
 		const Int missileBlockCountY = (m_cellCountY + (1 << GX_MISSILE_BLOCK_SHIFT) - 1) >> GX_MISSILE_BLOCK_SHIFT;
 		m_blockMissileCount = MSGNEW("PartitionManager_BlockMissileCount") UnsignedInt[(size_t)m_missileBlockCountX * missileBlockCountY];
 		memset(m_blockMissileCount, 0, sizeof(UnsignedInt) * (size_t)m_missileBlockCountX * missileBlockCountY);
+		const size_t blockCount = (size_t)m_missileBlockCountX * missileBlockCountY;
+		m_blockOwnerMask = MSGNEW("PartitionManager_BlockOwnerMask") PartitionOwnerMask[blockCount];
+		memset(m_blockOwnerMask, 0, sizeof(PartitionOwnerMask) * blockCount);
+		m_blockOwnerCount = MSGNEW("PartitionManager_BlockOwnerCount") UnsignedInt[blockCount * PARTITION_OWNER_TAGS];
+		memset(m_blockOwnerCount, 0, sizeof(UnsignedInt) * blockCount * PARTITION_OWNER_TAGS);
 		for (Int x = 0; x < m_cellCountX; x++)
 		{
 			for (Int y = 0; y < m_cellCountY; y++)
@@ -3048,6 +3074,10 @@ void PartitionManager::shutdown()
 	delete [] m_blockMissileCount;
 	m_blockMissileCount = nullptr;
 	m_missileBlockCountX = 0;
+	delete [] m_blockOwnerMask;
+	m_blockOwnerMask = nullptr;
+	delete [] m_blockOwnerCount;
+	m_blockOwnerCount = nullptr;
 	m_maxObjectRadius = 0.0f;	// GeneralsX: every object left the partition above
 	m_maxDrift = 0.0f;
 
@@ -3545,6 +3575,13 @@ void PartitionManager::calcRadiusVec()
 	DEBUG_ASSERTCRASH(total == (cx*2-1)*(cy*2-1),("expected %d, got %d",(cx*2-1)*(cy*2-1),total));
 #endif
 
+#if defined(RTS_DEBUG)
+	// GeneralsX: gxRingOnMap relies on every ring being in row order (the loop above pushes y-major)
+	for (Int r = 0; r <= m_maxGcoRadius; ++r)
+		for (size_t k = 1; k < m_radiusVec[r].size(); ++k)
+			DEBUG_ASSERTCRASH(m_radiusVec[r][k - 1].y <= m_radiusVec[r][k].y, ("ring %d out of row order", r));
+#endif
+
 	// GeneralsX: m_walkRank: the order getClosestObjects' ring walk reads the offsets in
 	const Int rankW = cx * 2 - 1;
 	m_walkRank.assign((size_t)rankW * (size_t)(cy * 2 - 1), -1);
@@ -3570,6 +3607,33 @@ void PartitionManager::calcRadiusVec()
 		}
 		m_ringReach[r] = reach;
 	}
+}
+#endif
+
+#ifdef FASTER_GCO
+//-----------------------------------------------------------------------------
+// GeneralsX: the part of a ring whose cell row is on the map. calcRadiusVec fills every ring in (y, x) order, so it is one run; the
+// offsets before and after it are off the map, which every ring walk skips (bounds test, or getCellAt's nullptr) - not iterating
+// them changes nothing. A full walk reads (2 * countX - 1) * (2 * countY - 1) offsets for countX * countY cells; this halves it.
+void PartitionManager::gxRingOnMap(const OffsetVec &offsets, Int cellCenterY, OffsetVec::const_iterator &b,
+	OffsetVec::const_iterator &e) const
+{
+	// 64-bit bounds: a centre far off the map (any Int) must not overflow where the old per-offset bounds test did not
+	struct RowBefore { bool operator()(const ICoord2D &o, Int64 y) const { return (Int64)o.y < y; } };
+	b = std::lower_bound(offsets.begin(), offsets.end(), -(Int64)cellCenterY, RowBefore());
+	e = std::lower_bound(b, offsets.end(), (Int64)m_cellCountY - (Int64)cellCenterY, RowBefore());
+}
+
+//-----------------------------------------------------------------------------
+// GeneralsX: false = cell (cellX, cellY) is off the map or holds no object with a tag in ownerMask. The block mask first (see
+// m_blockOwnerMask): the same answer, from an array that stays in cache.
+inline Bool PartitionManager::gxCellMayHoldOwner(Int cellX, Int cellY, PartitionOwnerMask ownerMask) const
+{
+	if (cellX < 0 || cellY < 0 || cellX >= m_cellCountX || cellY >= m_cellCountY)
+		return FALSE;
+	if ((m_blockOwnerMask[(cellY >> GX_MISSILE_BLOCK_SHIFT) * m_missileBlockCountX + (cellX >> GX_MISSILE_BLOCK_SHIFT)] & ownerMask) == 0)
+		return FALSE;
+	return (m_cellOwnerMask[cellY * m_cellCountX + cellX] & ownerMask) != 0;
 }
 #endif
 
@@ -3681,13 +3745,14 @@ Object *PartitionManager::getClosestObjects(
     const OffsetVec& offsets = m_radiusVec[curRadius];
 		if (offsets.empty())
 			continue;
-    for (OffsetVec::const_iterator it = offsets.begin(); it != offsets.end(); ++it)
+    OffsetVec::const_iterator ringBegin, ringEnd;
+    gxRingOnMap(offsets, cellCenterY, ringBegin, ringEnd);	// GeneralsX: only the rows on the map
+    for (OffsetVec::const_iterator it = ringBegin; it != ringEnd; ++it)
 		{
 			const Int cellX = cellCenterX + it->x;
 			const Int cellY = cellCenterY + it->y;
 			// (the dense mask first: a skipped cell is never touched; getCellAt's bounds and index)
-			if (ownerMask != PARTITION_OWNERS_ALL && (cellX < 0 || cellY < 0 || cellX >= m_cellCountX || cellY >= m_cellCountY
-					|| (m_cellOwnerMask[cellY * m_cellCountX + cellX] & ownerMask) == 0))
+			if (ownerMask != PARTITION_OWNERS_ALL && !gxCellMayHoldOwner(cellX, cellY, ownerMask))
 				continue;
 			PartitionCell* thisCell = getCellAt(cellX, cellY);
 			if (thisCell == nullptr)
@@ -4233,13 +4298,14 @@ void PartitionManager::visitObjectsNearToFar(
 		const OffsetVec& offsets = m_radiusVec[curRadius];
 		if (offsets.empty())
 			continue;
-		for (OffsetVec::const_iterator it = offsets.begin(); it != offsets.end(); ++it)
+		OffsetVec::const_iterator ringBegin, ringEnd;
+		gxRingOnMap(offsets, cellCenterY, ringBegin, ringEnd);	// GeneralsX: only the rows on the map
+		for (OffsetVec::const_iterator it = ringBegin; it != ringEnd; ++it)
 		{
 			const Int cellX = cellCenterX + it->x;
 			const Int cellY = cellCenterY + it->y;
 			// (the dense mask first: a skipped cell is never touched; getCellAt's bounds and index)
-			if (ownerMask != PARTITION_OWNERS_ALL && (cellX < 0 || cellY < 0 || cellX >= m_cellCountX || cellY >= m_cellCountY
-					|| (m_cellOwnerMask[cellY * m_cellCountX + cellX] & ownerMask) == 0))
+			if (ownerMask != PARTITION_OWNERS_ALL && !gxCellMayHoldOwner(cellX, cellY, ownerMask))
 				continue;
 			PartitionCell* thisCell = getCellAt(cellX, cellY);
 			if (thisCell == nullptr)
@@ -4364,12 +4430,13 @@ Object *PartitionManager::getClosestObjectInArea(
 		const OffsetVec& offsets = m_radiusVec[curRadius];
 		if (offsets.empty())
 			continue;
-		for (OffsetVec::const_iterator it = offsets.begin(); it != offsets.end(); ++it)
+		OffsetVec::const_iterator ringBegin, ringEnd;
+		gxRingOnMap(offsets, cellCenterY, ringBegin, ringEnd);	// GeneralsX: only the rows on the map
+		for (OffsetVec::const_iterator it = ringBegin; it != ringEnd; ++it)
 		{
 			const Int cellX = cellCenterX + it->x;
 			const Int cellY = cellCenterY + it->y;
-			if (ownerMask != PARTITION_OWNERS_ALL && (cellX < 0 || cellY < 0 || cellX >= m_cellCountX || cellY >= m_cellCountY
-					|| (m_cellOwnerMask[cellY * m_cellCountX + cellX] & ownerMask) == 0))
+			if (ownerMask != PARTITION_OWNERS_ALL && !gxCellMayHoldOwner(cellX, cellY, ownerMask))
 				continue;
 			PartitionCell* thisCell = getCellAt(cellX, cellY);
 			if (thisCell == nullptr)
