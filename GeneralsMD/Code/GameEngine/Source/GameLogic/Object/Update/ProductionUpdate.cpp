@@ -627,7 +627,20 @@ UpdateSleepTime ProductionUpdate::update()
 
 	// if nothing in the queue get outta here
 	if( production == nullptr )
+	{
+		// GeneralsX (perf60-5): the flags are flushed above; with no construction-complete timer and no door moving either,
+		// every next update() is this same no-op until addToProductionQueue, removeFromProductionQueue or setHoldDoorOpen
+		// (each clears it) - so GameLogic may skip it in place (UpdateModule::m_gxSkip).
+		Bool doorsIdle = TRUE;
+		if( d->m_numDoorAnimations > 0 )
+		{
+			for( Int i = 0; i < DOOR_COUNT_MAX; ++i )
+				if( m_doors[ i ].m_doorOpenedFrame || m_doors[ i ].m_doorWaitOpenFrame || m_doors[ i ].m_doorClosedFrame )
+					doorsIdle = FALSE;
+		}
+		setIdleSkip( m_constructionCompleteFrame == 0 && m_flagsDirty == FALSE && doorsIdle );
 		return UPDATE_SLEEP_NONE;
+	}
 
 	//
 	// if we've become OBJECT_STATUS_SOLD, halt all production ... leave things in the
@@ -967,6 +980,7 @@ UpdateSleepTime ProductionUpdate::update()
 //-------------------------------------------------------------------------------------------------
 void ProductionUpdate::addToProductionQueue( ProductionEntry *production )
 {
+	setIdleSkip( FALSE );	// GeneralsX (perf60-5): the next update() has work
 
 	// check for empty list
 	if( m_productionQueue == nullptr )
@@ -1010,6 +1024,7 @@ void ProductionUpdate::addToProductionQueue( ProductionEntry *production )
 //-------------------------------------------------------------------------------------------------
 void ProductionUpdate::removeFromProductionQueue( ProductionEntry *production )
 {
+	setIdleSkip( FALSE );	// GeneralsX (perf60-5): the next update() may have work (doors, flags)
 	if (production->m_type == PRODUCTION_UNIT &&
 			production->m_exitDoor != DOOR_NONE_AVAILABLE)
 	{
@@ -1224,6 +1239,7 @@ void ProductionUpdate::cancelAndRefundAllProduction()
 // ------------------------------------------------------------------------------------------------
 void ProductionUpdate::setHoldDoorOpen(ExitDoorType exitDoor, Bool holdIt)
 {
+	setIdleSkip( FALSE );	// GeneralsX (perf60-5): a door may move
 	if (exitDoor >= DOOR_1 && exitDoor < DOOR_COUNT_MAX)
 	{
 		DoorInfo& door = m_doors[exitDoor];

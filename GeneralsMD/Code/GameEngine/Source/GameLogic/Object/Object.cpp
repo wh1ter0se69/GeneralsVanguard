@@ -2304,8 +2304,12 @@ void Object::setDisabledUntil( DisabledType type, UnsignedInt frame, Bool neverM
 		if ( type != DISABLED_HELD && !isDisabledByType( type ) )
 			pauseAllSpecialPowers( TRUE );
 
+		// GeneralsX (perf60-5): a refreshed timer (another EMP hit) leaves the bit as it was; invalidate only a real change.
+		const Bool gxWasSet = isDisabledByType( type );
 		m_disabledTillFrame[ type ] = frame;
 		m_disabledMask.set( type, frame > TheGameLogic->getFrame() );
+		if( gxWasSet != isDisabledByType( type ) )
+			gxDisabledFlagsChanged();
 		// GeneralsX: keep GameLogic's disabled-expiry watermark <= this till-frame.
 		TheGameLogic->noteDisabledUntil( frame );
 
@@ -2489,6 +2493,7 @@ Bool Object::clearDisabled( DisabledType type )
 
 	m_disabledTillFrame[ type ] = NEVER;
 	m_disabledMask.set( type, 0 );
+	gxDisabledFlagsChanged();
 
 	DisabledMaskType exceptions;
 	exceptions.set(DISABLED_HELD);
@@ -2521,6 +2526,23 @@ Bool Object::clearDisabled( DisabledType type )
 
 
 //-------------------------------------------------------------------------------------------------
+// GeneralsX (perf60-5): GameLogic's sleepy loop skips a module it deferred for this Object's disabled flags until they
+// change (UpdateModule::m_gxSkip), so every write to m_disabledMask calls this: each update module is checked again.
+// (A load needs no call: UpdateModule::xfer zeroes the bits.)
+//-------------------------------------------------------------------------------------------------
+void Object::gxDisabledFlagsChanged()
+{
+	if( m_behaviors == nullptr )
+		return;
+	for( BehaviorModule** b = m_behaviors; *b; ++b )
+	{
+		UpdateModulePtr u = (UpdateModulePtr)((*b)->getUpdate());
+		if( u )
+			u->friend_clearDeferredSkip();
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
 //Checks any timers and clears disabled statii that have expired.
 //-------------------------------------------------------------------------------------------------
 // GeneralsX: Returns the earliest till-frame among the bits still set after the check
@@ -2537,7 +2559,12 @@ UnsignedInt Object::checkDisabledStatus()
 			if ( now >= m_disabledTillFrame[ i ] )
 			{
 				clearDisabled( type ); // This will also DECREMENT m_pauseCount in all specialpowers
+				// GeneralsX (perf60-5): clearDisabled cleared the bit and invalidated the skips; walk again only if
+				// something it called set the bit since (then the write below is a real change).
+				const Bool gxStillSet = isDisabledByType( type );
 				m_disabledMask.set( type, 0 );
+				if( gxStillSet )
+					gxDisabledFlagsChanged();
 			}
 			else if( m_disabledTillFrame[ i ] < earliest )
 			{

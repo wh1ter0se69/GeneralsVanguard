@@ -109,6 +109,7 @@ UpdateSleepTime RailedTransportDockUpdate::update()
 	UpdateSleepTime result;
 
 	result = DockUpdate::update();
+	setIdleSkip( FALSE );	// GeneralsX (perf60-5): the pull-in / push-out below run every frame
 
 	// do any pull in docking we need to
 	doPullInDocking();

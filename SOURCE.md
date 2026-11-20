@@ -1,17 +1,17 @@
-# Generals Vanguard 0.9.78 — source
+# Generals Vanguard 0.9.79 — source
 
-This repository is the source code of **Generals Vanguard 0.9.78** (tagged and named GeneralsX 0.9.78 in the commit), the
-release published on 18 November 2026
+This repository is the source code of **Generals Vanguard 0.9.79** (tagged and named GeneralsX 0.9.79 in the commit), the
+release published on 20 November 2026
 (the game for Windows, Linux and macOS and the Windows installer; the iOS/iPadOS build in this source is in testing
 and has no public download). The launcher that ships with the release is a separate program and is not part of this
 repository. The Windows updater (`GeneralsXUpdate.exe`) is part of the game's licence and its source is here, in
 `scripts/build/windows/launcher/` (`gxlaunch.c`, `gxlaunch.rc`, `build-launcher.cmd`), with the one icon file it
-references, `scripts/launcher-rs/gxlauncher/icons/icon.ico`; the 0.9.78 updater is built from this source.
+references, `scripts/launcher-rs/gxlauncher/icons/icon.ico`; the 0.9.79 updater is built from this source.
 
-It is a snapshot of commit `71c4ebaff3748d5a25470d4cf9455686914b364c` of the GeneralsX development
+It is a snapshot of commit `6f8340b0e2430f0247f04507bfadbfa90c2ec60f` of the GeneralsX development
 repository, published as one commit, with comments edited for publication. Every statement and string
 compiled into a release build is the same as in that commit, but **a game built from this tree cannot play
-with the published 0.9.78**, because the comment edits change the source id the engine compares before a
+with the published 0.9.79**, because the comment edits change the source id the engine compares before a
 match. Both are explained below, with commands to check them.
 
 GeneralsX is licensed under the GNU General Public License v3.0 or later, with the additional terms
@@ -51,7 +51,7 @@ checkouts of other projects are not part of the released programs and are not in
   Windows download with the launcher and its updater, checks both against the development repository and does not
   run from this tree.
 
-The Apple builds compile DXVK from the one submodule, pinned to the exact commit 0.9.78 used:
+The Apple builds compile DXVK from the one submodule, pinned to the exact commit 0.9.79 used:
 
 ```sh
 git submodule update --init --recursive references/fbraz3-dxvk
@@ -64,12 +64,12 @@ the build files.
 Some packaging scripts build on a remote machine and read its address from `scripts/test/local.env`
 (not included; copy `scripts/test/local.env.example` and fill it in).
 
-A binary you build embeds this repository's commit id, not `71c4ebaff3`, so it reports a different
-build id than the published 0.9.78 files.
+A binary you build embeds this repository's commit id, not `6f8340b0e2`, so it reports a different
+build id than the published 0.9.79 files.
 
 ## What differs from the shipped commit
 
-For the `v0.9.78` tag, the publication edited 337 files of `71c4ebaff3` and added this one. The edits are:
+For the `v0.9.79` tag, the publication edited 337 files of `6f8340b0e2` and added this one. The edits are:
 
 * comments: personal names replaced by the `wh1ter0se` handle, profanity reworded, notes about how the project was
   worked on removed, headers that named upstream's authors on files they did not write changed to
@@ -84,33 +84,33 @@ For the `v0.9.78` tag, the publication edited 337 files of `71c4ebaff3` and adde
   check files that nothing in the game or the packages reads (`scripts/build/test-runsh-linux-root.sh`,
   `scripts/build/winmacro-check.py`, `scripts/build/windows/launcher/test-product-dir.sh`, `scripts/build/macos/test-display-names.sh`).
 
-The files of `71c4ebaff3` that are not here are the launcher (its source has its own licence and is not published),
+The files of `6f8340b0e2` that are not here are the launcher (its source has its own licence and is not published),
 internal notes, test harnesses and the online services' server code; see "What is here".
 
 The C and C++ sources are the same as the shipped commit's once comments and layout are set aside. To
 check, run
 
 ```sh
-python3 scripts/tooling/comment-free-sha.py v0.9.78
+python3 scripts/tooling/comment-free-sha.py v0.9.79
 ```
 
-It prints `c6281b3cb021c39d97235a3fde129965c0519664e8db4c20d7d435aa1c311db4  4650 files`, the value the
+It prints `e64fad7e013d38db7305a4b599b240ed6641e0be9ba152eb4008f18545b922e1  4650 files`, the value the
 shipped commit gives for the same 4,650 files.
 
-## A build of this tree does not play with 0.9.78
+## A build of this tree does not play with 0.9.79
 
 GeneralsX peers run the simulation in lockstep, so before a match the engine compares a **source id**
 (`sourceID`): a hash of the text of every file the simulation is built from, taken at build time by
 `resources/gitinfo/simsourcedigest_watcher.cmake`. Peers whose source ids differ refuse each other.
 Comments are part of that text, and edited files feed the hash, so this tree has a different
-source id from the one 0.9.78 shipped with:
+source id from the one 0.9.79 shipped with:
 
 | | Zero Hour | Generals |
 |---|---|---|
-| published 0.9.78 (`71c4ebaff3`) | `0x5AADFE40` | `0xFF14F329` |
-| this tree (`v0.9.78`) | `0xABF9B3AB` | `0x353B8BA7` |
+| published 0.9.79 (`6f8340b0e2`) | `0x279994B3` | `0x4BE83CF8` |
+| this tree (`v0.9.79`) | `0x467FC43A` | `0x143B1092` |
 
-A game built from this tree is refused by official 0.9.78 players, and refuses them. The build prints the
+A game built from this tree is refused by official 0.9.79 players, and refuses them. The build prints the
 value (`SimID source digest: ZH=0x... G=0x...`); to read it without building, run from the repository root:
 
 ```sh

@@ -111,6 +111,10 @@ void UpdateModule::xfer( Xfer *xfer )
 	// extend base class
 	BehaviorModule::xfer( xfer );
 
+	// GeneralsX (perf60-5): never saved; a loaded module runs its next update() and decides again (m_gxSkip).
+	if( xfer->getXferMode() == XFER_LOAD )
+		m_gxSkip = 0;
+
 #if defined(RTS_DEBUG)
 	/*
 		this is a fix for the following scenario:

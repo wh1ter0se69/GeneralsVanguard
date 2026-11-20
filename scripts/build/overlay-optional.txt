@@ -141,4 +141,4 @@ on|!!GXEmblemHD.big|HD faction emblems (upscaled, original colours)
 # Built like !GXUIHD.big, from nothing, by scripts/build/make-gxsidebar-archive.py. It REDEFINES 137 existing
 # MappedImage names (retail SA*/SN*/SU*, Control Bar Pro <Faction>Pro*/ObserverPro*, GenExpBar*) and adds none; MappedImages and textures are
 # outside the SimID fingerprint (probe-dataid.sh with and without it: see the handback), so turning it off changes nothing for joining.
-on|!GXUISide.big|GeneralsX look for the side buttons and the General's ladder
+on|!GXUISide.big|Generals Vanguard look for the side buttons and the General's ladder

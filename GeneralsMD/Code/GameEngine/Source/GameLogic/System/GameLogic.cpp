@@ -4795,6 +4795,17 @@ void GameLogic::update()
 		{
 			UpdateSleepTime sleepLen = UPDATE_SLEEP_NONE;	// default, if it is disabled.
 
+			// GeneralsX (perf60-5): a module that is idle (its update() would change nothing and return SLEEP_NONE) or
+			// still deferred for its Object's disabled flags goes back exactly as the two paths below would send it -
+			// now + 1, a fresh seq at this same point - without touching its Object or calling it. UpdateModule::m_gxSkip.
+			if (u->friend_getSkip() != 0)
+			{
+				u->friend_setNextCallFrame(now + UPDATE_SLEEP_NONE);
+				if (u->friend_getIndexInLogic() >= 0)
+					m_sleepyWheel.schedule(u);
+				continue;
+			}
+
 			DisabledMaskType dis = u->friend_getObject()->getDisabledFlags();
 #if RETAIL_COMPATIBLE_CRC
 			if (!dis.any() || dis.anyIntersectionWith(u->getDisabledTypesToProcess()))
@@ -4818,6 +4829,11 @@ void GameLogic::update()
 
 				m_curUpdateModule = nullptr;
 
+			}
+			else
+			{
+				// GeneralsX (perf60-5): skip it until its Object's disabled flags change (Object clears the bit).
+				u->friend_setDeferredSkip();
 			}
 
 			// else defer it till next frame and re-push it

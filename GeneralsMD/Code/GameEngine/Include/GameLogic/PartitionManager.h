@@ -407,6 +407,8 @@ private:
 	Bool												m_gxMissile;						///< GeneralsX: its COIs are counted in PartitionManager::m_cellMissileCount
 	Coord3D											m_fillPos;						///< GeneralsX: the Object's position when its cells were last filled (updateCellsTouched)
 	DirtyStatus									m_dirtyStatus;
+	UnsignedInt64								m_contactVisit;					///< GeneralsX perf60-4: the addPossibleCollisions call that last visited it
+	UnsignedInt64								m_contactListed;				///< GeneralsX perf60-4: the PartitionManager::update in which it last listed its contacts
 	ObjectShroudStatus					m_shroudedness[MAX_PLAYER_COUNT];
 	ObjectShroudStatus					m_shroudednessPrevious[MAX_PLAYER_COUNT];	///<previous frames value of m_shroudedness
 	Bool												m_everSeenByPlayer[MAX_PLAYER_COUNT];		///<whether this object has ever been seen by a given player.
@@ -562,7 +564,7 @@ public:
 		is intersecting the ground, add it to the list as a possible
 		collide-with-ground.
 	*/
-	void addPossibleCollisions(PartitionContactList *ctList);
+	void addPossibleCollisions(PartitionContactList *ctList, Bool cellsUpdated);	///< GeneralsX perf60-4: cellsUpdated = its cells were refilled in this dirty-loop pass
 
 	Object *getObject() { return m_object; }				///< return the Object that owns this module
 	const Object *getObject() const { return m_object; }				///< return the Object that owns this module
@@ -1334,6 +1336,7 @@ private:
 	// few hundred blocks do, and a block without the tag holds no cell with it (gxCellMayHoldOwner).
 	PartitionOwnerMask*		m_blockOwnerMask;
 	UnsignedInt*		m_blockOwnerCount;	///< [block index * PARTITION_OWNER_TAGS + tag]
+	UnsignedInt			m_ownerMaskEpoch;	///< GeneralsX: bumped whenever a cell's owner mask changes (GxOwnerCellWalk's lists go stale)
 	// GeneralsX: per cell (same index as m_cells): how many COIs of missiles
 	// (PartitionData::friend_isMissile) are in it, and in all cells, so iterateMissilesInRange skips every cell holding none.
 	// The same per block of 8 x 8 cells (row-major, m_missileBlockCountX wide), so a scan with none near reads a few blocks.
@@ -1356,6 +1359,12 @@ private:
 	// GeneralsX: per ring: the largest |x| or |y| of any offset in it or a smaller
 	// ring, so the rings up to r lie in the square of that half-width around the centre cell (iterateMissilesInRange)
 	std::vector<Int>	m_ringReach;
+	// GeneralsX: per |dx|, |dy| (row-major, m_cellCountX wide): the ring calcRadiusVec puts offset (dx, dy) in (calcMinRadius).
+	// m_walkRingOk: every offset's ring matched it and it never decreases away from the centre along x or y, so a block's cell
+	// nearest the centre has the block's smallest ring (GxOwnerCellWalk); false = every walk reads its offsets.
+	std::vector<UnsignedShort>	m_walkRing;
+	Bool				m_walkRingOk;
+	friend class GxOwnerCellWalk;
 #endif
 	// GeneralsX: the largest bounding circle radius any Object has had when its cells were
 	// filled (PartitionData::updateCellsTouched) since the last reset. Only ever grows, so it bounds every object in the
@@ -1410,8 +1419,8 @@ protected:
 
 	// These are all friend functions now. They will continue to function as before, but can be passed into
 	// the DiscreteCircle::drawCircle function.
-	friend void hLineAddLooker(Int x1, Int x2, Int y, void *playerIndex);
-	friend void hLineRemoveLooker(Int x1, Int x2, Int y, void *playerIndex);
+	friend void hLineAddLooker(Int x1, Int x2, Int y, void *players);	///< GeneralsX perf60-4: a GXLookerPlayers (PartitionManager.cpp)
+	friend void hLineRemoveLooker(Int x1, Int x2, Int y, void *players);
 	friend void hLineAddShrouder(Int x1, Int x2, Int y, void *playerIndex);
 	friend void hLineRemoveShrouder(Int x1, Int x2, Int y, void *playerIndex);
 

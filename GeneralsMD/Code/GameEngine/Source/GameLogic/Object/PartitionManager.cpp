@@ -306,8 +306,27 @@ inline Real calcSqrDist_3D(const Coord3D *dist)
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
-void hLineAddLooker(Int x1, Int x2, Int y, void *playerIndexVoid);
-void hLineRemoveLooker(Int x1, Int x2, Int y, void *playerIndexVoid);
+// GeneralsX perf60-4: the players a look or unlook applies to, highest index first (the order of the per-player passes this
+// replaces). hLineAddLooker / hLineRemoveLooker take one and update every listed player in a cell before the next cell: each
+// (cell, player) update reads and writes only that player's own shroud slot and its own objects' shroudedness, and the local
+// player's display/radar calls keep their cell order, so the outcome is the per-player passes' - in one walk over the circle.
+struct GXLookerPlayers
+{
+	Int count;
+	Int index[MAX_PLAYER_COUNT];
+};
+static void gxCollectLookerPlayers(PlayerMaskType playerMask, GXLookerPlayers *out)
+{
+	out->count = 0;
+	for( Int currentIndex = ThePlayerList->getPlayerCount() - 1; currentIndex >=0; currentIndex-- )
+	{
+		const Player *currentPlayer = ThePlayerList->getNthPlayer( currentIndex );
+		if( BitIsSet( playerMask, currentPlayer->getPlayerMask() ) )
+			out->index[out->count++] = currentIndex;
+	}
+}
+void hLineAddLooker(Int x1, Int x2, Int y, void *playersVoid);
+void hLineRemoveLooker(Int x1, Int x2, Int y, void *playersVoid);
 void hLineAddShrouder(Int x1, Int x2, Int y, void *playerIndexVoid);
 void hLineRemoveShrouder(Int x1, Int x2, Int y, void *playerIndexVoid);
 void hLineAddThreat(Int x1, Int x2, Int y, void *threatValueParms);
@@ -978,12 +997,13 @@ private:
 		PartitionData*	m_hi;
 	};
 	enum { MIN_SLOT_BITS = 16 };
-	static const UnsignedInt NO_SLOT = 0xffffffffu;
+	static const UnsignedInt NO_SLOT = 0xffffffffu;	///< removed, or never in the table (an unmet pair, see addToContactList)
 
 	static std::vector<Contact> s_contacts;	///< this frame's pairs in insertion order
 	static std::vector<Slot> s_slots;				///< power-of-two size, never more than half full (tombstones count)
 	static UnsignedInt s_slotMask;
 	static Int s_live;											///< live instances (one at a time, see the constructor)
+	static Bool s_hashAll;									///< this frame's pairs all go in the table (see hashAll)
 
 	static PartitionData* tombstone() { return reinterpret_cast<PartitionData*>(static_cast<uintptr_t>(1)); }
 	static UnsignedInt firstSlot(const PartitionData *lo, const PartitionData *hi);
@@ -1009,8 +1029,14 @@ public:
 		present (in either this order or reverse order), nothing is done.
 		Note that it is OK for other==null (this indicates a collisions with
 		the ground) but it is not OK for obj==null.
+		GeneralsX perf60-4: mayMeetAgain false says no later attempt can name this pair and none has: the pair is
+		listed without a table slot (see PartitionData::addPossibleCollisions).
 	*/
-	void addToContactList(PartitionData *obj, PartitionData *other);
+	void addToContactList(PartitionData *obj, PartitionData *other, Bool mayMeetAgain);
+
+	/// GeneralsX perf60-4: put every pair listed without a slot into the table, and the rest of this frame's too
+	/// (an object was made dirty inside PartitionManager::update's dirty loop, so it may list its contacts later).
+	void hashAll();
 
 	/**
 		process all pairs in the contact list: first, determine if they
@@ -1542,6 +1568,8 @@ PartitionData::PartitionData()
 	m_gxMissile = false;
 	m_fillPos.zero();
 	m_dirtyStatus = NOT_DIRTY;
+	m_contactVisit = 0;
+	m_contactListed = 0;
 	m_lastCell = nullptr;
 	for (int i = 0; i < MAX_PLAYER_COUNT; ++i)
 	{
@@ -1601,6 +1629,7 @@ void PartitionManager::friend_addCellOwner(const PartitionCell *cell, Int tag)
 	DEBUG_ASSERTCRASH(i >= 0 && i < m_totalCellCount && tag >= 0 && tag < PARTITION_OWNER_TAGS, ("bad cell owner"));
 	if (m_cellOwnerCount[i * PARTITION_OWNER_TAGS + tag]++ == 0)
 	{
+		++m_ownerMaskEpoch;	// GeneralsX: a mask changed (GxOwnerCellWalk)
 		m_cellOwnerMask[i] |= gxOwnerTagBit(tag);
 		const Int b = gxBlockOfCellIndex(i);
 		if (m_blockOwnerCount[b * PARTITION_OWNER_TAGS + tag]++ == 0)
@@ -1615,6 +1644,7 @@ void PartitionManager::friend_removeCellOwner(const PartitionCell *cell, Int tag
 	DEBUG_ASSERTCRASH(i >= 0 && i < m_totalCellCount && tag >= 0 && tag < PARTITION_OWNER_TAGS, ("bad cell owner"));
 	if (--m_cellOwnerCount[i * PARTITION_OWNER_TAGS + tag] == 0)
 	{
+		++m_ownerMaskEpoch;
 		m_cellOwnerMask[i] &= ~gxOwnerTagBit(tag);
 		const Int b = gxBlockOfCellIndex(i);
 		if (--m_blockOwnerCount[b * PARTITION_OWNER_TAGS + tag] == 0)
@@ -2103,7 +2133,56 @@ void PartitionData::doSmallFill(
 //  * not PARACHUTING and not a container (the parachute bounce moves them);
 //  * not contained (a rider kept in the partition moves when its container dies);
 //  * not infantry (they enter a non-enclosing garrison such as the America Fire Base and stay in the partition).
-UnsignedInt g_gxContactSkipped = 0;	// pairs skipped, read only by the GX_TICKMS diagnostic (GameEngine.cpp)
+UnsignedInt g_gxContactSkipped = 0;	// pairs skipped, read only by the GX_TICKMS diagnostic (GameEngine.cpp); since perf60-4 at most once
+																			// per addPossibleCollisions call, and not by a call that passes the pair over as already decided
+																			// (lower than older [GXSKIP] values; the simulation is unaffected)
+
+// GeneralsX perf60-4: which listed pairs need a contact-table slot. A pair is only ever named by the two objects' own
+// addPossibleCollisions calls, and only in a cell both occupy at that call. Cells change only when their own object is refilled
+// (updateCellsTouched) in its dirty-loop pass, right before it lists, and an object has one pass per update (see makeDirty). So:
+//  * the other object already listed its contacts in this update and this one refilled no cells: they share the same cells as at
+//    that call, which met this pair and decided it (listed it or skipped it) - nothing to do;
+//  * the other object will list later and refill its cells first: it may name the pair again - the pair needs a slot;
+//  * otherwise nobody names the pair again (the other one never lists, or lists without a refill and so takes the first rule):
+//    it is listed without a slot.
+// A makeDirty inside the dirty loop (none happens today) breaks "one pass per update": it puts every slotless pair in the table and
+// turns both shortcuts off for the rest of the update. 64-bit stamps: they never wrap.
+static UnsignedInt64 s_contactVisitCall = 0;	///< one per addPossibleCollisions call (PartitionData::m_contactVisit)
+static UnsignedInt64 s_contactUpdate = 0;			///< one per PartitionManager::update (PartitionData::m_contactListed)
+static Bool s_inDirtyLoop = false;						///< PartitionManager::update is listing contacts (see makeDirty)
+static Bool s_lateDirty = false;							///< something was made dirty inside this update's dirty loop
+
+#if defined(GX_TEST_INSTRUMENTS)
+// GX_CONTACT_CHECK=1 (test builds): every slotless pair is recorded and every later naming of one is counted as met= (a
+// slotless pair named twice would be listed twice; must stay 0), and every pair the "already decided" rule passes over must
+// have been named earlier in this update, else miss= (a pair the base code would have listed new; must stay 0).
+// GX_CONTACT_BREAK=1, its fail arm, turns the repeat-visit skip off (a neighbour met in two cells names its slotless pair
+// again: met= must count it) and applies the decided rule to objects that refilled their cells too (miss= must count).
+// [GXCONTACT] every 600 frames.
+#include <unordered_set>
+namespace
+{
+struct GxContactKey
+{
+	const void *lo, *hi;
+	bool operator==(const GxContactKey &o) const { return lo == o.lo && hi == o.hi; }
+};
+struct GxContactKeyHash
+{
+	size_t operator()(const GxContactKey &k) const { return std::hash<const void *>()(k.lo) * 1000003u ^ std::hash<const void *>()(k.hi); }
+};
+std::unordered_set<GxContactKey, GxContactKeyHash> g_gxSlotless;
+std::unordered_set<GxContactKey, GxContactKeyHash> g_gxNamed;	///< every pair an addPossibleCollisions call named in this update
+UnsignedInt64 g_gxSlotlessN = 0, g_gxSlottedN = 0, g_gxRepeatN = 0, g_gxMetN = 0, g_gxLateN = 0, g_gxDecidedN = 0, g_gxMissN = 0;
+Bool gxContactCheck() { static const Bool on = getenv("GX_CONTACT_CHECK") != nullptr; return on; }
+Bool gxContactBreak() { static const Bool on = gxContactCheck() && getenv("GX_CONTACT_BREAK") != nullptr; return on; }
+GxContactKey gxContactKey(const PartitionData *a, const PartitionData *b)
+{
+	GxContactKey k = { std::less<const PartitionData*>()(a, b) ? a : b, std::less<const PartitionData*>()(a, b) ? b : a };
+	return k;
+}
+}
+#endif
 
 static inline Bool contactSkipCandidate(const Object *o)
 {
@@ -2142,7 +2221,7 @@ static inline Bool contactClearlyApart(const Coord3D *pa, Real aReach, const Obj
 }
 
 //-----------------------------------------------------------------------------
-void PartitionData::addPossibleCollisions(PartitionContactList *ctList)
+void PartitionData::addPossibleCollisions(PartitionContactList *ctList, Bool cellsUpdated)
 {
 // actually, we do occasionally want to detect collisions of dead AIs.
 // e.g., dead technicals flying thru the air should check for collisions with
@@ -2177,6 +2256,8 @@ void PartitionData::addPossibleCollisions(PartitionContactList *ctList)
 			|| (TheNetwork != nullptr && TheNetwork->getNumPlayers() > 1));
 	const Coord3D *thisPos = thisObj->getPosition();
 	const Real thisReach = contactReachXY(thisObj->getGeometryInfo());
+	const UnsignedInt64 visit = ++s_contactVisitCall;
+	m_contactListed = s_contactUpdate;
 
 	CellAndObjectIntersection *myCoi = m_coiArray;
 	for (Int i = m_coiInUseCount; i > 0; --i, ++myCoi)
@@ -2190,6 +2271,38 @@ void PartitionData::addPossibleCollisions(PartitionContactList *ctList)
 			PartitionData *that = coi->getModule();
 			if (this != that)
 			{
+				// GeneralsX perf60-4: met again in another of my cells - the same pair, positions and skip test as the first
+				// meeting, whose attempt this one would repeat; and a slotless pair must not be listed twice
+				if (that->m_contactVisit == visit)
+				{
+#if defined(GX_TEST_INSTRUMENTS)
+					++g_gxRepeatN;
+					if (!gxContactBreak())
+#endif
+					continue;
+				}
+				that->m_contactVisit = visit;
+				const Bool thatListed = that->m_contactListed == s_contactUpdate;
+				// GeneralsX perf60-4: that's own call already met this pair in these same cells and decided it (see s_contactVisitCall)
+				Bool decided = thatListed && !cellsUpdated && !s_lateDirty;
+#if defined(GX_TEST_INSTRUMENTS)
+				if (gxContactCheck())
+				{
+					if (gxContactBreak() && thatListed && !s_lateDirty)
+						decided = true;
+					const GxContactKey k = gxContactKey(this, that);
+					if (decided)
+					{
+						++g_gxDecidedN;
+						if (!g_gxNamed.count(k))
+							++g_gxMissN;
+					}
+					else
+						g_gxNamed.insert(k);
+				}
+#endif
+				if (decided)
+					continue;
 				const Object *thatObj = that->getObject();
 				if (thisIsCandidate && thatObj != nullptr
 					&& (thisIsProjectile || thatObj->isKindOf(KINDOF_PROJECTILE))
@@ -2198,7 +2311,7 @@ void PartitionData::addPossibleCollisions(PartitionContactList *ctList)
 					++g_gxContactSkipped;
 					continue;
 				}
-				ctList->addToContactList(this, that);
+				ctList->addToContactList(this, that, s_lateDirty || thatListed || that->m_dirtyStatus == NEED_CELL_UPDATE_AND_COLLISION_CHECK);
 			}
 		}
 	}
@@ -2473,6 +2586,15 @@ void PartitionData::friend_noteSubThresholdMove(const Coord3D *pos)
 void PartitionData::makeDirty(Bool needToUpdateCells)
 {
 	//DEBUG_LOG(("makeDirty for pd %08lx obj %08lx",this,m_object));
+	// GeneralsX perf60-4: dirty inside the dirty loop = it may list its contacts after pairs naming it went in without a slot
+	if (s_inDirtyLoop && TheContactList)
+	{
+#if defined(GX_TEST_INSTRUMENTS)
+		++g_gxLateN;
+#endif
+		s_lateDirty = true;
+		TheContactList->hashAll();
+	}
 	if (!ThePartitionManager->isInListDirtyModules(this))
 	{
 		if (needToUpdateCells)
@@ -2647,6 +2769,7 @@ std::vector<PartitionContactList::Contact> PartitionContactList::s_contacts;
 std::vector<PartitionContactList::Slot> PartitionContactList::s_slots;
 UnsignedInt PartitionContactList::s_slotMask = 0;
 Int PartitionContactList::s_live = 0;
+Bool PartitionContactList::s_hashAll = false;
 
 //-----------------------------------------------------------------------------
 inline UnsignedInt PartitionContactList::firstSlot( const PartitionData *lo, const PartitionData *hi )
@@ -2667,6 +2790,7 @@ void PartitionContactList::grow()
 	s_slots.assign(n, Slot());
 	s_slotMask = static_cast<UnsignedInt>(n - 1);
 	// re-place this frame's live pairs; a removed pair needs no tombstone in the new table (it matches nothing either way)
+	// and a pair listed without a slot (addToContactList) stays out of it
 	for (size_t c = 0; c < s_contacts.size(); ++c)
 	{
 		Contact &ct = s_contacts[c];
@@ -2675,6 +2799,8 @@ void PartitionContactList::grow()
 			ct.m_slot = NO_SLOT;
 			continue;
 		}
+		if (ct.m_slot == NO_SLOT)
+			continue;
 		PartitionData *lo = std::less<PartitionData*>()(ct.m_obj, ct.m_other) ? ct.m_obj : ct.m_other;
 		PartitionData *hi = (lo == ct.m_obj) ? ct.m_other : ct.m_obj;
 		UnsignedInt i = firstSlot(lo, hi);
@@ -2687,7 +2813,7 @@ void PartitionContactList::grow()
 }
 
 //-----------------------------------------------------------------------------
-void PartitionContactList::addToContactList( PartitionData *obj, PartitionData *other )
+void PartitionContactList::addToContactList( PartitionData *obj, PartitionData *other, Bool mayMeetAgain )
 {
 	if (obj == other || obj == nullptr || other == nullptr)
 		return;
@@ -2695,8 +2821,36 @@ void PartitionContactList::addToContactList( PartitionData *obj, PartitionData *
 	if (obj->getObject() == nullptr || other->getObject() == nullptr)
 		return;
 
+	// the table stays sized for every pair, so hashAll() always has room
 	if ((s_contacts.size() + 1) * 2 > s_slots.size())
 		grow();
+
+#if defined(GX_TEST_INSTRUMENTS)
+	if (gxContactCheck())
+	{
+		const GxContactKey k = gxContactKey(obj, other);
+		if (g_gxSlotless.count(k))
+			++g_gxMetN;
+		if (!mayMeetAgain && !s_hashAll)
+		{
+			g_gxSlotless.insert(k);
+			++g_gxSlotlessN;
+		}
+		else
+			++g_gxSlottedN;
+	}
+#endif
+
+	if (!mayMeetAgain && !s_hashAll)
+	{
+		// GeneralsX perf60-4: nothing can look this pair up, so it needs no slot; same place in s_contacts as before
+		Contact ct;
+		ct.m_obj = obj;
+		ct.m_other = other;
+		ct.m_slot = NO_SLOT;
+		s_contacts.push_back(ct);
+		return;
+	}
 
 	// make sure given hit has not already been recorded (in either order)
 	PartitionData *lo = std::less<PartitionData*>()(obj, other) ? obj : other;
@@ -2720,6 +2874,31 @@ void PartitionContactList::addToContactList( PartitionData *obj, PartitionData *
 	s_contacts.push_back(ct);
 	s_slots[i].m_lo = lo;
 	s_slots[i].m_hi = hi;
+}
+
+//-----------------------------------------------------------------------------
+void PartitionContactList::hashAll()
+{
+	if (s_hashAll)
+		return;
+	s_hashAll = true;
+#if defined(GX_TEST_INSTRUMENTS)
+	g_gxSlotless.clear();	// they get slots now, so a later naming finds its slot: not a duplicate
+#endif
+	for (size_t c = 0; c < s_contacts.size(); ++c)
+	{
+		Contact &ct = s_contacts[c];
+		if (ct.m_slot != NO_SLOT || ct.m_obj == nullptr || ct.m_other == nullptr)
+			continue;
+		PartitionData *lo = std::less<PartitionData*>()(ct.m_obj, ct.m_other) ? ct.m_obj : ct.m_other;
+		PartitionData *hi = (lo == ct.m_obj) ? ct.m_other : ct.m_obj;
+		UnsignedInt i = firstSlot(lo, hi);
+		while (s_slots[i].m_lo != nullptr)
+			i = (i + 1) & s_slotMask;
+		s_slots[i].m_lo = lo;
+		s_slots[i].m_hi = hi;
+		ct.m_slot = i;
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -2751,6 +2930,11 @@ void PartitionContactList::resetContactList()
 			s_slots[s_contacts[c].m_slot] = Slot();
 	}
 	s_contacts.clear();
+	s_hashAll = false;
+#if defined(GX_TEST_INSTRUMENTS)
+	g_gxSlotless.clear();
+	g_gxNamed.clear();
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -2845,6 +3029,10 @@ PartitionManager::PartitionManager()
 	m_missileBlockCountX = 0;
 	m_blockOwnerMask = nullptr;
 	m_blockOwnerCount = nullptr;
+	m_ownerMaskEpoch = 0;
+#ifdef FASTER_GCO
+	m_walkRingOk = FALSE;
+#endif
 	m_maxObjectRadius = 0.0f;
 	m_maxDrift = 0.0f;
 	m_worldExtents.lo.zero();
@@ -3058,6 +3246,8 @@ void PartitionManager::shutdown()
 	m_radiusVec.clear();
 	m_walkRank.clear();
 	m_ringReach.clear();
+	m_walkRing.clear();
+	m_walkRingOk = FALSE;
 #endif
 
 	resetPendingUndoShroudRevealQueue();
@@ -3105,6 +3295,9 @@ void PartitionManager::update()
 
 		PartitionContactList ctList;
 		TheContactList = &ctList;
+		++s_contactUpdate;
+		s_inDirtyLoop = true;
+		s_lateDirty = false;
 		while (m_dirtyModules)
 		{
 #ifdef INTENSE_DEBUG
@@ -3131,9 +3324,10 @@ void PartitionManager::update()
 
 			if (collideEm && !dirty->getObject()->isKindOf(KINDOF_IMMOBILE))
 			{
-				dirty->addPossibleCollisions(&ctList);
+				dirty->addPossibleCollisions(&ctList, updateEm);
 			}
 		}
+		s_inDirtyLoop = false;
 
 		ctList.processContactList();
 #ifdef INTENSE_DEBUG
@@ -3142,6 +3336,16 @@ void PartitionManager::update()
 		TheContactList = nullptr;
 
 		processPendingUndoShroudRevealQueue();
+#if defined(GX_TEST_INSTRUMENTS)
+		if (gxContactCheck() && TheGameLogic->getFrame() % 600 == 0)
+		{
+			fprintf(stderr, "[GXCONTACT] f=%u slotless=%llu slotted=%llu repeat=%llu decided=%llu met=%llu miss=%llu late=%llu break=%d\n",
+				TheGameLogic->getFrame(), (unsigned long long)g_gxSlotlessN, (unsigned long long)g_gxSlottedN, (unsigned long long)g_gxRepeatN,
+				(unsigned long long)g_gxDecidedN, (unsigned long long)g_gxMetN, (unsigned long long)g_gxMissN, (unsigned long long)g_gxLateN,
+				(int)gxContactBreak());
+			fflush(stderr);
+		}
+#endif
 	}
 
 #if defined(RTS_DEBUG)
@@ -3550,6 +3754,21 @@ void PartitionManager::calcRadiusVec()
 	m_radiusVec.resize(m_maxGcoRadius+1, OffsetVec());
 
 	ICoord2D cur;
+	// GeneralsX: m_walkRing, then checked against every offset's own ring below
+	m_walkRing.assign((size_t)cx * (size_t)cy, 0);
+	m_walkRingOk = m_maxGcoRadius <= 0xFFFF;
+	for (cur.y = 0; cur.y < cy; ++cur.y)
+	{
+		for (cur.x = 0; cur.x < cx; ++cur.x)
+		{
+			const Int r = calcMinRadius(cur);
+			m_walkRing[(size_t)cur.y * cx + cur.x] = (UnsignedShort)r;
+			if (r < 0 || r > 0xFFFF || (cur.x > 0 && r < m_walkRing[(size_t)cur.y * cx + cur.x - 1])
+				|| (cur.y > 0 && r < m_walkRing[(size_t)(cur.y - 1) * cx + cur.x]))
+				m_walkRingOk = FALSE;
+		}
+	}
+
 	for (cur.y = -cy+1; cur.y < cy; ++cur.y)
 	{
 		for (cur.x = -cx+1; cur.x < cx; ++cur.x)
@@ -3562,6 +3781,8 @@ void PartitionManager::calcRadiusVec()
 			DEBUG_ASSERTCRASH(curRadius <= m_maxGcoRadius, ("expected max of %d but got %d",m_maxGcoRadius,curRadius));
 			if (curRadius <= m_maxGcoRadius)
 				m_radiusVec[curRadius].push_back(cur);
+			if (curRadius != m_walkRing[(size_t)(cur.y < 0 ? -cur.y : cur.y) * cx + (cur.x < 0 ? -cur.x : cur.x)])
+				m_walkRingOk = FALSE;
 		}
 	}
 
@@ -3576,10 +3797,11 @@ void PartitionManager::calcRadiusVec()
 #endif
 
 #if defined(RTS_DEBUG)
-	// GeneralsX: gxRingOnMap relies on every ring being in row order (the loop above pushes y-major)
+	// GeneralsX: gxRingOnMap relies on every ring being in row order (the loop above pushes y-major), GxOwnerCellWalk on (y, x) order
 	for (Int r = 0; r <= m_maxGcoRadius; ++r)
 		for (size_t k = 1; k < m_radiusVec[r].size(); ++k)
-			DEBUG_ASSERTCRASH(m_radiusVec[r][k - 1].y <= m_radiusVec[r][k].y, ("ring %d out of row order", r));
+			DEBUG_ASSERTCRASH(m_radiusVec[r][k - 1].y < m_radiusVec[r][k].y
+				|| (m_radiusVec[r][k - 1].y == m_radiusVec[r][k].y && m_radiusVec[r][k - 1].x < m_radiusVec[r][k].x), ("ring %d out of (y, x) order", r));
 #endif
 
 	// GeneralsX: m_walkRank: the order getClosestObjects' ring walk reads the offsets in
@@ -3635,6 +3857,319 @@ inline Bool PartitionManager::gxCellMayHoldOwner(Int cellX, Int cellY, Partition
 		return FALSE;
 	return (m_cellOwnerMask[cellY * m_cellCountX + cellX] & ownerMask) != 0;
 }
+#endif
+
+#ifdef FASTER_GCO
+//-----------------------------------------------------------------------------
+// GeneralsX: the cells an owner-masked ring walk does work in, ring by ring, without reading the offsets between them. A walk reads
+// each ring's offsets in (y, x) order (calcRadiusVec) and skips every cell holding no tag of the mask (gxCellMayHoldOwner): a hunter's
+// whole-map scan reads ~120 offsets per cell it does work in to find one player's objects. walkRing gives the walk the cells it does
+// work in, in the same order. The first GX_OWNER_WALK_FROM_RING rings it reads from the offsets, as before: they are few, and a near
+// hit stops a walk there. From then on it lists them: the blocks of 8 x 8 cells holding a tag of the mask (m_blockOwnerMask) are looked
+// at once the rings reach their square (m_ringReach), opened at the smallest ring of their cells not walked yet (m_walkRing at the
+// block's cell nearest the centre: m_walkRingOk), and each of their cells holding a tag goes to its own ring; a ring's cells are sorted
+// into (y, x) order when the walk reaches it. The lists are the masks as they were when read, so a callback that changes any cell's
+// mask meanwhile (m_ownerMaskEpoch; none does today) sends the walk back to the offsets, from the offset after the cell just visited.
+// Walks are not reentrant (gcoIterFlag); one that starts while another lists cells, or with no mask or a centre off the map, reads its
+// offsets as before.
+enum { GX_OWNER_WALK_FROM_RING = 8 };
+class GxOwnerCellWalk
+{
+public:
+	struct Cell
+	{
+		Int dy, dx;
+		PartitionCell *cell;
+		bool operator<(const Cell &o) const { return dy != o.dy ? dy < o.dy : dx < o.dx; }	// one ring never holds an offset twice
+	};
+	GxOwnerCellWalk(PartitionManager *pm, Int cellCenterX, Int cellCenterY, PartitionOwnerMask ownerMask) :
+		m_pm(pm), m_cx(cellCenterX), m_cy(cellCenterY), m_mask(ownerMask), m_state(NOT_YET) { }
+	~GxOwnerCellWalk() { stop(); }
+	/// visit(cell, r) for every cell of ring r the offset walk does work in, in its order; rings in increasing order, r <= limit
+	template <class Visit> void walkRing(Int r, Int limit, Visit &visit);
+private:
+	enum State { NOT_YET, BY_CELLS, BY_OFFSETS };
+	Bool begin(Int r, Int limit);
+	void stop()
+	{
+#if defined(GX_TEST_INSTRUMENTS)
+		if (m_state == BY_CELLS)	// the cells listed for rings it never walked: what listing cost a walk that stopped early
+			for (std::vector<Int>::const_iterator it = s_used.begin(); it != s_used.end(); ++it)
+				if (*it > m_opened)
+					s_unused += s_cells[*it].size();
+#endif
+		if (m_state == BY_CELLS)
+			s_busy = FALSE;
+		m_state = BY_OFFSETS;
+	}
+	void ring(Int r, const Cell *&cells, size_t &count);
+	void lookAt(Int bx, Int by);
+	void open(Int block);
+	template <class Visit> void walkOffsets(Int r, const Cell *after, Visit &visit);
+#if defined(GX_TEST_INSTRUMENTS)
+	void check(Int r, std::vector<Cell> &v) const;
+#endif
+	PartitionManager *m_pm;
+	Int m_cx, m_cy;
+	PartitionOwnerMask m_mask;
+	State m_state;
+	UnsignedInt m_epoch;
+	Int m_start, m_limit, m_opened, m_bx0, m_bx1, m_by0, m_by1, m_blocksX, m_blocksY;
+	static Bool s_busy;
+	static std::vector<Int> s_blockHead;	// per ring: the first block whose smallest ring it is (a list through s_blockNext), or -1
+	static std::vector<Int> s_blockNext;
+	static std::vector<std::vector<Cell> > s_cells;	// per ring
+	static std::vector<Int> s_used;	// the rings s_cells holds cells for
+#if defined(GX_TEST_INSTRUMENTS)
+	static UnsignedInt64 s_walks, s_fallbacks, s_unused, s_saved;
+#endif
+};
+Bool GxOwnerCellWalk::s_busy = FALSE;
+std::vector<Int> GxOwnerCellWalk::s_blockHead;
+std::vector<Int> GxOwnerCellWalk::s_blockNext;
+std::vector<std::vector<GxOwnerCellWalk::Cell> > GxOwnerCellWalk::s_cells;
+std::vector<Int> GxOwnerCellWalk::s_used;
+#if defined(GX_TEST_INSTRUMENTS)
+UnsignedInt64 GxOwnerCellWalk::s_walks = 0;
+UnsignedInt64 GxOwnerCellWalk::s_fallbacks = 0;
+UnsignedInt64 GxOwnerCellWalk::s_unused = 0;
+UnsignedInt64 GxOwnerCellWalk::s_saved = 0;
+#endif
+
+template <class Visit> inline void GxOwnerCellWalk::walkRing(Int r, Int limit, Visit &visit)
+{
+	if (m_state == NOT_YET && r >= GX_OWNER_WALK_FROM_RING)
+		m_state = begin(r, limit) ? BY_CELLS : BY_OFFSETS;
+	if (m_state == BY_CELLS && m_pm->m_ownerMaskEpoch != m_epoch)
+	{
+#if defined(GX_TEST_INSTRUMENTS)
+		++s_fallbacks;
+#endif
+		stop();	// a mask changed between rings
+	}
+	if (m_state != BY_CELLS)
+	{
+		walkOffsets(r, nullptr, visit);
+		return;
+	}
+	const Cell *cells;
+	size_t count;
+	ring(r, cells, count);
+	for (size_t k = 0; k < count; ++k)
+	{
+		visit(cells[k].cell, r);
+		if (m_pm->m_ownerMaskEpoch != m_epoch)
+		{
+			// a mask changed in that cell's callbacks: the rest of this ring, and every later one, from the offsets
+			const Cell after = cells[k];
+#if defined(GX_TEST_INSTRUMENTS)
+			++s_fallbacks;
+#endif
+			stop();
+			walkOffsets(r, &after, visit);
+			return;
+		}
+	}
+}
+
+// the offset walk as it always was (after = only the offsets past that cell's, in the ring's (y, x) order)
+template <class Visit> inline void GxOwnerCellWalk::walkOffsets(Int r, const Cell *after, Visit &visit)
+{
+	PartitionManager &pm = *m_pm;
+	PartitionManager::OffsetVec::const_iterator it, end;
+	pm.gxRingOnMap(pm.m_radiusVec[r], m_cy, it, end);	// GeneralsX: only the rows on the map
+	if (after)
+	{
+		struct NotPast { bool operator()(const ICoord2D &o, const Cell &c) const { return o.y != c.dy ? o.y < c.dy : o.x <= c.dx; } };
+		it = std::lower_bound(it, end, *after, NotPast());
+	}
+	for (; it != end; ++it)
+	{
+		const Int cellX = m_cx + it->x;
+		const Int cellY = m_cy + it->y;
+		// (the dense mask first: a skipped cell is never touched; getCellAt's bounds and index)
+		if (m_mask != PARTITION_OWNERS_ALL && !pm.gxCellMayHoldOwner(cellX, cellY, m_mask))
+			continue;
+		PartitionCell *thisCell = pm.getCellAt(cellX, cellY);
+		if (thisCell == nullptr)
+			continue;
+		visit(thisCell, r);
+	}
+}
+
+Bool GxOwnerCellWalk::begin(Int r, Int limit)
+{
+	const PartitionManager &pm = *m_pm;
+	if (s_busy || !pm.m_walkRingOk || m_mask == PARTITION_OWNERS_ALL || r > limit || limit > pm.m_maxGcoRadius
+		|| m_cx < 0 || m_cy < 0 || m_cx >= pm.m_cellCountX || m_cy >= pm.m_cellCountY)
+		return FALSE;
+	m_epoch = pm.m_ownerMaskEpoch;
+	m_start = r;
+	m_limit = limit;
+	m_opened = r - 1;
+	m_blocksX = pm.m_missileBlockCountX;
+	m_blocksY = (pm.m_cellCountY + (1 << GX_MISSILE_BLOCK_SHIFT) - 1) >> GX_MISSILE_BLOCK_SHIFT;
+	m_bx0 = m_by0 = 0;
+	m_bx1 = m_by1 = -1;	// no block looked at yet
+	for (std::vector<Int>::const_iterator it = s_used.begin(); it != s_used.end(); ++it)
+		s_cells[*it].clear();
+	s_used.clear();
+	if ((Int)s_cells.size() < pm.m_maxGcoRadius + 1)
+		s_cells.resize(pm.m_maxGcoRadius + 1);
+	s_blockHead.assign(limit + 1, -1);
+	s_blockNext.resize((size_t)m_blocksX * m_blocksY);
+#if defined(GX_TEST_INSTRUMENTS)
+	++s_walks;
+#endif
+	s_busy = TRUE;	// last: nothing above may leave it set
+	return TRUE;
+}
+
+// a block holding a tag of the mask goes to the list of its smallest ring not walked yet; the rest are never opened
+void GxOwnerCellWalk::lookAt(Int bx, Int by)
+{
+	const PartitionManager &pm = *m_pm;
+	const Int b = by * m_blocksX + bx;
+	if ((pm.m_blockOwnerMask[b] & m_mask) == 0)
+		return;
+	const Int x0 = (bx << GX_MISSILE_BLOCK_SHIFT) - m_cx;
+	const Int x1 = min(((bx + 1) << GX_MISSILE_BLOCK_SHIFT), pm.m_cellCountX) - 1 - m_cx;
+	const Int y0 = (by << GX_MISSILE_BLOCK_SHIFT) - m_cy;
+	const Int y1 = min(((by + 1) << GX_MISSILE_BLOCK_SHIFT), pm.m_cellCountY) - 1 - m_cy;
+	const Int nx = x0 > 0 ? x0 : (x1 < 0 ? -x1 : 0);
+	const Int ny = y0 > 0 ? y0 : (y1 < 0 ? -y1 : 0);
+	const Int minRing = max((Int)pm.m_walkRing[(size_t)ny * pm.m_cellCountX + nx], m_start);
+	DEBUG_ASSERTCRASH(minRing > m_opened, ("a block met after its smallest ring was walked"));
+	if (minRing > m_limit)
+		return;
+	s_blockNext[b] = s_blockHead[minRing];
+	s_blockHead[minRing] = b;
+}
+
+// a block's cells holding a tag of the mask, each into its own ring (none in a ring already walked: m_walkRingOk, m_start)
+void GxOwnerCellWalk::open(Int b)
+{
+	const PartitionManager &pm = *m_pm;
+	const Int bx = b % m_blocksX, by = b / m_blocksX;
+	const Int xEnd = min(((bx + 1) << GX_MISSILE_BLOCK_SHIFT), pm.m_cellCountX);
+	const Int yEnd = min(((by + 1) << GX_MISSILE_BLOCK_SHIFT), pm.m_cellCountY);
+	for (Int y = by << GX_MISSILE_BLOCK_SHIFT; y < yEnd; ++y)
+	{
+		const Int dy = y - m_cy;
+		const size_t ringRow = (size_t)(dy < 0 ? -dy : dy) * pm.m_cellCountX;
+		for (Int x = bx << GX_MISSILE_BLOCK_SHIFT; x < xEnd; ++x)
+		{
+			const Int i = y * pm.m_cellCountX + x;
+			if ((pm.m_cellOwnerMask[i] & m_mask) == 0)
+				continue;
+			const Int dx = x - m_cx;
+			const Int r = pm.m_walkRing[ringRow + (dx < 0 ? -dx : dx)];
+			if (r < m_start || r > m_limit)
+				continue;	// walked from the offsets already, or past the walk's range
+			DEBUG_ASSERTCRASH(r >= m_opened, ("a cell in a ring already walked"));
+			std::vector<Cell> &v = s_cells[r];
+			if (v.empty())
+				s_used.push_back(r);
+			const Cell c = { dy, dx, &pm.m_cells[i] };
+			v.push_back(c);
+		}
+	}
+}
+
+void GxOwnerCellWalk::ring(Int r, const Cell *&cells, size_t &count)
+{
+	const PartitionManager &pm = *m_pm;
+	DEBUG_ASSERTCRASH(m_state == BY_CELLS && r > m_opened && r <= m_limit, ("rings out of order"));
+	// the blocks the rings up to r can reach, not looked at yet: their cells are all in rings past the ones walked
+	const Int reach = pm.m_ringReach[r];
+	const Int bx0 = max(0, m_cx - reach) >> GX_MISSILE_BLOCK_SHIFT;
+	const Int bx1 = min(pm.m_cellCountX - 1, m_cx + reach) >> GX_MISSILE_BLOCK_SHIFT;
+	const Int by0 = max(0, m_cy - reach) >> GX_MISSILE_BLOCK_SHIFT;
+	const Int by1 = min(pm.m_cellCountY - 1, m_cy + reach) >> GX_MISSILE_BLOCK_SHIFT;
+	if (bx0 != m_bx0 || bx1 != m_bx1 || by0 != m_by0 || by1 != m_by1)
+	{
+		for (Int by = by0; by <= by1; ++by)
+		{
+			if (by < m_by0 || by > m_by1)
+			{
+				for (Int bx = bx0; bx <= bx1; ++bx)
+					lookAt(bx, by);
+				continue;
+			}
+			for (Int bx = bx0; bx < m_bx0; ++bx)
+				lookAt(bx, by);
+			for (Int bx = max(bx0, m_bx1 + 1); bx <= bx1; ++bx)
+				lookAt(bx, by);
+		}
+		m_bx0 = bx0; m_bx1 = bx1; m_by0 = by0; m_by1 = by1;
+	}
+	while (m_opened < r)
+	{
+		++m_opened;
+		for (Int b = s_blockHead[m_opened]; b >= 0; b = s_blockNext[b])
+			open(b);
+	}
+	std::vector<Cell> &v = s_cells[r];
+	std::sort(v.begin(), v.end());
+#if defined(GX_TEST_INSTRUMENTS)
+	check(r, v);
+#endif
+	cells = v.empty() ? nullptr : &v[0];
+	count = v.size();
+}
+
+#if defined(GX_TEST_INSTRUMENTS)
+// GX_OWNER_WALK_CHECK=1 (test builds only): each listed ring, read again from its offsets as the walk does without the lists, must be
+// the same cells in the same order; prints cumulative "[GXOWALK] f= walks= rings= cells= diff= fallback= unused= saved=" every 600 logic
+// frames (walks = walks that listed cells, fallback = walks sent back to the offsets by a mask change, unused = cells listed for rings a
+// walk never reached, saved = the on-map offsets of the listed rings, i.e. what the lists stood in for). It reads every offset again, so it is for
+// audits, never for timing. GX_OWNER_WALK_BREAK=1 reverses every listed ring of two or more cells on purpose (the check's fail arm).
+void GxOwnerCellWalk::check(Int r, std::vector<Cell> &v) const
+{
+	static const Bool on = getenv("GX_OWNER_WALK_CHECK") != nullptr && atoi(getenv("GX_OWNER_WALK_CHECK")) > 0;
+	static const Bool brk = getenv("GX_OWNER_WALK_BREAK") != nullptr && atoi(getenv("GX_OWNER_WALK_BREAK")) > 0;
+	if (brk && v.size() >= 2)
+		std::reverse(v.begin(), v.end());
+	if (!on)
+		return;
+	static UnsignedInt64 s_rings = 0, s_cellCount = 0, s_diff = 0;
+	static UnsignedInt s_lastPrint = 0;
+	const PartitionManager &pm = *m_pm;
+	PartitionManager::OffsetVec::const_iterator b, e;
+	pm.gxRingOnMap(pm.m_radiusVec[r], m_cy, b, e);
+	size_t k = 0;
+	Bool bad = FALSE;
+	for (PartitionManager::OffsetVec::const_iterator it = b; it != e; ++it)
+	{
+		const Int cellX = m_cx + it->x;
+		const Int cellY = m_cy + it->y;
+		if (!pm.gxCellMayHoldOwner(cellX, cellY, m_mask))
+			continue;
+		const PartitionCell *c = pm.getCellAt(cellX, cellY);
+		if (c == nullptr)
+			continue;
+		if (k >= v.size() || v[k].cell != c)
+			bad = TRUE;
+		++k;
+	}
+	if (k != v.size())
+		bad = TRUE;
+	s_saved += (UnsignedInt64)(e - b);	// the offsets this ring's list stood in for
+	++s_rings;
+	s_cellCount += v.size();
+	if (bad)
+		++s_diff;
+	const UnsignedInt f = TheGameLogic ? TheGameLogic->getFrame() : 0;
+	if (f / 600 != s_lastPrint / 600)
+	{
+		s_lastPrint = f;
+		fprintf(stderr, "[GXOWALK] f=%u walks=%llu rings=%llu cells=%llu diff=%llu fallback=%llu unused=%llu saved=%llu\n", f,
+			(unsigned long long)s_walks, (unsigned long long)s_rings, (unsigned long long)s_cellCount, (unsigned long long)s_diff,
+			(unsigned long long)s_fallbacks, (unsigned long long)s_unused, (unsigned long long)s_saved);
+		fflush(stderr);
+	}
+}
+#endif
 #endif
 
 //-----------------------------------------------------------------------------
@@ -3736,6 +4271,57 @@ Object *PartitionManager::getClosestObjects(
 	// gcoIterFlag is 64-bit so no later walk reuses this one's value.
 	const PartitionOwnerMask ownerMask = (filters && *filters) ? (*filters)->getCellOwnerMask() : PARTITION_OWNERS_ALL;
 
+	auto visitCell = [&](PartitionCell *thisCell, Int curRadius)
+	{
+		for (CellAndObjectIntersection *thisCoi = thisCell->getFirstCoiInCell(); thisCoi; thisCoi = thisCoi->getNextCoi())
+		{
+			PartitionData *thisMod = thisCoi->getModule();
+			Object *thisObj = thisMod->getObject();
+
+			// never compare against ourself.
+			if (thisObj == obj || thisObj == nullptr)
+				continue;
+
+			// since an object can exist in multiple COIs, we use this to avoid processing
+			// the same one more than once.
+			if (thisMod->friend_getDoneFlag() == theIterFlag)
+				continue;
+			thisMod->friend_setDoneFlag(theIterFlag);
+
+			Real thisDistSqr;
+			Coord3D distVec;
+			if (!(*distProc)(objPos, objToUse, thisObj->getPosition(), thisObj, thisDistSqr, distVec, closestDistSqr))
+				continue;
+
+			if (!filtersAllow(filters, thisObj))
+				continue;
+
+			// ok, this is within the range, and the filters allow it.
+			// add it to the iter, if we have one....
+			if (iterArg)
+			{
+				iterArg->insert(thisObj, thisDistSqr);
+			}
+			else
+			{
+				// hey, this is the new closest object! cool.
+				// (note that we can't break out now 'cuz we have to finish examining the
+				// rest of curRadius)
+				closestObj = thisObj;
+				closestDistSqr = thisDistSqr;
+				closestVec = distVec;
+
+				if (!foundAny)
+				{
+					// if not adding to iterArg, we want to stop once we have the closest object.
+					maxRadiusLimit = curRadius;
+				}
+				foundAny = true;
+			}
+
+		}
+	};
+	GxOwnerCellWalk cellWalk(this, cellCenterX, cellCenterY, ownerMask);
 	/*
 		m_radiusVec[curRadius] contains a list of the cells (foo) that could
 		contain objects that are <= (curRadius * cellSize) distance away from cell (0,0).
@@ -3745,67 +4331,7 @@ Object *PartitionManager::getClosestObjects(
     const OffsetVec& offsets = m_radiusVec[curRadius];
 		if (offsets.empty())
 			continue;
-    OffsetVec::const_iterator ringBegin, ringEnd;
-    gxRingOnMap(offsets, cellCenterY, ringBegin, ringEnd);	// GeneralsX: only the rows on the map
-    for (OffsetVec::const_iterator it = ringBegin; it != ringEnd; ++it)
-		{
-			const Int cellX = cellCenterX + it->x;
-			const Int cellY = cellCenterY + it->y;
-			// (the dense mask first: a skipped cell is never touched; getCellAt's bounds and index)
-			if (ownerMask != PARTITION_OWNERS_ALL && !gxCellMayHoldOwner(cellX, cellY, ownerMask))
-				continue;
-			PartitionCell* thisCell = getCellAt(cellX, cellY);
-			if (thisCell == nullptr)
-				continue;
-
-			for (CellAndObjectIntersection *thisCoi = thisCell->getFirstCoiInCell(); thisCoi; thisCoi = thisCoi->getNextCoi())
-			{
-				PartitionData *thisMod = thisCoi->getModule();
-				Object *thisObj = thisMod->getObject();
-
-				// never compare against ourself.
-				if (thisObj == obj || thisObj == nullptr)
-					continue;
-
-				// since an object can exist in multiple COIs, we use this to avoid processing
-				// the same one more than once.
-				if (thisMod->friend_getDoneFlag() == theIterFlag)
-					continue;
-				thisMod->friend_setDoneFlag(theIterFlag);
-
-				Real thisDistSqr;
-				Coord3D distVec;
-				if (!(*distProc)(objPos, objToUse, thisObj->getPosition(), thisObj, thisDistSqr, distVec, closestDistSqr))
-					continue;
-
-				if (!filtersAllow(filters, thisObj))
-					continue;
-
-				// ok, this is within the range, and the filters allow it.
-				// add it to the iter, if we have one....
-				if (iterArg)
-				{
-					iterArg->insert(thisObj, thisDistSqr);
-				}
-				else
-				{
-					// hey, this is the new closest object! cool.
-					// (note that we can't break out now 'cuz we have to finish examining the
-					// rest of curRadius)
-					closestObj = thisObj;
-					closestDistSqr = thisDistSqr;
-					closestVec = distVec;
-
-					if (!foundAny)
-					{
-						// if not adding to iterArg, we want to stop once we have the closest object.
-						maxRadiusLimit = curRadius;
-					}
-					foundAny = true;
-				}
-
-			}
-		}
+		cellWalk.walkRing(curRadius, maxRadiusLimit, visitCell);	// GeneralsX: the cells the offset walk does work in, in its order
   }
 
 #else // not FASTER_GCO
@@ -4292,45 +4818,36 @@ void PartitionManager::visitObjectsNearToFar(
 	// GeneralsX: a cell holding no object the first filter could pass is skipped, as in getClosestObjects
 	// (see PartitionFilter::getCellOwnerMask: such a filter's allow() has no side effects), so the same objects pass, in the same order.
 	const PartitionOwnerMask ownerMask = (filters && *filters) ? (*filters)->getCellOwnerMask() : PARTITION_OWNERS_ALL;
+	auto visitCell = [&](PartitionCell *thisCell, Int)
+	{
+		for (CellAndObjectIntersection *thisCoi = thisCell->getFirstCoiInCell(); thisCoi; thisCoi = thisCoi->getNextCoi())
+		{
+			PartitionData *thisMod = thisCoi->getModule();
+			Object *thisObj = thisMod->getObject();
+			if (thisObj == obj || thisObj == nullptr)
+				continue;
+			if (thisMod->friend_getDoneFlag() == theIterFlag)
+				continue;
+			thisMod->friend_setDoneFlag(theIterFlag);
+
+			Real thisDistSqr;
+			Coord3D distVec;
+			if (!(*distProc)(objPos, obj, thisObj->getPosition(), thisObj, thisDistSqr, distVec, maxDistSqr))
+				continue;
+			if (!filtersAllow(filters, thisObj))
+				continue;
+
+			visitor->visit(thisObj, thisDistSqr);	// in the order iterateObjectsInRange would have inserted it
+		}
+	};
+	GxOwnerCellWalk cellWalk(this, cellCenterX, cellCenterY, ownerMask);
 	Int stopRing = -1;	// the ring after which the walk may stop, once decided
 	for (Int curRadius = 0; curRadius <= maxRadiusLimit; ++curRadius)
 	{
 		const OffsetVec& offsets = m_radiusVec[curRadius];
 		if (offsets.empty())
 			continue;
-		OffsetVec::const_iterator ringBegin, ringEnd;
-		gxRingOnMap(offsets, cellCenterY, ringBegin, ringEnd);	// GeneralsX: only the rows on the map
-		for (OffsetVec::const_iterator it = ringBegin; it != ringEnd; ++it)
-		{
-			const Int cellX = cellCenterX + it->x;
-			const Int cellY = cellCenterY + it->y;
-			// (the dense mask first: a skipped cell is never touched; getCellAt's bounds and index)
-			if (ownerMask != PARTITION_OWNERS_ALL && !gxCellMayHoldOwner(cellX, cellY, ownerMask))
-				continue;
-			PartitionCell* thisCell = getCellAt(cellX, cellY);
-			if (thisCell == nullptr)
-				continue;
-
-			for (CellAndObjectIntersection *thisCoi = thisCell->getFirstCoiInCell(); thisCoi; thisCoi = thisCoi->getNextCoi())
-			{
-				PartitionData *thisMod = thisCoi->getModule();
-				Object *thisObj = thisMod->getObject();
-				if (thisObj == obj || thisObj == nullptr)
-					continue;
-				if (thisMod->friend_getDoneFlag() == theIterFlag)
-					continue;
-				thisMod->friend_setDoneFlag(theIterFlag);
-
-				Real thisDistSqr;
-				Coord3D distVec;
-				if (!(*distProc)(objPos, obj, thisObj->getPosition(), thisObj, thisDistSqr, distVec, maxDistSqr))
-					continue;
-				if (!filtersAllow(filters, thisObj))
-					continue;
-
-				visitor->visit(thisObj, thisDistSqr);	// in the order iterateObjectsInRange would have inserted it
-			}
-		}
+		cellWalk.walkRing(curRadius, maxRadiusLimit, visitCell);	// GeneralsX: the cells the offset walk does work in, in its order
 
 		if (stopRing < 0 && curRadius < maxRadiusLimit
 			&& visitor->canStopAfter(curRadius * m_cellSize - m_maxObjectRadius - m_maxDrift, m_maxObjectRadius))
@@ -4424,50 +4941,42 @@ Object *PartitionManager::getClosestObjectInArea(
 	++TheGXRw1Stats.calls;
 #endif
 
+	auto visitCell = [&](PartitionCell *thisCell, Int curRadius)
+	{
+		for (CellAndObjectIntersection *thisCoi = thisCell->getFirstCoiInCell(); thisCoi; thisCoi = thisCoi->getNextCoi())
+		{
+			PartitionData *thisMod = thisCoi->getModule();
+			Object *thisObj = thisMod->getObject();
+			if (thisObj == nullptr)
+				continue;
+			if (thisMod->friend_getDoneFlag() == theIterFlag)
+				continue;
+			thisMod->friend_setDoneFlag(theIterFlag);
+
+			Real thisDistSqr;
+			Coord3D distVec;
+			if (!(*distProc)(pos, nullptr, thisObj->getPosition(), thisObj, thisDistSqr, distVec, closestDistSqr))
+				continue;
+			if (!filtersAllow(filters, thisObj))
+				continue;
+
+			closestObj = thisObj;
+			closestDistSqr = thisDistSqr;
+			if (!foundAny)
+			{
+				maxRadiusLimit = curRadius;
+			}
+			foundAny = true;
+		}
+	};
+	GxOwnerCellWalk cellWalk(this, cellCenterX, cellCenterY, ownerMask);
 	Int stopRing = -1;	// the ring after which the walk may stop, once decided
 	for (Int curRadius = 0; curRadius <= maxRadiusLimit; ++curRadius)
 	{
 		const OffsetVec& offsets = m_radiusVec[curRadius];
 		if (offsets.empty())
 			continue;
-		OffsetVec::const_iterator ringBegin, ringEnd;
-		gxRingOnMap(offsets, cellCenterY, ringBegin, ringEnd);	// GeneralsX: only the rows on the map
-		for (OffsetVec::const_iterator it = ringBegin; it != ringEnd; ++it)
-		{
-			const Int cellX = cellCenterX + it->x;
-			const Int cellY = cellCenterY + it->y;
-			if (ownerMask != PARTITION_OWNERS_ALL && !gxCellMayHoldOwner(cellX, cellY, ownerMask))
-				continue;
-			PartitionCell* thisCell = getCellAt(cellX, cellY);
-			if (thisCell == nullptr)
-				continue;
-
-			for (CellAndObjectIntersection *thisCoi = thisCell->getFirstCoiInCell(); thisCoi; thisCoi = thisCoi->getNextCoi())
-			{
-				PartitionData *thisMod = thisCoi->getModule();
-				Object *thisObj = thisMod->getObject();
-				if (thisObj == nullptr)
-					continue;
-				if (thisMod->friend_getDoneFlag() == theIterFlag)
-					continue;
-				thisMod->friend_setDoneFlag(theIterFlag);
-
-				Real thisDistSqr;
-				Coord3D distVec;
-				if (!(*distProc)(pos, nullptr, thisObj->getPosition(), thisObj, thisDistSqr, distVec, closestDistSqr))
-					continue;
-				if (!filtersAllow(filters, thisObj))
-					continue;
-
-				closestObj = thisObj;
-				closestDistSqr = thisDistSqr;
-				if (!foundAny)
-				{
-					maxRadiusLimit = curRadius;
-				}
-				foundAny = true;
-			}
-		}
+		cellWalk.walkRing(curRadius, maxRadiusLimit, visitCell);	// GeneralsX: the cells the offset walk does work in, in its order
 
 		if (stopRing < 0 && curRadius < maxRadiusLimit
 			&& curRadius * m_cellSize - m_maxObjectRadius - m_maxDrift > areaFar)
@@ -5009,18 +5518,15 @@ void PartitionManager::doShroudReveal(Real centerX, Real centerY, Real radius, P
 	if (circleRadius == 0)
 		return;
 
+	// Object's Look is the one who knows about allies.  Anyone can pask a player mask to me and all
+	// of those players will have an active looker applied to a bunch of cells
+	// GeneralsX perf60-4: one pass over the circle for every masked player (see GXLookerPlayers).
+	GXLookerPlayers players;
+	gxCollectLookerPlayers(playerMask, &players);
+	if (players.count == 0)
+		return;
 	DiscreteCircle circle(cellCenterX, cellCenterY, circleRadius);
-
-	for( Int currentIndex = ThePlayerList->getPlayerCount() - 1; currentIndex >=0; currentIndex-- )
-	{
-		// Object's Look is the one who knows about allies.  Anyone can pask a player mask to me and all
-		// of those players will have an active looker applied to a bunch of cells
-		const Player *currentPlayer = ThePlayerList->getNthPlayer( currentIndex );
-		if( BitIsSet( playerMask, currentPlayer->getPlayerMask() ) )
-		{
-			circle.drawCircle(hLineAddLooker, (void*)currentIndex);
-		}
-	}
+	circle.drawCircle(hLineAddLooker, &players);
 }
 
 //-----------------------------------------------------------------------------
@@ -5125,16 +5631,12 @@ void PartitionManager::undoShroudReveal(Real centerX, Real centerY, Real radius,
 	if (circleRadius == 0)
 		return;
 
+	GXLookerPlayers players;	// GeneralsX perf60-4: one pass for every masked player, as doShroudReveal
+	gxCollectLookerPlayers(playerMask, &players);
+	if (players.count == 0)
+		return;
 	DiscreteCircle circle(cellCenterX, cellCenterY, circleRadius);
-
-	for( Int currentIndex = ThePlayerList->getPlayerCount() - 1; currentIndex >=0; currentIndex-- )
-	{
-		const Player *currentPlayer = ThePlayerList->getNthPlayer( currentIndex );
-		if( BitIsSet( playerMask, currentPlayer->getPlayerMask() ) )
-		{
-			circle.drawCircle(hLineRemoveLooker, (void*)currentIndex);
-		}
-	}
+	circle.drawCircle(hLineRemoveLooker, &players);
 }
 
 //-----------------------------------------------------------------------------
@@ -6775,7 +7277,7 @@ static int cellValueProc(PartitionCell* cell, void* userData)
 // GeneralsX: The eight hLine* scanlines below walked x1..x2 whole and skipped the cells off the grid
 // one by one, so a wide circle around a centre outside the grid cost its full span on every in-grid row - billions of
 // skipped steps. Each now clips the span to the grid first: the same cells, in the same order.
-void hLineAddLooker(Int x1, Int x2, Int y, void *playerIndexVoid)
+void hLineAddLooker(Int x1, Int x2, Int y, void *playersVoid)
 {
 	if (y < 0 || y >= ThePartitionManager->m_cellCountY || x1 >= ThePartitionManager->m_cellCountX || x2 < 0)
 		return;
@@ -6784,20 +7286,20 @@ void hLineAddLooker(Int x1, Int x2, Int y, void *playerIndexVoid)
 	if (x2 >= ThePartitionManager->m_cellCountX)
 		x2 = ThePartitionManager->m_cellCountX - 1;
 
-	// GeneralsX: 64-bit safe pointer cast
-	Int playerIndex = static_cast<Int>(reinterpret_cast<intptr_t>(playerIndexVoid));
+	const GXLookerPlayers &players = *static_cast<const GXLookerPlayers *>(playersVoid);	// GeneralsX perf60-4: every player per cell
 
 	PartitionCell* cell = &ThePartitionManager->m_cells[y * ThePartitionManager->m_cellCountX + x1];	// yes, this could be invalid. we'll skip the bad ones.
 	for (Int x = x1; x <= x2; ++x, ++cell)
 	{
 		if (x < 0 || x >= ThePartitionManager->m_cellCountX)
 			continue;
-		cell->addLooker(playerIndex);
+		for (Int k = 0; k < players.count; ++k)
+			cell->addLooker(players.index[k]);
 	}
 }
 
 // -----------------------------------------------------------------------------
-void hLineRemoveLooker(Int x1, Int x2, Int y, void *playerIndexVoid)
+void hLineRemoveLooker(Int x1, Int x2, Int y, void *playersVoid)
 {
 	if (y < 0 || y >= ThePartitionManager->m_cellCountY || x1 >= ThePartitionManager->m_cellCountX || x2 < 0)
 		return;
@@ -6806,15 +7308,15 @@ void hLineRemoveLooker(Int x1, Int x2, Int y, void *playerIndexVoid)
 	if (x2 >= ThePartitionManager->m_cellCountX)
 		x2 = ThePartitionManager->m_cellCountX - 1;
 
-	// GeneralsX: 64-bit safe pointer cast
-	Int playerIndex = static_cast<Int>(reinterpret_cast<intptr_t>(playerIndexVoid));
+	const GXLookerPlayers &players = *static_cast<const GXLookerPlayers *>(playersVoid);	// GeneralsX perf60-4: every player per cell
 
 	PartitionCell* cell = &ThePartitionManager->m_cells[y * ThePartitionManager->m_cellCountX + x1];	// yes, this could be invalid. we'll skip the bad ones.
 	for (Int x = x1; x <= x2; ++x, ++cell)
 	{
 		if (x < 0 || x >= ThePartitionManager->m_cellCountX)
 			continue;
-		cell->removeLooker(playerIndex);
+		for (Int k = 0; k < players.count; ++k)
+			cell->removeLooker(players.index[k]);
 	}
 }
 

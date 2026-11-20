@@ -326,6 +326,7 @@ void DockUpdate::onApproachReached( Object* docker )
 		if( m_approachPositionOwners[positionIndex] == dockerID )
 		{
 			m_approachPositionReached[positionIndex] = TRUE;
+			setIdleSkip( FALSE );	// GeneralsX (perf60-5): the next update() grants entrance
 			return;
 		}
 	}
@@ -417,6 +418,7 @@ void DockUpdate::setDockCrippled( Bool setting )
 {
 	// At this level, Crippling means I will accept Approach requests, but I will never grant Enter clearance.
 	m_dockCrippled = setting;
+	setIdleSkip( FALSE );	// GeneralsX (perf60-5): the next update() decides again
 }
 
 UpdateSleepTime DockUpdate::update()
@@ -446,6 +448,11 @@ UpdateSleepTime DockUpdate::update()
 		}
 	}
 
+	// GeneralsX (perf60-5): with no active docker this was a no-op (no approach position reached, or crippled: the
+	// supply-source branch finds no docker), and the next update() is the same no-op until onApproachReached or
+	// setDockCrippled clears it - so GameLogic may skip it in place (UpdateModule::m_gxSkip). A subclass whose update()
+	// does more than this must clear it after calling DockUpdate::update(), as RailedTransportDockUpdate does.
+	setIdleSkip( m_activeDocker == INVALID_ID );
 
 	return UPDATE_SLEEP_NONE;
 }

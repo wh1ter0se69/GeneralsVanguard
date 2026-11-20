@@ -316,6 +316,55 @@ static UnsignedInt       s_gxClrCalls = 0, s_gxClrHits = 0, s_gxClrBad = 0;	// G
 static UnsignedInt       s_gxFastBad = 0;	// GeneralsX PF27: checkForMovementInRect fast scan vs the loop (GX_PATHTRACE verify), never reset
 
 #if RTS_ZEROHOUR
+// GeneralsX perf60-3: Path::optimize's line walks remembered per ground cell, for ONE optimize call. Every walk of the call
+// shares obj, surfaces, blocked, allowPinched=false and m_ignoreObstacleID, and nothing writes the map inside it, so a ground
+// cell's step answer (footprint clear of blockers and fixed units, not pinched, a valid surface; validMovementPosition does
+// not read `from`, and the bridge shortcut needs a non-ground cell) is one value for the whole call. The walks test the
+// farthest node first and ~all fail, so the same cells near each anchor are walked again and again. Entry = gen << 1 | pass;
+// each optimize call takes a new gen. Test builds under GX_PATHTRACE (verify) recompute every hit and compare (optbad=).
+static UnsignedInt *s_gxOptMemo        = nullptr;
+static UnsignedInt  s_gxOptMemoCells   = 0;
+static Int          s_gxOptMemoStrideY = 0;
+static UnsignedInt  s_gxOptGen         = 0;       // 1 .. 0x7FFFFFFF; 0 = never written
+static Bool         s_gxOptMemoFailed  = false;   // the allocation failed: walk without the memo until the next map
+static Bool         s_gxOptActive      = false;   // a Path::optimize is running; the key below is its arguments
+static const Object *s_gxOptObj        = nullptr;
+static const Pathfinder *s_gxOptOwner  = nullptr;   // the Pathfinder whose grid the memo mirrors
+static LocomotorSurfaceTypeMask s_gxOptSurfaces = 0;
+static Bool         s_gxOptBlocked     = false;
+static ObjectID     s_gxOptIgnoreID    = INVALID_ID;
+#if defined(GX_TEST_INSTRUMENTS)
+static UnsignedInt  s_gxOptCalls = 0, s_gxOptSteps = 0, s_gxOptHits = 0, s_gxOptBad = 0;	// GX_PATHTRACE only; optbad never reset
+#endif
+
+/// A generation no entry holds yet; on wrap the memo is cleared, so a stale entry can never match.
+static void gxOptNewGen()
+{
+	if (++s_gxOptGen > 0x7FFFFFFFu)
+	{
+		s_gxOptGen = 1;
+		if (s_gxOptMemo != nullptr)
+			memset(s_gxOptMemo, 0, sizeof(UnsignedInt) * s_gxOptMemoCells);
+	}
+}
+
+/// One Path::optimize call: a new generation and its key on entry; the flag cleared on every exit, an exception included.
+struct GXOptScope
+{
+	GXOptScope(const Object *obj, LocomotorSurfaceTypeMask surfaces, Bool blocked)
+	{
+		gxOptNewGen();
+		s_gxOptActive   = true;
+		s_gxOptOwner    = TheAI ? TheAI->pathfinder() : nullptr;	// Path::optimize walks through TheAI->pathfinder()
+		s_gxOptObj      = obj;
+		s_gxOptSurfaces = surfaces;
+		s_gxOptBlocked  = blocked;
+	}
+	~GXOptScope() { s_gxOptActive = false; }
+};
+#endif
+
+#if RTS_ZEROHOUR
 // Zero Hour only: the base game has no replay corpus or per-frame CRC here to prove it, so RTS_GENERALS keeps retail.
 // Steering line-walk memo: a remembered walk met no fixed unit, so only fixed-unit cells and terrain can change it.
 // Writes stamp their 8x8 block (s_gxLineEpoch) or bump s_gxLineGlobal; reuse needs a key match and no newer stamp.
@@ -807,6 +856,12 @@ void Path::optimize( const Object *obj, LocomotorSurfaceTypeMask acceptableSurfa
 {
 #if RTS_ZEROHOUR
 	++m_gxPathVersion;	// GeneralsX
+	// GeneralsX perf60-3: this call's line walks share one cell memo (s_gxOptMemo), dropped at the end of the call.
+	GXOptScope gxOptScope(obj, acceptableSurfaces, blocked);
+#if defined(GX_TEST_INSTRUMENTS)
+	if (gxPathTraceEnabled())
+		++s_gxOptCalls;
+#endif
 #endif
 	PathNode *node, *anchor;
 
@@ -5079,6 +5134,13 @@ void Pathfinder::reset()
 	s_gxClearMemoCells   = 0;
 	s_gxClearMemoStrideY = 0;
 	++s_gxClearGen;
+#if RTS_ZEROHOUR
+	delete [] s_gxOptMemo;	// GeneralsX perf60-3: mirrors the grid, dies with it
+	s_gxOptMemo        = nullptr;
+	s_gxOptMemoCells   = 0;
+	s_gxOptMemoStrideY = 0;
+	s_gxOptMemoFailed  = false;
+#endif
 	s_gxMoveObj         = nullptr;
 	s_gxMoveRadius      = -1;
 	++s_gxMoveGen;
@@ -6250,7 +6312,9 @@ Bool Pathfinder::checkForMovementInRect(const Object *obj, TCheckMovementInfo &i
 				}
 			}
 		}
-		if (fastEmpty && !gxPathTraceVerify())
+		// GeneralsX perf60-3: the flag is read first; gxPathTraceVerify() was an out-of-line call here (2.5% of
+		// Path::optimize's own samples, checkitout peak). -1 (not read yet) still goes through the call.
+		if (fastEmpty && (s_gxPathTraceOn == 0 || !gxPathTraceVerify()))
 			return true;
 	}
 
@@ -7370,6 +7434,11 @@ void Pathfinder::processPathfindQueue()
 			TheGameLogic ? (unsigned)TheGameLogic->getFrame() : 0u, s_gxLineCalls, s_gxLineHits, s_gxLineStores, s_gxLineMemoBad,
 			s_gxFlightRepeats, s_gxFlightBad);
 		s_gxFlightRepeats = 0;	// s_gxFlightBad is never reset
+#if defined(GX_TEST_INSTRUMENTS)
+		fprintf(stderr, "[GXOPTMEMO] f=%u calls=%u steps=%u hits=%u bad=%u\n",
+			TheGameLogic ? (unsigned)TheGameLogic->getFrame() : 0u, s_gxOptCalls, s_gxOptSteps, s_gxOptHits, s_gxOptBad);
+		s_gxOptCalls = s_gxOptSteps = s_gxOptHits = 0;	// s_gxOptBad is never reset
+#endif
 #endif
 		fflush(stderr);
 #if RTS_ZEROHOUR
@@ -11323,69 +11392,126 @@ struct LinePassableStruct
 	Int prevX;
 	Int prevY;
 	PathfindLayerEnum prevLayer;
+	Bool optMemo;	// GeneralsX perf60-3: this walk belongs to the running Path::optimize and may use s_gxOptMemo
 };
 
 /*static*/ Int Pathfinder::linePassableCallback(Pathfinder* pathfinder, PathfindCell* from, PathfindCell* to, Int to_x, Int to_y, void* userData)
 {
-	LinePassableStruct* d = (LinePassableStruct*)userData;
-
-	const Bool isCrusher = d->isCrusher;
-	TCheckMovementInfo info;
-	info.cell.x = to_x;
-	info.cell.y = to_y;
-	info.layer = to->getLayer();
-	info.centerInCell = d->centerInCell;
-	info.radius = d->radius;
-	info.considerTransient = d->blocked;
-	info.acceptableSurfaces = d->acceptableSurfaces;
-
-	// Scan only the cells the step added to the footprint. The callback reads only an OR over footprint cells of a per-cell
-	// condition independent of the block centre, and the previous block passed. iterateCellsAlongLine steps one axis at a
-	// time, so the new row or column alone decides. Any other step, a layer change or the first cell scans the full block.
-	Int numCellsAbove = info.radius;
-	if (info.centerInCell) numCellsAbove++;
-	Int x0 = to_x - info.radius, x1 = to_x + numCellsAbove;
-	Int y0 = to_y - info.radius, y1 = to_y + numCellsAbove;
-	if (d->havePrev && d->prevLayer == info.layer && x1 - x0 > 1)	// a 1x1 block IS its strip
+	LinePassableStruct* ds = (LinePassableStruct*)userData;
+	// GeneralsX perf60-3: the step itself, unchanged; Path::optimize's walks consult s_gxOptMemo before it (below).
+	auto step = [&](LinePassableStruct* d) -> Int
 	{
-		const Int dx = to_x - d->prevX;
-		const Int dy = to_y - d->prevY;
-		if (dy == 0 && dx == 1)       { x0 = x1 - 1; }
-		else if (dy == 0 && dx == -1) { x1 = x0 + 1; }
-		else if (dx == 0 && dy == 1)  { y0 = y1 - 1; }
-		else if (dx == 0 && dy == -1) { y1 = y0 + 1; }
-	}
-	if (!pathfinder->checkForMovementInRect(d->obj, info, x0, x1, y0, y1, false))	// allyMoving is not read here
-	{
-		return 1;	// bail out
-	}
+		const Bool isCrusher = d->isCrusher;
+		TCheckMovementInfo info;
+		info.cell.x = to_x;
+		info.cell.y = to_y;
+		info.layer = to->getLayer();
+		info.centerInCell = d->centerInCell;
+		info.radius = d->radius;
+		info.considerTransient = d->blocked;
+		info.acceptableSurfaces = d->acceptableSurfaces;
 
-	if (info.allyFixedCount || info.enemyFixed)
-	{
-		return 1;	// bail out
-	}
-
-	if (!d->allowPinched && to->getPinched()) {
-		return 1; // bail out.
-	}
-
-	d->havePrev = true;
-	d->prevX = to_x;
-	d->prevY = to_y;
-	d->prevLayer = info.layer;
-
-	if (from && to->getLayer() != LAYER_GROUND && from->getLayer() == to->getLayer()) {
-		if (to->getType() == PathfindCell::CELL_CLEAR) {
-			return 0;
+		// Scan only the cells the step added to the footprint. The callback reads only an OR over footprint cells of a per-cell
+		// condition independent of the block centre, and the previous block passed. iterateCellsAlongLine steps one axis at a
+		// time, so the new row or column alone decides. Any other step, a layer change or the first cell scans the full block.
+		Int numCellsAbove = info.radius;
+		if (info.centerInCell) numCellsAbove++;
+		Int x0 = to_x - info.radius, x1 = to_x + numCellsAbove;
+		Int y0 = to_y - info.radius, y1 = to_y + numCellsAbove;
+		if (d->havePrev && d->prevLayer == info.layer && x1 - x0 > 1)	// a 1x1 block IS its strip
+		{
+			const Int dx = to_x - d->prevX;
+			const Int dy = to_y - d->prevY;
+			if (dy == 0 && dx == 1)       { x0 = x1 - 1; }
+			else if (dy == 0 && dx == -1) { x1 = x0 + 1; }
+			else if (dx == 0 && dy == 1)  { y0 = y1 - 1; }
+			else if (dx == 0 && dy == -1) { y1 = y0 + 1; }
 		}
-	}
+		if (!pathfinder->checkForMovementInRect(d->obj, info, x0, x1, y0, y1, false))	// allyMoving is not read here
+		{
+			return 1;	// bail out
+		}
 
-	if (pathfinder->validMovementPosition( isCrusher, d->acceptableSurfaces, to, from ) == false)
+		if (info.allyFixedCount || info.enemyFixed)
+		{
+			return 1;	// bail out
+		}
+
+		if (!d->allowPinched && to->getPinched()) {
+			return 1; // bail out.
+		}
+
+		d->havePrev = true;
+		d->prevX = to_x;
+		d->prevY = to_y;
+		d->prevLayer = info.layer;
+
+		if (from && to->getLayer() != LAYER_GROUND && from->getLayer() == to->getLayer()) {
+			if (to->getType() == PathfindCell::CELL_CLEAR) {
+				return 0;
+			}
+		}
+
+		if (pathfinder->validMovementPosition( isCrusher, d->acceptableSurfaces, to, from ) == false)
+		{
+			return 1;	// bail out
+		}
+
+		return 0;	// keep going
+	};
+#if RTS_ZEROHOUR
+	// GeneralsX perf60-3: see s_gxOptMemo. A pass is replayed with the strip state the step itself would leave.
+	if (ds->optMemo && to->getLayer() == LAYER_GROUND &&
+	    to_x >= 0 && to_x <= pathfinder->m_extent.hi.x && to_y >= 0 && to_y <= pathfinder->m_extent.hi.y)
 	{
-		return 1;	// bail out
+		UnsignedInt &entry = s_gxOptMemo[(UnsignedInt)to_x * (UnsignedInt)s_gxOptMemoStrideY + (UnsignedInt)to_y];
+		const Bool hit = (entry >> 1) == s_gxOptGen;
+#if defined(GX_TEST_INSTRUMENTS)
+		// Verify: the walk still follows the memo; every step is also answered fresh over the FULL footprint (no strip, no
+		// memo, on a copy of the walk state) and compared, so a wrong replayed answer or strip state counts in bad=.
+		const Bool verify = gxPathTraceVerify();
+		Int truth = 0;
+		LinePassableStruct shadow;
+		if (verify)
+		{
+			shadow = *ds;
+			shadow.havePrev = false;
+			truth = step(&shadow);
+		}
+		if (gxPathTraceEnabled())
+		{
+			++s_gxOptSteps;
+			if (hit) ++s_gxOptHits;
+		}
+#endif
+		Int ret;
+		if (hit)
+		{
+			ret = (entry & 1u) ? 0 : 1;	// keep going / bail out
+			if (ret == 0)
+			{
+				ds->havePrev = true;
+				ds->prevX = to_x;
+				ds->prevY = to_y;
+				ds->prevLayer = LAYER_GROUND;
+			}
+		}
+		else
+		{
+			ret = step(ds);
+			entry = (s_gxOptGen << 1) | (ret == 0 ? 1u : 0u);
+		}
+#if defined(GX_TEST_INSTRUMENTS)
+		// ... and a pass must leave the strip state the fresh step leaves (the next step's strip scan reads it).
+		if (verify && ((ret == 0) != (truth == 0) ||
+		    (ret == 0 && (ds->havePrev != shadow.havePrev || ds->prevX != shadow.prevX || ds->prevY != shadow.prevY ||
+		                  ds->prevLayer != shadow.prevLayer))))
+			++s_gxOptBad;
+#endif
+		return ret;
 	}
-
-	return 0;	// keep going
+#endif
+	return step(ds);
 }
 
 //-----------------------------------------------------------------------------
@@ -11433,6 +11559,41 @@ Bool Pathfinder::isLinePassable( const Object *obj, LocomotorSurfaceTypeMask acc
 	info.prevX = 0;
 	info.prevY = 0;
 	info.prevLayer = LAYER_GROUND;
+	info.optMemo = false;
+#if RTS_ZEROHOUR
+	// GeneralsX perf60-3: only Path::optimize's own walks (same key) use the memo; any other ignore id starts a new
+	// generation, so an entry is only read under the ignore id that wrote it.
+	if (s_gxOptActive && this == s_gxOptOwner && obj == s_gxOptObj && acceptableSurfaces == s_gxOptSurfaces && blocked == s_gxOptBlocked && !allowPinched)
+	{
+		// An accelerator only, like PathfindCellList::allocateIndex: out of memory for it must not fail the path (MSGNEW
+		// throws ERROR_OUT_OF_MEMORY), so the walks go on without it and it is not retried until the next map.
+		if (s_gxOptMemo == nullptr && !s_gxOptMemoFailed && m_map != nullptr)
+		{
+			const Int strideY = m_extent.hi.y + 1;
+			const UnsignedInt cells = (UnsignedInt)(m_extent.hi.x + 1) * (UnsignedInt)strideY;
+			try
+			{
+				s_gxOptMemo = MSGNEW("PathfindOptMemo") UnsignedInt[cells];
+				memset(s_gxOptMemo, 0, sizeof(UnsignedInt) * cells);
+				s_gxOptMemoStrideY = strideY;
+				s_gxOptMemoCells   = cells;
+			}
+			catch (...)
+			{
+				s_gxOptMemo       = nullptr;
+				s_gxOptMemoFailed = true;
+			}
+		}
+		if (m_ignoreObstacleID != s_gxOptIgnoreID)
+		{
+			gxOptNewGen();
+			s_gxOptIgnoreID = m_ignoreObstacleID;
+		}
+		// Sized for one grid: another size (a second Pathfinder) walks without it.
+		info.optMemo = s_gxOptMemo != nullptr && s_gxOptMemoStrideY == m_extent.hi.y + 1 &&
+			s_gxOptMemoCells == (UnsignedInt)(m_extent.hi.x + 1) * (UnsignedInt)s_gxOptMemoStrideY;
+	}
+#endif
 
 	Int ret = iterateCellsAlongLine(startWorld, endWorld, layer, linePassableCallback, (void*)&info);
 	return ret == 0;

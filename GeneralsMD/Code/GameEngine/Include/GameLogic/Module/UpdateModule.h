@@ -143,11 +143,22 @@ private:
 	// GeneralsX: GameLogic's sleepy-update wheel keeps its bookkeeping here (GameLogic/SleepyWheel.h):
 	// which container holds this module, its chunk there, and the seq that orders it among equal keys.
 	UnsignedByte m_sleepyWhere;
+	// GeneralsX (perf60-5): GameLogic's sleepy loop re-queues a module with a bit set here at now+1 exactly as if it had run
+	// and returned UPDATE_SLEEP_NONE, but without reading its Object or calling update(): the same pop and the same seq stamp,
+	// so every module keeps its place in the order. GX_SKIP_IDLE: set and cleared by the module itself, and only while its
+	// next update() would change nothing and return UPDATE_SLEEP_NONE. GX_SKIP_DEFERRED: GameLogic deferred it for its
+	// Object's disabled flags (the module's mask is constant); every write to those flags clears it. Not saved: 0 (= run it as
+	// before) is always correct.
+	UnsignedByte m_gxSkip;
 	void* m_sleepyChunk;
 	UnsignedInt64 m_sleepySeq;
 	friend struct SleepyWheelOps;
 
 protected:
+
+	// GeneralsX (perf60-5): see m_gxSkip. A module may set it only where update() is about to return UPDATE_SLEEP_NONE
+	// having changed nothing, and must clear it in every function that can make the next update() do something.
+	void setIdleSkip(Bool idle) { m_gxSkip = (UnsignedByte)(idle ? (m_gxSkip | GX_SKIP_IDLE) : (m_gxSkip & ~GX_SKIP_IDLE)); }
 
 	// yes, protected: modules should only wake themselves up.
 	void setWakeFrame(Object* obj, UpdateSleepTime wakeDelay);
@@ -226,12 +237,19 @@ public:
 		return getObject();
 	}
 
+	// GeneralsX (perf60-5): for GameLogic's sleepy loop (read, set DEFERRED) and Object (clear DEFERRED) only. See m_gxSkip.
+	enum { GX_SKIP_IDLE = 1, GX_SKIP_DEFERRED = 2 };
+	UnsignedByte friend_getSkip() const { return m_gxSkip; }
+	void friend_setDeferredSkip() { m_gxSkip = (UnsignedByte)(m_gxSkip | GX_SKIP_DEFERRED); }
+	void friend_clearDeferredSkip() { m_gxSkip = (UnsignedByte)(m_gxSkip & ~GX_SKIP_DEFERRED); }
+
 };
 inline UpdateModule::UpdateModule( Thing *thing, const ModuleData* moduleData ) :
 	BehaviorModule( thing, moduleData ),
 	m_indexInLogic(-1),
 	m_nextCallFrameAndPhase(0),
 	m_sleepyWhere(0),
+	m_gxSkip(0),
 	m_sleepyChunk(nullptr),
 	m_sleepySeq(0)
 {

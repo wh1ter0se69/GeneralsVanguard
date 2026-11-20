@@ -612,6 +612,7 @@ public:
 	//Checks any timers and clears disabled statii that have expired.
 	// GeneralsX: returns the earliest remaining till-frame (0xffffffff if none).
 	UnsignedInt checkDisabledStatus();
+	void gxDisabledFlagsChanged();	///< GeneralsX (perf60-5): after every write to m_disabledMask - UpdateModule::m_gxSkip
 
 	//When an AIAttackState is over, it needs to clean up any weapons that might be in leech range mode
 	//or else those weapons will have unlimited range!
